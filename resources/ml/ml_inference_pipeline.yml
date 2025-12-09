@@ -1,0 +1,87 @@
+# ML Inference Pipeline
+# Runs batch inference for ML models and stores predictions
+#
+# Purpose:
+#   - Score all data with trained models
+#   - Store predictions in inference tables
+#   - Enable Lakehouse Monitoring for drift detection
+#
+# Reference: https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-inference/
+
+resources:
+  jobs:
+    ml_inference_pipeline:
+      name: "[${bundle.target}] Health Monitor - ML Inference Pipeline"
+      description: "Runs batch inference for all ML models and stores predictions"
+      
+      # Serverless environment
+      environments:
+        - environment_key: ml_inference
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "mlflow>=3.0.0"
+              - "scikit-learn>=1.3.0"
+              - "pandas>=2.0.0"
+              - "numpy>=1.24.0"
+              - "databricks-feature-engineering"
+      
+      tasks:
+        # Cost anomaly scoring
+        - task_key: score_cost_anomalies
+          environment_key: ml_inference
+          notebook_task:
+            notebook_path: ../src/ml/inference/score_cost_anomalies.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+        
+        # Security threat scoring
+        - task_key: score_security_threats
+          environment_key: ml_inference
+          notebook_task:
+            notebook_path: ../src/ml/inference/score_security_threats.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+        
+        # Job failure prediction
+        - task_key: score_job_failures
+          environment_key: ml_inference
+          notebook_task:
+            notebook_path: ../src/ml/inference/score_job_failures.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+        
+        # Budget forecasts
+        - task_key: generate_budget_forecasts
+          environment_key: ml_inference
+          notebook_task:
+            notebook_path: ../src/ml/inference/generate_budget_forecasts.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+      
+      # Schedule: Hourly for real-time scoring
+      schedule:
+        quartz_cron_expression: "0 0 * * * ?"
+        timezone_id: "America/Los_Angeles"
+        pause_status: PAUSED
+      
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+      
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: ml
+        job_type: inference
+        compute_type: serverless
+

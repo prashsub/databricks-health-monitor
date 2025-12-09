@@ -63,4 +63,5 @@ include:
   - resources/bronze/*.yml
   - resources/silver/*.yml
   - resources/gold/*.yml
+  - resources/ml/*.yml
 

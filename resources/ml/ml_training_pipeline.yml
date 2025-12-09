@@ -1,0 +1,156 @@
+# ML Training Pipeline
+# Trains all 23 ML models for Databricks Health Monitor
+#
+# Agent Domains:
+#   - Cost Agent (5 models)
+#   - Security Agent (4 models)
+#   - Performance Agent (6 models)
+#   - Reliability Agent (5 models)
+#   - Quality Agent (3 models)
+#
+# MLflow 3.0 Best Practices:
+#   - Unity Catalog Model Registry (databricks-uc)
+#   - LoggedModel with name parameter
+#   - Model signatures required
+#   - Feature Engineering integration
+#
+# Reference: https://github.com/databricks/bundle-examples
+
+resources:
+  jobs:
+    ml_training_pipeline:
+      name: "[${bundle.target}] Health Monitor - ML Training Pipeline"
+      description: "Trains all ML models using MLflow 3.0 and registers to Unity Catalog"
+      
+      # Shared ML environment with all dependencies
+      environments:
+        - environment_key: ml_training
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "mlflow>=3.0.0"
+              - "scikit-learn>=1.3.0"
+              - "xgboost>=2.0.0"
+              - "lightgbm>=4.0.0"
+              - "pandas>=2.0.0"
+              - "numpy>=1.24.0"
+              - "databricks-feature-engineering"
+      
+      tasks:
+        # ========================================
+        # 💰 COST AGENT MODELS (5 models)
+        # ========================================
+        - task_key: train_cost_anomaly_detector
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../src/ml/cost/train_cost_anomaly.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+        
+        - task_key: train_budget_forecaster
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../src/ml/cost/train_budget_forecaster.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+        
+        - task_key: train_job_cost_optimizer
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../src/ml/cost/train_job_cost_optimizer.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+        
+        # ========================================
+        # 🔒 SECURITY AGENT MODELS (4 models)
+        # ========================================
+        - task_key: train_security_threat_detector
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../src/ml/security/train_threat_detector.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+        
+        # ========================================
+        # ⚡ PERFORMANCE AGENT MODELS (6 models)
+        # ========================================
+        - task_key: train_query_forecaster
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../src/ml/performance/train_query_forecaster.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+        
+        # ========================================
+        # 🔄 RELIABILITY AGENT MODELS (5 models)
+        # ========================================
+        - task_key: train_failure_predictor
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../src/ml/reliability/train_failure_predictor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.gold_schema}_features
+        
+        # ========================================
+        # MODEL REGISTRATION & DEPLOYMENT
+        # ========================================
+        - task_key: register_all_models
+          depends_on:
+            - task_key: train_cost_anomaly_detector
+            - task_key: train_budget_forecaster
+            - task_key: train_job_cost_optimizer
+            - task_key: train_security_threat_detector
+            - task_key: train_query_forecaster
+            - task_key: train_failure_predictor
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../src/ml/deployment/register_all_models.py
+            base_parameters:
+              catalog: ${var.catalog}
+              feature_schema: ${var.gold_schema}_features
+        
+        - task_key: deploy_serving_endpoints
+          depends_on:
+            - task_key: register_all_models
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../src/ml/deployment/deploy_endpoints.py
+            base_parameters:
+              catalog: ${var.catalog}
+              feature_schema: ${var.gold_schema}_features
+      
+      # Schedule: Daily at 3 AM (after feature pipeline)
+      schedule:
+        quartz_cron_expression: "0 0 3 * * ?"
+        timezone_id: "America/Los_Angeles"
+        pause_status: PAUSED
+      
+      # Timeout: 4 hours for full training
+      timeout_seconds: 14400
+      
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+        on_success:
+          - data-engineering@company.com
+      
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: ml
+        job_type: training
+        compute_type: serverless
+
