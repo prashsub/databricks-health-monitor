@@ -4,6 +4,10 @@
 
 Entity Relationship Diagrams for the Gold layer dimensional model, organized by business domain.
 
+## Master ERD
+
+📊 **[00_master_erd.md](00_master_erd.md)** - Complete ERD showing all 37 tables and relationships
+
 ## Domain ERDs
 
 | # | Domain | Tables | ERD File |
