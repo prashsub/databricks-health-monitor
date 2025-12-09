@@ -1,0 +1,236 @@
+# Gold Layer Table Schema
+# Table: fact_clean_room_events
+# Domain: security
+# Bronze Source: access.clean_room_events
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_clean_room_events
+domain: security
+bronze_source: access.clean_room_events
+
+description: >
+  Fact table tracking clean room collaboration activities.
+  Business: Clean room governance - captures participant actions, query executions, and
+  data access patterns within secure collaboration environments. Essential for compliance
+  and audit of multi-party data sharing. Technical: From access.clean_room_events.
+  365-day retention. Regional data. Supports streaming.
+
+primary_key:
+  columns: ['event_id']
+  composite: False
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: metastore_id
+    type: STRING
+    nullable: true
+    description: "The ID of the Unity Catalog metastore. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_id
+    type: STRING
+    nullable: false
+    description: "The ID of the clean room event Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: clean_room_name
+    type: STRING
+    nullable: true
+    description: "Name of the clean room associated with the event Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: central_clean_room_id
+    type: STRING
+    nullable: true
+    description: "The ID of central clean room Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: initiator_global_metastore_id
+    type: STRING
+    nullable: true
+    description: "Global metastore ID of the collaborator who initiated the event Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_type
+    type: STRING
+    nullable: true
+    description: "The type of the event. See [Logged clean room events](https://docs.databricks.com/en/admin/system-tables/clean-rooms.html#events). Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Event timestamp. Business: Precise UTC timestamp when event occurred in source system. Used for time-series analysis, trend detection, and SLA monitoring. Critical for accurate historical reporting and audit trails. Technical: TIMESTAMP with timezone (+00:00 UTC), typically millisecond precision. Used for temporal ordering, time-based partitioning, and change data capture. Part of composite key..."
+
+  - name: initiator_collaborator_alias
+    type: STRING
+    nullable: true
+    description: "The alias of the collaborator who initiated the event Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: clean_room_created_metadata_collaborators
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type CLEAN_ROOM_CREATED [Nested field: collaborators]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from clean_room_created_metadata.collaborators, STRING type, nullable."
+    # Flattened from: clean_room_created_metadata.collaborators
+
+  - name: clean_room_created_metadata_egress_network_policy
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type CLEAN_ROOM_CREATED [Nested field: egress_network_policy]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from clean_room_created_metadata.egress_network_policy, STRING type, nullable."
+    # Flattened from: clean_room_created_metadata.egress_network_policy
+
+  - name: clean_room_created_metadata_compliance_profile
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type CLEAN_ROOM_CREATED [Nested field: compliance_profile]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from clean_room_created_metadata.compliance_profile, STRING type, nullable."
+    # Flattened from: clean_room_created_metadata.compliance_profile
+
+  - name: clean_room_deleted_metadata_central_clean_room_id
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type CLEAN_ROOM_DELETED [Nested field: central_clean_room_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from clean_room_deleted_metadata.central_clean_room_id, STRING type, nullable."
+    # Flattened from: clean_room_deleted_metadata.central_clean_room_id
+
+  - name: run_notebook_started_metadata_notebook_name
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_STARTED [Nested field: notebook_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_started_metadata.notebook_name, STRING type, nullable."
+    # Flattened from: run_notebook_started_metadata.notebook_name
+
+  - name: run_notebook_started_metadata_notebook_checksum
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_STARTED [Nested field: notebook_checksum]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_started_metadata.notebook_checksum, STRING type, nullable."
+    # Flattened from: run_notebook_started_metadata.notebook_checksum
+
+  - name: run_notebook_started_metadata_run_id
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_STARTED [Nested field: run_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_started_metadata.run_id, STRING type, nullable."
+    # Flattened from: run_notebook_started_metadata.run_id
+
+  - name: run_notebook_started_metadata_notebook_etag
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_STARTED [Nested field: notebook_etag]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_started_metadata.notebook_etag, STRING type, nullable."
+    # Flattened from: run_notebook_started_metadata.notebook_etag
+
+  - name: run_notebook_started_metadata_notebook_update_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_STARTED [Nested field: notebook_update_time]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_started_metadata.notebook_update_time, TIMESTAMP type, nullable."
+    # Flattened from: run_notebook_started_metadata.notebook_update_time
+
+  - name: run_notebook_completed_metadata_notebook_name
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_COMPLETED [Nested field: notebook_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_completed_metadata.notebook_name, STRING type, nullable."
+    # Flattened from: run_notebook_completed_metadata.notebook_name
+
+  - name: run_notebook_completed_metadata_run_id
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_COMPLETED [Nested field: run_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_completed_metadata.run_id, STRING type, nullable."
+    # Flattened from: run_notebook_completed_metadata.run_id
+
+  - name: run_notebook_completed_metadata_state
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_COMPLETED [Nested field: state]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_completed_metadata.state, STRING type, nullable."
+    # Flattened from: run_notebook_completed_metadata.state
+
+  - name: run_notebook_completed_metadata_duration_in_seconds
+    type: INT
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_COMPLETED [Nested field: duration_in_seconds]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_completed_metadata.duration_in_seconds, INT type, nullable."
+    # Flattened from: run_notebook_completed_metadata.duration_in_seconds
+
+  - name: run_notebook_completed_metadata_output_schema
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type RUN_NOTEBOOK_COMPLETED [Nested field: output_schema]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from run_notebook_completed_metadata.output_schema, STRING type, nullable."
+    # Flattened from: run_notebook_completed_metadata.output_schema
+
+  - name: clean_room_assets_updated_metadata_added_assets
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type CLEAN_ROOM_ASSETS_UPDATED [Nested field: added_assets]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from clean_room_assets_updated_metadata.added_assets, STRING type, nullable."
+    # Flattened from: clean_room_assets_updated_metadata.added_assets
+
+  - name: clean_room_assets_updated_metadata_updated_assets
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type CLEAN_ROOM_ASSETS_UPDATED [Nested field: updated_assets]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from clean_room_assets_updated_metadata.updated_assets, STRING type, nullable."
+    # Flattened from: clean_room_assets_updated_metadata.updated_assets
+
+  - name: clean_room_assets_updated_metadata_removed_assets
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type CLEAN_ROOM_ASSETS_UPDATED [Nested field: removed_assets]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from clean_room_assets_updated_metadata.removed_assets, STRING type, nullable."
+    # Flattened from: clean_room_assets_updated_metadata.removed_assets
+
+  - name: output_schema_deleted_metadata_name
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type OUTPUT_SCHEMA_DELETED [Nested field: name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from output_schema_deleted_metadata.name, STRING type, nullable."
+    # Flattened from: output_schema_deleted_metadata.name
+
+  - name: output_schema_deleted_metadata_owner_global_metastore_id
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type OUTPUT_SCHEMA_DELETED [Nested field: owner_global_metastore_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from output_schema_deleted_metadata.owner_global_metastore_id, STRING type, nullable."
+    # Flattened from: output_schema_deleted_metadata.owner_global_metastore_id
+
+  - name: output_schema_deleted_metadata_action
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type OUTPUT_SCHEMA_DELETED [Nested field: action]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from output_schema_deleted_metadata.action, STRING type, nullable."
+    # Flattened from: output_schema_deleted_metadata.action
+
+  - name: output_schema_deleted_metadata_expire_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The metadata of the event type OUTPUT_SCHEMA_DELETED [Nested field: expire_time]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from output_schema_deleted_metadata.expire_time, TIMESTAMP type, nullable."
+    # Flattened from: output_schema_deleted_metadata.expire_time
+
+  - name: asset_review_created_metadata_asset_name
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type ASSET_REVIEW_CREATED [Nested field: asset_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from asset_review_created_metadata.asset_name, STRING type, nullable."
+    # Flattened from: asset_review_created_metadata.asset_name
+
+  - name: asset_review_created_metadata_data_object_type
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type ASSET_REVIEW_CREATED [Nested field: data_object_type]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from asset_review_created_metadata.data_object_type, STRING type, nullable."
+    # Flattened from: asset_review_created_metadata.data_object_type
+
+  - name: asset_review_created_metadata_review_state
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type ASSET_REVIEW_CREATED [Nested field: review_state]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from asset_review_created_metadata.review_state, STRING type, nullable."
+    # Flattened from: asset_review_created_metadata.review_state
+
+  - name: asset_review_created_metadata_review_sub_reason
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type ASSET_REVIEW_CREATED [Nested field: review_sub_reason]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from asset_review_created_metadata.review_sub_reason, STRING type, nullable."
+    # Flattened from: asset_review_created_metadata.review_sub_reason
+
+  - name: asset_review_created_metadata_auto_approval_rule_id
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type ASSET_REVIEW_CREATED [Nested field: auto_approval_rule_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from asset_review_created_metadata.auto_approval_rule_id, STRING type, nullable."
+    # Flattened from: asset_review_created_metadata.auto_approval_rule_id
+
+  - name: asset_review_created_metadata_notebook_metadata
+    type: STRING
+    nullable: true
+    description: "The metadata of the event type ASSET_REVIEW_CREATED [Nested field: notebook_metadata]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from asset_review_created_metadata.notebook_metadata, STRING type, nullable."
+    # Flattened from: asset_review_created_metadata.notebook_metadata
+

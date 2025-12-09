@@ -1,0 +1,95 @@
+# Gold Layer Table Schema
+# Table: fact_job_run_timeline
+# Domain: lakeflow
+# Bronze Source: lakeflow.job_run_timeline
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_job_run_timeline
+domain: lakeflow
+bronze_source: lakeflow.job_run_timeline
+
+description: >
+  Fact table capturing job run execution metrics with hourly slicing.
+  Business: Primary table for job performance monitoring - tracks run duration, status,
+  termination reasons, and timing. Enables SLA tracking, failure analysis, and job
+  performance trending. Long-running jobs are sliced into hourly rows for granular monitoring.
+  Technical: From lakeflow.job_run_timeline. 365-day retention. Supports streaming. Joinable
+  to billing.usage via job_id for cost-per-run analysis.
+
+primary_key:
+  columns: ['workspace_id', 'run_id']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id', 'job_id']
+    references: dim_job(workspace_id, job_id)
+    nullable: True
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: job_id
+    type: STRING
+    nullable: true
+    description: "Job identifier. Business: Unique ID for Databricks job definition within workspace. Used to track job performance, costs, and failures over time. Primary key for job monitoring and cost attribution. Only unique within single workspace. Technical: STRING identifier from Databricks Jobs API, part of composite key (workspace_id, job_id) for global uniqueness. Foreign key to dim_job for job metadat..."
+
+  - name: run_id
+    type: STRING
+    nullable: false
+    description: "Run identifier. Business: Unique ID for specific job or task execution instance. Critical for tracking individual run costs, duration, and outcomes. Primary key for run-level analysis and troubleshooting. Technical: STRING identifier from Databricks execution engine, globally unique across workspace. Used in timeline tables with composite key (workspace_id, run_id) for temporal slicing."
+
+  - name: period_start_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The start time for the run or for the time period. Timezone information is recorded at the end of the value with +00:00 representing UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: period_end_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The end time for the run or for the time period. Timezone information is recorded at the end of the value with +00:00 representing UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: trigger_type
+    type: STRING
+    nullable: true
+    description: "The type of trigger that can fire a run. For possible values, see [Trigger type values](https://docs.databricks.com/en/admin/system-tables/jobs.html#trigger) Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: result_state
+    type: STRING
+    nullable: true
+    description: "The outcome of the job run. For possible values, see [Result state values](https://docs.databricks.com/en/admin/system-tables/jobs.html#result). Business: Categorical indicator for status tracking, filtering, and operational monitoring. Used in dashboards and alerting. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: run_type
+    type: STRING
+    nullable: true
+    description: "The type of job run. For possible values, see [Run type values](https://docs.databricks.com/en/admin/system-tables/jobs.html#run-type). Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: run_name
+    type: STRING
+    nullable: true
+    description: "The user-supplied run name associated with this job run. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: termination_code
+    type: STRING
+    nullable: true
+    description: "The termination code of the job run. For possible values, see [Termination code values](https://docs.databricks.com/en/admin/system-tables/jobs.html#termination). **Not populated for rows emitted before late August 2024.** Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STR..."
+
+  # === Flattened Nested Columns ===
+
+  - name: compute_ids_json
+    type: STRING
+    nullable: true
+    description: "Array containing the compute IDs for the parent job run. Use for identifying cluster used by `WORKFLOW_RUN` run types. For other compute information, refer to the `job_task_run_timeline` table. **Not populated for rows emitted before late August 2024** Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technic..."
+
+  - name: job_parameters_json
+    type: STRING
+    nullable: true
+    description: "The job-level parameters used in the job run. **Not populated for rows emitted before late August 2024.** Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+

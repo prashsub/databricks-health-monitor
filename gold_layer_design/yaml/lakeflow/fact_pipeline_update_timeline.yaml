@@ -1,0 +1,122 @@
+# Gold Layer Table Schema
+# Table: fact_pipeline_update_timeline
+# Domain: lakeflow
+# Bronze Source: lakeflow.pipeline_update_timeline
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_pipeline_update_timeline
+domain: lakeflow
+bronze_source: lakeflow.pipeline_update_timeline
+
+description: >
+  Fact table tracking DLT pipeline update executions.
+  Business: Pipeline run monitoring - captures update duration, status, compute resources,
+  and timing. Enables pipeline performance trending, failure analysis, and cost tracking.
+  Critical for data freshness SLA monitoring. Technical: From lakeflow.pipeline_update_timeline.
+  365-day retention. Supports streaming.
+
+primary_key:
+  columns: ['workspace_id', 'update_id']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id', 'pipeline_id']
+    references: dim_pipeline(workspace_id, pipeline_id)
+    nullable: True
+
+  - columns: ['workspace_id', 'compute_cluster_id']
+    references: dim_cluster(workspace_id, cluster_id)
+    nullable: True
+    # Flattened from nested struct: compute
+
+columns:
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: pipeline_id
+    type: STRING
+    nullable: true
+    description: "Pipeline identifier. Business: Unique ID for Delta Live Tables pipeline within workspace. Used to track pipeline update costs, data quality results, and execution history. Only unique within single workspace. Technical: STRING identifier from Databricks Pipelines API, part of composite key (workspace_id, pipeline_id). Foreign key to dim_pipeline for pipeline configuration and settings."
+
+  - name: update_id
+    type: STRING
+    nullable: false
+    description: "The ID of the pipeline update. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: update_type
+    type: STRING
+    nullable: true
+    description: "The type of the pipeline update. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: request_id
+    type: STRING
+    nullable: true
+    description: "The ID of the request. Helps to understand how many times an update had to be retried/restarted. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: run_as_user_name
+    type: STRING
+    nullable: true
+    description: "The email/ID of the service principal whose permissions are used for the pipeline update. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: trigger_type
+    type: STRING
+    nullable: true
+    description: "What triggered this update. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: result_state
+    type: STRING
+    nullable: true
+    description: "The outcome of the pipeline update. Business: Categorical indicator for status tracking, filtering, and operational monitoring. Used in dashboards and alerting. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: period_start_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The start time for the pipeline update or for the hour. The value is stored as a UTC timestamp. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: period_end_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The end time for the pipeline update or for the hour. The value is stored as a UTC timestamp. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  # === Flattened Nested Columns ===
+
+  - name: trigger_details_job_task
+    type: STRING
+    nullable: true
+    description: "The details of the pipeline's trigger. [Nested field: job_task]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from trigger_details.job_task, STRING type, nullable."
+    # Flattened from: trigger_details.job_task
+
+  - name: compute_type
+    type: STRING
+    nullable: true
+    description: "Details about the compute resource used in the pipeline update. [Nested field: type]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from compute.type, STRING type, nullable."
+    # Flattened from: compute.type
+
+  - name: compute_cluster_id
+    type: STRING
+    nullable: true
+    description: "Details about the compute resource used in the pipeline update. [Nested field: cluster_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from compute.cluster_id, STRING type, nullable."
+    # Flattened from: compute.cluster_id
+
+  - name: refresh_selection_json
+    type: STRING
+    nullable: true
+    description: "A list of tables to update without fullRefresh. Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized ARRAY, enables flexible querying of variable-length collections."
+
+  - name: full_refresh_selection_json
+    type: STRING
+    nullable: true
+    description: "A list of tables to update with fullRefresh. Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized ARRAY, enables flexible querying of variable-length collections."
+
+  - name: reset_checkpoint_selection_json
+    type: STRING
+    nullable: true
+    description: "A list of streaming flows to clear the checkpoints for. Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized ARRAY, enables flexible querying of variable-length collections."
+

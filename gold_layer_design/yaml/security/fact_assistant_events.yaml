@@ -1,0 +1,61 @@
+# Gold Layer Table Schema
+# Table: fact_assistant_events
+# Domain: security
+# Bronze Source: access.assistant_events
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_assistant_events
+domain: security
+bronze_source: access.assistant_events
+
+description: >
+  Fact table recording Databricks AI Assistant interactions.
+  Business: AI assistant usage analytics - captures user queries, context, and outcomes.
+  Essential for understanding AI adoption, improving assistant effectiveness, and
+  identifying common user questions. Technical: From access.assistant_events. 365-day retention.
+
+primary_key:
+  columns: ['event_id']
+  composite: False
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: event_id
+    type: STRING
+    nullable: false
+    description: "A unique ID for this event. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Event timestamp. Business: Precise UTC timestamp when event occurred in source system. Used for time-series analysis, trend detection, and SLA monitoring. Critical for accurate historical reporting and audit trails. Technical: TIMESTAMP with timezone (+00:00 UTC), typically millisecond precision. Used for temporal ordering, time-based partitioning, and change data capture. Part of composite key..."
+
+  - name: event_date
+    type: DATE
+    nullable: true
+    description: "Date that the event happened. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. DATE type."
+
+  - name: user_agent
+    type: STRING
+    nullable: true
+    description: "Origination of request. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: initiated_by
+    type: STRING
+    nullable: true
+    description: "Email of the user initiating the request. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+

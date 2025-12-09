@@ -1,0 +1,100 @@
+# Gold Layer Table Schema
+# Table: dim_warehouse
+# Domain: query_performance
+# Bronze Source: compute.warehouses
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_warehouse
+domain: query_performance
+bronze_source: compute.warehouses
+
+description: >
+  Dimension table containing SQL warehouse configuration history.
+  Business: Tracks warehouse sizing (T-shirt sizes), scaling policies, spot instance usage,
+  and channel settings. Essential for optimizing SQL workload costs and understanding
+  warehouse evolution. Enables correlation between warehouse settings and query performance.
+  Technical: Slow-changing dimension from compute.warehouses. 365-day retention. Supports
+  streaming ingestion.
+
+primary_key:
+  columns: ['workspace_id', 'warehouse_id']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: False
+
+columns:
+  - name: warehouse_id
+    type: STRING
+    nullable: false
+    description: "SQL Warehouse identifier. Business: Unique ID for SQL warehouse within workspace. Essential for tracking warehouse costs, query performance, and scaling events. Only unique within single workspace. Technical: STRING identifier from Databricks SQL API, part of composite key (workspace_id, warehouse_id). Foreign key to dim_warehouse for warehouse configuration (size, type, auto_stop settings)."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: warehouse_name
+    type: STRING
+    nullable: true
+    description: "The name of the SQL warehouse. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: warehouse_type
+    type: STRING
+    nullable: true
+    description: "The type of SQL warehouse. Possible values are CLASSIC, PRO, and SERVERLESS. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: warehouse_channel
+    type: STRING
+    nullable: true
+    description: "The channel of the SQL warehouse. Possible values are CURRENT and PREVIEW. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: warehouse_size
+    type: STRING
+    nullable: true
+    description: "The cluster size of the SQL warehouse. Possible values are 2X_SMALL, X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, 2X_LARGE, 3X_LARGE, 4X_LARGE, and 5X_LARGE. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: min_clusters
+    type: INT
+    nullable: true
+    description: "The minimum number of clusters permitted. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. INT type."
+
+  - name: max_clusters
+    type: INT
+    nullable: true
+    description: "The maximum number of clusters permitted. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. INT type."
+
+  - name: auto_stop_minutes
+    type: INT
+    nullable: true
+    description: "The number of minutes before the SQL warehouse auto-stops due to inactivity. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. INT type."
+
+  - name: change_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Timestamp of change to the SQL warehouse definition. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: delete_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Timestamp of when the SQL warehouse was deleted. The value is null if the SQL warehouse is not deleted. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: created_by
+    type: STRING
+    nullable: true
+    description: "The name of the Databricks principal or user that created this warehouse. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: tags_json
+    type: STRING
+    nullable: true
+    description: "Tags for the SQL warehouse. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+

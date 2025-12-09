@@ -1,0 +1,80 @@
+# Gold Layer Setup Job (YAML-Driven)
+# Reference: https://github.com/databricks/bundle-examples/blob/main/knowledge_base/serverless_job/resources/serverless_job.yml
+#
+# Single script reads all YAML schemas and creates tables at runtime.
+# No code generation required - YAMLs are the single source of truth.
+#
+# Tasks:
+#   1. setup_all_tables - Creates all 39 tables from YAML definitions
+#   2. add_fk_constraints - Applies foreign key constraints
+
+resources:
+  jobs:
+    gold_setup_job:
+      name: "[${bundle.target}] Health Monitor - Gold Layer Setup"
+      description: "Health Monitor: Creates all Gold layer tables from YAML schemas with PK/FK constraints"
+      
+      # Serverless environment with PyYAML dependency
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "pyyaml>=6.0"
+      
+      # Job parameters
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: gold_schema
+          default: ${var.gold_schema}
+      
+      tasks:
+        # ============================================================================
+        # STEP 1: Create all tables from YAML (single script)
+        # ============================================================================
+        - task_key: setup_all_tables
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/setup_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              domain: all
+          timeout_seconds: 1800
+        
+        # ============================================================================
+        # STEP 2: Add Foreign Key constraints (after all PKs exist)
+        # ============================================================================
+        - task_key: add_fk_constraints
+          depends_on:
+            - task_key: setup_all_tables
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/add_all_fk_constraints.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+          timeout_seconds: 600
+      
+      # Job-level timeout (1 hour)
+      timeout_seconds: 3600
+      
+      # Email notifications
+      email_notifications:
+        on_start:
+          - prashanth.subrahmanyam@databricks.com
+        on_success:
+          - prashanth.subrahmanyam@databricks.com
+        on_failure:
+          - prashanth.subrahmanyam@databricks.com
+      
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: gold
+        compute_type: serverless
+        job_type: setup
+        tables: "39"
+        approach: yaml_driven

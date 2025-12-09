@@ -1,0 +1,97 @@
+# Bronze Layer Unified DLT Streaming Pipeline (Serverless)
+# Reference: https://github.com/databricks/bundle-examples/blob/main/knowledge_base/pipeline_with_schema/resources/pipeline.yml
+# 
+# Delta Live Tables streaming pipeline for system tables (24 streaming-compatible tables)
+# Consolidates 7 domain notebooks into 1 pipeline for easier management
+# Uses serverless compute for automatic scaling and cost optimization
+#
+# Ingests from 7 system schema domains (24 tables):
+# - access (3 tables): audit, account_usage, table_acls (inbound_network disabled due to Deletion Vectors)
+# - billing (2 tables): usage, list_prices
+# - compute (4 tables): clusters, node_timeline, warehouse_events, warehouses
+# - lakeflow (3 tables): update_event_metrics, update_table_metrics, pipeline_configs (pipeline_update_timeline disabled)
+# - marketplace (3 tables): consumer_listings, consumer_providers, provider_listings
+# - mlflow (2 tables): experiment_runs, serving_endpoints
+# - serving (1 table): endpoints
+# NOTE: sharing domain excluded - materialization_history table doesn't exist
+# NOTE: 3 tables disabled due to Delta Sharing + Deletion Vectors incompatibility
+
+resources:
+  pipelines:
+    bronze_streaming_pipeline:
+      name: "[${bundle.target}] Health Monitor - Bronze Streaming Pipeline (All Domains)"
+      
+      # Pipeline root folder (Lakeflow Pipelines Editor best practice)
+      root_path: ../../src/bronze/streaming
+      
+      # DLT Direct Publishing Mode (Modern Pattern)
+      catalog: ${var.catalog}
+      schema: ${var.system_bronze_schema}
+      
+      # DLT Libraries - 7 domain notebooks (excluding sharing due to incompatibility)
+      libraries:
+        - notebook:
+            path: ../../src/bronze/streaming/access_tables.py
+        - notebook:
+            path: ../../src/bronze/streaming/billing_tables.py
+        - notebook:
+            path: ../../src/bronze/streaming/compute_tables.py
+        - notebook:
+            path: ../../src/bronze/streaming/lakeflow_tables.py
+        - notebook:
+            path: ../../src/bronze/streaming/marketplace_tables.py
+        - notebook:
+            path: ../../src/bronze/streaming/mlflow_tables.py
+        - notebook:
+            path: ../../src/bronze/streaming/serving_tables.py
+        # NOTE: sharing_tables.py removed - materialization_history table doesn't exist
+      
+      # Pipeline Configuration (passed to notebooks)
+      configuration:
+        catalog: ${var.catalog}
+        bronze_schema: ${var.system_bronze_schema}
+        pipelines.enableTrackHistory: "true"
+      
+      # Serverless Compute
+      serverless: true
+      
+      # Photon Engine
+      photon: true
+      
+      # Channel (CURRENT = latest features)
+      channel: CURRENT
+      
+      # Continuous vs Triggered
+      continuous: false
+      
+      # Development Mode (faster iteration, auto-recovery)
+      development: true
+      
+      # Edition (ADVANCED for expectations, SCD, etc.)
+      edition: ADVANCED
+      
+      # Notifications
+      notifications:
+        - alerts:
+            - on-update-failure
+            - on-update-fatal-failure
+            - on-flow-failure
+          email_recipients:
+            - data-engineering@company.com
+      
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: bronze
+        pipeline_type: streaming
+        compute_type: serverless
+        domains: "7"
+        streaming_tables: "21"  # 24 minus 3 disabled
+        disabled_tables: "3"  # inbound_network, pipeline_update_timeline, materialization_history
+      
+      # Permissions
+      permissions:
+        - level: CAN_VIEW
+          group_name: users
+

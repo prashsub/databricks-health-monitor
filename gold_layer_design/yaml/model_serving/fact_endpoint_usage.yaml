@@ -1,0 +1,103 @@
+# Gold Layer Table Schema
+# Table: fact_endpoint_usage
+# Domain: model_serving
+# Bronze Source: serving.endpoint_usage
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_endpoint_usage
+domain: model_serving
+bronze_source: serving.endpoint_usage
+
+description: >
+  Fact table tracking model serving inference usage.
+  Business: Model serving cost and performance monitoring - captures token counts, request
+  volumes, and latency for serving endpoints. Essential for inference cost optimization,
+  capacity planning, and SLA monitoring. Technical: From serving.endpoint_usage. 90-day
+  retention. Requires usage tracking enabled on endpoint. Supports streaming.
+
+primary_key:
+  columns: ['databricks_request_id']
+  composite: False
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+
+  - columns: ['served_entity_id']
+    references: dim_served_entity(served_entity_id)
+    nullable: True
+
+columns:
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: client_request_id
+    type: STRING
+    nullable: true
+    description: "The user provided request identifier that can be specified in the model serving request body. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: databricks_request_id
+    type: STRING
+    nullable: false
+    description: "A Databricks generated request identifier attached to all model serving requests. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: requester
+    type: STRING
+    nullable: true
+    description: "The ID of the user or service principal whose permissions are used for the invocation request of the serving endpoint. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: status_code
+    type: INT
+    nullable: true
+    description: "The HTTP status code that was returned from the model. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. INT type."
+
+  - name: request_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The timestamp at which the request is received. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: input_token_count
+    type: BIGINT
+    nullable: true
+    description: "The token count of the input. Business: Quantitative measure for aggregations, trending, and KPI calculations. Used in dashboards and executive reporting. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: output_token_count
+    type: BIGINT
+    nullable: true
+    description: "The token count of the output. Business: Quantitative measure for aggregations, trending, and KPI calculations. Used in dashboards and executive reporting. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: input_character_count
+    type: BIGINT
+    nullable: true
+    description: "The character count of the input string or prompt. Business: Quantitative measure for aggregations, trending, and KPI calculations. Used in dashboards and executive reporting. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: output_character_count
+    type: BIGINT
+    nullable: true
+    description: "The character count of the output string of the response. Business: Quantitative measure for aggregations, trending, and KPI calculations. Used in dashboards and executive reporting. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: request_streaming
+    type: BOOLEAN
+    nullable: true
+    description: "Whether the request is in stream mode. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BOOLEAN type."
+
+  - name: served_entity_id
+    type: STRING
+    nullable: true
+    description: "The unique ID used to join with the system.serving.served_entities dimension table to lookup information about the endpoint and served entity. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: usage_context_json
+    type: STRING
+    nullable: true
+    description: "The user provided map containing identifiers of the end user or the customer application that makes the call to the endpoint. See [Further define usage with usage_context](https://docs.databricks.com/en/ai-gateway/configure-ai-gateway-endpoints.html#usage-context). Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsi..."
+

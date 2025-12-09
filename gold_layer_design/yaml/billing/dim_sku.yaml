@@ -1,0 +1,40 @@
+# Gold Layer Table Schema
+# Table: dim_sku
+# Domain: billing
+# Bronze Source: Derived from billing.usage.sku_name
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_sku
+domain: billing
+bronze_source: "Derived (DISTINCT sku_name from billing.usage)"
+
+description: >
+  Dimension table containing all unique Databricks SKU identifiers.
+  Business: Master reference for product/service pricing - each SKU maps to a specific
+  Databricks capability (compute, storage, model serving, etc.) with its own pricing rate.
+  Essential for cost attribution, budget forecasting, and understanding billing line items.
+  Technical: Derived from distinct SKUs in billing.usage and billing.list_prices tables.
+  Supports 365-day historical analysis.
+
+primary_key:
+  columns: [sku_name]
+  composite: false
+
+foreign_keys:
+  [] # Root dimension - no foreign keys
+
+columns:
+  - name: sku_name
+    type: STRING
+    nullable: false
+    description: "SKU name identifier. Business: Databricks product/service identifier determining pricing rate. Essential for cost analysis, budget forecasting, and price change tracking. Examples: STANDARD_ALL_PURPOSE_COMPUTE, JOBS_LIGHT_COMPUTE, SERVERLESS_SQL. Technical: STRING enum from Databricks billing catalog, globally unique, primary key. Referenced by usage, pricing, and cost tables."
+
+  - name: cloud
+    type: STRING
+    nullable: true
+    description: "Cloud provider. Business: Indicates which cloud platform this SKU applies to. Critical for multi-cloud deployments and cloud-specific cost analysis. Used for cloud cost comparison and optimization. Technical: STRING enum with values AWS, AZURE, or GCP. Derived from usage records associated with this SKU."
+
+  - name: usage_unit
+    type: STRING
+    nullable: true
+    description: "Usage unit of measurement. Business: Defines how this SKU is metered and billed (DBU, GB, API calls, tokens). Essential for understanding cost drivers and consumption patterns. Technical: STRING enum (DBU, STORAGE_GB, API_OPERATION, TOKEN, GPU_TIME). Determines multiplier for cost calculations when combined with usage_quantity."

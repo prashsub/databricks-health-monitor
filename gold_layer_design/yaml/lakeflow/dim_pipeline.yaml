@@ -1,0 +1,120 @@
+# Gold Layer Table Schema
+# Table: dim_pipeline
+# Domain: lakeflow
+# Bronze Source: lakeflow.pipelines
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_pipeline
+domain: lakeflow
+bronze_source: lakeflow.pipelines
+
+description: >
+  Dimension table tracking Delta Live Tables pipeline configurations.
+  Business: Complete inventory of DLT pipelines including target schema, edition (Core/Pro/Advanced),
+  compute settings, and streaming vs batch mode. Essential for DLT governance, cost analysis
+  by pipeline, and understanding data processing topology. Technical: From lakeflow.pipelines.
+  365-day retention. Supports streaming.
+
+primary_key:
+  columns: ['workspace_id', 'pipeline_id']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: False
+
+columns:
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: pipeline_id
+    type: STRING
+    nullable: false
+    description: "Pipeline identifier. Business: Unique ID for Delta Live Tables pipeline within workspace. Used to track pipeline update costs, data quality results, and execution history. Only unique within single workspace. Technical: STRING identifier from Databricks Pipelines API, part of composite key (workspace_id, pipeline_id). Foreign key to dim_pipeline for pipeline configuration and settings."
+
+  - name: pipeline_type
+    type: STRING
+    nullable: true
+    description: "The type of pipeline. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: name
+    type: STRING
+    nullable: true
+    description: "The user-supplied name of the pipeline. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: created_by
+    type: STRING
+    nullable: true
+    description: "The email/ID of the service principal who created the pipeline. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: run_as
+    type: STRING
+    nullable: true
+    description: "The email/ID of the service principal whose permissions are used for the pipeline run. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: change_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time when the pipeline was last modified. Timezone recorded as +00:00 (UTC). Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: delete_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time when a pipeline was deleted by the user. Timezone recorded as +00:00 (UTC). Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  # === Flattened Nested Columns ===
+
+  - name: tags_json
+    type: STRING
+    nullable: true
+    description: "The user-supplied tags associated with the pipeline. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+
+  - name: settings_photon
+    type: BOOLEAN
+    nullable: true
+    description: "The settings of the pipeline. [Nested field: photon]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from settings.photon, BOOLEAN type, nullable."
+    # Flattened from: settings.photon
+
+  - name: settings_development
+    type: BOOLEAN
+    nullable: true
+    description: "The settings of the pipeline. [Nested field: development]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from settings.development, BOOLEAN type, nullable."
+    # Flattened from: settings.development
+
+  - name: settings_continuous
+    type: BOOLEAN
+    nullable: true
+    description: "The settings of the pipeline. [Nested field: continuous]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from settings.continuous, BOOLEAN type, nullable."
+    # Flattened from: settings.continuous
+
+  - name: settings_serverless
+    type: BOOLEAN
+    nullable: true
+    description: "The settings of the pipeline. [Nested field: serverless]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from settings.serverless, BOOLEAN type, nullable."
+    # Flattened from: settings.serverless
+
+  - name: settings_edition
+    type: STRING
+    nullable: true
+    description: "The settings of the pipeline. [Nested field: edition]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from settings.edition, STRING type, nullable."
+    # Flattened from: settings.edition
+
+  - name: settings_channel
+    type: STRING
+    nullable: true
+    description: "The settings of the pipeline. [Nested field: channel]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from settings.channel, STRING type, nullable."
+    # Flattened from: settings.channel
+
+  - name: configuration_json
+    type: STRING
+    nullable: true
+    description: "The user-supplied configuration of the pipeline. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+

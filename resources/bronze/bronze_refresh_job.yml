@@ -1,0 +1,60 @@
+# Bronze Refresh Job
+# RECURRING: Ingest data from system tables into Bronze
+# Called by Master Refresh Orchestrator
+# 
+# Execution Flow:
+# 1. Run unified DLT streaming pipeline (24 streaming tables)
+# 2. MERGE non-streaming tables (8 tables)
+# 
+# Total: 32 system tables ingested
+
+resources:
+  jobs:
+    bronze_refresh_job:
+      name: "[${bundle.target}] Health Monitor - Bronze Refresh"
+      description: "Bronze data ingestion: DLT streaming (24 tables) + non-streaming MERGE (8 tables) = 32 total"
+      
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+      
+      tasks:
+        # Run unified DLT streaming pipeline
+        - task_key: run_streaming_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.bronze_streaming_pipeline.id}
+            full_refresh: false
+        
+        # MERGE non-streaming tables
+        - task_key: merge_nonstreaming_tables
+          depends_on:
+            - task_key: run_streaming_pipeline
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/bronze/nonstreaming/merge.py
+            base_parameters:
+              catalog: ${var.catalog}
+              system_bronze_schema: ${var.system_bronze_schema}
+      
+      timeout_seconds: 14400  # 4 hours
+      
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+        on_duration_warning_threshold_exceeded:
+          - data-engineering@company.com
+      
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: bronze
+        job_type: refresh
+        compute_type: serverless
+        streaming_tables: "24"
+        nonstreaming_tables: "8"
+
+
+
+
+

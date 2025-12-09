@@ -1,0 +1,57 @@
+# Gold Layer Table Schema
+# Table: fact_warehouse_events
+# Domain: query_performance
+# Bronze Source: compute.warehouse_events
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_warehouse_events
+domain: query_performance
+bronze_source: compute.warehouse_events
+
+description: >
+  Fact table tracking SQL warehouse lifecycle events.
+  Business: Operational visibility into warehouse start/stop events, scaling operations,
+  and state transitions. Enables analysis of warehouse availability, startup latency, and
+  scaling behavior. Critical for SLA monitoring and warehouse optimization. Technical:
+  From compute.warehouse_events. 365-day retention. Supports streaming. Event-driven.
+
+primary_key:
+  columns: ['workspace_id', 'warehouse_id', 'event_time']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id', 'warehouse_id']
+    references: dim_warehouse(workspace_id, warehouse_id)
+    nullable: False
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: warehouse_id
+    type: STRING
+    nullable: false
+    description: "SQL Warehouse identifier. Business: Unique ID for SQL warehouse within workspace. Essential for tracking warehouse costs, query performance, and scaling events. Only unique within single workspace. Technical: STRING identifier from Databricks SQL API, part of composite key (workspace_id, warehouse_id). Foreign key to dim_warehouse for warehouse configuration (size, type, auto_stop settings)."
+
+  - name: event_type
+    type: STRING
+    nullable: true
+    description: "The type of warehouse event. Possible values are SCALED_UP, SCALED_DOWN, STOPPING, RUNNING, STARTING, and STOPPED. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: cluster_count
+    type: INT
+    nullable: true
+    description: "The number of clusters that are actively running. Business: Quantitative measure for aggregations, trending, and KPI calculations. Used in dashboards and executive reporting. Technical: Sourced from Bronze layer. INT type."
+
+  - name: event_time
+    type: TIMESTAMP
+    nullable: false
+    description: "Event timestamp. Business: Precise UTC timestamp when event occurred in source system. Used for time-series analysis, trend detection, and SLA monitoring. Critical for accurate historical reporting and audit trails. Technical: TIMESTAMP with timezone (+00:00 UTC), typically millisecond precision. Used for temporal ordering, time-based partitioning, and change data capture. Part of composite key..."
+

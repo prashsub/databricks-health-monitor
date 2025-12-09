@@ -1,0 +1,130 @@
+# Gold Layer Table Schema
+# Table: fact_listing_access
+# Domain: marketplace
+# Bronze Source: marketplace.listing_access_events
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_listing_access
+domain: marketplace
+bronze_source: marketplace.listing_access_events
+
+description: >
+  Fact table recording marketplace data acquisition events.
+  Business: Marketplace transaction tracking - captures completed 'request data' and 'get data'
+  events with consumer details. Essential for understanding data product adoption, consumer
+  demographics, and revenue attribution. Technical: From marketplace.listing_access_events.
+  365-day retention. Supports streaming.
+
+primary_key:
+  columns: ['account_id', 'listing_id', 'consumer_email', 'event_time']
+  composite: True
+
+foreign_keys:
+  [] # No foreign keys defined
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: false
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: metastore_id
+    type: STRING
+    nullable: true
+    description: "The metatore ID that hosts the listing. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: metastore_cloud
+    type: STRING
+    nullable: true
+    description: "The cloud provider of the metastore that hosts the listing. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: metastore_region
+    type: STRING
+    nullable: true
+    description: "The region of the metastore that hosts the listing. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: provider_id
+    type: STRING
+    nullable: true
+    description: "The provider profile ID. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: provider_name
+    type: STRING
+    nullable: true
+    description: "The provider profile name. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: listing_id
+    type: STRING
+    nullable: false
+    description: "The listing ID. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: listing_name
+    type: STRING
+    nullable: true
+    description: "The listing name. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_delta_sharing_recipient_name
+    type: STRING
+    nullable: true
+    description: "The underlying Delta Sharing recipient name for the consumer. The value is null when the event_type is REQUEST_DATA. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_delta_sharing_recipient_type
+    type: STRING
+    nullable: true
+    description: "Whether the consumer is on a Databricks account or not. Values will be either OPEN or DATABRICKS. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_cloud
+    type: STRING
+    nullable: true
+    description: "The consumer's cloud. Nullable if consumer_delta_sharing_recipient_type is OPEN. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_region
+    type: STRING
+    nullable: true
+    description: "The consumer's region. Nullable if consumer_delta_sharing_recipient_type is OPEN. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_metastore_id
+    type: STRING
+    nullable: true
+    description: "The consumer's metastore ID. Nullable if consumer_delta_sharing_recipient_type is OPEN. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_email
+    type: STRING
+    nullable: false
+    description: "The consumer's email address. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_name
+    type: STRING
+    nullable: true
+    description: "The consumer's name. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_company
+    type: STRING
+    nullable: true
+    description: "The consumer's company. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_intended_use
+    type: STRING
+    nullable: true
+    description: "The consumer's intended use of the listing. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: consumer_comment
+    type: STRING
+    nullable: true
+    description: "Any additional comment the consumer left. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_type
+    type: STRING
+    nullable: true
+    description: "The type of access. The value can be either REQUEST_DATA or GET_DATA. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_time
+    type: TIMESTAMP
+    nullable: false
+    description: "Event timestamp. Business: Precise UTC timestamp when event occurred in source system. Used for time-series analysis, trend detection, and SLA monitoring. Critical for accurate historical reporting and audit trails. Technical: TIMESTAMP with timezone (+00:00 UTC), typically millisecond precision. Used for temporal ordering, time-based partitioning, and change data capture. Part of composite key..."
+
+  - name: event_date
+    type: DATE
+    nullable: true
+    description: "The UTC date the event happened. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. DATE type."
+

@@ -1,0 +1,6 @@
+https://github.com/andyweaves/system-tables-audit-logs
+https://github.com/CodyAustinDavis/dbsql_sme/tree/main/Observability%20Dashboards%20and%20DBA%20Resources/Observability%20Lakeview%20Dashboard%20Templates/Table%20Health%20Advisor
+https://github.com/CodyAustinDavis/dbsql_sme/tree/main/Observability%20Dashboards%20and%20DBA%20Resources/Observability%20Lakeview%20Dashboard%20Templates/DBSQL%20Warehouse%20Advisor%20With%20Data%20Model
+
+https://github.com/yati1002/Workflowadvisor
+

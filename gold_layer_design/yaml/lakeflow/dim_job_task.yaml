@@ -1,0 +1,64 @@
+# Gold Layer Table Schema
+# Table: dim_job_task
+# Domain: lakeflow
+# Bronze Source: lakeflow.job_tasks
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_job_task
+domain: lakeflow
+bronze_source: lakeflow.job_tasks
+
+description: >
+  Dimension table defining individual tasks within jobs.
+  Business: Detailed breakdown of job task configurations including dependencies,
+  compute settings, libraries, and parameters. Enables understanding of job complexity,
+  task-level optimization opportunities, and dependency analysis. Technical: From
+  lakeflow.job_tasks. 365-day retention. Supports streaming.
+
+primary_key:
+  columns: ['workspace_id', 'job_id', 'task_key']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id', 'job_id']
+    references: dim_job(workspace_id, job_id)
+    nullable: False
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: job_id
+    type: STRING
+    nullable: false
+    description: "Job identifier. Business: Unique ID for Databricks job definition within workspace. Used to track job performance, costs, and failures over time. Primary key for job monitoring and cost attribution. Only unique within single workspace. Technical: STRING identifier from Databricks Jobs API, part of composite key (workspace_id, job_id) for global uniqueness. Foreign key to dim_job for job metadat..."
+
+  - name: task_key
+    type: STRING
+    nullable: false
+    description: "The reference key for a task in a job. Only unique within a single job. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: change_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time when the task was last modified. Timezone recorded as +00:00 (UTC). Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: delete_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time when a task was deleted by the user. Timezone recorded as +00:00 (UTC). Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  # === Flattened Nested Columns ===
+
+  - name: depends_on_keys_json
+    type: STRING
+    nullable: true
+    description: "The task keys of all upstream dependencies of this task. Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized ARRAY, enables flexible querying of variable-length collections."
+

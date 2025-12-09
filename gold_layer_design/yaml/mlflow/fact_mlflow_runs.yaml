@@ -1,0 +1,99 @@
+# Gold Layer Table Schema
+# Table: fact_mlflow_run
+# Domain: mlflow
+# Bronze Source: mlflow.runs_latest
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_mlflow_runs
+domain: mlflow
+bronze_source: mlflow.runs_latest
+
+description: >
+  Fact table recording MLflow training run executions.
+  Business: Model training observability - captures run parameters, metrics, artifacts,
+  and outcomes. Essential for experiment tracking, model comparison, and understanding
+  training resource consumption. Technical: From mlflow.runs_latest. 180-day retention.
+  Supports streaming.
+
+primary_key:
+  columns: ['workspace_id', 'run_id']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id', 'experiment_id']
+    references: dim_experiment(workspace_id, experiment_id)
+    nullable: False
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: update_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The system time when the run was last updated Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: delete_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The system time when the MLflow run was soft-deleted by the user Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: run_id
+    type: STRING
+    nullable: false
+    description: "Run identifier. Business: Unique ID for specific job or task execution instance. Critical for tracking individual run costs, duration, and outcomes. Primary key for run-level analysis and troubleshooting. Technical: STRING identifier from Databricks execution engine, globally unique across workspace. Used in timeline tables with composite key (workspace_id, run_id) for temporal slicing."
+
+  - name: experiment_id
+    type: STRING
+    nullable: true
+    description: "MLflow experiment identifier. Business: Unique ID for ML experiment grouping related model training runs. Used to track experiment-level metrics, costs, and outcomes. Only unique within workspace. Technical: STRING identifier from MLflow Tracking API, part of composite key (workspace_id, experiment_id). Foreign key to dim_experiment for experiment metadata."
+
+  - name: created_by
+    type: STRING
+    nullable: true
+    description: "The name of the Databricks principal or user that created the MLflow run Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: start_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The user-specified time when the MLflow run started Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: end_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The user-specified time when the MLflow run ended Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: run_name
+    type: STRING
+    nullable: true
+    description: "The name of the MLflow run Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: status
+    type: STRING
+    nullable: true
+    description: "The execution status of the MLflow run Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: params_json
+    type: STRING
+    nullable: true
+    description: "Key-value parameters of the MLflow run Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+
+  - name: tags_json
+    type: STRING
+    nullable: true
+    description: "Key-value tags set on the MLflow run Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+
+  - name: aggregated_metrics_json
+    type: STRING
+    nullable: true
+    description: "An aggregated view summarizing the metrics in the run_metrics_history Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized ARRAY, enables flexible querying of variable-length collections."
+

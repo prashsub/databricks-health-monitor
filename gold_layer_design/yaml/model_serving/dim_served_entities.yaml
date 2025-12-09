@@ -1,0 +1,153 @@
+# Gold Layer Table Schema
+# Table: dim_served_entity
+# Domain: model_serving
+# Bronze Source: serving.served_entities
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_served_entities
+domain: model_serving
+bronze_source: serving.served_entities
+
+description: >
+  Dimension table tracking model serving endpoint configurations.
+  Business: Model deployment inventory - captures served models, their versions, compute
+  settings, and scaling policies. Essential for ML operations monitoring, endpoint cost
+  analysis, and understanding model deployment topology. Technical: From serving.served_entities.
+  365-day retention. Slow-changing dimension. Supports streaming.
+
+primary_key:
+  columns: ['served_entity_id']
+  composite: False
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+
+columns:
+  - name: served_entity_id
+    type: STRING
+    nullable: false
+    description: "The unique ID of the served entity. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: created_by
+    type: STRING
+    nullable: true
+    description: "The ID of the creator. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: endpoint_name
+    type: STRING
+    nullable: true
+    description: "The name of the serving endpoint. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: endpoint_id
+    type: STRING
+    nullable: true
+    description: "The unique ID of the serving endpoint. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: served_entity_name
+    type: STRING
+    nullable: true
+    description: "The name of the served entity. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: entity_type
+    type: STRING
+    nullable: true
+    description: "Type of the entity that is served. Can be FEATURE_SPEC, EXTERNAL_MODEL, FOUNDATION_MODEL, or CUSTOM_MODEL Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: entity_name
+    type: STRING
+    nullable: true
+    description: "The underlying name of the entity. Different from the served_entity_name which is a user provided name. For example, entity_name is the name of the Unity Catalog model. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: entity_version
+    type: STRING
+    nullable: true
+    description: "The version of the served entity. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: endpoint_config_version
+    type: INT
+    nullable: true
+    description: "The version of the endpoint configuration. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. INT type."
+
+  - name: task
+    type: STRING
+    nullable: true
+    description: "The task type. Can be llm/v1/chat, llm/v1/completions, or llm/v1/embeddings. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: change_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Timestamp of change for the served entity. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: endpoint_delete_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Timestamp of entity deletion. The endpoint is the container for the served entity. After the endpoint is deleted, the served entity is also deleted. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  # === Flattened Nested Columns ===
+
+  - name: external_model_config_provider
+    type: STRING
+    nullable: true
+    description: "Configurations for external models. For example, {Provider: OpenAI} [Nested field: provider]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from external_model_config.provider, STRING type, nullable."
+    # Flattened from: external_model_config.provider
+
+  - name: foundation_model_config_min_provisioned_throughput
+    type: STRING
+    nullable: true
+    description: "Configurations for foundation models. For example,{min_provisioned_throughput: 2200, max_provisioned_throughput: 4400} [Nested field: min_provisioned_throughput]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from foundation_model_config.min_provisioned_throughput, STRING type, ..."
+    # Flattened from: foundation_model_config.min_provisioned_throughput
+
+  - name: foundation_model_config_max_provisioned_throughput
+    type: STRING
+    nullable: true
+    description: "Configurations for foundation models. For example,{min_provisioned_throughput: 2200, max_provisioned_throughput: 4400} [Nested field: max_provisioned_throughput]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from foundation_model_config.max_provisioned_throughput, STRING type, ..."
+    # Flattened from: foundation_model_config.max_provisioned_throughput
+
+  - name: custom_model_config_min_concurrency
+    type: INT
+    nullable: true
+    description: "Configurations for custom models. For example,{ min_concurrency: 0, max_concurrency: 4, compute_type: CPU } [Nested field: min_concurrency]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from custom_model_config.min_concurrency, INT type, nullable."
+    # Flattened from: custom_model_config.min_concurrency
+
+  - name: custom_model_config_max_concurrency
+    type: INT
+    nullable: true
+    description: "Configurations for custom models. For example,{ min_concurrency: 0, max_concurrency: 4, compute_type: CPU } [Nested field: max_concurrency]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from custom_model_config.max_concurrency, INT type, nullable."
+    # Flattened from: custom_model_config.max_concurrency
+
+  - name: custom_model_config_compute_type
+    type: STRING
+    nullable: true
+    description: "Configurations for custom models. For example,{ min_concurrency: 0, max_concurrency: 4, compute_type: CPU } [Nested field: compute_type]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from custom_model_config.compute_type, STRING type, nullable."
+    # Flattened from: custom_model_config.compute_type
+
+  - name: feature_spec_config_min_concurrency
+    type: INT
+    nullable: true
+    description: "Configurations for feature specifications. For example, { min_concurrency: 0, max_concurrency: 4, compute_type: CPU } [Nested field: min_concurrency]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from feature_spec_config.min_concurrency, INT type, nullable."
+    # Flattened from: feature_spec_config.min_concurrency
+
+  - name: feature_spec_config_max_concurrency
+    type: INT
+    nullable: true
+    description: "Configurations for feature specifications. For example, { min_concurrency: 0, max_concurrency: 4, compute_type: CPU } [Nested field: max_concurrency]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from feature_spec_config.max_concurrency, INT type, nullable."
+    # Flattened from: feature_spec_config.max_concurrency
+
+  - name: feature_spec_config_compute_type
+    type: STRING
+    nullable: true
+    description: "Configurations for feature specifications. For example, { min_concurrency: 0, max_concurrency: 4, compute_type: CPU } [Nested field: compute_type]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from feature_spec_config.compute_type, STRING type, nullable."
+    # Flattened from: feature_spec_config.compute_type
+

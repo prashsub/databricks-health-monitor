@@ -1,0 +1,107 @@
+# Gold Layer Table Schema
+# Table: fact_predictive_optimization
+# Domain: storage
+# Bronze Source: storage.predictive_optimization_operations_history
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_predictive_optimization
+domain: storage
+bronze_source: storage.predictive_optimization_operations_history
+
+description: >
+  Fact table tracking predictive optimization operations.
+  Business: Storage optimization monitoring - captures OPTIMIZE, VACUUM, and ZORDER
+  operations executed automatically. Essential for understanding storage costs,
+  optimization coverage, and maintenance workload. Technical: From
+  storage.predictive_optimization_operations_history. 180-day retention.
+
+primary_key:
+  columns: ['operation_id']
+  composite: False
+
+foreign_keys:
+  [] # No foreign keys defined
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: start_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time at which the operation started. Timezone information is recorded at the end of the value with +00:00 representing UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: end_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time at which the operation ended. Timezone information is recorded at the end of the value with +00:00 representing UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: metastore_name
+    type: STRING
+    nullable: true
+    description: "The name of the metastore to which the optimized table belongs. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: metastore_id
+    type: STRING
+    nullable: true
+    description: "The ID of the metastore to which the optimized table belongs. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: catalog_name
+    type: STRING
+    nullable: true
+    description: "The name of the catalog to which the optimized table belongs. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: schema_name
+    type: STRING
+    nullable: true
+    description: "The name of the schema to which the optimized table belongs. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: table_name
+    type: STRING
+    nullable: true
+    description: "The name of the optimized table. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: table_id
+    type: STRING
+    nullable: true
+    description: "The ID of the optimized table. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: operation_type
+    type: STRING
+    nullable: true
+    description: "The optimization operation which was performed. The value will be COMPACTION or VACUUM. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: operation_id
+    type: STRING
+    nullable: false
+    description: "The ID for the optimization operation. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: operation_status
+    type: STRING
+    nullable: true
+    description: "The status of the optimization operation. The value will be SUCCESSFUL or FAILED: INTERNAL_ERROR. Business: Categorical indicator for status tracking, filtering, and operational monitoring. Used in dashboards and alerting. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: usage_unit
+    type: STRING
+    nullable: true
+    description: "Usage unit of measurement. Business: Defines how usage is measured and billed (DBU, requests, GB, hours, tokens). Different SKUs use different units. Critical for understanding cost drivers. Technical: STRING enum (DBU, STORAGE_GB, API_OPERATION, TOKEN, GPU_TIME, etc.) indicating measurement basis. Links to pricing model in list_prices table."
+
+  - name: usage_quantity
+    type: DECIMAL
+    nullable: true
+    description: "Usage quantity consumed. Business: Number of usage units consumed during this period (e.g., DBUs, API calls, GB-hours). Multiplied by unit price to calculate cost. Core metric for consumption analysis and cost forecasting. Technical: DECIMAL type for precise financial calculations. Unit defined in usage_unit column. May include fractional values for partial hour usage."
+
+  # === Flattened Nested Columns ===
+
+  - name: operation_metrics_json
+    type: STRING
+    nullable: true
+    description: "Additional details about the specific optimization that was performed. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+

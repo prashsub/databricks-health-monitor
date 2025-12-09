@@ -1,0 +1,49 @@
+# Gold Layer Table Schema
+# Table: dim_node_type
+# Domain: compute
+# Bronze Source: compute.node_types
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_node_type
+domain: compute
+bronze_source: compute.node_types
+
+description: >
+  Dimension table of available compute node types and hardware specs.
+  Business: Reference data for node capabilities including memory, cores, GPUs, and storage.
+  Enables informed cluster sizing decisions and cost-performance trade-off analysis.
+  Technical: From compute.node_types. Indefinite retention. Includes regional availability.
+
+primary_key:
+  columns: ['node_type']
+  composite: False
+
+foreign_keys:
+  [] # No foreign keys defined
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: node_type
+    type: STRING
+    nullable: false
+    description: "Unique identifier for node type. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: core_count
+    type: DOUBLE
+    nullable: true
+    description: "Number of vCPUs for the instance. Business: Quantitative measure for aggregations, trending, and KPI calculations. Used in dashboards and executive reporting. Technical: Sourced from Bronze layer. DOUBLE type."
+
+  - name: memory_mb
+    type: BIGINT
+    nullable: true
+    description: "Total memory for the instance. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: gpu_count
+    type: BIGINT
+    nullable: true
+    description: "Number of GPUs for the instance. Business: Quantitative measure for aggregations, trending, and KPI calculations. Used in dashboards and executive reporting. Technical: Sourced from Bronze layer. BIGINT type."
+

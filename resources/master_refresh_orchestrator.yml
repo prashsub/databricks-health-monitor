@@ -1,0 +1,62 @@
+# Master Refresh Orchestrator
+# RECURRING DATA PIPELINE: Complete Bronze → Gold data refresh
+# 
+# Execution Flow:
+# 1. Bronze Refresh (streaming pipeline + non-streaming MERGE)
+# 2. Gold Merge (Bronze → Gold transformation)
+#
+# Usage:
+#   databricks bundle run -t dev master_refresh_orchestrator
+#
+# Expected Duration: 45-60 minutes
+# Run Schedule: Daily at 2 AM UTC (configurable)
+
+resources:
+  jobs:
+    master_refresh_orchestrator:
+      name: "[${bundle.target}] Health Monitor - Master Refresh Orchestrator"
+      description: "Complete data pipeline: Bronze ingestion (32 tables) → Gold transformation (41 tables)"
+      
+      tasks:
+        # Step 1: Bronze Refresh (streaming + non-streaming)
+        - task_key: bronze_refresh
+          run_job_task:
+            job_id: ${resources.jobs.bronze_refresh_job.id}
+        
+        # Step 2: Gold Merge (Bronze → Gold)
+        - task_key: gold_merge
+          depends_on:
+            - task_key: bronze_refresh
+          run_job_task:
+            job_id: ${resources.jobs.gold_merge_job.id}
+      
+      # Schedule: Daily at 2 AM UTC (PAUSED by default)
+      schedule:
+        quartz_cron_expression: "0 0 2 * * ?"
+        timezone_id: "UTC"
+        pause_status: PAUSED  # Enable manually after validating setup
+      
+      # Timeout: 4 hours for complete pipeline
+      timeout_seconds: 14400
+      
+      # Email notifications
+      email_notifications:
+        on_start:
+          - data-engineering@company.com
+        on_failure:
+          - data-engineering@company.com
+        on_success:
+          - data-engineering@company.com
+        on_duration_warning_threshold_exceeded:
+          - data-engineering@company.com
+      
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: all
+        job_type: pipeline
+        orchestrator: "master"
+        compute_type: serverless
+        execution_type: "recurring"
+        schedule: "daily_2am_utc"

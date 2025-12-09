@@ -1,0 +1,62 @@
+# Gold Layer Table Schema
+# Table: dim_experiment
+# Domain: mlflow
+# Bronze Source: mlflow.experiments_latest
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_experiment
+domain: mlflow
+bronze_source: mlflow.experiments_latest
+
+description: >
+  Dimension table containing MLflow experiment definitions.
+  Business: ML experiment inventory - tracks experiment names, locations, and lifecycle
+  states. Essential for ML governance, understanding model development history, and
+  organizing ML assets. Technical: From mlflow.experiments_latest. 180-day retention.
+  Supports streaming.
+
+primary_key:
+  columns: ['workspace_id', 'experiment_id']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: False
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: update_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The system time when the experiment was last updated Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: delete_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The system time when the MLflow experiment was soft-deleted by the user Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: experiment_id
+    type: STRING
+    nullable: false
+    description: "MLflow experiment identifier. Business: Unique ID for ML experiment grouping related model training runs. Used to track experiment-level metrics, costs, and outcomes. Only unique within workspace. Technical: STRING identifier from MLflow Tracking API, part of composite key (workspace_id, experiment_id). Foreign key to dim_experiment for experiment metadata."
+
+  - name: name
+    type: STRING
+    nullable: true
+    description: "User-provided name of the experiment Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: create_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The system time when the experiment was created Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+

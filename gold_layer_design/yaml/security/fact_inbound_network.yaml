@@ -1,0 +1,70 @@
+# Gold Layer Table Schema
+# Table: fact_inbound_network
+# Domain: security
+# Bronze Source: access.inbound_network
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_inbound_network
+domain: security
+bronze_source: access.inbound_network
+
+description: >
+  Fact table recording denied inbound network access attempts.
+  Business: Security monitoring - captures blocked connections to workspaces based on
+  network access policies. Enables identification of unauthorized access attempts, policy
+  tuning, and security incident investigation. Technical: From access.inbound_network.
+  30-day retention. Supports streaming. Regional data.
+
+primary_key:
+  columns: ['event_id']
+  composite: False
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: event_id
+    type: STRING
+    nullable: false
+    description: "The ID of the event Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: request_path
+    type: STRING
+    nullable: true
+    description: "The destination of the request Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: authenticated_as
+    type: STRING
+    nullable: true
+    description: "The authenticated identity of the request. Can be a user email, service principal application ID, group name, 'users', or 'account users' Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Event timestamp. Business: Precise UTC timestamp when event occurred in source system. Used for time-series analysis, trend detection, and SLA monitoring. Critical for accurate historical reporting and audit trails. Technical: TIMESTAMP with timezone (+00:00 UTC), typically millisecond precision. Used for temporal ordering, time-based partitioning, and change data capture. Part of composite key..."
+
+  - name: policy_outcome
+    type: STRING
+    nullable: true
+    description: "Type of access event that occurred. The value can only be 'DENIED' or 'DRY_RUN_DENIAL' Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: source_ip
+    type: STRING
+    nullable: true
+    description: "The source of the request [Nested field: ip]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from source.ip, STRING type, nullable."
+    # Flattened from: source.ip
+

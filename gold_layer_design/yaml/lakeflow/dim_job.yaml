@@ -1,0 +1,80 @@
+# Gold Layer Table Schema
+# Table: dim_job
+# Domain: lakeflow
+# Bronze Source: lakeflow.jobs
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_job
+domain: lakeflow
+bronze_source: lakeflow.jobs
+
+description: >
+  Dimension table containing job definitions and configurations.
+  Business: Master reference for all jobs created in the account - captures job name,
+  schedule, cluster settings, notifications, and tags. Essential for job governance,
+  finding orphaned jobs, and understanding job inventory. Enables workload categorization
+  and ownership tracking. Technical: From lakeflow.jobs. 365-day retention. Supports
+  streaming. Change tracking via change_time column.
+
+primary_key:
+  columns: ['workspace_id', 'job_id']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: False
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: job_id
+    type: STRING
+    nullable: false
+    description: "Job identifier. Business: Unique ID for Databricks job definition within workspace. Used to track job performance, costs, and failures over time. Primary key for job monitoring and cost attribution. Only unique within single workspace. Technical: STRING identifier from Databricks Jobs API, part of composite key (workspace_id, job_id) for global uniqueness. Foreign key to dim_job for job metadat..."
+
+  - name: name
+    type: STRING
+    nullable: true
+    description: "The user-supplied name of the job. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: creator_id
+    type: STRING
+    nullable: true
+    description: "The ID of the principal who created the job. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: run_as
+    type: STRING
+    nullable: true
+    description: "The ID of the user or service principal whose permissions are used for the job run. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: change_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time when the job was last modified. Timezone recorded as +00:00 (UTC). Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: delete_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time when the job was deleted by the user. Timezone recorded as +00:00 (UTC). Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: description
+    type: STRING
+    nullable: true
+    description: "The user-supplied description of the job. **Not populated for rows emitted before late August 2024.** Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: tags_json
+    type: STRING
+    nullable: true
+    description: "The user-supplied custom tags associated with this job. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+

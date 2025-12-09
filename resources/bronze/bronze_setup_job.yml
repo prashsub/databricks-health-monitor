@@ -1,0 +1,47 @@
+# Bronze Setup Job
+# ONE-TIME: Create non-streaming Bronze tables only
+# Called by Master Setup Orchestrator
+
+resources:
+  jobs:
+    bronze_setup_job:
+      name: "[${bundle.target}] Health Monitor - Bronze Setup"
+      description: "Create non-streaming Bronze tables (8 tables) - setup only, no data load"
+      
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+      
+      tasks:
+        # Create non-streaming table structures
+        - task_key: setup_nonstreaming_tables
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/bronze/nonstreaming/setup.py
+            base_parameters:
+              catalog: ${var.catalog}
+              system_bronze_schema: ${var.system_bronze_schema}
+        
+        # Create DQ rules table and populate initial rules
+        - task_key: setup_dq_rules
+          depends_on:
+            - task_key: setup_nonstreaming_tables
+          run_job_task:
+            job_id: ${resources.jobs.dq_rules_setup_job.id}
+      
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+      
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: bronze
+        job_type: setup
+        compute_type: serverless
+
+
+
+
+

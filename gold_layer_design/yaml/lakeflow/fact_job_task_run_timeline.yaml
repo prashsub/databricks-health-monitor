@@ -1,0 +1,93 @@
+# Gold Layer Table Schema
+# Table: fact_job_task_run_timeline
+# Domain: lakeflow
+# Bronze Source: lakeflow.job_task_run_timeline
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_job_task_run_timeline
+domain: lakeflow
+bronze_source: lakeflow.job_task_run_timeline
+
+description: >
+  Fact table tracking individual task execution within job runs.
+  Business: Task-level performance visibility - duration, status, compute used, and timing
+  for each task. Enables bottleneck identification, task-level optimization, and understanding
+  parallelization efficiency. Critical for complex multi-task job optimization. Technical:
+  From lakeflow.job_task_run_timeline. 365-day retention. Supports streaming. Hourly slicing.
+
+primary_key:
+  columns: ['workspace_id', 'run_id']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id', 'job_id']
+    references: dim_job(workspace_id, job_id)
+    nullable: True
+
+  - columns: ['workspace_id', 'job_id', 'task_key']
+    references: dim_job_task(workspace_id, job_id, task_key)
+    nullable: True
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: job_id
+    type: STRING
+    nullable: true
+    description: "Job identifier. Business: Unique ID for Databricks job definition within workspace. Used to track job performance, costs, and failures over time. Primary key for job monitoring and cost attribution. Only unique within single workspace. Technical: STRING identifier from Databricks Jobs API, part of composite key (workspace_id, job_id) for global uniqueness. Foreign key to dim_job for job metadat..."
+
+  - name: run_id
+    type: STRING
+    nullable: false
+    description: "Run identifier. Business: Unique ID for specific job or task execution instance. Critical for tracking individual run costs, duration, and outcomes. Primary key for run-level analysis and troubleshooting. Technical: STRING identifier from Databricks execution engine, globally unique across workspace. Used in timeline tables with composite key (workspace_id, run_id) for temporal slicing."
+
+  - name: period_start_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The start time for the task or for the time period. Timezone information is recorded at the end of the value with +00:00 representing UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: period_end_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The end time for the task or for the time period. Timezone information is recorded at the end of the value with +00:00 representing UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: task_key
+    type: STRING
+    nullable: true
+    description: "The reference key for a task in a job. This key is only unique within a single job. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: result_state
+    type: STRING
+    nullable: true
+    description: "The outcome of the job task run. Business: Categorical indicator for status tracking, filtering, and operational monitoring. Used in dashboards and alerting. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: job_run_id
+    type: STRING
+    nullable: true
+    description: "The ID of the job run. **Not populated for rows emitted before late August 2024.** Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: parent_run_id
+    type: STRING
+    nullable: true
+    description: "The ID of the parent run. **Not populated for rows emitted before late August 2024.** Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: termination_code
+    type: STRING
+    nullable: true
+    description: "The termination code of the task run. **Not populated for rows emitted before late August 2024.** Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: compute_ids_json
+    type: STRING
+    nullable: true
+    description: "An array containing the IDs of compute used by the job task. Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized ARRAY, enables flexible querying of variable-length collections."
+

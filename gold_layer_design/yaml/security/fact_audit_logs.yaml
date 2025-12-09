@@ -1,0 +1,147 @@
+# Gold Layer Table Schema
+# Table: fact_audit_logs
+# Domain: security
+# Bronze Source: access.audit
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_audit_logs
+domain: security
+bronze_source: access.audit
+
+description: >
+  Fact table containing comprehensive audit trail of all workspace activities.
+  Business: Security monitoring and compliance - captures user actions, API calls, permission
+  changes, and administrative operations. Essential for security investigations, compliance
+  audits (SOC2, HIPAA), and detecting anomalous behavior. Technical: From access.audit.
+  365-day retention. Supports streaming. Account-level events have workspace_id=0.
+
+primary_key:
+  columns: ['event_id']
+  composite: False
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: version
+    type: STRING
+    nullable: true
+    description: "Audit log schema version Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Event timestamp. Business: Precise UTC timestamp when event occurred in source system. Used for time-series analysis, trend detection, and SLA monitoring. Critical for accurate historical reporting and audit trails. Technical: TIMESTAMP with timezone (+00:00 UTC), typically millisecond precision. Used for temporal ordering, time-based partitioning, and change data capture. Part of composite key..."
+
+  - name: event_date
+    type: DATE
+    nullable: true
+    description: "The calendar date when the event or action occurred. Useful for filtering and aggregating events by day. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. DATE type."
+
+  - name: source_ip_address
+    type: STRING
+    nullable: true
+    description: "The IP address from which the request originated. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: user_agent
+    type: STRING
+    nullable: true
+    description: "The user agent string or identifier describing the client, browser, or tool that initiated the request (e.g., web browser, API client, CLI) Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: session_id
+    type: STRING
+    nullable: true
+    description: "Unique identifier for the session in which the request was made. Sessions group related actions by a user or service over a period of time Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: service_name
+    type: STRING
+    nullable: true
+    description: "The name of the Databricks service that generated the audit event. See [service documentation](https://docs.databricks.com/aws/admin/account-settings/audit-logs#audit-log-services) for details. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: action_name
+    type: STRING
+    nullable: true
+    description: "The name of the action that has been performed as part of the audit event. Action names vary depending on the Databricks service (service_name). See [documentation of actions per service](https://docs.databricks.com/aws/admin/account-settings/audit-logs) for details. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business use..."
+
+  - name: request_id
+    type: STRING
+    nullable: true
+    description: "A unique identifier of the request. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: audit_level
+    type: STRING
+    nullable: true
+    description: "Indicates whether the audit event is at the workspace or account level. Either `ACCOUNT_LEVEL` or `WORKSPACE_LEVEL`. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_id
+    type: STRING
+    nullable: false
+    description: "A unique identifier of the audit event. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: user_identity_email
+    type: STRING
+    nullable: true
+    description: "A map of key/value pairs that can be used to identify the person or service principal that initiated the request. Contains keys such as email and subject_name. An email of System-User is used for background system tasks. [Nested field: email]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical:..."
+    # Flattened from: user_identity.email
+
+  - name: user_identity_subject_name
+    type: STRING
+    nullable: true
+    description: "A map of key/value pairs that can be used to identify the person or service principal that initiated the request. Contains keys such as email and subject_name. An email of System-User is used for background system tasks. [Nested field: subject_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Tec..."
+    # Flattened from: user_identity.subject_name
+
+  - name: request_params_json
+    type: STRING
+    nullable: true
+    description: "A map of key/value pairs with the request parameters. Request parameters vary by request type. See [documentation of request parameters per action](https://docs.databricks.com/aws/admin/account-settings/audit-logs) for details. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing ..."
+
+  - name: response_status_code
+    type: INT
+    nullable: true
+    description: "Struct of response, includes status_code, error_messages, and where applicable a result string. status_code is an HTTP status code. [Nested field: status_code]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from response.status_code, INT type, nullable."
+    # Flattened from: response.status_code
+
+  - name: response_error_message
+    type: STRING
+    nullable: true
+    description: "Struct of response, includes status_code, error_messages, and where applicable a result string. status_code is an HTTP status code. [Nested field: error_message]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from response.error_message, STRING type, nullable."
+    # Flattened from: response.error_message
+
+  - name: response_result
+    type: STRING
+    nullable: true
+    description: "Struct of response, includes status_code, error_messages, and where applicable a result string. status_code is an HTTP status code. [Nested field: result]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from response.result, STRING type, nullable."
+    # Flattened from: response.result
+
+  - name: identity_metadata_run_by
+    type: STRING
+    nullable: true
+    description: "A struct with the identities from the audit event. This includes `run_by` (the identity who initiated the event) and `run_as` (the identity being used for authorisation purposes). See [Auditing group dedicated compute activity documentation](https://docs.databricks.com/aws/compute/group-access#auditing-group-dedicated-compute-activity) for more details. [Nested field: run_by]. Business: Extract..."
+    # Flattened from: identity_metadata.run_by
+
+  - name: identity_metadata_run_as
+    type: STRING
+    nullable: true
+    description: "A struct with the identities from the audit event. This includes `run_by` (the identity who initiated the event) and `run_as` (the identity being used for authorisation purposes). See [Auditing group dedicated compute activity documentation](https://docs.databricks.com/aws/compute/group-access#auditing-group-dedicated-compute-activity) for more details. [Nested field: run_as]. Business: Extract..."
+    # Flattened from: identity_metadata.run_as
+
+  - name: identity_metadata_acting_resource
+    type: STRING
+    nullable: true
+    description: "A struct with the identities from the audit event. This includes `run_by` (the identity who initiated the event) and `run_as` (the identity being used for authorisation purposes). See [Auditing group dedicated compute activity documentation](https://docs.databricks.com/aws/compute/group-access#auditing-group-dedicated-compute-activity) for more details. [Nested field: acting_resource]. Business..."
+    # Flattened from: identity_metadata.acting_resource
+

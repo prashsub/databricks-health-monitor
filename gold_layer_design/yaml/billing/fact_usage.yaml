@@ -1,0 +1,480 @@
+# Gold Layer Table Schema
+# Table: fact_usage
+# Domain: billing
+# Bronze Source: billing.usage
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_usage
+domain: billing
+bronze_source: billing.usage
+
+description: >
+  Fact table tracking all billable Databricks usage across your account.
+  Business: Primary source for cost monitoring and chargeback - captures DBU consumption,
+  compute hours, storage usage, and API calls. Includes usage_metadata for attribution to
+  specific jobs, clusters, warehouses, and pipelines. Enables cost optimization by identifying
+  expensive workloads and idle resources. Technical: Hourly granularity with flattened
+  usage_metadata and identity_metadata structs. Supports streaming ingestion. 365-day retention.
+
+primary_key:
+  columns: ['record_id']
+  composite: False
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+
+  - columns: ['sku_name']
+    references: dim_sku(sku_name)
+    nullable: True
+
+  - columns: ['workspace_id', 'usage_metadata_cluster_id']
+    references: dim_cluster(workspace_id, cluster_id)
+    nullable: True
+    # Flattened from nested struct: usage_metadata
+
+  - columns: ['workspace_id', 'usage_metadata_job_id']
+    references: dim_job(workspace_id, job_id)
+    nullable: True
+    # Flattened from nested struct: usage_metadata
+
+  - columns: ['workspace_id', 'usage_metadata_warehouse_id']
+    references: dim_warehouse(workspace_id, warehouse_id)
+    nullable: True
+    # Flattened from nested struct: usage_metadata
+
+  - columns: ['usage_metadata_job_run_id']
+    references: fact_job_run_timeline(job_run_id)
+    nullable: True
+    # Flattened from nested struct: usage_metadata
+
+  - columns: ['workspace_id', 'usage_metadata_dlt_pipeline_id']
+    references: dim_pipeline(workspace_id, dlt_pipeline_id)
+    nullable: True
+    # Flattened from nested struct: usage_metadata
+
+  - columns: ['usage_metadata_endpoint_id']
+    references: dim_served_entity(endpoint_id)
+    nullable: True
+    # Flattened from nested struct: usage_metadata
+
+  - columns: ['usage_metadata_dlt_update_id']
+    references: fact_pipeline_update_timeline(dlt_update_id)
+    nullable: True
+    # Flattened from nested struct: usage_metadata
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: record_id
+    type: STRING
+    nullable: false
+    description: "Unique record identifier. Business: Globally unique primary key ensuring each usage/billing record can be precisely tracked, deduplicated, and reconciled against invoices. Critical for billing accuracy and dispute resolution. Technical: System-generated STRING UUID, immutable once created, serves as primary key. Used for idempotent record processing and change data capture."
+
+  - name: sku_name
+    type: STRING
+    nullable: true
+    description: "SKU identifier. Business: Product SKU determining pricing rate for this usage record. Maps to specific Databricks product offerings (compute types, storage, API calls). Essential for cost analysis, budget forecasting, and price change tracking. Foreign key to pricing tables. Technical: STRING enum from Databricks billing catalog (e.g. STANDARD_ALL_PURPOSE_COMPUTE, JOBS_LIGHT_COMPUTE), foreign k..."
+
+  - name: cloud
+    type: STRING
+    nullable: true
+    description: "Cloud this usage is relevant for. Possible values are AWS, AZURE, and GCP. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: usage_start_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Usage period start timestamp. Business: Beginning of metered usage period (typically hourly boundaries). Used to calculate usage duration and aggregate usage by time windows. Critical for accurate billing reconciliation. Technical: TIMESTAMP with UTC timezone (+00:00), aligned to usage measurement boundaries. Used with usage_end_time to determine chargeable duration."
+
+  - name: usage_end_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Usage period end timestamp. Business: End of metered usage period. Duration (end - start) determines billable time for compute resources. Used for cost calculations and usage trend analysis. Technical: TIMESTAMP with UTC timezone (+00:00). Combined with usage_start_time defines usage interval [start, end)."
+
+  - name: usage_date
+    type: DATE
+    nullable: true
+    description: "Usage calendar date. Business: Date of usage record for fast date-based aggregations and filtering. Optimized for daily cost reports, monthly rollups, and fiscal period analysis. Pre-partitioned for performance. Technical: DATE type derived from usage_start_time, used as partition key for efficient date range queries. Enables fast daily/monthly/yearly aggregations."
+
+  - name: usage_unit
+    type: STRING
+    nullable: true
+    description: "Usage unit of measurement. Business: Defines how usage is measured and billed (DBU, requests, GB, hours, tokens). Different SKUs use different units. Critical for understanding cost drivers. Technical: STRING enum (DBU, STORAGE_GB, API_OPERATION, TOKEN, GPU_TIME, etc.) indicating measurement basis. Links to pricing model in list_prices table."
+
+  - name: usage_quantity
+    type: DECIMAL
+    nullable: true
+    description: "Usage quantity consumed. Business: Number of usage units consumed during this period (e.g., DBUs, API calls, GB-hours). Multiplied by unit price to calculate cost. Core metric for consumption analysis and cost forecasting. Technical: DECIMAL type for precise financial calculations. Unit defined in usage_unit column. May include fractional values for partial hour usage."
+
+  - name: record_type
+    type: STRING
+    nullable: true
+    description: "Whether the record is original, a retraction, or a restatement. The value is ORIGINAL unless the record is related to a correction. See [Analyze correction records](https://docs.databricks.com/en/admin/system-tables/billing.html#record-type). Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced fr..."
+
+  - name: ingestion_date
+    type: DATE
+    nullable: true
+    description: "Date the record was ingested into the usage table. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. DATE type."
+
+  - name: billing_origin_product
+    type: STRING
+    nullable: true
+    description: "The product that originated the usage. Some products can be billed as different SKUs. For possible values, see [View information about the product associated with the usage](https://docs.databricks.com/en/admin/system-tables/billing.html#features). Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sour..."
+
+  - name: usage_type
+    type: STRING
+    nullable: true
+    description: "The type of usage attributed to the product or workload for billing purposes. Possible values are COMPUTE_TIME, STORAGE_SPACE, NETWORK_BYTES, API_CALLS, TOKEN, or GPU_TIME. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: custom_tags_json
+    type: STRING
+    nullable: true
+    description: "Tags applied by the users to this usage. Includes compute resource tags and jobs tags. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+
+  - name: usage_metadata_cluster_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: cluster_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: F..."
+    # Flattened from: usage_metadata.cluster_id
+
+  - name: usage_metadata_job_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: job_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flatt..."
+    # Flattened from: usage_metadata.job_id
+
+  - name: usage_metadata_warehouse_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: warehouse_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical:..."
+    # Flattened from: usage_metadata.warehouse_id
+
+  - name: usage_metadata_instance_pool_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: instance_pool_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Techni..."
+    # Flattened from: usage_metadata.instance_pool_id
+
+  - name: usage_metadata_node_type
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: node_type]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Fl..."
+    # Flattened from: usage_metadata.node_type
+
+  - name: usage_metadata_job_run_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: job_run_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: F..."
+    # Flattened from: usage_metadata.job_run_id
+
+  - name: usage_metadata_notebook_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: notebook_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: ..."
+    # Flattened from: usage_metadata.notebook_id
+
+  - name: usage_metadata_dlt_pipeline_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: dlt_pipeline_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technic..."
+    # Flattened from: usage_metadata.dlt_pipeline_id
+
+  - name: usage_metadata_endpoint_name
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: endpoint_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical..."
+    # Flattened from: usage_metadata.endpoint_name
+
+  - name: usage_metadata_endpoint_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: endpoint_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: ..."
+    # Flattened from: usage_metadata.endpoint_id
+
+  - name: usage_metadata_dlt_update_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: dlt_update_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical..."
+    # Flattened from: usage_metadata.dlt_update_id
+
+  - name: usage_metadata_dlt_maintenance_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: dlt_maintenance_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Tech..."
+    # Flattened from: usage_metadata.dlt_maintenance_id
+
+  - name: usage_metadata_run_name
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: run_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Fla..."
+    # Flattened from: usage_metadata.run_name
+
+  - name: usage_metadata_job_name
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: job_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Fla..."
+    # Flattened from: usage_metadata.job_name
+
+  - name: usage_metadata_notebook_path
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: notebook_path]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical..."
+    # Flattened from: usage_metadata.notebook_path
+
+  - name: usage_metadata_central_clean_room_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: central_clean_room_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. T..."
+    # Flattened from: usage_metadata.central_clean_room_id
+
+  - name: usage_metadata_source_region
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: source_region]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical..."
+    # Flattened from: usage_metadata.source_region
+
+  - name: usage_metadata_destination_region
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: destination_region]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Tech..."
+    # Flattened from: usage_metadata.destination_region
+
+  - name: usage_metadata_app_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: app_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flatt..."
+    # Flattened from: usage_metadata.app_id
+
+  - name: usage_metadata_app_name
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: app_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Fla..."
+    # Flattened from: usage_metadata.app_name
+
+  - name: usage_metadata_metastore_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: metastore_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical:..."
+    # Flattened from: usage_metadata.metastore_id
+
+  - name: usage_metadata_private_endpoint_name
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: private_endpoint_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. T..."
+    # Flattened from: usage_metadata.private_endpoint_name
+
+  - name: usage_metadata_storage_api_type
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: storage_api_type]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Techni..."
+    # Flattened from: usage_metadata.storage_api_type
+
+  - name: usage_metadata_budget_policy_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: budget_policy_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Techni..."
+    # Flattened from: usage_metadata.budget_policy_id
+
+  - name: usage_metadata_ai_runtime_pool_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: ai_runtime_pool_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Tech..."
+    # Flattened from: usage_metadata.ai_runtime_pool_id
+
+  - name: usage_metadata_ai_runtime_workload_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: ai_runtime_workload_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. ..."
+    # Flattened from: usage_metadata.ai_runtime_workload_id
+
+  - name: usage_metadata_uc_table_catalog
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: uc_table_catalog]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Techni..."
+    # Flattened from: usage_metadata.uc_table_catalog
+
+  - name: usage_metadata_uc_table_schema
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: uc_table_schema]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technic..."
+    # Flattened from: usage_metadata.uc_table_schema
+
+  - name: usage_metadata_uc_table_name
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: uc_table_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical..."
+    # Flattened from: usage_metadata.uc_table_name
+
+  - name: usage_metadata_database_instance_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: database_instance_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Te..."
+    # Flattened from: usage_metadata.database_instance_id
+
+  - name: usage_metadata_sharing_materialization_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: sharing_materialization_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribu..."
+    # Flattened from: usage_metadata.sharing_materialization_id
+
+  - name: usage_metadata_schema_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: schema_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Fl..."
+    # Flattened from: usage_metadata.schema_id
+
+  - name: usage_metadata_usage_policy_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: usage_policy_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technic..."
+    # Flattened from: usage_metadata.usage_policy_id
+
+  - name: usage_metadata_base_environment_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: base_environment_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Tec..."
+    # Flattened from: usage_metadata.base_environment_id
+
+  - name: usage_metadata_agent_bricks_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: agent_bricks_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technic..."
+    # Flattened from: usage_metadata.agent_bricks_id
+
+  - name: usage_metadata_index_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: index_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Fla..."
+    # Flattened from: usage_metadata.index_id
+
+  - name: usage_metadata_catalog_id
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the usage, including IDs for compute resources and jobs (if applicable). See [Analyze usage metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#usage-metadata). [Nested field: catalog_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: F..."
+    # Flattened from: usage_metadata.catalog_id
+
+  - name: identity_metadata_run_as
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the identities involved in the usage. See [Analyze identity metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#identity-metadata). [Nested field: run_as]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from identity_metadata.r..."
+    # Flattened from: identity_metadata.run_as
+
+  - name: identity_metadata_created_by
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the identities involved in the usage. See [Analyze identity metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#identity-metadata). [Nested field: created_by]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from identity_metada..."
+    # Flattened from: identity_metadata.created_by
+
+  - name: identity_metadata_owned_by
+    type: STRING
+    nullable: true
+    description: "System-provided metadata about the identities involved in the usage. See [Analyze identity metadata](https://docs.databricks.com/en/admin/system-tables/billing.html#identity-metadata). [Nested field: owned_by]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from identity_metadata..."
+    # Flattened from: identity_metadata.owned_by
+
+  - name: product_features_jobs_tier
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: jobs_tier]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.jobs_tier, STRING type, nullable."
+    # Flattened from: product_features.jobs_tier
+
+  - name: product_features_sql_tier
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: sql_tier]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.sql_tier, STRING type, nullable."
+    # Flattened from: product_features.sql_tier
+
+  - name: product_features_dlt_tier
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: dlt_tier]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.dlt_tier, STRING type, nullable."
+    # Flattened from: product_features.dlt_tier
+
+  - name: product_features_is_serverless
+    type: BOOLEAN
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: is_serverless]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.is_serverless, BOOLEAN type, nullable."
+    # Flattened from: product_features.is_serverless
+
+  - name: product_features_is_photon
+    type: BOOLEAN
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: is_photon]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.is_photon, BOOLEAN type, nullable."
+    # Flattened from: product_features.is_photon
+
+  - name: product_features_serving_type
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: serving_type]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.serving_type, STRING type, nullable."
+    # Flattened from: product_features.serving_type
+
+  - name: product_features_networking
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: networking]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.networking, STRING type, nullable."
+    # Flattened from: product_features.networking
+
+  - name: product_features_ai_runtime
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: ai_runtime]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.ai_runtime, STRING type, nullable."
+    # Flattened from: product_features.ai_runtime
+
+  - name: product_features_model_serving
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: model_serving]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.model_serving, STRING type, nullable."
+    # Flattened from: product_features.model_serving
+
+  - name: product_features_ai_gateway
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: ai_gateway]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.ai_gateway, STRING type, nullable."
+    # Flattened from: product_features.ai_gateway
+
+  - name: product_features_performance_target
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: performance_target]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.performance_target, STRING type, nullable."
+    # Flattened from: product_features.performance_target
+
+  - name: product_features_serverless_gpu
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: serverless_gpu]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.serverless_gpu, STRING type, nullable."
+    # Flattened from: product_features.serverless_gpu
+
+  - name: product_features_agent_bricks
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: agent_bricks]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.agent_bricks, STRING type, nullable."
+    # Flattened from: product_features.agent_bricks
+
+  - name: product_features_ai_functions
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: ai_functions]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.ai_functions, STRING type, nullable."
+    # Flattened from: product_features.ai_functions
+
+  - name: product_features_apps
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: apps]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.apps, STRING type, nullable."
+    # Flattened from: product_features.apps
+
+  - name: product_features_lakeflow_connect
+    type: STRING
+    nullable: true
+    description: "Details about the specific product features used. [Nested field: lakeflow_connect]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.lakeflow_connect, STRING type, nullable."
+    # Flattened from: product_features.lakeflow_connect
+

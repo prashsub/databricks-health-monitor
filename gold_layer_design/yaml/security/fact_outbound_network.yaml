@@ -1,0 +1,99 @@
+# Gold Layer Table Schema
+# Table: fact_outbound_network
+# Domain: security
+# Bronze Source: access.outbound_network
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_outbound_network
+domain: security
+bronze_source: access.outbound_network
+
+description: >
+  Fact table recording denied outbound network access attempts.
+  Business: Data exfiltration monitoring - captures blocked outbound connections from
+  serverless compute. Essential for security monitoring, identifying misconfigured
+  egress rules, and investigating potential data leakage attempts. Technical: From
+  access.outbound_network. 365-day retention. Supports streaming.
+
+primary_key:
+  columns: ['event_id']
+  composite: False
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: destination_type
+    type: STRING
+    nullable: true
+    description: "The type of destination. Possible values are DNS, IP, and STORAGE Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: destination
+    type: STRING
+    nullable: true
+    description: "Details of the blocked destination. Depending on the destination type, the value could be a domain name, IP address, or storage location. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Event timestamp. Business: Precise UTC timestamp when event occurred in source system. Used for time-series analysis, trend detection, and SLA monitoring. Critical for accurate historical reporting and audit trails. Technical: TIMESTAMP with timezone (+00:00 UTC), typically millisecond precision. Used for temporal ordering, time-based partitioning, and change data capture. Part of composite key..."
+
+  - name: access_type
+    type: STRING
+    nullable: true
+    description: "Type of access event that occurred. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_id
+    type: STRING
+    nullable: false
+    description: "The ID of the event Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: network_source_type
+    type: STRING
+    nullable: true
+    description: "The source type of the network event, mainly for customer debugging Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: dns_event_domain_name
+    type: STRING
+    nullable: true
+    description: "Details about the DNS destination. Only populates for DNS destinations, otherwise the field is NULL. [Nested field: domain_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from dns_event.domain_name, STRING type, nullable."
+    # Flattened from: dns_event.domain_name
+
+  - name: dns_event_rcode
+    type: INT
+    nullable: true
+    description: "Details about the DNS destination. Only populates for DNS destinations, otherwise the field is NULL. [Nested field: rcode]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from dns_event.rcode, INT type, nullable."
+    # Flattened from: dns_event.rcode
+
+  - name: storage_event_hostname
+    type: STRING
+    nullable: true
+    description: "Details about the storage destination. Only populates for storage destinations, otherwise the field is NULL. [Nested field: hostname]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from storage_event.hostname, STRING type, nullable."
+    # Flattened from: storage_event.hostname
+
+  - name: storage_event_path
+    type: STRING
+    nullable: true
+    description: "Details about the storage destination. Only populates for storage destinations, otherwise the field is NULL. [Nested field: path]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from storage_event.path, STRING type, nullable."
+    # Flattened from: storage_event.path
+
+  - name: storage_event_rejection_reason
+    type: STRING
+    nullable: true
+    description: "Details about the storage destination. Only populates for storage destinations, otherwise the field is NULL. [Nested field: rejection_reason]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from storage_event.rejection_reason, STRING type, nullable."
+    # Flattened from: storage_event.rejection_reason
+

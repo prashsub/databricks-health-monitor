@@ -1,0 +1,2541 @@
+{
+  "datasets": [
+    {
+      "name": "distinct_workspaces",
+      "displayName": "Distinct Workspaces",
+      "queryLines": [
+        "SELECT 'All' AS workspace_id, 'All Workspaces' AS workspace_name\n",
+        "UNION ALL\n",
+        "SELECT CAST(workspace_id AS STRING) AS workspace_id, \n",
+        "       COALESCE(workspace_name, 'Workspace ' || CAST(workspace_id AS STRING)) AS workspace_name\n",
+        "FROM system.access.workspaces_latest\n",
+        "WHERE status = 'RUNNING'\n",
+        "ORDER BY workspace_name\n"
+      ]
+    },
+    {
+      "name": "distinct_catalogs",
+      "displayName": "Distinct Catalogs",
+      "queryLines": [
+        "SELECT 'All' AS catalog\n",
+        "UNION ALL\n",
+        "SELECT DISTINCT table_catalog AS catalog\n",
+        "FROM system.information_schema.tables\n",
+        "ORDER BY catalog\n"
+      ]
+    },
+    {
+      "name": "distinct_job_names",
+      "displayName": "Distinct Job Names",
+      "queryLines": [
+        "WITH latest_jobs AS (\n",
+        "  SELECT workspace_id, job_id, name,\n",
+        "    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id ORDER BY change_time DESC) as rn\n",
+        "  FROM system.lakeflow.jobs\n",
+        "  WHERE delete_time IS NULL\n",
+        "    AND ( :workspace_filter = 'All' OR CAST(workspace_id AS STRING) = :workspace_filter )\n",
+        "  QUALIFY rn = 1\n",
+        "),\n",
+        "active_jobs AS (\n",
+        "  SELECT DISTINCT jtr.workspace_id, jtr.job_id\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "    AND ( :workspace_filter = 'All' OR CAST(jtr.workspace_id AS STRING) = :workspace_filter )\n",
+        ")\n",
+        "SELECT 'All' AS job_name\n",
+        "UNION ALL\n",
+        "SELECT DISTINCT COALESCE(lj.name, 'Job ' || CAST(lj.job_id AS STRING)) AS job_name\n",
+        "FROM active_jobs aj\n",
+        "INNER JOIN latest_jobs lj ON aj.workspace_id = lj.workspace_id AND aj.job_id = lj.job_id\n",
+        "ORDER BY job_name\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Workspace",
+          "keyword": "workspace_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-09-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "distinct_schemas",
+      "displayName": "Distinct Schemas",
+      "queryLines": [
+        "SELECT 'All' AS schema\n",
+        "UNION ALL\n",
+        "SELECT DISTINCT table_schema AS schema\n",
+        "FROM system.information_schema.tables\n",
+        "WHERE ( :catalog_filter = 'All' OR table_catalog IN (:catalog_filter) )\n",
+        "ORDER BY schema\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Catalog",
+          "keyword": "catalog_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "distinct_readiness",
+      "displayName": "Distinct Readiness Values",
+      "queryLines": [
+        "SELECT 'All' AS readiness\n",
+        "UNION ALL SELECT 'READY'\n",
+        "UNION ALL SELECT 'BLOCKED_OLD_WRITER'\n",
+        "UNION ALL SELECT 'PATH_IO_RISK'\n",
+        "UNION ALL SELECT 'UNKNOWN'\n"
+      ]
+    },
+    {
+      "name": "kpi_total_tables",
+      "displayName": "KPI: Total Tables",
+      "queryLines": [
+        "SELECT COUNT(*) AS value\n",
+        "FROM system.information_schema.tables\n",
+        "WHERE table_type IN ('EXTERNAL','MANAGED')\n",
+        "  AND ( :catalog_filter = 'All' OR table_catalog IN (:catalog_filter) )\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Catalog",
+          "keyword": "catalog_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "kpi_external_tables",
+      "displayName": "KPI: External Tables",
+      "queryLines": [
+        "SELECT COUNT(*) AS value\n",
+        "FROM system.information_schema.tables\n",
+        "WHERE table_type = 'EXTERNAL'\n",
+        "  AND ( :catalog_filter = 'All' OR table_catalog IN (:catalog_filter) )\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Catalog",
+          "keyword": "catalog_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "kpi_managed_tables",
+      "displayName": "KPI: Managed Tables",
+      "queryLines": [
+        "SELECT COUNT(*) AS value\n",
+        "FROM system.information_schema.tables\n",
+        "WHERE table_type = 'MANAGED'\n",
+        "  AND ( :catalog_filter = 'All' OR table_catalog IN (:catalog_filter) )\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Catalog",
+          "keyword": "catalog_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "kpi_unique_dbr_versions",
+      "displayName": "KPI: Unique DBR Versions",
+      "queryLines": [
+        "WITH latest_jobs AS (\n",
+        "  SELECT workspace_id, job_id, name,\n",
+        "         ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) AS rn\n",
+        "  FROM system.lakeflow.jobs\n",
+        "  WHERE delete_time IS NULL\n",
+        "  QUALIFY rn = 1\n",
+        "),\n",
+        "latest_clusters AS (\n",
+        "  SELECT\n",
+        "    workspace_id,\n",
+        "    cluster_id,\n",
+        "    MAX_BY(dbr_version, change_time) AS dbr_version_raw,\n",
+        "    -- normalize to major.minor like 13.3, 14.3, 15.4, 16.4, 17.3\n",
+        "    REGEXP_EXTRACT(LOWER(MAX_BY(dbr_version, change_time)), '(\\\\d+\\\\.\\\\d+)') AS dbr_core\n",
+        "  FROM system.compute.clusters\n",
+        "  WHERE delete_time IS NULL\n",
+        "    AND ( :workspace_filter = 'All' OR CAST(workspace_id AS STRING) = :workspace_filter )\n",
+        "  GROUP BY workspace_id, cluster_id\n",
+        "),\n",
+        "job_runs AS (\n",
+        "  SELECT DISTINCT lc.dbr_core\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  CROSS JOIN LATERAL EXPLODE(jtr.compute_ids) AS t(cluster_id)\n",
+        "  INNER JOIN latest_clusters lc\n",
+        "    ON jtr.workspace_id = lc.workspace_id\n",
+        "   AND t.cluster_id     = lc.cluster_id\n",
+        "  LEFT JOIN latest_jobs lj\n",
+        "    ON jtr.workspace_id = lj.workspace_id\n",
+        "   AND jtr.job_id       = lj.job_id\n",
+        "  WHERE DATE(jtr.period_start_time) BETWEEN :start_date AND :end_date\n",
+        "    AND ( :job_name_filter = 'All'\n",
+        "          OR COALESCE(lj.name, 'Job ' || CAST(jtr.job_id AS STRING)) = :job_name_filter )\n",
+        "    AND lc.dbr_core IS NOT NULL\n",
+        ")\n",
+        "SELECT COUNT(DISTINCT dbr_core) AS value\n",
+        "FROM job_runs;\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Workspace",
+          "keyword": "workspace_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Job Name",
+          "keyword": "job_name_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-09-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "kpi_legacy_jobs",
+      "displayName": "KPI: Legacy Jobs",
+      "queryLines": [
+        "WITH latest_jobs AS (\n",
+        "  SELECT workspace_id, job_id, name,\n",
+        "    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id ORDER BY change_time DESC) as rn\n",
+        "  FROM system.lakeflow.jobs\n",
+        "  WHERE delete_time IS NULL\n",
+        "  QUALIFY rn = 1\n",
+        "),\n",
+        "latest_clusters AS (\n",
+        "  SELECT workspace_id, cluster_id, MAX_BY(dbr_version, change_time) AS dbr_version\n",
+        "  FROM system.compute.clusters\n",
+        "  WHERE delete_time IS NULL\n",
+        "    AND ( :workspace_filter = 'All' OR CAST(workspace_id AS STRING) = :workspace_filter )\n",
+        "  GROUP BY workspace_id, cluster_id\n",
+        "),\n",
+        "job_runs AS (\n",
+        "  SELECT DISTINCT jtr.job_id\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  CROSS JOIN LATERAL explode(jtr.compute_ids) AS t(cluster_id)\n",
+        "  INNER JOIN latest_clusters lc ON jtr.workspace_id = lc.workspace_id AND t.cluster_id = lc.cluster_id\n",
+        "  LEFT JOIN latest_jobs lj ON jtr.workspace_id = lj.workspace_id AND jtr.job_id = lj.job_id\n",
+        "  WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "    AND CAST(regexp_extract(COALESCE(lc.dbr_version,'0'), '^(\\\\d+)', 1) AS INT) < 15\n",
+        "    AND ( :job_name_filter = 'All' OR COALESCE(lj.name, 'Job ' || CAST(jtr.job_id AS STRING)) = :job_name_filter )\n",
+        ")\n",
+        "SELECT COUNT(DISTINCT job_id) AS value FROM job_runs\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Workspace",
+          "keyword": "workspace_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Job Name",
+          "keyword": "job_name_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-09-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "kpi_total_jobs",
+      "displayName": "KPI: Total Jobs",
+      "queryLines": [
+        "WITH latest_jobs AS (\n",
+        "  SELECT workspace_id, job_id, name,\n",
+        "    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id ORDER BY change_time DESC) as rn\n",
+        "  FROM system.lakeflow.jobs\n",
+        "  WHERE delete_time IS NULL\n",
+        "  QUALIFY rn = 1\n",
+        ")\n",
+        "SELECT COUNT(DISTINCT jtr.job_id) AS value\n",
+        "FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "LEFT JOIN latest_jobs lj ON jtr.workspace_id = lj.workspace_id AND jtr.job_id = lj.job_id\n",
+        "WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "  AND ( :workspace_filter = 'All' OR CAST(jtr.workspace_id AS STRING) = :workspace_filter )\n",
+        "  AND ( :job_name_filter = 'All' OR COALESCE(lj.name, 'Job ' || CAST(jtr.job_id AS STRING)) = :job_name_filter )\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Workspace",
+          "keyword": "workspace_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Job Name",
+          "keyword": "job_name_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-09-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "jobs_by_workspace_dbr",
+      "displayName": "Jobs by Workspace and DBR Version",
+      "queryLines": [
+        "WITH workspaces AS (\n",
+        "  SELECT workspace_id, COALESCE(workspace_name, CAST(workspace_id AS STRING)) AS workspace_name\n",
+        "  FROM system.access.workspaces_latest WHERE status = 'RUNNING'\n",
+        "),\n",
+        "latest_jobs AS (\n",
+        "  SELECT workspace_id, job_id, name,\n",
+        "    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id ORDER BY change_time DESC) as rn\n",
+        "  FROM system.lakeflow.jobs\n",
+        "  WHERE delete_time IS NULL\n",
+        "  QUALIFY rn = 1\n",
+        "),\n",
+        "latest_clusters AS (\n",
+        "  SELECT workspace_id, cluster_id, MAX_BY(dbr_version, change_time) AS dbr_version\n",
+        "  FROM system.compute.clusters WHERE delete_time IS NULL\n",
+        "  GROUP BY workspace_id, cluster_id\n",
+        "),\n",
+        "job_runs AS (\n",
+        "  SELECT jtr.workspace_id, jtr.job_id, lc.dbr_version\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  CROSS JOIN LATERAL explode(jtr.compute_ids) AS t(cluster_id)\n",
+        "  INNER JOIN latest_clusters lc ON jtr.workspace_id = lc.workspace_id AND t.cluster_id = lc.cluster_id\n",
+        "  LEFT JOIN latest_jobs lj ON jtr.workspace_id = lj.workspace_id AND jtr.job_id = lj.job_id\n",
+        "  WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "    AND ( :workspace_filter = 'All' OR CAST(jtr.workspace_id AS STRING) = :workspace_filter )\n",
+        "    AND ( :job_name_filter = 'All' OR COALESCE(lj.name, 'Job ' || CAST(jtr.job_id AS STRING)) = :job_name_filter )\n",
+        ")\n",
+        "SELECT w.workspace_name, jr.dbr_version, COUNT(DISTINCT jr.job_id) AS job_count\n",
+        "FROM job_runs jr\n",
+        "INNER JOIN workspaces w ON jr.workspace_id = w.workspace_id\n",
+        "GROUP BY w.workspace_name, jr.dbr_version\n",
+        "ORDER BY w.workspace_name, jr.dbr_version\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Workspace",
+          "keyword": "workspace_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Job Name",
+          "keyword": "job_name_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-09-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "jobs_by_frequency_dbr",
+      "displayName": "Jobs by Run Frequency and DBR",
+      "queryLines": [
+        "WITH latest_jobs AS (\n",
+        "  SELECT workspace_id, job_id, name,\n",
+        "    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id ORDER BY change_time DESC) as rn\n",
+        "  FROM system.lakeflow.jobs\n",
+        "  WHERE delete_time IS NULL\n",
+        "  QUALIFY rn = 1\n",
+        "),\n",
+        "latest_clusters AS (\n",
+        "  SELECT workspace_id, cluster_id, MAX_BY(dbr_version, change_time) AS dbr_version\n",
+        "  FROM system.compute.clusters WHERE delete_time IS NULL\n",
+        "  GROUP BY workspace_id, cluster_id\n",
+        "),\n",
+        "job_runs AS (\n",
+        "  SELECT jtr.job_id, lc.dbr_version, COUNT(*) AS run_count,\n",
+        "    CASE\n",
+        "      WHEN COUNT(*) >= 100 THEN 'Very Frequent (100+)'\n",
+        "      WHEN COUNT(*) >= 50 THEN 'Frequent (50-99)'\n",
+        "      WHEN COUNT(*) >= 10 THEN 'Regular (10-49)'\n",
+        "      ELSE 'Infrequent (<10)'\n",
+        "    END AS frequency_category,\n",
+        "    CASE\n",
+        "      WHEN CAST(regexp_extract(COALESCE(lc.dbr_version,'0'), '^(\\\\d+)', 1) AS INT) < 16 THEN 'Legacy (<16)'\n",
+        "      WHEN CAST(regexp_extract(COALESCE(lc.dbr_version,'0'), '^(\\\\d+)', 1) AS INT) >= 16 THEN 'Modern (≥16)'\n",
+        "      ELSE 'Unknown'\n",
+        "    END AS dbr_category\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  CROSS JOIN LATERAL explode(jtr.compute_ids) AS t(cluster_id)\n",
+        "  INNER JOIN latest_clusters lc ON jtr.workspace_id = lc.workspace_id AND t.cluster_id = lc.cluster_id\n",
+        "  LEFT JOIN latest_jobs lj ON jtr.workspace_id = lj.workspace_id AND jtr.job_id = lj.job_id\n",
+        "  WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "    AND ( :workspace_filter = 'All' OR CAST(jtr.workspace_id AS STRING) = :workspace_filter )\n",
+        "    AND ( :job_name_filter = 'All' OR COALESCE(lj.name, 'Job ' || CAST(jtr.job_id AS STRING)) = :job_name_filter )\n",
+        "  GROUP BY jtr.job_id, lc.dbr_version\n",
+        ")\n",
+        "SELECT frequency_category, dbr_category, COUNT(DISTINCT job_id) AS job_count, SUM(run_count) AS total_runs\n",
+        "FROM job_runs\n",
+        "GROUP BY frequency_category, dbr_category\n",
+        "ORDER BY \n",
+        "  CASE frequency_category\n",
+        "    WHEN 'Very Frequent (100+)' THEN 1\n",
+        "    WHEN 'Frequent (50-99)' THEN 2\n",
+        "    WHEN 'Regular (10-49)' THEN 3\n",
+        "    WHEN 'Infrequent (<10)' THEN 4\n",
+        "  END,\n",
+        "  dbr_category\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Workspace",
+          "keyword": "workspace_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Job Name",
+          "keyword": "job_name_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-09-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "dbr_version_timeline",
+      "displayName": "DBR Version Usage Timeline",
+      "queryLines": [
+        "WITH latest_jobs AS (\n",
+        "  SELECT workspace_id, job_id, name,\n",
+        "    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id ORDER BY change_time DESC) as rn\n",
+        "  FROM system.lakeflow.jobs\n",
+        "  WHERE delete_time IS NULL\n",
+        "  QUALIFY rn = 1\n",
+        "),\n",
+        "latest_clusters AS (\n",
+        "  SELECT workspace_id, cluster_id, MAX_BY(dbr_version, change_time) AS dbr_version\n",
+        "  FROM system.compute.clusters WHERE delete_time IS NULL\n",
+        "  GROUP BY workspace_id, cluster_id\n",
+        "),\n",
+        "job_runs AS (\n",
+        "  SELECT DATE_TRUNC('week', jtr.period_start_time) AS week,\n",
+        "    CASE\n",
+        "      WHEN CAST(regexp_extract(COALESCE(lc.dbr_version,'0'), '^(\\\\d+)', 1) AS INT) < 16 THEN 'Legacy (<16)'\n",
+        "      WHEN CAST(regexp_extract(COALESCE(lc.dbr_version,'0'), '^(\\\\d+)', 1) AS INT) >= 16 THEN 'Modern (≥16)'\n",
+        "      ELSE 'Unknown'\n",
+        "    END AS dbr_category,\n",
+        "    COUNT(DISTINCT jtr.job_id) AS job_count\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  CROSS JOIN LATERAL explode(jtr.compute_ids) AS t(cluster_id)\n",
+        "  INNER JOIN latest_clusters lc ON jtr.workspace_id = lc.workspace_id AND t.cluster_id = lc.cluster_id\n",
+        "  LEFT JOIN latest_jobs lj ON jtr.workspace_id = lj.workspace_id AND jtr.job_id = lj.job_id\n",
+        "  WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "    AND ( :workspace_filter = 'All' OR CAST(jtr.workspace_id AS STRING) = :workspace_filter )\n",
+        "    AND ( :job_name_filter = 'All' OR COALESCE(lj.name, 'Job ' || CAST(jtr.job_id AS STRING)) = :job_name_filter )\n",
+        "  GROUP BY week, dbr_category\n",
+        ")\n",
+        "SELECT week, dbr_category, SUM(job_count) AS total_jobs\n",
+        "FROM job_runs\n",
+        "GROUP BY week, dbr_category\n",
+        "ORDER BY week, dbr_category\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Workspace",
+          "keyword": "workspace_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Job Name",
+          "keyword": "job_name_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-01-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "top_jobs_needing_upgrade",
+      "displayName": "Top Priority Jobs for DBR Upgrade",
+      "queryLines": [
+        "WITH workspaces AS (\n",
+        "  SELECT workspace_id, COALESCE(workspace_name, CAST(workspace_id AS STRING)) AS workspace_name\n",
+        "  FROM system.access.workspaces_latest WHERE status = 'RUNNING'\n",
+        "),\n",
+        "latest_jobs AS (\n",
+        "  SELECT workspace_id, job_id, name, run_as,\n",
+        "    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id ORDER BY change_time DESC) as rn\n",
+        "  FROM system.lakeflow.jobs\n",
+        "  WHERE delete_time IS NULL\n",
+        "  QUALIFY rn = 1\n",
+        "),\n",
+        "latest_clusters AS (\n",
+        "  SELECT workspace_id, cluster_id, MAX_BY(dbr_version, change_time) AS dbr_version\n",
+        "  FROM system.compute.clusters WHERE delete_time IS NULL\n",
+        "  GROUP BY workspace_id, cluster_id\n",
+        "),\n",
+        "job_details AS (\n",
+        "  SELECT jtr.workspace_id, jtr.job_id, \n",
+        "    COALESCE(lj.name, 'Job ' || CAST(jtr.job_id AS STRING)) AS job_name,\n",
+        "    lc.dbr_version,\n",
+        "    COUNT(*) AS run_count,\n",
+        "    MAX(jtr.period_end_time) AS last_run,\n",
+        "    MAX_BY(lj.run_as, jtr.period_end_time) AS owner\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  CROSS JOIN LATERAL explode(jtr.compute_ids) AS t(cluster_id)\n",
+        "  INNER JOIN latest_clusters lc ON jtr.workspace_id = lc.workspace_id AND t.cluster_id = lc.cluster_id\n",
+        "  LEFT JOIN latest_jobs lj ON jtr.workspace_id = lj.workspace_id AND jtr.job_id = lj.job_id\n",
+        "  WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "    AND CAST(regexp_extract(COALESCE(lc.dbr_version,'0'), '^(\\\\d+)', 1) AS INT) < 16\n",
+        "    AND ( :workspace_filter = 'All' OR CAST(jtr.workspace_id AS STRING) = :workspace_filter )\n",
+        "    AND ( :job_name_filter = 'All' OR COALESCE(lj.name, 'Job ' || CAST(jtr.job_id AS STRING)) = :job_name_filter )\n",
+        "  GROUP BY jtr.workspace_id, jtr.job_id, lj.name, lc.dbr_version\n",
+        ")\n",
+        "SELECT w.workspace_name, jd.job_name, jd.dbr_version, jd.run_count, jd.last_run, jd.owner\n",
+        "FROM job_details jd\n",
+        "INNER JOIN workspaces w ON jd.workspace_id = w.workspace_id\n",
+        "ORDER BY jd.run_count DESC\n",
+        "LIMIT 100\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Workspace",
+          "keyword": "workspace_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Job Name",
+          "keyword": "job_name_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-09-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "kpi_ready_for_migration",
+      "displayName": "KPI: Ready for Migration",
+      "queryLines": [
+        "WITH latest_clusters AS (\n",
+        "  SELECT workspace_id, cluster_id, MAX_BY(dbr_version, change_time) AS dbr_version\n",
+        "  FROM system.compute.clusters WHERE delete_time IS NULL\n",
+        "  GROUP BY workspace_id, cluster_id\n",
+        "),\n",
+        "task_runs_with_cluster AS (\n",
+        "  SELECT jtr.workspace_id, jtr.job_id, jtr.job_run_id, t.cluster_id,\n",
+        "         jtr.period_start_time, jtr.period_end_time\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  CROSS JOIN LATERAL explode(jtr.compute_ids) AS t(cluster_id)\n",
+        "  WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "),\n",
+        "writer_dbrs AS (\n",
+        "  SELECT tl.target_table_full_name AS full_name, lc.dbr_version\n",
+        "  FROM system.access.table_lineage tl\n",
+        "  JOIN task_runs_with_cluster tr\n",
+        "    ON tl.workspace_id = tr.workspace_id\n",
+        "   AND (tl.entity_type <> 'JOB' OR tl.entity_run_id = tr.job_run_id)\n",
+        "   AND tl.event_time BETWEEN tr.period_start_time AND tr.period_end_time\n",
+        "  JOIN latest_clusters lc\n",
+        "    ON tr.workspace_id = lc.workspace_id AND tr.cluster_id = lc.cluster_id\n",
+        "  WHERE tl.target_table_full_name IS NOT NULL\n",
+        "),\n",
+        "externals AS (\n",
+        "  SELECT concat(table_catalog, '.', table_schema, '.', table_name) AS full_name, last_altered\n",
+        "  FROM system.information_schema.tables\n",
+        "  WHERE table_type = 'EXTERNAL' \n",
+        "    AND DATE(last_altered) >= :start_date AND DATE(last_altered) <= :end_date\n",
+        "    AND ( :catalog_filter = 'All' OR table_catalog IN (:catalog_filter) )\n",
+        "),\n",
+        "combined AS (\n",
+        "  SELECT CASE \n",
+        "           WHEN CAST(regexp_extract(COALESCE(w.dbr_version,'0'), '^(\\\\d+)', 1) AS INT) >= 16\n",
+        "           THEN 1 ELSE 0\n",
+        "         END AS is_ready\n",
+        "  FROM externals e LEFT JOIN writer_dbrs w ON w.full_name = e.full_name\n",
+        ")\n",
+        "SELECT SUM(is_ready) AS value FROM combined\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Catalog",
+          "keyword": "catalog_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-01-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ext_managed_by_catalog",
+      "displayName": "External vs Managed by Catalog",
+      "queryLines": [
+        "SELECT table_catalog, table_type, COUNT(*) AS table_count\n",
+        "FROM system.information_schema.tables\n",
+        "WHERE table_type IN ('EXTERNAL','MANAGED')\n",
+        "  AND ( :catalog_filter = 'All' OR table_catalog IN (:catalog_filter) )\n",
+        "GROUP BY table_catalog, table_type\n",
+        "ORDER BY table_catalog, table_type\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Catalog",
+          "keyword": "catalog_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "readiness_summary",
+      "displayName": "Migration Readiness Summary",
+      "queryLines": [
+        "WITH latest_clusters AS (\n",
+        "  SELECT workspace_id, cluster_id, MAX_BY(dbr_version, change_time) AS dbr_version\n",
+        "  FROM system.compute.clusters WHERE delete_time IS NULL\n",
+        "  GROUP BY workspace_id, cluster_id\n",
+        "),\n",
+        "task_runs_with_cluster AS (\n",
+        "  SELECT jtr.workspace_id, jtr.job_id, jtr.job_run_id, t.cluster_id,\n",
+        "         jtr.period_start_time, jtr.period_end_time\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  CROSS JOIN LATERAL explode(jtr.compute_ids) AS t(cluster_id)\n",
+        "  WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "),\n",
+        "writer_dbrs AS (\n",
+        "  SELECT tl.target_table_full_name AS full_name, lc.dbr_version\n",
+        "  FROM system.access.table_lineage tl\n",
+        "  JOIN task_runs_with_cluster tr\n",
+        "    ON tl.workspace_id = tr.workspace_id\n",
+        "   AND (tl.entity_type <> 'JOB' OR tl.entity_run_id = tr.job_run_id)\n",
+        "   AND tl.event_time BETWEEN tr.period_start_time AND tr.period_end_time\n",
+        "  JOIN latest_clusters lc\n",
+        "    ON tr.workspace_id = lc.workspace_id AND tr.cluster_id = lc.cluster_id\n",
+        "  WHERE tl.target_table_full_name IS NOT NULL\n",
+        "),\n",
+        "externals AS (\n",
+        "  SELECT concat(table_catalog, '.', table_schema, '.', table_name) AS full_name, last_altered\n",
+        "  FROM system.information_schema.tables\n",
+        "  WHERE table_type = 'EXTERNAL' \n",
+        "    AND DATE(last_altered) >= :start_date AND DATE(last_altered) <= :end_date\n",
+        "    AND ( :catalog_filter = 'All' OR table_catalog IN (:catalog_filter) )\n",
+        "),\n",
+        "path_risk AS (\n",
+        "  SELECT DISTINCT COALESCE(target_table_full_name, source_table_full_name) AS full_name\n",
+        "  FROM system.access.table_lineage\n",
+        "  WHERE source_path IS NOT NULL OR target_path IS NOT NULL\n",
+        "),\n",
+        "combined AS (\n",
+        "  SELECT \n",
+        "    CASE \n",
+        "      WHEN CAST(regexp_extract(COALESCE(w.dbr_version,'0'), '^(\\\\d+)', 1) AS INT) = 0 THEN 'UNKNOWN'\n",
+        "      WHEN CAST(regexp_extract(COALESCE(w.dbr_version,'0'), '^(\\\\d+)', 1) AS INT) < 16 THEN 'BLOCKED_OLD_WRITER'\n",
+        "      WHEN p.full_name IS NOT NULL THEN 'PATH_IO_RISK'\n",
+        "      ELSE 'READY'\n",
+        "    END AS readiness\n",
+        "  FROM externals e \n",
+        "  LEFT JOIN writer_dbrs w ON w.full_name = e.full_name\n",
+        "  LEFT JOIN path_risk p ON p.full_name = e.full_name\n",
+        ")\n",
+        "SELECT readiness, COUNT(*) AS table_count\n",
+        "FROM combined\n",
+        "GROUP BY readiness\n",
+        "ORDER BY \n",
+        "  CASE readiness \n",
+        "    WHEN 'BLOCKED_OLD_WRITER' THEN 1\n",
+        "    WHEN 'PATH_IO_RISK' THEN 2\n",
+        "    WHEN 'UNKNOWN' THEN 3\n",
+        "    WHEN 'READY' THEN 4\n",
+        "  END\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Catalog",
+          "keyword": "catalog_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-01-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "external_table_detail",
+      "displayName": "External Table Details",
+      "queryLines": [
+        "WITH latest_clusters AS (\n",
+        "  SELECT workspace_id, cluster_id, MAX_BY(dbr_version, change_time) AS dbr_version\n",
+        "  FROM system.compute.clusters WHERE delete_time IS NULL\n",
+        "  GROUP BY workspace_id, cluster_id\n",
+        "),\n",
+        "task_runs_with_cluster AS (\n",
+        "  SELECT jtr.workspace_id, jtr.job_id, jtr.job_run_id, t.cluster_id,\n",
+        "         jtr.period_start_time, jtr.period_end_time\n",
+        "  FROM system.lakeflow.job_task_run_timeline jtr\n",
+        "  CROSS JOIN LATERAL explode(jtr.compute_ids) AS t(cluster_id)\n",
+        "  WHERE DATE(jtr.period_start_time) >= :start_date AND DATE(jtr.period_start_time) <= :end_date\n",
+        "),\n",
+        "writer_dbrs AS (\n",
+        "  SELECT tl.target_table_full_name AS full_name, lc.dbr_version\n",
+        "  FROM system.access.table_lineage tl\n",
+        "  JOIN task_runs_with_cluster tr\n",
+        "    ON tl.workspace_id = tr.workspace_id\n",
+        "   AND (tl.entity_type <> 'JOB' OR tl.entity_run_id = tr.job_run_id)\n",
+        "   AND tl.event_time BETWEEN tr.period_start_time AND tr.period_end_time\n",
+        "  JOIN latest_clusters lc\n",
+        "    ON tr.workspace_id = lc.workspace_id AND tr.cluster_id = lc.cluster_id\n",
+        "  WHERE tl.target_table_full_name IS NOT NULL\n",
+        "),\n",
+        "externals AS (\n",
+        "  SELECT concat(table_catalog, '.', table_schema, '.', table_name) AS full_name,\n",
+        "         table_catalog, table_schema, table_name, storage_path, data_source_format, last_altered\n",
+        "  FROM system.information_schema.tables\n",
+        "  WHERE table_type = 'EXTERNAL'\n",
+        "    AND ( :catalog_filter = 'All' OR table_catalog IN (:catalog_filter) )\n",
+        "    AND ( :schema_filter = 'All' OR table_schema IN (:schema_filter) )\n",
+        "    AND DATE(last_altered) >= :start_date AND DATE(last_altered) <= :end_date\n",
+        "),\n",
+        "path_risk AS (\n",
+        "  SELECT DISTINCT COALESCE(target_table_full_name, source_table_full_name) AS full_name\n",
+        "  FROM system.access.table_lineage\n",
+        "  WHERE source_path IS NOT NULL OR target_path IS NOT NULL\n",
+        "),\n",
+        "combined AS (\n",
+        "  SELECT e.table_catalog, e.table_schema, e.table_name, e.storage_path, e.data_source_format,\n",
+        "         COALESCE(w.dbr_version, 'UNKNOWN') AS writer_dbr_version,\n",
+        "         CASE WHEN p.full_name IS NOT NULL THEN 'Yes' ELSE 'No' END AS used_path_io,\n",
+        "         CASE \n",
+        "           WHEN CAST(regexp_extract(COALESCE(w.dbr_version,'0'), '^(\\\\d+)',1) AS INT) = 0 THEN 'UNKNOWN'\n",
+        "           WHEN CAST(regexp_extract(COALESCE(w.dbr_version,'0'), '^(\\\\d+)',1) AS INT) < 16 THEN 'BLOCKED_OLD_WRITER'\n",
+        "           WHEN p.full_name IS NOT NULL THEN 'PATH_IO_RISK'\n",
+        "           ELSE 'READY' \n",
+        "         END AS readiness,\n",
+        "         e.last_altered, e.full_name\n",
+        "  FROM externals e\n",
+        "  LEFT JOIN path_risk p ON p.full_name = e.full_name\n",
+        "  LEFT JOIN writer_dbrs w ON w.full_name = e.full_name\n",
+        ")\n",
+        "SELECT table_catalog, table_schema, table_name, storage_path, data_source_format,\n",
+        "       writer_dbr_version, used_path_io, readiness, last_altered\n",
+        "FROM combined\n",
+        "WHERE ( :readiness_filter = 'All' OR readiness IN (:readiness_filter) )\n",
+        "ORDER BY \n",
+        "  CASE readiness \n",
+        "    WHEN 'BLOCKED_OLD_WRITER' THEN 1 \n",
+        "    WHEN 'PATH_IO_RISK' THEN 2\n",
+        "    WHEN 'UNKNOWN' THEN 3\n",
+        "    WHEN 'READY' THEN 4 \n",
+        "  END,\n",
+        "  table_catalog, table_schema, table_name\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Catalog",
+          "keyword": "catalog_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Schema",
+          "keyword": "schema_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Readiness",
+          "keyword": "readiness_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-01-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "managed_conversion_trend",
+      "displayName": "Managed Conversion Trend",
+      "queryLines": [
+        "SELECT \n",
+        "  date_trunc('month', last_altered) AS month, \n",
+        "  table_catalog, \n",
+        "  COUNT(*) AS tables_converted\n",
+        "FROM system.information_schema.tables\n",
+        "WHERE table_type = 'MANAGED'\n",
+        "  AND DATE(last_altered) >= :start_date AND DATE(last_altered) <= :end_date\n",
+        "  AND ( :catalog_filter = 'All' OR table_catalog IN (:catalog_filter) )\n",
+        "GROUP BY month, table_catalog\n",
+        "ORDER BY month, table_catalog\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Catalog",
+          "keyword": "catalog_filter",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "Start Date",
+          "keyword": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2024-01-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "End Date",
+          "keyword": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "page_global_filters",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_workspace_global",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "distinct_workspaces",
+                  "fields": [
+                    {
+                      "name": "workspace_id",
+                      "expression": "`workspace_id`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Workspace",
+                    "fieldName": "workspace_id",
+                    "queryName": "main_query"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Workspace",
+                "showDescription": true,
+                "description": "Filter by Databricks workspace"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_catalog_global",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "distinct_catalogs",
+                  "fields": [
+                    {
+                      "name": "catalog",
+                      "expression": "`catalog`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Catalog",
+                    "fieldName": "catalog",
+                    "queryName": "main_query"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Catalog",
+                "showDescription": true,
+                "description": "Filter by Unity Catalog"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS"
+    },
+    {
+      "name": "page_dbr_upgrade",
+      "displayName": "DBR Upgrade Tracking",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_job_name_dbr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "distinct_job_names",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Job Name",
+                    "fieldName": "job_name",
+                    "queryName": "main_query"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Job Name",
+                "showDescription": true,
+                "description": "Filter by specific job"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_jobs_dbr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_total_jobs",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "`value`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Jobs",
+                "showDescription": true,
+                "description": "All jobs in selected period"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_unique_dbr_dbr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_unique_dbr_versions",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "`value`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "DBR Versions in Use",
+                "showDescription": true,
+                "description": "Unique runtime versions"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_legacy_jobs_dbr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_legacy_jobs",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "`value`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs on Legacy DBR",
+                "showDescription": true,
+                "description": "Jobs needing upgrade (DBR < 15)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_jobs_by_workspace_dbr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "jobs_by_workspace_dbr",
+                  "fields": [
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "dbr_version",
+                      "expression": "`dbr_version`"
+                    },
+                    {
+                      "name": "job_count",
+                      "expression": "`job_count`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "workspace_name",
+                  "displayName": "Workspace",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "job_count",
+                  "displayName": "Job Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "dbr_version",
+                  "displayName": "DBR Version",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs by Workspace & DBR Version",
+                "showDescription": true,
+                "description": "Distribution of jobs across workspaces and runtime versions"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_jobs_by_frequency_dbr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "jobs_by_frequency_dbr",
+                  "fields": [
+                    {
+                      "name": "frequency_category",
+                      "expression": "`frequency_category`"
+                    },
+                    {
+                      "name": "dbr_category",
+                      "expression": "`dbr_category`"
+                    },
+                    {
+                      "name": "job_count",
+                      "expression": "`job_count`"
+                    },
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "frequency_category",
+                  "displayName": "Run Frequency",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "job_count",
+                  "displayName": "Job Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "dbr_category",
+                  "displayName": "DBR Category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs by Run Frequency & DBR Category",
+                "showDescription": true,
+                "description": "Prioritization matrix: High-frequency legacy jobs need urgent attention"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_dbr_timeline",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dbr_version_timeline",
+                  "fields": [
+                    {
+                      "name": "week",
+                      "expression": "`week`"
+                    },
+                    {
+                      "name": "dbr_category",
+                      "expression": "`dbr_category`"
+                    },
+                    {
+                      "name": "total_jobs",
+                      "expression": "`total_jobs`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "week",
+                  "displayName": "Week",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "total_jobs",
+                  "displayName": "Job Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "dbr_category",
+                  "displayName": "DBR Category",
+                  "legend": {
+                    "position": "right"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "DBR Adoption Timeline (Weekly)",
+                "showDescription": true,
+                "description": "Track migration from Legacy to Modern DBR over time"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_top_jobs_upgrade",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_jobs_needing_upgrade",
+                  "fields": [
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "dbr_version",
+                      "expression": "`dbr_version`"
+                    },
+                    {
+                      "name": "run_count",
+                      "expression": "`run_count`"
+                    },
+                    {
+                      "name": "last_run",
+                      "expression": "`last_run`"
+                    },
+                    {
+                      "name": "owner",
+                      "expression": "`owner`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {
+                "showTitle": true,
+                "title": "Top Priority Jobs for Upgrade (Sorted by Frequency)",
+                "showDescription": true,
+                "description": "High-frequency jobs on Legacy DBR with owner information for assignment"
+              },
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace"
+                  },
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job Name",
+                    "useMonospaceFont": true
+                  },
+                  {
+                    "fieldName": "dbr_version",
+                    "title": "Current DBR",
+                    "useMonospaceFont": true
+                  },
+                  {
+                    "fieldName": "run_count",
+                    "title": "Run Count"
+                  },
+                  {
+                    "fieldName": "last_run",
+                    "title": "Last Run",
+                    "dateTimeFormat": "yyyy-MM-dd HH:mm",
+                    "type": "datetime",
+                    "displayAs": "datetime"
+                  },
+                  {
+                    "fieldName": "owner",
+                    "title": "Owner (run_as)"
+                  }
+                ]
+              },
+              "itemsPerPage": 50,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": true
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "page_managed_migration",
+      "displayName": "Managed Table Migration",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_schema_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "distinct_schemas",
+                  "fields": [
+                    {
+                      "name": "schema",
+                      "expression": "`schema`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Schema",
+                    "fieldName": "schema",
+                    "queryName": "main_query"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Schema Filter"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_readiness_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "distinct_readiness",
+                  "fields": [
+                    {
+                      "name": "readiness",
+                      "expression": "`readiness`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Readiness",
+                    "fieldName": "readiness",
+                    "queryName": "main_query"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Readiness Filter"
+              }
+            }
+          },
+          "position": {
+            "x": 1,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_tables_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_total_tables",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "`value`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Tables",
+                "showDescription": true,
+                "description": "All EXTERNAL + MANAGED"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_external_tables_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_external_tables",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "`value`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "External Tables",
+                "showDescription": true,
+                "description": "Need migration"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_managed_tables_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_managed_tables",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "`value`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Managed Tables",
+                "showDescription": true,
+                "description": "Already migrated"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_ready_for_migration_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_ready_for_migration",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "`value`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Ready for Migration",
+                "showDescription": true,
+                "description": "Tables on DBR ≥15"
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_inventory_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ext_managed_by_catalog",
+                  "fields": [
+                    {
+                      "name": "table_type",
+                      "expression": "`table_type`"
+                    },
+                    {
+                      "name": "table_count",
+                      "expression": "`table_count`"
+                    },
+                    {
+                      "name": "table_catalog",
+                      "expression": "`table_catalog`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "table_type",
+                  "displayName": "Table Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "table_count",
+                  "displayName": "Table Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "table_catalog",
+                  "displayName": "Catalog",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "EXTERNAL vs MANAGED by Catalog",
+                "showDescription": true,
+                "description": "Current table type distribution"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_readiness_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "readiness_summary",
+                  "fields": [
+                    {
+                      "name": "table_count",
+                      "expression": "`table_count`"
+                    },
+                    {
+                      "name": "readiness",
+                      "expression": "`readiness`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "table_count",
+                  "displayName": "Table Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "readiness",
+                  "displayName": "Readiness",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Migration Readiness Breakdown",
+                "showDescription": true,
+                "description": "READY, BLOCKED_OLD_WRITER, PATH_IO_RISK, UNKNOWN"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_conversion_trend_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "managed_conversion_trend",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    },
+                    {
+                      "name": "tables_converted",
+                      "expression": "`tables_converted`"
+                    },
+                    {
+                      "name": "table_catalog",
+                      "expression": "`table_catalog`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "month",
+                  "displayName": "Month",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "tables_converted",
+                  "displayName": "Tables Converted",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "table_catalog",
+                  "displayName": "Catalog",
+                  "legend": {
+                    "position": "right"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Managed Table Conversion Progress",
+                "showDescription": true,
+                "description": "Monthly EXTERNAL → MANAGED conversions by catalog"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_external_detail_migration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "external_table_detail",
+                  "fields": [
+                    {
+                      "name": "readiness",
+                      "expression": "`readiness`"
+                    },
+                    {
+                      "name": "table_catalog",
+                      "expression": "`table_catalog`"
+                    },
+                    {
+                      "name": "table_schema",
+                      "expression": "`table_schema`"
+                    },
+                    {
+                      "name": "table_name",
+                      "expression": "`table_name`"
+                    },
+                    {
+                      "name": "data_source_format",
+                      "expression": "`data_source_format`"
+                    },
+                    {
+                      "name": "writer_dbr_version",
+                      "expression": "`writer_dbr_version`"
+                    },
+                    {
+                      "name": "used_path_io",
+                      "expression": "`used_path_io`"
+                    },
+                    {
+                      "name": "storage_path",
+                      "expression": "`storage_path`"
+                    },
+                    {
+                      "name": "last_altered",
+                      "expression": "`last_altered`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {
+                "showTitle": true,
+                "title": "External Tables: Detailed Migration Assessment",
+                "showDescription": true,
+                "description": "Complete view with readiness, writer DBR, path I/O risk, and storage location"
+              },
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "readiness",
+                    "title": "Status"
+                  },
+                  {
+                    "fieldName": "table_catalog",
+                    "title": "Catalog"
+                  },
+                  {
+                    "fieldName": "table_schema",
+                    "title": "Schema"
+                  },
+                  {
+                    "fieldName": "table_name",
+                    "title": "Table",
+                    "useMonospaceFont": true
+                  },
+                  {
+                    "fieldName": "data_source_format",
+                    "title": "Format"
+                  },
+                  {
+                    "fieldName": "writer_dbr_version",
+                    "title": "Writer DBR",
+                    "useMonospaceFont": true
+                  },
+                  {
+                    "fieldName": "used_path_io",
+                    "title": "Path I/O"
+                  },
+                  {
+                    "fieldName": "storage_path",
+                    "title": "Storage Path",
+                    "useMonospaceFont": true
+                  },
+                  {
+                    "fieldName": "last_altered",
+                    "title": "Last Altered",
+                    "dateTimeFormat": "yyyy-MM-dd HH:mm:ss",
+                    "type": "datetime",
+                    "displayAs": "datetime"
+                  }
+                ]
+              },
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": true
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F7F9FA",
+        "dark": "#0B0E11"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#1A1D21"
+      },
+      "widgetBorderColor": {
+        "light": "#E0E4E8",
+        "dark": "#2A2E33"
+      },
+      "fontColor": {
+        "light": "#11171C",
+        "dark": "#E8ECF0"
+      },
+      "selectionColor": {
+        "light": "#077A9D",
+        "dark": "#8ACAE7"
+      },
+      "visualizationColors": [
+        "#077A9D",
+        "#00A972",
+        "#FFAB00",
+        "#FF3621",
+        "#8BCAE7",
+        "#99DDB4",
+        "#FCA4A1",
+        "#AB4057",
+        "#6B4FBB",
+        "#BF7080"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    },
+    "genieSpace": {
+      "isEnabled": false
+    },
+    "applyModeEnabled": false
+  }
+}

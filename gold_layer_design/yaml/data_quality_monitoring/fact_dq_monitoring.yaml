@@ -1,0 +1,163 @@
+# Gold Layer Table Schema
+# Table: fact_dq_monitoring
+# Domain: data_quality_monitoring
+# Bronze Source: data_quality_monitoring.table_results
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_dq_monitoring
+domain: data_quality_monitoring
+bronze_source: data_quality_monitoring.table_results
+
+description: >
+  Fact table containing data quality monitoring results.
+  Business: Data quality scorecard - captures freshness, completeness, and anomaly
+  detection results with downstream impact analysis. Essential for data reliability,
+  SLA monitoring, and root cause analysis. Technical: From data_quality_monitoring.table_results.
+  Indefinite retention. Beta.
+
+primary_key:
+  columns: ['catalog_name', 'schema_name', 'table_name', 'event_time']
+  composite: True
+
+foreign_keys: []
+  # Note: FK to dim_table_metadata removed - that table sourced from information_schema, not Bronze
+
+columns:
+  - name: event_time
+    type: TIMESTAMP
+    nullable: false
+    description: "Event timestamp. Business: Precise UTC timestamp when event occurred in source system. Used for time-series analysis, trend detection, and SLA monitoring. Critical for accurate historical reporting and audit trails. Technical: TIMESTAMP with timezone (+00:00 UTC), typically millisecond precision. Used for temporal ordering, time-based partitioning, and change data capture. Part of composite key..."
+
+  - name: catalog_name
+    type: STRING
+    nullable: false
+    description: "null Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: schema_name
+    type: STRING
+    nullable: false
+    description: "null Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: table_name
+    type: STRING
+    nullable: false
+    description: "null Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: catalog_id
+    type: STRING
+    nullable: true
+    description: "null Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: schema_id
+    type: STRING
+    nullable: true
+    description: "null Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: table_id
+    type: STRING
+    nullable: true
+    description: "null Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: status
+    type: STRING
+    nullable: true
+    description: "null Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: freshness_status
+    type: STRING
+    nullable: true
+    description: "null [Nested field: status]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from freshness.status, STRING type, nullable."
+    # Flattened from: freshness.status
+
+  - name: freshness_commit_freshness
+    type: STRING
+    nullable: true
+    description: "null [Nested field: commit_freshness]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from freshness.commit_freshness, STRING type, nullable."
+    # Flattened from: freshness.commit_freshness
+
+  - name: completeness_status
+    type: STRING
+    nullable: true
+    description: "null [Nested field: status]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from completeness.status, STRING type, nullable."
+    # Flattened from: completeness.status
+
+  - name: completeness_total_row_count
+    type: STRING
+    nullable: true
+    description: "null [Nested field: total_row_count]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from completeness.total_row_count, STRING type, nullable."
+    # Flattened from: completeness.total_row_count
+
+  - name: completeness_daily_row_count
+    type: STRING
+    nullable: true
+    description: "null [Nested field: daily_row_count]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from completeness.daily_row_count, STRING type, nullable."
+    # Flattened from: completeness.daily_row_count
+
+  - name: downstream_impact_impact_level
+    type: INT
+    nullable: true
+    description: "null [Nested field: impact_level]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from downstream_impact.impact_level, INT type, nullable."
+    # Flattened from: downstream_impact.impact_level
+
+  - name: downstream_impact_num_downstream_tables
+    type: STRING
+    nullable: true
+    description: "null [Nested field: num_downstream_tables]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from downstream_impact.num_downstream_tables, STRING type, nullable."
+    # Flattened from: downstream_impact.num_downstream_tables
+
+  - name: downstream_impact_num_queries_on_affected_tables
+    type: STRING
+    nullable: true
+    description: "null [Nested field: num_queries_on_affected_tables]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from downstream_impact.num_queries_on_affected_tables, STRING type, nullable."
+    # Flattened from: downstream_impact.num_queries_on_affected_tables
+
+  - name: root_cause_analysis_upstream_jobs
+    type: STRING
+    nullable: true
+    description: "null [Nested field: upstream_jobs]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from root_cause_analysis.upstream_jobs, STRING type, nullable."
+    # Flattened from: root_cause_analysis.upstream_jobs
+
+  - name: _internal_debug_info_event_freshness
+    type: STRING
+    nullable: true
+    description: "null [Nested field: event_freshness]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from _internal_debug_info.event_freshness, STRING type, nullable."
+    # Flattened from: _internal_debug_info.event_freshness
+
+  - name: _internal_debug_info_unhealthy_groups
+    type: STRING
+    nullable: true
+    description: "null [Nested field: unhealthy_groups]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from _internal_debug_info.unhealthy_groups, STRING type, nullable."
+    # Flattened from: _internal_debug_info.unhealthy_groups
+
+  - name: _internal_debug_info_status_since
+    type: TIMESTAMP
+    nullable: true
+    description: "null [Nested field: status_since]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from _internal_debug_info.status_since, TIMESTAMP type, nullable."
+    # Flattened from: _internal_debug_info.status_since
+
+  - name: _internal_debug_info_is_static
+    type: BOOLEAN
+    nullable: true
+    description: "null [Nested field: is_static]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from _internal_debug_info.is_static, BOOLEAN type, nullable."
+    # Flattened from: _internal_debug_info.is_static
+
+  - name: _internal_debug_info_completeness
+    type: STRING
+    nullable: true
+    description: "null [Nested field: completeness]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from _internal_debug_info.completeness, STRING type, nullable."
+    # Flattened from: _internal_debug_info.completeness
+
+  - name: _internal_debug_info_commit_freshness
+    type: STRING
+    nullable: true
+    description: "null [Nested field: commit_freshness]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from _internal_debug_info.commit_freshness, STRING type, nullable."
+    # Flattened from: _internal_debug_info.commit_freshness
+
+  - name: _internal_debug_info_custom_sql
+    type: STRING
+    nullable: true
+    description: "null [Nested field: custom_sql]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from _internal_debug_info.custom_sql, STRING type, nullable."
+    # Flattened from: _internal_debug_info.custom_sql
+

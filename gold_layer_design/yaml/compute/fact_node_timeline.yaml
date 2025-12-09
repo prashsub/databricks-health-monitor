@@ -1,0 +1,114 @@
+# Gold Layer Table Schema
+# Table: fact_node_timeline
+# Domain: compute
+# Bronze Source: compute.node_timeline
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_node_timeline
+domain: compute
+bronze_source: compute.node_timeline
+
+description: >
+  Fact table capturing compute resource utilization metrics hourly.
+  Business: Granular visibility into cluster utilization - CPU, memory, disk, network for
+  each node. Identifies underutilized clusters for downsizing, overloaded nodes causing
+  performance issues, and peak usage patterns for capacity planning. Technical: From
+  compute.node_timeline. 90-day retention. Supports streaming. Hourly time slices.
+
+primary_key:
+  columns: ['workspace_id', 'instance_id', 'start_time']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id', 'cluster_id']
+    references: dim_cluster(workspace_id, cluster_id)
+    nullable: True
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: cluster_id
+    type: STRING
+    nullable: true
+    description: "Cluster identifier. Business: Unique ID for compute cluster within workspace. Critical for attributing compute costs, analyzing cluster utilization, and tracking configuration changes. Only unique within single workspace. Technical: STRING identifier from Databricks Clusters API, part of composite key (workspace_id, cluster_id). Foreign key to dim_cluster for cluster metadata (node types, autos..."
+
+  - name: instance_id
+    type: STRING
+    nullable: false
+    description: "ID for the specific instance. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: start_time
+    type: TIMESTAMP
+    nullable: false
+    description: "Start time for the record in UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: end_time
+    type: TIMESTAMP
+    nullable: true
+    description: "End time for the record in UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: driver
+    type: BOOLEAN
+    nullable: true
+    description: "Whether the instance is a driver or worker node. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BOOLEAN type."
+
+  - name: cpu_user_percent
+    type: DOUBLE
+    nullable: true
+    description: "Percentage of time the CPU spent in userland. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. DOUBLE type."
+
+  - name: cpu_system_percent
+    type: DOUBLE
+    nullable: true
+    description: "Percentage of time the CPU spent in the kernel. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. DOUBLE type."
+
+  - name: cpu_wait_percent
+    type: DOUBLE
+    nullable: true
+    description: "Percentage of time the CPU spent waiting for I/O. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. DOUBLE type."
+
+  - name: mem_used_percent
+    type: DOUBLE
+    nullable: true
+    description: "Percentage of the compute’s memory that was used during the time period (including memory used by background processes running on the compute). Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. DOUBLE type."
+
+  - name: mem_swap_percent
+    type: DOUBLE
+    nullable: true
+    description: "Percentage of memory usage attributed to memory swap. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. DOUBLE type."
+
+  - name: network_sent_bytes
+    type: BIGINT
+    nullable: true
+    description: "The number of bytes sent out in network traffic. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: network_received_bytes
+    type: BIGINT
+    nullable: true
+    description: "The number of received bytes from network traffic. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: node_type
+    type: STRING
+    nullable: true
+    description: "The name of the node type. This will match the instance type name from the cloud provider. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: private_ip
+    type: STRING
+    nullable: true
+    description: "Private IP. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: disk_free_bytes_per_mount_point_json
+    type: STRING
+    nullable: true
+    description: "The disk utilization grouped by mount point. This is ephemeral storage provisioned only while the compute is running. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+

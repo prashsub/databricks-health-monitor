@@ -1,0 +1,30 @@
+# Bronze DQ Rules Setup Job
+# Creates and populates the dq_rules configuration table used by DLT streaming pipelines
+
+resources:
+  jobs:
+    dq_rules_setup_job:
+      name: "Health Monitor - Bronze DQ Rules Setup"
+      description: "Creates and populates dq_rules table with comprehensive data quality rules for all Bronze streaming tables"
+      
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+      
+      tasks:
+        - task_key: setup_dq_rules
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/bronze/setup_dq_rules.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+      
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: bronze
+        job_type: setup
+        compute_type: serverless
+        owner: Data Engineering

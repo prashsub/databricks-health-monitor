@@ -1,0 +1,70 @@
+# Gold Layer Merge Job (Data Pipeline)
+# Reference: https://github.com/databricks/bundle-examples/blob/main/knowledge_base/serverless_job/resources/serverless_job.yml
+#
+# FUTURE: Orchestrates Bronze → Gold data pipeline
+# - Reads from Bronze system tables
+# - Flattens nested columns
+# - Writes to Gold with MERGE/INSERT operations
+# - Respects FK dependency order
+#
+# STATUS: Skeleton for future implementation
+# PREREQUISITE: Complete gold_setup_job first
+
+resources:
+  jobs:
+    gold_merge_job:
+      name: "[${bundle.target}] Health Monitor - Gold Layer Data Pipeline (FUTURE)"
+      description: "Health Monitor: Bronze → Gold data pipeline with flattened nested columns (TO BE IMPLEMENTED)"
+      
+      # Serverless environment configuration
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies: []
+      
+      # Job parameters
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: bronze_schema
+          default: ${var.system_bronze_schema}
+        - name: gold_schema
+          default: ${var.gold_schema}
+      
+      # Tasks (to be implemented)
+      tasks:
+        - task_key: placeholder_task
+          environment_key: default
+          notebook_task:
+            # Uses the generic setup script as placeholder until merge logic is implemented
+            notebook_path: ../../src/gold/setup_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              domain: shared
+          timeout_seconds: 600
+      
+      # Job-level timeout (4 hours for data pipeline)
+      timeout_seconds: 14400
+      
+      # Schedule (PAUSED until implemented)
+      schedule:
+        quartz_cron_expression: "0 0 4 * * ?"
+        timezone_id: "America/Los_Angeles"
+        pause_status: PAUSED
+      
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - prashanth.subrahmanyam@databricks.com
+      
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: gold
+        compute_type: serverless
+        job_type: pipeline
+        status: future_implementation
+

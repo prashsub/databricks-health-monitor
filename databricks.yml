@@ -1,0 +1,66 @@
+# Databricks Asset Bundle Configuration
+# DatabricksHealthMonitor - System Tables Medallion Architecture
+#
+# Organization:
+#   - Bronze: Raw streaming ingestion from system tables (32 tables)
+#   - Gold: Business-level dimensional model (38 tables)
+#
+# NOTE: Schemas are created in setup scripts (not as bundle resources) 
+#       to avoid dev mode automatic prefixing
+
+bundle:
+  name: databricks_health_monitor
+
+sync:
+  include:
+    - src/**/*.py
+    - gold_layer_design/yaml/**/*.yaml
+
+variables:
+  catalog:
+    description: Unity Catalog name for system tables
+    default: prashanth_subrahmanyam_catalog
+  
+  system_bronze_schema:
+    description: Schema name for system tables Bronze layer
+    default: system_bronze
+  
+  system_silver_schema:
+    description: Schema name for system tables Silver layer
+    default: system_silver
+  
+  gold_schema:
+    description: Schema name for Gold layer (system tables dimensional model)
+    default: system_gold
+  
+  warehouse_id:
+    description: SQL Warehouse ID for serverless execution
+    default: "4b9b953939869799"
+
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      catalog: prashanth_subrahmanyam_catalog
+      system_bronze_schema: dev_${workspace.current_user.short_name}_system_bronze
+      system_silver_schema: dev_${workspace.current_user.short_name}_system_silver
+      gold_schema: dev_${workspace.current_user.short_name}_system_gold
+      warehouse_id: "4b9b953939869799"
+      
+  prod:
+    mode: production
+    variables:
+      catalog: main
+      system_bronze_schema: system_bronze
+      system_silver_schema: system_silver
+      gold_schema: system_gold
+      warehouse_id: "4b9b953939869799"
+
+# Include all resource definitions organized by medallion layer
+include:
+  - resources/*.yml
+  - resources/bronze/*.yml
+  - resources/silver/*.yml
+  - resources/gold/*.yml
+

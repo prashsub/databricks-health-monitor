@@ -1,0 +1,272 @@
+# Gold Layer Table Schema
+# Table: dim_cluster
+# Domain: compute
+# Bronze Source: compute.clusters
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_cluster
+domain: compute
+bronze_source: compute.clusters
+
+description: >
+  Dimension table tracking compute cluster configurations over time.
+  Business: Complete history of all-purpose and job cluster settings including node types,
+  autoscaling policies, Spark configurations, and libraries. Critical for capacity planning,
+  cost optimization (right-sizing), and understanding cluster evolution. Enables analysis
+  of configuration changes that impact performance or cost. Technical: Slow-changing dimension
+  with full history. 365-day retention. Supports streaming ingestion.
+
+primary_key:
+  columns: ['workspace_id', 'cluster_id']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: False
+
+  - columns: ['driver_node_type']
+    references: dim_node_type(node_type)
+    nullable: True
+
+  - columns: ['worker_node_type']
+    references: dim_node_type(node_type)
+    nullable: True
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: cluster_id
+    type: STRING
+    nullable: false
+    description: "Cluster identifier. Business: Unique ID for compute cluster within workspace. Critical for attributing compute costs, analyzing cluster utilization, and tracking configuration changes. Only unique within single workspace. Technical: STRING identifier from Databricks Clusters API, part of composite key (workspace_id, cluster_id). Foreign key to dim_cluster for cluster metadata (node types, autos..."
+
+  - name: cluster_name
+    type: STRING
+    nullable: true
+    description: "User defined name for the cluster. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: owned_by
+    type: STRING
+    nullable: true
+    description: "Username of the cluster owner. Defaults to the cluster creator, but can be changed through the [Clusters API](https://docs.databricks.com/api/workspace/clusters/changeowner). Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: create_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Timestamp of the change to this compute definition. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: delete_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Timestamp of when the cluster was deleted. The value is null if the cluster is not deleted. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: driver_node_type
+    type: STRING
+    nullable: true
+    description: "Driver node type name. This matches the instance type name from the cloud provider. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: worker_node_type
+    type: STRING
+    nullable: true
+    description: "Worker node type name. This matches the instance type name from the cloud provider. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: worker_count
+    type: BIGINT
+    nullable: true
+    description: "Number of workers. Defined for fixed-size clusters only. Business: Quantitative measure for aggregations, trending, and KPI calculations. Used in dashboards and executive reporting. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: min_autoscale_workers
+    type: BIGINT
+    nullable: true
+    description: "The set minimum number of workers. This field is valid only for autoscaling clusters. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: max_autoscale_workers
+    type: BIGINT
+    nullable: true
+    description: "The set maximum number of workers. This field is valid only for autoscaling clusters. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: auto_termination_minutes
+    type: BIGINT
+    nullable: true
+    description: "The configured autotermination duration. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: enable_elastic_disk
+    type: BOOLEAN
+    nullable: true
+    description: "Autoscaling disk enablement status. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BOOLEAN type."
+
+  - name: cluster_source
+    type: STRING
+    nullable: true
+    description: "Where the cluster was created. For all-purpose compute, the source could be `UI` or `API`. Other compute types are logged as `JOB`, `PIPELINE`, or `PIPELINE_MAINTENANCE`. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: driver_instance_pool_id
+    type: STRING
+    nullable: true
+    description: "Instance pool ID if the driver is configured on top of an instance pool. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: worker_instance_pool_id
+    type: STRING
+    nullable: true
+    description: "Instance Pool ID if the worker is configured on top of an instance pool. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: dbr_version
+    type: STRING
+    nullable: true
+    description: "The Databricks Runtime of the cluster. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: change_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Timestamp of change to the compute definition. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: change_date
+    type: DATE
+    nullable: true
+    description: "Change date. Used for retention. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. DATE type."
+
+  - name: data_security_mode
+    type: STRING
+    nullable: true
+    description: "Data security mode decides what data governance model to use when accessing data from a cluster. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: policy_id
+    type: STRING
+    nullable: true
+    description: "The ID of the cluster policy used to create the cluster if applicable. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: tags_json
+    type: STRING
+    nullable: true
+    description: "User-defined tags for the cluster (does not include default tags). Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+
+  - name: init_scripts_json
+    type: STRING
+    nullable: true
+    description: "Set of paths for init scripts. Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized ARRAY, enables flexible querying of variable-length collections."
+
+  - name: aws_attributes_first_on_demand
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: first_on_demand]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.first_on_demand, STRING type, nullable."
+    # Flattened from: aws_attributes.first_on_demand
+
+  - name: aws_attributes_availability
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: availability]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.availability, STRING type, nullable."
+    # Flattened from: aws_attributes.availability
+
+  - name: aws_attributes_zone_id
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: zone_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.zone_id, STRING type, nullable."
+    # Flattened from: aws_attributes.zone_id
+
+  - name: aws_attributes_instance_profile_arn
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: instance_profile_arn]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.instance_profile_arn, STRING type, nullable."
+    # Flattened from: aws_attributes.instance_profile_arn
+
+  - name: aws_attributes_spot_bid_price_percent
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: spot_bid_price_percent]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.spot_bid_price_percent, STRING type, nullable."
+    # Flattened from: aws_attributes.spot_bid_price_percent
+
+  - name: aws_attributes_ebs_volume_type
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: ebs_volume_type]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.ebs_volume_type, STRING type, nullable."
+    # Flattened from: aws_attributes.ebs_volume_type
+
+  - name: aws_attributes_ebs_volume_count
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: ebs_volume_count]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.ebs_volume_count, STRING type, nullable."
+    # Flattened from: aws_attributes.ebs_volume_count
+
+  - name: aws_attributes_ebs_volume_size
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: ebs_volume_size]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.ebs_volume_size, STRING type, nullable."
+    # Flattened from: aws_attributes.ebs_volume_size
+
+  - name: aws_attributes_ebs_volume_iops
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: ebs_volume_iops]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.ebs_volume_iops, STRING type, nullable."
+    # Flattened from: aws_attributes.ebs_volume_iops
+
+  - name: aws_attributes_ebs_volume_throughput
+    type: STRING
+    nullable: true
+    description: "AWS specific settings. [Nested field: ebs_volume_throughput]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from aws_attributes.ebs_volume_throughput, STRING type, nullable."
+    # Flattened from: aws_attributes.ebs_volume_throughput
+
+  - name: azure_attributes_first_on_demand
+    type: STRING
+    nullable: true
+    description: "Azure specific settings. [Nested field: first_on_demand]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from azure_attributes.first_on_demand, STRING type, nullable."
+    # Flattened from: azure_attributes.first_on_demand
+
+  - name: azure_attributes_availability
+    type: STRING
+    nullable: true
+    description: "Azure specific settings. [Nested field: availability]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from azure_attributes.availability, STRING type, nullable."
+    # Flattened from: azure_attributes.availability
+
+  - name: azure_attributes_spot_bid_max_price
+    type: DOUBLE
+    nullable: true
+    description: "Azure specific settings. [Nested field: spot_bid_max_price]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from azure_attributes.spot_bid_max_price, DOUBLE type, nullable."
+    # Flattened from: azure_attributes.spot_bid_max_price
+
+  - name: gcp_attributes_use_preemptible_executors
+    type: BOOLEAN
+    nullable: true
+    description: "GCP specific settings. [Nested field: use_preemptible_executors]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from gcp_attributes.use_preemptible_executors, BOOLEAN type, nullable."
+    # Flattened from: gcp_attributes.use_preemptible_executors
+
+  - name: gcp_attributes_google_service_account
+    type: STRING
+    nullable: true
+    description: "GCP specific settings. [Nested field: google_service_account]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from gcp_attributes.google_service_account, STRING type, nullable."
+    # Flattened from: gcp_attributes.google_service_account
+
+  - name: gcp_attributes_boot_disk_size
+    type: STRING
+    nullable: true
+    description: "GCP specific settings. [Nested field: boot_disk_size]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from gcp_attributes.boot_disk_size, STRING type, nullable."
+    # Flattened from: gcp_attributes.boot_disk_size
+
+  - name: gcp_attributes_availability
+    type: STRING
+    nullable: true
+    description: "GCP specific settings. [Nested field: availability]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from gcp_attributes.availability, STRING type, nullable."
+    # Flattened from: gcp_attributes.availability
+
+  - name: gcp_attributes_zone_id
+    type: STRING
+    nullable: true
+    description: "GCP specific settings. [Nested field: zone_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from gcp_attributes.zone_id, STRING type, nullable."
+    # Flattened from: gcp_attributes.zone_id
+
+  - name: gcp_attributes_local_ssd_count
+    type: STRING
+    nullable: true
+    description: "GCP specific settings. [Nested field: local_ssd_count]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from gcp_attributes.local_ssd_count, STRING type, nullable."
+    # Flattened from: gcp_attributes.local_ssd_count
+

@@ -1,0 +1,55 @@
+# Gold Layer Table Schema
+# Table: dim_workspace
+# Domain: shared
+# Bronze Source: access.workspaces_latest
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: dim_workspace
+domain: shared
+bronze_source: access.workspaces_latest
+
+description: >
+  Dimension table containing workspace metadata across the account.
+  Business: Workspace inventory - tracks workspace names, regions, configurations, and
+  status. Essential for multi-workspace governance, regional cost allocation, and
+  understanding organizational structure. Technical: From access.workspaces_latest.
+  Indefinite retention. Global data across all regions.
+
+primary_key:
+  columns: ['workspace_id']
+  composite: False
+
+foreign_keys:
+  [] # No foreign keys defined
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: workspace_name
+    type: STRING
+    nullable: true
+    description: "The human-readable name of the workspace. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: workspace_url
+    type: STRING
+    nullable: true
+    description: "URL of the databricks workspace. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: create_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Timestamp of when the workspace was created. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: status
+    type: STRING
+    nullable: true
+    description: "Lifecycle status of the workspace: NOT_PROVISIONED | PROVISIONING | RUNNING | FAILED | BANNED Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+

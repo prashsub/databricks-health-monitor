@@ -1,0 +1,319 @@
+# Gold Layer Table Schema
+# Table: fact_query_history
+# Domain: query_performance
+# Bronze Source: query.history
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_query_history
+domain: query_performance
+bronze_source: query.history
+
+description: >
+  Fact table recording all SQL queries executed on warehouses and
+  serverless compute. Business: Query performance monitoring and optimization - captures
+  execution time, rows scanned, bytes processed, and query text. Enables identification of
+  slow queries, frequently-run queries for caching, and query pattern analysis. Critical
+  for SQL workload optimization and troubleshooting. Technical: From query.history. 365-day
+  retention. Includes statement_id for lineage joins.
+
+primary_key:
+  columns: ['statement_id']
+  composite: False
+
+foreign_keys:
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+
+  - columns: ['workspace_id', 'compute_cluster_id']
+    references: dim_cluster(workspace_id, cluster_id)
+    nullable: True
+    # Flattened from nested struct: compute
+
+  - columns: ['workspace_id', 'compute_warehouse_id']
+    references: dim_warehouse(workspace_id, warehouse_id)
+    nullable: True
+    # Flattened from nested struct: compute
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: statement_id
+    type: STRING
+    nullable: false
+    description: "Query statement identifier. Business: Globally unique ID for SQL statement execution. Links to Query History UI for troubleshooting slow queries, tracking query costs, and analyzing query patterns. Can join with lineage tables. Technical: STRING UUID from Databricks SQL engine, globally unique across all workspaces/warehouses. Primary key for query history, foreign key from lineage tables."
+
+  - name: executed_by
+    type: STRING
+    nullable: true
+    description: "The email address or username of the user who ran the statement. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: session_id
+    type: STRING
+    nullable: true
+    description: "The Spark session ID. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: execution_status
+    type: STRING
+    nullable: true
+    description: "The statement termination state. Possible values are:  FINISHED: execution was successful  FAILED: execution failed with the reason for failure described in the accompanying error message  CANCELED: execution was canceled Business: Categorical indicator for status tracking, filtering, and operational monitoring. Used in dashboards and alerting. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: executed_by_user_id
+    type: STRING
+    nullable: true
+    description: "The ID of the user who ran the statement. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: statement_text
+    type: STRING
+    nullable: true
+    description: "Text of the SQL statement. If you have configured customer-managed keys, statement_text is empty. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: statement_type
+    type: STRING
+    nullable: true
+    description: "The statement type. For example: ALTER, COPY, and`INSERT`. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: error_message
+    type: STRING
+    nullable: true
+    description: "Message describing the error condition. If you have configured customer-managed keys, error_message is empty. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: client_application
+    type: STRING
+    nullable: true
+    description: "Client application that ran the statement. For example: Databricks SQL, Tableau, and Power BI. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: client_driver
+    type: STRING
+    nullable: true
+    description: "The connector used to connect to Databricks to run the statement. For example: Databricks SQL Driver for Go, Databricks ODBC Driver, Databricks JDBC Driver. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: total_duration_ms
+    type: BIGINT
+    nullable: true
+    description: "Total execution time of the statement in milliseconds ( excluding result fetch time ). Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: waiting_for_compute_duration_ms
+    type: BIGINT
+    nullable: true
+    description: "Time spent waiting for compute resources to be provisioned in milliseconds. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: waiting_at_capacity_duration_ms
+    type: BIGINT
+    nullable: true
+    description: "Time spent waiting in queue for available compute capacity in milliseconds. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: execution_duration_ms
+    type: BIGINT
+    nullable: true
+    description: "Time spent executing the statement in milliseconds. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: compilation_duration_ms
+    type: BIGINT
+    nullable: true
+    description: "Time spent loading metadata and optimizing the statement in milliseconds. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: total_task_duration_ms
+    type: BIGINT
+    nullable: true
+    description: "The sum of all task durations in milliseconds. This time represents the combined time it took to run the query across all cores of all nodes. It can be significantly longer than the wall-clock duration if multiple tasks are executed in parallel. It can be shorter than the wall-clock duration if tasks wait for available nodes. Business: Provides essential context for analytics and operational re..."
+
+  - name: result_fetch_duration_ms
+    type: BIGINT
+    nullable: true
+    description: "Time spent, in milliseconds, fetching the statement results after the execution finished. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: start_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time when Databricks received the request. Timezone information is recorded at the end of the value with +00:00 representing UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: end_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time the statement execution ended, excluding result fetch time. Timezone information is recorded at the end of the value with +00:00 representing UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: update_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time the statement last received a progress update. Timezone information is recorded at the end of the value with +00:00 representing UTC. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: read_partitions
+    type: BIGINT
+    nullable: true
+    description: "The number of partitions read after pruning. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: pruned_files
+    type: BIGINT
+    nullable: true
+    description: "The number of pruned files. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: read_files
+    type: BIGINT
+    nullable: true
+    description: "The number of files read after pruning. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: read_rows
+    type: BIGINT
+    nullable: true
+    description: "Total number of rows read by the statement. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: produced_rows
+    type: BIGINT
+    nullable: true
+    description: "Total number of rows returned by the statement. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: read_bytes
+    type: BIGINT
+    nullable: true
+    description: "Total size of data read by the statement in bytes. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: read_io_cache_percent
+    type: STRING
+    nullable: true
+    description: "The percentage of bytes of persistent data read from the IO cache. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: from_result_cache
+    type: BOOLEAN
+    nullable: true
+    description: "TRUE indicates that the statement result was fetched from the cache. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BOOLEAN type."
+
+  - name: spilled_local_bytes
+    type: BIGINT
+    nullable: true
+    description: "Size of data, in bytes, temporarily written to disk while executing the statement. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: written_bytes
+    type: BIGINT
+    nullable: true
+    description: "The size in bytes of persistent data written to cloud object storage. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: shuffle_read_bytes
+    type: BIGINT
+    nullable: true
+    description: "The total amount of data in bytes sent over the network. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: executed_as_user_id
+    type: STRING
+    nullable: true
+    description: "The ID of the user or service principal whose privilege was used to run the statement. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: executed_as
+    type: STRING
+    nullable: true
+    description: "The name of the user or service principal whose privilege was used to run the statement. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: written_rows
+    type: BIGINT
+    nullable: true
+    description: "Total number of rows of persistent data written to cloud object storage. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: written_files
+    type: BIGINT
+    nullable: true
+    description: "The number of files of persistent data written to cloud object storage. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: cache_origin_statement_id
+    type: STRING
+    nullable: true
+    description: "Statement id of query that inserted result in cache when result is fetched from cache, otherwise store the query's statement id. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  # === Flattened Nested Columns ===
+
+  - name: compute_type
+    type: STRING
+    nullable: true
+    description: "A struct that represents the type of compute resource used to run the statement and the ID of the resource where applicable. The type value will be WAREHOUSE. [Nested field: type]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from compute.type, STRING type, nullable."
+    # Flattened from: compute.type
+
+  - name: compute_cluster_id
+    type: STRING
+    nullable: true
+    description: "A struct that represents the type of compute resource used to run the statement and the ID of the resource where applicable. The type value will be WAREHOUSE. [Nested field: cluster_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from compute.cluster_id, STRING type, nullable."
+    # Flattened from: compute.cluster_id
+
+  - name: compute_warehouse_id
+    type: STRING
+    nullable: true
+    description: "A struct that represents the type of compute resource used to run the statement and the ID of the resource where applicable. The type value will be WAREHOUSE. [Nested field: warehouse_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from compute.warehouse_id, STRING type, null..."
+    # Flattened from: compute.warehouse_id
+
+  - name: query_source_job_info
+    type: STRING
+    nullable: true
+    description: "A struct that contains key-value pairs representing one or more Databricks entities that were involved in the execution of this statement, such as jobs, notebooks, or dashboards. This field only records Databricks entities and are not sorted by execution order. Statement executions that contain multiple IDs indicate that the execution was triggered by multiple entities: for example, an Alert ma..."
+    # Flattened from: query_source.job_info
+
+  - name: query_source_legacy_dashboard_id
+    type: STRING
+    nullable: true
+    description: "A struct that contains key-value pairs representing one or more Databricks entities that were involved in the execution of this statement, such as jobs, notebooks, or dashboards. This field only records Databricks entities and are not sorted by execution order. Statement executions that contain multiple IDs indicate that the execution was triggered by multiple entities: for example, an Alert ma..."
+    # Flattened from: query_source.legacy_dashboard_id
+
+  - name: query_source_dashboard_id
+    type: STRING
+    nullable: true
+    description: "A struct that contains key-value pairs representing one or more Databricks entities that were involved in the execution of this statement, such as jobs, notebooks, or dashboards. This field only records Databricks entities and are not sorted by execution order. Statement executions that contain multiple IDs indicate that the execution was triggered by multiple entities: for example, an Alert ma..."
+    # Flattened from: query_source.dashboard_id
+
+  - name: query_source_alert_id
+    type: STRING
+    nullable: true
+    description: "A struct that contains key-value pairs representing one or more Databricks entities that were involved in the execution of this statement, such as jobs, notebooks, or dashboards. This field only records Databricks entities and are not sorted by execution order. Statement executions that contain multiple IDs indicate that the execution was triggered by multiple entities: for example, an Alert ma..."
+    # Flattened from: query_source.alert_id
+
+  - name: query_source_notebook_id
+    type: STRING
+    nullable: true
+    description: "A struct that contains key-value pairs representing one or more Databricks entities that were involved in the execution of this statement, such as jobs, notebooks, or dashboards. This field only records Databricks entities and are not sorted by execution order. Statement executions that contain multiple IDs indicate that the execution was triggered by multiple entities: for example, an Alert ma..."
+    # Flattened from: query_source.notebook_id
+
+  - name: query_source_sql_query_id
+    type: STRING
+    nullable: true
+    description: "A struct that contains key-value pairs representing one or more Databricks entities that were involved in the execution of this statement, such as jobs, notebooks, or dashboards. This field only records Databricks entities and are not sorted by execution order. Statement executions that contain multiple IDs indicate that the execution was triggered by multiple entities: for example, an Alert ma..."
+    # Flattened from: query_source.sql_query_id
+
+  - name: query_source_genie_space_id
+    type: STRING
+    nullable: true
+    description: "A struct that contains key-value pairs representing one or more Databricks entities that were involved in the execution of this statement, such as jobs, notebooks, or dashboards. This field only records Databricks entities and are not sorted by execution order. Statement executions that contain multiple IDs indicate that the execution was triggered by multiple entities: for example, an Alert ma..."
+    # Flattened from: query_source.genie_space_id
+
+  - name: query_source_pipeline_info
+    type: STRING
+    nullable: true
+    description: "A struct that contains key-value pairs representing one or more Databricks entities that were involved in the execution of this statement, such as jobs, notebooks, or dashboards. This field only records Databricks entities and are not sorted by execution order. Statement executions that contain multiple IDs indicate that the execution was triggered by multiple entities: for example, an Alert ma..."
+    # Flattened from: query_source.pipeline_info
+
+  - name: query_parameters_named_parameters
+    type: STRING
+    nullable: true
+    description: "Query parameters values associated with the query. Only one of named_parameters or pos_parameters can be populated. [Nested field: named_parameters]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from query_parameters.named_parameters, STRING type, nullable."
+    # Flattened from: query_parameters.named_parameters
+
+  - name: query_parameters_pos_parameters
+    type: STRING
+    nullable: true
+    description: "Query parameters values associated with the query. Only one of named_parameters or pos_parameters can be populated. [Nested field: pos_parameters]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from query_parameters.pos_parameters, STRING type, nullable."
+    # Flattened from: query_parameters.pos_parameters
+
+  - name: query_parameters_truncated
+    type: BOOLEAN
+    nullable: true
+    description: "Query parameters values associated with the query. Only one of named_parameters or pos_parameters can be populated. [Nested field: truncated]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from query_parameters.truncated, BOOLEAN type, nullable."
+    # Flattened from: query_parameters.truncated
+
+  - name: query_tags_json
+    type: STRING
+    nullable: true
+    description: "The user-supplied custom tags associated with this statement execution. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+

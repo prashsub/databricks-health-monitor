@@ -1,0 +1,91 @@
+# Gold Layer Table Schema
+# Table: fact_data_classification
+# Domain: data_classification
+# Bronze Source: data_classification.results
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_data_classification_results
+domain: data_classification
+bronze_source: data_classification.results
+
+description: >
+  Fact table storing automated data classification results.
+  Business: Sensitive data discovery - captures PII, PHI, and other sensitive data
+  detections at column level. Essential for compliance (GDPR, HIPAA), data protection,
+  and risk assessment. Technical: From data_classification.results. 365-day retention. Beta.
+
+primary_key:
+  columns: ['catalog_name', 'schema_name', 'table_name', 'column_name', 'class_tag']
+  composite: True
+
+foreign_keys: []
+  # Note: FK to dim_table_metadata removed - that table sourced from information_schema, not Bronze
+
+columns:
+  - name: catalog_id
+    type: STRING
+    nullable: true
+    description: "Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: table_id
+    type: STRING
+    nullable: true
+    description: "Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: latest_detected_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: first_detected_time
+    type: TIMESTAMP
+    nullable: true
+    description: "Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: catalog_name
+    type: STRING
+    nullable: false
+    description: "Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: schema_name
+    type: STRING
+    nullable: false
+    description: "Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: table_name
+    type: STRING
+    nullable: false
+    description: "Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: column_name
+    type: STRING
+    nullable: false
+    description: "Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: data_type
+    type: STRING
+    nullable: true
+    description: "Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: class_tag
+    type: STRING
+    nullable: false
+    description: "Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: confidence
+    type: STRING
+    nullable: true
+    description: "Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: frequency
+    type: DOUBLE
+    nullable: true
+    description: "Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. DOUBLE type."
+
+  # === Flattened Nested Columns ===
+
+  - name: samples_json
+    type: STRING
+    nullable: true
+    description: "null Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized ARRAY, enables flexible querying of variable-length collections."
+

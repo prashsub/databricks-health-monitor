@@ -1,0 +1,193 @@
+# Gold Layer Table Schema
+# Table: fact_column_lineage
+# Domain: governance
+# Bronze Source: access.column_lineage
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_column_lineage
+domain: governance
+bronze_source: access.column_lineage
+
+description: >
+  Fact table tracking column-level data lineage.
+  Business: Fine-grained lineage showing which source columns flow to which target columns.
+  Critical for data quality root cause analysis, PII tracking, and understanding data
+  transformations. Enables precise impact analysis at column level. Technical: From
+  access.column_lineage. 365-day retention. Only records events with identifiable source columns.
+
+primary_key:
+  columns: ['source_catalog_name', 'source_schema_name', 'source_table_name', 'source_column_name', 'target_catalog_name', 'target_schema_name', 'target_table_name', 'target_column_name', 'event_time']
+  composite: True
+
+foreign_keys:
+  [] # No foreign keys defined
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: metastore_id
+    type: STRING
+    nullable: true
+    description: "The id of the Unity Catalog metastore. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: workspace_id
+    type: STRING
+    nullable: true
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: entity_type
+    type: STRING
+    nullable: true
+    description: "The type of entity the lineage transaction was captured from. The supported value is NOTEBOOK, JOB, PIPELINE, DASHBOARD_V3 (AI/BI Dashboard), DBSQL_DASHBOARD (Legacy dashboard), DBSQL_QUERY, OR NULL. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: entity_id
+    type: STRING
+    nullable: true
+    description: "The id of the entity the lineage transaction was captured from. If entity_type is NULL, entity_id is NULL. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: entity_run_id
+    type: STRING
+    nullable: true
+    description: "id to describe the unique run of the entity, or NULL. This differs for each entity type:  Notebook: command_run_id  Job: job_run_id  Databricks SQL query: statement_id  Dashboard: statement_id  Legacy dashboard: statement_id  Pipeline: pipeline_update_id  If entity_type is NULL, entity_run_id is NULL. Records with statement_id and job_run_id can be joined with the query history and jobs system ..."
+
+  - name: source_table_full_name
+    type: STRING
+    nullable: true
+    description: "Three-level name to identify the source table. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: source_table_catalog
+    type: STRING
+    nullable: true
+    description: "The catalog of the source table. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: source_table_schema
+    type: STRING
+    nullable: true
+    description: "The schema of the source table. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: source_table_name
+    type: STRING
+    nullable: false
+    description: "The name of the source table. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: source_path
+    type: STRING
+    nullable: true
+    description: "Location in cloud storage of the source table, or the path if it’s reading from cloud storage directly. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: source_type
+    type: STRING
+    nullable: true
+    description: "The type of the source. The value is TABLE, PATH, VIEW, MATERIALIZED_VIEW, METRIC_VIEW, or STREAMING_TABLE. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: source_column_name
+    type: STRING
+    nullable: false
+    description: "The name of the source column. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: target_table_full_name
+    type: STRING
+    nullable: true
+    description: "Three-level name to identify the target table. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: target_table_catalog
+    type: STRING
+    nullable: true
+    description: "The catalog of the target table. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: target_table_schema
+    type: STRING
+    nullable: true
+    description: "The schema of the target table. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: target_table_name
+    type: STRING
+    nullable: false
+    description: "The name of the target table. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: target_path
+    type: STRING
+    nullable: true
+    description: "Location in cloud storage of the target table. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: target_type
+    type: STRING
+    nullable: true
+    description: "The type of the target. The value is TABLE, PATH, VIEW, MATERIALIZED_VIEW, METRIC_VIEW, or STREAMING_TABLE. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: target_column_name
+    type: STRING
+    nullable: false
+    description: "The name of the target column. Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: created_by
+    type: STRING
+    nullable: true
+    description: "The user who generated this lineage. This can be a Databricks username, a Databricks service principal ID, “System-User”, or NULL if the user information cannot be captured. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: event_time
+    type: TIMESTAMP
+    nullable: false
+    description: "Event timestamp. Business: Precise UTC timestamp when event occurred in source system. Used for time-series analysis, trend detection, and SLA monitoring. Critical for accurate historical reporting and audit trails. Technical: TIMESTAMP with timezone (+00:00 UTC), typically millisecond precision. Used for temporal ordering, time-based partitioning, and change data capture. Part of composite key..."
+
+  - name: event_date
+    type: DATE
+    nullable: true
+    description: "The date when the lineage was generated. This is a partitioned column. Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. DATE type."
+
+  - name: record_id
+    type: STRING
+    nullable: true
+    description: "Unique record identifier. Business: Globally unique primary key ensuring each usage/billing record can be precisely tracked, deduplicated, and reconciled against invoices. Critical for billing accuracy and dispute resolution. Technical: System-generated STRING UUID, immutable once created, serves as primary key. Used for idempotent record processing and change data capture."
+
+  - name: event_id
+    type: STRING
+    nullable: true
+    description: "One query or one spark job run could append multiple lineage rows, this event_id is a unique id to group the rows that belong to the same event. This is generated in the pipeline and cannot be joined with any tables. Business: Used for unique identification, tracking, and cross-system correlation. Essential for joins and dimensional analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: statement_id
+    type: STRING
+    nullable: true
+    description: "Query statement identifier. Business: Globally unique ID for SQL statement execution. Links to Query History UI for troubleshooting slow queries, tracking query costs, and analyzing query patterns. Can join with lineage tables. Technical: STRING UUID from Databricks SQL engine, globally unique across all workspaces/warehouses. Primary key for query history, foreign key from lineage tables."
+
+  # === Flattened Nested Columns ===
+
+  - name: entity_metadata_job_info
+    type: STRING
+    nullable: true
+    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: job_info]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.job_info, STRING type, nullable."
+    # Flattened from: entity_metadata.job_info
+
+  - name: entity_metadata_dashboard_id
+    type: STRING
+    nullable: true
+    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: dashboard_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.dashboard_id, STRING type, nullable."
+    # Flattened from: entity_metadata.dashboard_id
+
+  - name: entity_metadata_legacy_dashboard_id
+    type: STRING
+    nullable: true
+    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: legacy_dashboard_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.legacy_dashboard_id, STRING type, nullable."
+    # Flattened from: entity_metadata.legacy_dashboard_id
+
+  - name: entity_metadata_notebook_id
+    type: STRING
+    nullable: true
+    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: notebook_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.notebook_id, STRING type, nullable."
+    # Flattened from: entity_metadata.notebook_id
+
+  - name: entity_metadata_sql_query_id
+    type: STRING
+    nullable: true
+    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: sql_query_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.sql_query_id, STRING type, nullable."
+    # Flattened from: entity_metadata.sql_query_id
+
+  - name: entity_metadata_dlt_pipeline_info
+    type: STRING
+    nullable: true
+    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: dlt_pipeline_info]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.dlt_pipeline_info, STRING type, nullable."
+    # Flattened from: entity_metadata.dlt_pipeline_info
+

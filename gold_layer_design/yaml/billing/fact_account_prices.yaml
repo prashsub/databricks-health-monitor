@@ -1,0 +1,70 @@
+# Gold Layer Table Schema
+# Table: fact_account_prices
+# Domain: billing
+# Bronze Source: billing.account_prices
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_account_prices
+domain: billing
+bronze_source: billing.account_prices
+
+description: >
+  Fact table storing account-specific negotiated pricing.
+  Business: Contains custom pricing tiers and discounts negotiated in enterprise agreements.
+  Enables accurate cost calculations using actual contracted rates rather than list prices.
+  Essential for enterprise customers with volume discounts or custom terms. Technical:
+  Account-level pricing overrides list_prices for billing calculations.
+
+primary_key:
+  columns: ['account_id', 'sku_name', 'price_start_time']
+  composite: True
+
+foreign_keys:
+  - columns: ['sku_name']
+    references: dim_sku(sku_name)
+    nullable: False
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: false
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: price_start_time
+    type: TIMESTAMP
+    nullable: false
+    description: "The time this price became effective in UTC Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: price_end_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The time this price stopped being effective in UTC Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: sku_name
+    type: STRING
+    nullable: false
+    description: "SKU identifier. Business: Product SKU determining pricing rate for this usage record. Maps to specific Databricks product offerings (compute types, storage, API calls). Essential for cost analysis, budget forecasting, and price change tracking. Foreign key to pricing tables. Technical: STRING enum from Databricks billing catalog (e.g. STANDARD_ALL_PURPOSE_COMPUTE, JOBS_LIGHT_COMPUTE), foreign k..."
+
+  - name: cloud
+    type: STRING
+    nullable: true
+    description: "Name of the Cloud this price is applicable to. Possible values are AWS, AZURE, and GCP. Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: currency_code
+    type: STRING
+    nullable: true
+    description: "The currency this price is expressed in Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: usage_unit
+    type: STRING
+    nullable: true
+    description: "Usage unit of measurement. Business: Defines how usage is measured and billed (DBU, requests, GB, hours, tokens). Different SKUs use different units. Critical for understanding cost drivers. Technical: STRING enum (DBU, STORAGE_GB, API_OPERATION, TOKEN, GPU_TIME, etc.) indicating measurement basis. Links to pricing model in list_prices table."
+
+  # === Flattened Nested Columns ===
+
+  - name: pricing_default
+    type: DECIMAL(38
+    nullable: true
+    description: "[Nested field: default]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from pricing.default, DECIMAL(38 type, nullable."
+    # Flattened from: pricing.default
+

@@ -1,0 +1,77 @@
+# Gold Layer Table Schema
+# Table: fact_mlflow_run_metrics
+# Domain: mlflow
+# Bronze Source: mlflow.run_metrics_history
+# Generated with: Enhanced LLM-friendly descriptions
+
+table_name: fact_mlflow_run_metrics_history
+domain: mlflow
+bronze_source: mlflow.run_metrics_history
+
+description: >
+  Fact table containing time-series metrics logged during ML training.
+  Business: Training progress tracking - captures metrics like loss, accuracy, and custom
+  KPIs over time during training. Essential for debugging training issues, comparing model
+  performance, and automated model selection. Technical: From mlflow.run_metrics_history.
+  180-day retention. Supports streaming.
+
+primary_key:
+  columns: ['workspace_id', 'run_id', 'metric_name', 'metric_time']
+  composite: True
+
+foreign_keys:
+  - columns: ['workspace_id', 'run_id']
+    references: fact_mlflow_run(workspace_id, run_id)
+    nullable: False
+
+columns:
+  - name: account_id
+    type: STRING
+    nullable: true
+    description: "Account identifier. Business: Top-level organizational entity for Databricks deployment, used for account-wide cost rollups, security auditing, and multi-workspace governance. Essential for enterprise billing reconciliation and compliance reporting. Technical: Globally unique STRING identifier from Databricks account management, typically references external billing system. May be nullable in w..."
+
+  - name: insert_time
+    type: TIMESTAMP
+    nullable: true
+    description: "The system time when the metric was inserted Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: record_id
+    type: STRING
+    nullable: true
+    description: "Unique record identifier. Business: Globally unique primary key ensuring each usage/billing record can be precisely tracked, deduplicated, and reconciled against invoices. Critical for billing accuracy and dispute resolution. Technical: System-generated STRING UUID, immutable once created, serves as primary key. Used for idempotent record processing and change data capture."
+
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Workspace identifier. Business: Links usage, jobs, queries, and compute to specific Databricks workspace for cost allocation and resource tracking. Critical for multi-workspace environments enabling workspace-level filtering, reporting, and governance. Primary dimension for organizational cost attribution. Technical: Globally unique STRING identifier from Databricks control plane, foreign key t..."
+
+  - name: experiment_id
+    type: STRING
+    nullable: true
+    description: "MLflow experiment identifier. Business: Unique ID for ML experiment grouping related model training runs. Used to track experiment-level metrics, costs, and outcomes. Only unique within workspace. Technical: STRING identifier from MLflow Tracking API, part of composite key (workspace_id, experiment_id). Foreign key to dim_experiment for experiment metadata."
+
+  - name: run_id
+    type: STRING
+    nullable: false
+    description: "Run identifier. Business: Unique ID for specific job or task execution instance. Critical for tracking individual run costs, duration, and outcomes. Primary key for run-level analysis and troubleshooting. Technical: STRING identifier from Databricks execution engine, globally unique across workspace. Used in timeline tables with composite key (workspace_id, run_id) for temporal slicing."
+
+  - name: metric_name
+    type: STRING
+    nullable: false
+    description: "The metric name Business: Human-readable identifier for display, filtering, and user-facing reports. Improves data comprehension for business users. Technical: Sourced from Bronze layer. STRING type."
+
+  - name: metric_time
+    type: TIMESTAMP
+    nullable: false
+    description: "The user-specified time when the metric was computed Business: Used for temporal analysis, trend tracking, and time-based filtering. Critical for historical reporting and time-series analytics. Technical: Sourced from Bronze layer. TIMESTAMP type."
+
+  - name: metric_step
+    type: BIGINT
+    nullable: true
+    description: "The step (e.g. epoch) of model training or agent development at which the metric was logged Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. BIGINT type."
+
+  - name: metric_value
+    type: DOUBLE
+    nullable: true
+    description: "The metric value Business: Provides essential context for analytics and operational reporting. Used for filtering, grouping, and drill-down analysis. Technical: Sourced from Bronze layer. DOUBLE type."
+
