@@ -1,0 +1,243 @@
+# Databricks notebook source
+"""
+Lakehouse Monitoring Utilities
+==============================
+
+Shared utilities for creating and managing Lakehouse Monitors.
+"""
+
+import time
+from typing import List, Optional
+
+# Graceful import for SDK monitoring classes
+try:
+    from databricks.sdk import WorkspaceClient
+    from databricks.sdk.service.catalog import (
+        MonitorTimeSeries,
+        MonitorSnapshot,
+        MonitorMetric,
+        MonitorMetricType,
+        MonitorCronSchedule
+    )
+    from databricks.sdk.errors import ResourceAlreadyExists, ResourceDoesNotExist
+    import pyspark.sql.types as T
+    MONITORING_AVAILABLE = True
+except ImportError:
+    MONITORING_AVAILABLE = False
+    print("Lakehouse Monitoring classes not available in this SDK version")
+
+
+def check_monitoring_available() -> bool:
+    """Check if Lakehouse Monitoring SDK is available."""
+    return MONITORING_AVAILABLE
+
+
+def delete_monitor_if_exists(
+    workspace_client,
+    table_name: str,
+    spark=None
+) -> bool:
+    """
+    Delete existing monitor and its output tables.
+
+    This is necessary because:
+    1. Deleting a monitor doesn't delete its output tables
+    2. Schema conflicts occur when recreating monitors
+    """
+    try:
+        # Check if monitor exists
+        workspace_client.quality_monitors.get(table_name=table_name)
+
+        # Delete monitor definition
+        print(f"  Deleting existing monitor for {table_name}...")
+        workspace_client.quality_monitors.delete(table_name=table_name)
+        print(f"  Monitor deleted")
+
+        # Parse table name and drop output tables
+        parts = table_name.split(".")
+        if len(parts) == 3:
+            catalog, schema, table = parts
+            monitoring_schema = f"{schema}_monitoring"
+
+            if spark:
+                # Drop profile_metrics table
+                profile_table = f"{catalog}.{monitoring_schema}.{table}_profile_metrics"
+                spark.sql(f"DROP TABLE IF EXISTS {profile_table}")
+                print(f"  Dropped {profile_table}")
+
+                # Drop drift_metrics table
+                drift_table = f"{catalog}.{monitoring_schema}.{table}_drift_metrics"
+                spark.sql(f"DROP TABLE IF EXISTS {drift_table}")
+                print(f"  Dropped {drift_table}")
+
+        return True
+
+    except ResourceDoesNotExist:
+        return False  # No monitor to delete
+    except Exception as e:
+        print(f"  Error cleaning up monitor: {str(e)}")
+        return False
+
+
+def create_time_series_monitor(
+    workspace_client,
+    table_name: str,
+    timestamp_col: str,
+    granularities: List[str],
+    custom_metrics: List,
+    slicing_exprs: Optional[List[str]] = None,
+    assets_dir: Optional[str] = None,
+    output_schema: Optional[str] = None,
+    schedule_cron: Optional[str] = None
+):
+    """
+    Create a time series monitor with custom metrics.
+
+    Args:
+        workspace_client: Databricks WorkspaceClient
+        table_name: Full table name (catalog.schema.table)
+        timestamp_col: Column to use for time series
+        granularities: List of granularities (e.g., ["1 day", "1 hour"])
+        custom_metrics: List of MonitorMetric objects
+        slicing_exprs: Optional columns for dimensional analysis
+        assets_dir: Optional assets directory path
+        output_schema: Optional output schema name
+        schedule_cron: Optional cron schedule expression
+    """
+    if not MONITORING_AVAILABLE:
+        raise RuntimeError("Lakehouse Monitoring SDK not available")
+
+    # Parse table name for defaults
+    parts = table_name.split(".")
+    if len(parts) == 3:
+        catalog, schema, table = parts
+    else:
+        raise ValueError(f"Invalid table name format: {table_name}")
+
+    # Set defaults
+    if assets_dir is None:
+        assets_dir = f"/Workspace/Shared/health_monitor/monitoring/{catalog}/{schema}"
+    if output_schema is None:
+        output_schema = f"{catalog}.{schema}_monitoring"
+
+    print(f"Creating time series monitor for {table_name}...")
+
+    try:
+        # Build monitor configuration
+        config = {
+            "table_name": table_name,
+            "assets_dir": assets_dir,
+            "output_schema_name": output_schema,
+            "time_series": MonitorTimeSeries(
+                timestamp_col=timestamp_col,
+                granularities=granularities
+            ),
+            "custom_metrics": custom_metrics,
+        }
+
+        if slicing_exprs:
+            config["slicing_exprs"] = slicing_exprs
+
+        if schedule_cron:
+            config["schedule"] = MonitorCronSchedule(
+                quartz_cron_expression=schedule_cron,
+                timezone_id="UTC"
+            )
+
+        # Create monitor
+        monitor = workspace_client.quality_monitors.create(**config)
+
+        print(f"  Monitor created for {table_name}")
+        if hasattr(monitor, 'dashboard_id') and monitor.dashboard_id:
+            print(f"  Dashboard ID: {monitor.dashboard_id}")
+
+        return monitor
+
+    except ResourceAlreadyExists:
+        print(f"  Monitor already exists for {table_name}")
+        return None
+    except Exception as e:
+        print(f"  Failed to create monitor: {str(e)}")
+        raise
+
+
+def wait_for_monitor_tables(minutes: int = 15):
+    """Wait for monitor output tables to be created asynchronously."""
+    wait_seconds = minutes * 60
+    print(f"Waiting {minutes} minutes for monitor tables to be created...")
+
+    for elapsed in range(0, wait_seconds, 60):
+        progress_pct = (elapsed / wait_seconds) * 100
+        remaining = (wait_seconds - elapsed) // 60
+        print(f"  Progress: {progress_pct:.0f}% | Remaining: {remaining}m")
+        time.sleep(60)
+
+    print("  Wait completed - tables should be ready")
+
+
+def create_aggregate_metric(name: str, definition: str, output_type: str = "DOUBLE"):
+    """
+    Helper to create an AGGREGATE custom metric.
+
+    Args:
+        name: Metric name
+        definition: SQL aggregation expression
+        output_type: Output data type (DOUBLE, LONG)
+    """
+    if not MONITORING_AVAILABLE:
+        raise RuntimeError("Lakehouse Monitoring SDK not available")
+
+    if output_type == "DOUBLE":
+        data_type = T.StructField("output", T.DoubleType()).json()
+    elif output_type == "LONG":
+        data_type = T.StructField("output", T.LongType()).json()
+    else:
+        raise ValueError(f"Unknown output type: {output_type}")
+
+    return MonitorMetric(
+        type=MonitorMetricType.CUSTOM_METRIC_TYPE_AGGREGATE,
+        name=name,
+        input_columns=[":table"],  # Always use :table for business KPIs
+        definition=definition,
+        output_data_type=data_type
+    )
+
+
+def create_derived_metric(name: str, definition: str):
+    """
+    Helper to create a DERIVED custom metric.
+
+    Args:
+        name: Metric name
+        definition: SQL expression referencing other metrics
+    """
+    if not MONITORING_AVAILABLE:
+        raise RuntimeError("Lakehouse Monitoring SDK not available")
+
+    return MonitorMetric(
+        type=MonitorMetricType.CUSTOM_METRIC_TYPE_DERIVED,
+        name=name,
+        input_columns=[":table"],  # Must match AGGREGATE metrics
+        definition=definition,
+        output_data_type=T.StructField("output", T.DoubleType()).json()
+    )
+
+
+def create_drift_metric(name: str, definition: str):
+    """
+    Helper to create a DRIFT custom metric.
+
+    Args:
+        name: Metric name
+        definition: SQL expression with {{current_df}} and {{base_df}}
+    """
+    if not MONITORING_AVAILABLE:
+        raise RuntimeError("Lakehouse Monitoring SDK not available")
+
+    return MonitorMetric(
+        type=MonitorMetricType.CUSTOM_METRIC_TYPE_DRIFT,
+        name=name,
+        input_columns=[":table"],  # Must match AGGREGATE metrics
+        definition=definition,
+        output_data_type=T.StructField("output", T.DoubleType()).json()
+    )

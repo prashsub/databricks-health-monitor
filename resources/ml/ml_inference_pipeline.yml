@@ -1,20 +1,27 @@
-# ML Inference Pipeline
-# Runs batch inference for ML models and stores predictions
+# ML Inference Pipeline - All Models
+# Runs batch inference for ALL trained ML models and stores predictions
 #
-# Purpose:
-#   - Score all data with trained models
-#   - Store predictions in inference tables
-#   - Enable Lakehouse Monitoring for drift detection
+# Storage Architecture:
+#   - Feature Tables: ${catalog}.${feature_schema} (e.g., system_gold_features)
+#   - Predictions: ${catalog}.${feature_schema}.{model}_predictions
+#   - Models: Unity Catalog ${catalog}.${feature_schema}.{model_name}
+#
+# Models Scored (18 total):
+#   - Cost (5): anomaly, budget, job_cost, chargeback, commitment
+#   - Security (4): threat, exfiltration, privilege, user_behavior
+#   - Performance (3): query, warehouse, regression
+#   - Reliability (3): failure, duration, sla_breach
+#   - Quality (3): drift, schema_change, freshness
 #
 # Reference: https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-inference/
 
 resources:
   jobs:
     ml_inference_pipeline:
-      name: "[${bundle.target}] Health Monitor - ML Inference Pipeline"
-      description: "Runs batch inference for all ML models and stores predictions"
+      name: "[${bundle.target}] Health Monitor - ML Batch Inference (All Models)"
+      description: "Runs batch inference for all 18 ML models across Cost, Security, Performance, Reliability, and Quality domains"
       
-      # Serverless environment
+      # Serverless environment with ML dependencies
       environments:
         - environment_key: ml_inference
           spec:
@@ -27,55 +34,28 @@ resources:
               - "databricks-feature-engineering"
       
       tasks:
-        # Cost anomaly scoring
-        - task_key: score_cost_anomalies
+        # Comprehensive batch inference for all models
+        - task_key: batch_inference_all_models
           environment_key: ml_inference
           notebook_task:
-            notebook_path: ../src/ml/inference/score_cost_anomalies.py
+            notebook_path: ../../src/ml/inference/batch_inference_all_models.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
-        
-        # Security threat scoring
-        - task_key: score_security_threats
-          environment_key: ml_inference
-          notebook_task:
-            notebook_path: ../src/ml/inference/score_security_threats.py
-            base_parameters:
-              catalog: ${var.catalog}
-              gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
-        
-        # Job failure prediction
-        - task_key: score_job_failures
-          environment_key: ml_inference
-          notebook_task:
-            notebook_path: ../src/ml/inference/score_job_failures.py
-            base_parameters:
-              catalog: ${var.catalog}
-              gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
-        
-        # Budget forecasts
-        - task_key: generate_budget_forecasts
-          environment_key: ml_inference
-          notebook_task:
-            notebook_path: ../src/ml/inference/generate_budget_forecasts.py
-            base_parameters:
-              catalog: ${var.catalog}
-              gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
+              feature_schema: ${var.feature_schema}
+          timeout_seconds: 3600  # 1 hour max
       
-      # Schedule: Hourly for real-time scoring
+      # Schedule: Daily at 3 AM (after training pipeline completes)
       schedule:
-        quartz_cron_expression: "0 0 * * * ?"
+        quartz_cron_expression: "0 0 3 * * ?"
         timezone_id: "America/Los_Angeles"
         pause_status: PAUSED
       
       # Email notifications
       email_notifications:
         on_failure:
+          - data-engineering@company.com
+        on_success:
           - data-engineering@company.com
       
       tags:
@@ -84,4 +64,4 @@ resources:
         layer: ml
         job_type: inference
         compute_type: serverless
-
+        models_count: "18"

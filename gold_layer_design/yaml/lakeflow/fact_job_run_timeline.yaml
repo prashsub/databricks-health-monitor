@@ -83,13 +83,39 @@ columns:
 
   # === Flattened Nested Columns ===
 
-  - name: compute_ids_json
-    type: STRING
+  - name: compute_ids
+    type: ARRAY<STRING>
     nullable: true
-    description: "Array containing the compute IDs for the parent job run. Use for identifying cluster used by `WORKFLOW_RUN` run types. For other compute information, refer to the `job_task_run_timeline` table. **Not populated for rows emitted before late August 2024** Stored as JSON ARRAY. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technic..."
+    description: "Array of compute (cluster) IDs used by this job run. Business: Identifies which clusters executed this job run. Use for cluster-level cost attribution and capacity analysis. For WORKFLOW_RUN types, contains the parent cluster. Query using array functions like array_contains() or explode(). Technical: Native ARRAY<STRING> type. **Not populated for rows emitted before late August 2024.**"
 
-  - name: job_parameters_json
+  - name: job_parameters
     type: STRING
     nullable: true
-    description: "The job-level parameters used in the job run. **Not populated for rows emitted before late August 2024.** Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+    description: "Job-level parameters used in this job run (JSON serialized). Business: Runtime parameters passed to the job, useful for understanding job configuration and debugging. Use get_json_object() or from_json() to parse. Technical: JSON serialized STRING (Bronze source is nested MAP<STRING,MAP<STRING,STRING>>). **Not populated for rows emitted before late August 2024.**"
+
+  # === Derived Columns ===
+
+  - name: run_date
+    type: DATE
+    nullable: true
+    description: "Calendar date when the job run started. Business: Simplified date column for daily aggregations, filtering, and time-series analysis. Enables efficient date-based queries without timestamp parsing. Technical: Derived as DATE(period_start_time) during Gold merge."
+    # Derived: DATE(period_start_time)
+
+  - name: run_duration_seconds
+    type: BIGINT
+    nullable: true
+    description: "Total run duration in seconds. Business: Key metric for job performance monitoring, SLA tracking, and capacity planning. Enables duration-based analysis without runtime calculations. Technical: Derived as UNIX_TIMESTAMP(period_end_time) - UNIX_TIMESTAMP(period_start_time) during Gold merge. NULL if run still in progress."
+    # Derived: UNIX_TIMESTAMP(period_end_time) - UNIX_TIMESTAMP(period_start_time)
+
+  - name: run_duration_minutes
+    type: DOUBLE
+    nullable: true
+    description: "Total run duration in minutes. Business: Human-friendly duration metric for reporting and dashboards. Commonly used for job performance visualization. Technical: Derived as run_duration_seconds / 60.0 during Gold merge."
+    # Derived: run_duration_seconds / 60.0
+
+  - name: is_success
+    type: BOOLEAN
+    nullable: false
+    description: "Indicates whether the job run completed successfully. Business: Binary success/failure flag for easy filtering and success rate calculations. Essential for reliability monitoring and alerting. Technical: Derived as result_state = 'SUCCESS' during Gold merge."
+    # Derived: result_state = 'SUCCESS'
 

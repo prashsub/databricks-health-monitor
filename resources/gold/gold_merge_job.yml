@@ -1,20 +1,26 @@
-# Gold Layer Merge Job (Data Pipeline)
+# Gold Layer MERGE Job - Data Pipeline
+# Orchestrates Bronze → Gold data transformation across all domains
+# 
+# **Domains:**
+# - shared: dim_workspace
+# - billing: dim_sku, fact_list_prices, fact_usage
+# - lakeflow: dim_job, dim_job_task, dim_pipeline, fact_job_run_timeline, fact_job_task_run_timeline, fact_pipeline_update_timeline
+# - query_performance: dim_warehouse, fact_query_history, fact_warehouse_events
+# - security: fact_audit_logs, fact_assistant_events, fact_clean_room_events, fact_outbound_network
+# - compute: dim_node_type, dim_cluster, fact_node_timeline
+# - mlflow: dim_experiment, fact_mlflow_runs, fact_mlflow_run_metrics_history
+# - model_serving: dim_served_entities, fact_endpoint_usage
+# - marketplace: fact_listing_access, fact_listing_funnel
+# - governance: fact_column_lineage, fact_table_lineage
+# - storage: fact_predictive_optimization
+#
 # Reference: https://github.com/databricks/bundle-examples/blob/main/knowledge_base/serverless_job/resources/serverless_job.yml
-#
-# FUTURE: Orchestrates Bronze → Gold data pipeline
-# - Reads from Bronze system tables
-# - Flattens nested columns
-# - Writes to Gold with MERGE/INSERT operations
-# - Respects FK dependency order
-#
-# STATUS: Skeleton for future implementation
-# PREREQUISITE: Complete gold_setup_job first
 
 resources:
   jobs:
     gold_merge_job:
-      name: "[${bundle.target}] Health Monitor - Gold Layer Data Pipeline (FUTURE)"
-      description: "Health Monitor: Bronze → Gold data pipeline with flattened nested columns (TO BE IMPLEMENTED)"
+      name: "[${bundle.target}] Health Monitor - Gold Layer Data Pipeline"
+      description: "Orchestrates Bronze → Gold transformation for all domains with proper dependencies"
       
       # Serverless environment configuration
       environments:
@@ -32,39 +38,175 @@ resources:
         - name: gold_schema
           default: ${var.gold_schema}
       
-      # Tasks (to be implemented)
+      # Tasks - Execute in dependency order
       tasks:
-        - task_key: placeholder_task
+        # =========================================================================
+        # PHASE 1: SHARED & REFERENCE DATA
+        # =========================================================================
+        
+        - task_key: merge_shared
           environment_key: default
           notebook_task:
-            # Uses the generic setup script as placeholder until merge logic is implemented
-            notebook_path: ../../src/gold/setup_tables.py
+            notebook_path: ../../src/gold/merge_shared.py
             base_parameters:
               catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
               gold_schema: ${var.gold_schema}
-              domain: shared
-          timeout_seconds: 600
+        
+        - task_key: merge_compute_reference
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_compute.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
+        
+        # =========================================================================
+        # PHASE 2: BILLING, LAKEFLOW, QUERY PERFORMANCE (Parallel)
+        # =========================================================================
+        
+        - task_key: merge_billing
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_billing.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
+        
+        - task_key: merge_lakeflow
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_lakeflow.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
+        
+        - task_key: merge_query_performance
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_query_performance.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
+            - task_key: merge_compute_reference
+        
+        # =========================================================================
+        # PHASE 3: SECURITY (Depends on workspace)
+        # =========================================================================
+        
+        - task_key: merge_security
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_security.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
+        
+        # =========================================================================
+        # PHASE 4: MLFLOW, MODEL SERVING, MARKETPLACE (Parallel)
+        # =========================================================================
+        
+        - task_key: merge_mlflow
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_mlflow.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
+        
+        - task_key: merge_model_serving
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_model_serving.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
+        
+        - task_key: merge_marketplace
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_marketplace.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
+        
+        # =========================================================================
+        # PHASE 5: GOVERNANCE, STORAGE (Parallel)
+        # =========================================================================
+        
+        - task_key: merge_governance
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_governance.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
+        
+        - task_key: merge_storage
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/merge_storage.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.system_bronze_schema}
+              gold_schema: ${var.gold_schema}
+          depends_on:
+            - task_key: merge_shared
       
-      # Job-level timeout (4 hours for data pipeline)
-      timeout_seconds: 14400
-      
-      # Schedule (PAUSED until implemented)
+      # Schedule: Daily at 4 AM (PAUSED in dev by default)
       schedule:
         quartz_cron_expression: "0 0 4 * * ?"
-        timezone_id: "America/Los_Angeles"
-        pause_status: PAUSED
+        timezone_id: "America/New_York"
+        pause_status: PAUSED  # Enable manually in UI or prod
+      
+      # Timeout at job level
+      timeout_seconds: 14400  # 4 hours
       
       # Email notifications
       email_notifications:
+        on_start:
+          - prashanth.subrahmanyam@databricks.com
         on_failure:
+          - prashanth.subrahmanyam@databricks.com
+        on_success:
+          - prashanth.subrahmanyam@databricks.com
+        on_duration_warning_threshold_exceeded:
           - prashanth.subrahmanyam@databricks.com
       
       # Tags
       tags:
         environment: ${bundle.target}
         project: databricks_health_monitor
-        layer: gold
+        layer: all
         compute_type: serverless
         job_type: pipeline
-        status: future_implementation
+        orchestrator: "true"
+        owner: platform_operations
 

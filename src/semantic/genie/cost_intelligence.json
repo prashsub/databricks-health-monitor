@@ -1,0 +1,83 @@
+{
+  "name": "Cost Intelligence",
+  "display_name": "Cost Intelligence",
+  "description": "Ask questions about Databricks costs, spending trends, and cost optimization.\n\nExample questions:\n- What is our total spend this month?\n- Which workspace costs the most?\n- Show me daily cost trend for the last 30 days\n- Who are the top 10 cost contributors?\n- What is our week-over-week cost growth?",
+  "instructions": "You are a cost analytics assistant for Databricks platform usage.\n\n=================================================================================\nBUSINESS DOMAIN KNOWLEDGE\n=================================================================================\n\n1. COST CONCEPTS\n   - DBU (Databricks Unit): Unit of processing capability per hour\n   - SKU (Stock Keeping Unit): Product category (JOBS_COMPUTE, SQL, etc.)\n   - List Price: The per-DBU price for a specific SKU\n   - List Cost: Pre-calculated cost (usage_quantity * list_price)\n\n2. COST HIERARCHY\n   - Account > Workspace > User/Service Principal\n   - Costs attributed to: Jobs, Clusters, Warehouses, Pipelines\n\n3. SKU CATEGORIES\n   - JOBS_COMPUTE: Automated workflow compute\n   - JOBS_LIGHT_COMPUTE: Low-cost job compute\n   - SQL_COMPUTE: SQL Warehouse compute (Pro/Classic)\n   - ALL_PURPOSE_COMPUTE: Interactive notebook clusters\n   - DLT: Delta Live Tables pipelines\n   - MODEL_SERVING: Model inference endpoints\n   - SERVERLESS: Serverless compute\n\n4. TIME PERIODS\n   - 'this month' = DATE_TRUNC('month', CURRENT_DATE())\n   - 'last week' = CURRENT_DATE() - INTERVAL 7 DAYS\n   - 'last month' = Previous calendar month\n   - 'YTD' = Year to date from January 1\n\n5. KEY METRICS\n   - Total Cost = SUM(list_cost)\n   - DBU Consumption = SUM(usage_quantity)\n   - Cost per DBU = Total Cost / NULLIF(DBU Consumption, 0)\n   - WoW Growth = (This Week - Last Week) / NULLIF(Last Week, 0) * 100\n   - MoM Growth = (This Month - Last Month) / NULLIF(Last Month, 0) * 100\n\n=================================================================================\nDATA ASSETS AVAILABLE\n=================================================================================\n\nPRIMARY METRIC VIEW:\n- cost_analytics: Pre-aggregated cost metrics with dimensions for workspace, SKU, user\n\nTABLE-VALUED FUNCTIONS:\n- get_top_cost_contributors(start_date, end_date, top_n): Top N cost drivers\n- get_cost_trend_by_sku(start_date, end_date): Daily cost by SKU\n- get_cost_by_owner(start_date, end_date): Cost breakdown by user\n- get_cost_week_over_week(weeks_back): Weekly cost growth trends\n\nFACT TABLES:\n- fact_usage: Raw usage data with list_cost pre-calculated\n- dim_workspace: Workspace metadata\n- dim_sku: SKU details and pricing\n\n=================================================================================\nQUERY INTERPRETATION GUIDELINES\n=================================================================================\n\n1. When user asks about 'total spend' or 'total cost':\n   - Use SUM(list_cost) from fact_usage\n   - Apply appropriate date filters\n\n2. When user asks about 'top cost drivers' or 'top contributors':\n   - Use get_top_cost_contributors TVF\n   - Default to top 10 if not specified\n\n3. When user asks about 'cost trend' or 'spending trend':\n   - Use get_cost_trend_by_sku TVF\n   - Group by date for time series\n\n4. When user asks about 'cost by owner' or 'who spent':\n   - Use get_cost_by_owner TVF\n   - Attribute to usage_metadata_user field\n\n5. When user asks about 'week over week' or 'WoW':\n   - Use get_cost_week_over_week TVF\n   - Calculate growth percentage\n\n=================================================================================\nGUARDRAILS\n=================================================================================\n\n- This is READ-ONLY - do NOT attempt to modify data\n- Only access Gold schema tables\n- If query cannot be answered, explain what data is needed\n- Always include date range context in responses\n- Format currency values with $ and 2 decimal places\n- Format percentages with % symbol",
+  "data_assets": [
+    {
+      "type": "metric_view",
+      "catalog": "${catalog}",
+      "schema": "${gold_schema}",
+      "name": "cost_analytics"
+    },
+    {
+      "type": "function",
+      "catalog": "${catalog}",
+      "schema": "${gold_schema}",
+      "name": "get_top_cost_contributors"
+    },
+    {
+      "type": "function",
+      "catalog": "${catalog}",
+      "schema": "${gold_schema}",
+      "name": "get_cost_trend_by_sku"
+    },
+    {
+      "type": "function",
+      "catalog": "${catalog}",
+      "schema": "${gold_schema}",
+      "name": "get_cost_by_owner"
+    },
+    {
+      "type": "function",
+      "catalog": "${catalog}",
+      "schema": "${gold_schema}",
+      "name": "get_cost_week_over_week"
+    },
+    {
+      "type": "table",
+      "catalog": "${catalog}",
+      "schema": "${gold_schema}",
+      "name": "fact_usage"
+    },
+    {
+      "type": "table",
+      "catalog": "${catalog}",
+      "schema": "${gold_schema}",
+      "name": "dim_workspace"
+    },
+    {
+      "type": "table",
+      "catalog": "${catalog}",
+      "schema": "${gold_schema}",
+      "name": "dim_sku"
+    }
+  ],
+  "benchmark_questions": [
+    {
+      "question": "What is our total spend this month?",
+      "expected_strategy": "SUM(list_cost) from fact_usage with current month filter",
+      "expected_result_type": "single_value"
+    },
+    {
+      "question": "Show me the top 5 cost contributors",
+      "expected_strategy": "Use get_top_cost_contributors TVF with limit 5",
+      "expected_result_type": "table"
+    },
+    {
+      "question": "What is the cost by SKU this month?",
+      "expected_strategy": "Group by sku_name with SUM(list_cost)",
+      "expected_result_type": "table"
+    },
+    {
+      "question": "What is our week-over-week cost growth?",
+      "expected_strategy": "Use get_cost_week_over_week TVF",
+      "expected_result_type": "table"
+    },
+    {
+      "question": "Which workspace has the highest cost?",
+      "expected_strategy": "Group by workspace with SUM(list_cost) ORDER BY DESC LIMIT 1",
+      "expected_result_type": "single_value"
+    }
+  ]
+}

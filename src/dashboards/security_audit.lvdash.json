@@ -1,0 +1,86 @@
+{
+  "displayName": "Security Audit Dashboard",
+  "warehouse_id": "${warehouse_id}",
+  "pages": [
+    {
+      "name": "page_security",
+      "displayName": "Security Audit",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_events",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_total_events", "fields": [{"name": "total_events", "expression": "`total_events`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "total_events"}}, "frame": {"showTitle": true, "title": "Total Events (7d)"}}
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_sensitive_actions",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_sensitive_count", "fields": [{"name": "sensitive_count", "expression": "`sensitive_count`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "sensitive_count"}}, "frame": {"showTitle": true, "title": "Sensitive Actions (7d)"}}
+          },
+          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_failed_actions",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_failed_count", "fields": [{"name": "failed_count", "expression": "`failed_count`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "failed_count"}}, "frame": {"showTitle": true, "title": "Failed Actions (7d)"}}
+          },
+          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "chart_events_trend",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_events_trend", "fields": [{"name": "event_date", "expression": "`event_date`"}, {"name": "event_count", "expression": "`event_count`"}, {"name": "sensitive_count", "expression": "`sensitive_count`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "event_date", "displayName": "Date", "scale": {"type": "temporal"}}, "y": {"fieldName": "event_count", "displayName": "Events", "scale": {"type": "quantitative"}}}, "frame": {"showTitle": true, "title": "Audit Events Trend"}}
+          },
+          "position": {"x": 0, "y": 2, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_sensitive_actions",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_recent_sensitive", "fields": [{"name": "user_identity_email", "expression": "`user_identity_email`"}, {"name": "action_name", "expression": "`action_name`"}, {"name": "service_name", "expression": "`service_name`"}, {"name": "event_time", "expression": "`event_time`"}], "disaggregated": false}}],
+            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "Recent Sensitive Actions"}, "encodings": {"columns": [{"fieldName": "user_identity_email", "title": "User"}, {"fieldName": "action_name", "title": "Action"}, {"fieldName": "service_name", "title": "Service"}, {"fieldName": "event_time", "title": "Time"}]}, "itemsPerPage": 15}
+          },
+          "position": {"x": 0, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_actions_by_service",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_by_service", "fields": [{"name": "service_name", "expression": "`service_name`"}, {"name": "count", "expression": "`count`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "pie", "encodings": {"angle": {"fieldName": "count", "scale": {"type": "quantitative"}}, "color": {"fieldName": "service_name", "scale": {"type": "categorical"}}}, "frame": {"showTitle": true, "title": "Events by Service"}}
+          },
+          "position": {"x": 3, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_failed_actions",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_recent_failed", "fields": [{"name": "user_identity_email", "expression": "`user_identity_email`"}, {"name": "action_name", "expression": "`action_name`"}, {"name": "response_status_code", "expression": "`response_status_code`"}, {"name": "event_time", "expression": "`event_time`"}], "disaggregated": false}}],
+            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "Recent Failed Actions"}, "encodings": {"columns": [{"fieldName": "user_identity_email", "title": "User"}, {"fieldName": "action_name", "title": "Action"}, {"fieldName": "response_status_code", "title": "Status"}, {"fieldName": "event_time", "title": "Time"}]}, "itemsPerPage": 10}
+          },
+          "position": {"x": 0, "y": 14, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_top_users",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_top_users", "fields": [{"name": "user_identity_email", "expression": "`user_identity_email`"}, {"name": "action_count", "expression": "`action_count`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "action_count", "displayName": "Actions", "scale": {"type": "quantitative"}}, "y": {"fieldName": "user_identity_email", "displayName": "User", "scale": {"type": "categorical"}}}, "frame": {"showTitle": true, "title": "Most Active Users"}}
+          },
+          "position": {"x": 3, "y": 14, "width": 3, "height": 6}
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {"name": "ds_total_events", "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_sensitive_count", "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN is_sensitive_action THEN 1 ELSE 0 END), 0) AS sensitive_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_failed_count", "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN is_failed_action THEN 1 ELSE 0 END), 0) AS failed_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_events_trend", "query": "SELECT event_date, COUNT(*) AS event_count, SUM(CASE WHEN is_sensitive_action THEN 1 ELSE 0 END) AS sensitive_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY event_date ORDER BY event_date"},
+    {"name": "ds_recent_sensitive", "query": "SELECT user_identity_email, action_name, service_name, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND is_sensitive_action = TRUE ORDER BY event_time DESC LIMIT 25"},
+    {"name": "ds_by_service", "query": "SELECT COALESCE(service_name, 'UNKNOWN') AS service_name, COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY service_name ORDER BY count DESC LIMIT 10"},
+    {"name": "ds_recent_failed", "query": "SELECT user_identity_email, action_name, response_status_code, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND is_failed_action = TRUE ORDER BY event_time DESC LIMIT 25"},
+    {"name": "ds_top_users", "query": "SELECT user_identity_email, COUNT(*) AS action_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND user_identity_email IS NOT NULL AND user_identity_email != 'System-User' GROUP BY user_identity_email ORDER BY action_count DESC LIMIT 10"}
+  ]
+}

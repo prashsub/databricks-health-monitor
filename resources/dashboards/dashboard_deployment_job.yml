@@ -1,0 +1,46 @@
+# Dashboard Deployment Job
+# Deploys all Lakeview AI/BI Dashboards for Health Monitor
+#
+# Dashboards created:
+#   - Executive Overview: High-level KPIs for leadership
+#   - Cost Management: FinOps analysis and optimization
+#   - Job Reliability: Job execution health monitoring
+#   - Query Performance: SQL latency and efficiency
+#   - Cluster Utilization: Resource usage tracking
+#   - Security Audit: Access and compliance monitoring
+#
+# Run after Gold layer and TVF setup
+# Reference: https://docs.databricks.com/visualizations/lakeview
+
+resources:
+  jobs:
+    dashboard_deployment_job:
+      name: "[${bundle.target}] Health Monitor - Dashboard Deployment"
+      description: "Deploys all AI/BI Lakeview dashboards"
+
+      tasks:
+        - task_key: deploy_all_dashboards
+          notebook_task:
+            notebook_path: ../../src/dashboards/deploy_dashboards.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              warehouse_id: ${var.warehouse_id}
+
+      # No schedule - run on demand after Gold setup
+      # Dashboards refresh automatically based on their queries
+
+      # Timeout: 30 minutes
+      timeout_seconds: 1800
+
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: presentation
+        job_type: deployment
+        compute_type: serverless

@@ -1,0 +1,570 @@
+# Metric View: job_performance
+# Job reliability and duration metrics for operational monitoring
+#
+# Source: fact_job_run_timeline (lakeflow domain)
+# Schema validation done against: gold_layer_design/yaml/lakeflow/fact_job_run_timeline.yaml
+#
+# Key Business Questions Answered:
+#   - What's our job success rate today/this week/this month?
+#   - Which jobs are failing the most?
+#   - What's the average job duration by workspace?
+#   - Show me the slowest jobs (P95 duration)
+#   - What jobs failed by termination reason?
+
+version: "1.1"
+comment: >
+  Job performance and reliability analytics for platform operations teams.
+  Optimized for Genie natural language queries about job failures, durations, and SLAs.
+
+  DIMENSIONS: Filter and group by job, workspace, date, result state, trigger type,
+  termination code, time hierarchy (year/month/day of week).
+
+  MEASURES: Success rate, failure rate, total runs, duration stats (avg/p50/p95/p99),
+  scheduled vs manual runs, unique jobs.
+
+  Example queries:
+  - "What's our job success rate today?"
+  - "Which jobs failed this week?"
+  - "Show P95 duration by job name"
+  - "What's the failure rate by termination code?"
+  - "How many scheduled vs manual runs today?"
+
+source: ${catalog}.${gold_schema}.fact_job_run_timeline
+
+joins:
+  - name: dim_workspace
+    source: ${catalog}.${gold_schema}.dim_workspace
+    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
+
+  - name: dim_job
+    source: ${catalog}.${gold_schema}.dim_job
+    'on': source.workspace_id = dim_job.workspace_id AND source.job_id = dim_job.job_id AND dim_job.is_current = true
+
+dimensions:
+  # === Primary Dimensions ===
+  - name: run_date
+    expr: source.run_date
+    comment: Calendar date when the job run started for daily aggregations
+    display_name: Run Date
+    synonyms:
+      - date
+      - day
+      - execution date
+
+  - name: workspace_id
+    expr: source.workspace_id
+    comment: Workspace identifier for workspace-level filtering
+    display_name: Workspace ID
+    synonyms:
+      - workspace
+      - ws id
+      - environment id
+
+  - name: workspace_name
+    expr: dim_workspace.workspace_name
+    comment: Human-readable workspace name for reporting
+    display_name: Workspace Name
+    synonyms:
+      - workspace
+      - environment name
+      - environment
+
+  - name: job_id
+    expr: source.job_id
+    comment: Job identifier for job-level analysis
+    display_name: Job ID
+    synonyms:
+      - job
+      - workflow id
+
+  - name: job_name
+    expr: dim_job.job_name
+    comment: Human-readable job name for reporting and filtering
+    display_name: Job Name
+    synonyms:
+      - job
+      - workflow name
+      - pipeline
+      - workflow
+
+  - name: run_name
+    expr: source.run_name
+    comment: User-supplied run name for this execution
+    display_name: Run Name
+    synonyms:
+      - execution name
+      - run label
+
+  # === Time Dimensions (derived from run_date) ===
+  - name: year
+    expr: YEAR(source.run_date)
+    comment: Calendar year for annual analysis
+    display_name: Year
+    synonyms:
+      - calendar year
+
+  - name: quarter
+    expr: QUARTER(source.run_date)
+    comment: Calendar quarter (1-4) for quarterly analysis
+    display_name: Quarter
+    synonyms:
+      - q
+      - qtr
+
+  - name: month
+    expr: MONTH(source.run_date)
+    comment: Month number (1-12) for monthly trending
+    display_name: Month
+    synonyms:
+      - calendar month
+
+  - name: week_of_year
+    expr: WEEKOFYEAR(source.run_date)
+    comment: Week number for weekly analysis
+    display_name: Week
+    synonyms:
+      - week
+      - week number
+
+  - name: day_of_week
+    expr: DAYOFWEEK(source.run_date)
+    comment: Day of week (1=Sunday) for weekday/weekend patterns
+    display_name: Day of Week
+    synonyms:
+      - weekday
+
+  - name: hour_of_day
+    expr: HOUR(source.period_start_time)
+    comment: Hour of day (0-23) for time-of-day patterns
+    display_name: Hour
+    synonyms:
+      - hour
+      - start hour
+
+  # === Job Execution Dimensions ===
+  - name: result_state
+    expr: source.result_state
+    comment: Job outcome (SUCCESS, FAILED, CANCELED, TIMED_OUT, etc.)
+    display_name: Result State
+    synonyms:
+      - status
+      - outcome
+      - result
+
+  - name: trigger_type
+    expr: source.trigger_type
+    comment: How the job was triggered (MANUAL, SCHEDULE, CONTINUOUS, etc.)
+    display_name: Trigger Type
+    synonyms:
+      - trigger
+      - launch type
+      - start method
+
+  - name: termination_code
+    expr: source.termination_code
+    comment: Specific termination reason code for debugging failures
+    display_name: Termination Code
+    synonyms:
+      - termination reason
+      - exit code
+      - error code
+      - failure reason
+
+  - name: run_type
+    expr: source.run_type
+    comment: Type of job run (JOB_RUN, WORKFLOW_RUN, SUBMIT_RUN, etc.)
+    display_name: Run Type
+    synonyms:
+      - execution type
+      - run category
+
+  - name: is_success
+    expr: source.is_success
+    comment: Boolean flag indicating successful completion (uses pre-calculated field)
+    display_name: Is Success
+    synonyms:
+      - succeeded
+      - passed
+      - completed
+
+  # === Blog-Derived Dimensions (Workflow Advisor Dashboard) ===
+  - name: outcome_category
+    expr: >
+      CASE
+        WHEN source.result_state = 'SUCCESS' THEN 'SUCCESS'
+        WHEN source.result_state IN ('FAILED', 'INTERNAL_ERROR') THEN 'FAILURE'
+        WHEN source.result_state = 'TIMED_OUT' THEN 'TIMEOUT'
+        WHEN source.result_state = 'CANCELED' THEN 'CANCELLED'
+        WHEN source.result_state = 'SKIPPED' THEN 'SKIPPED'
+        ELSE 'OTHER'
+      END
+    comment: Grouped outcome category for simplified analysis - from Workflow Advisor blog (5 states)
+    display_name: Outcome Category
+    synonyms:
+      - result category
+      - job outcome
+      - outcome
+
+  - name: cluster_type
+    expr: >
+      CASE
+        WHEN source.cluster_spec LIKE '%"existing_cluster_id"%' THEN 'EXISTING_CLUSTER'
+        WHEN source.cluster_spec LIKE '%"new_cluster"%' THEN 'JOB_CLUSTER'
+        ELSE 'UNKNOWN'
+      END
+    comment: Whether job uses existing all-purpose cluster or dedicated job cluster
+    display_name: Cluster Type
+    synonyms:
+      - compute type
+      - cluster allocation
+
+  - name: duration_trend
+    expr: >
+      CASE
+        WHEN source.run_duration_seconds IS NULL THEN 'IN_PROGRESS'
+        WHEN source.run_duration_seconds <= 60 THEN 'VERY_SHORT'
+        WHEN source.run_duration_seconds <= 300 THEN 'SHORT'
+        WHEN source.run_duration_seconds <= 1800 THEN 'MEDIUM'
+        WHEN source.run_duration_seconds <= 7200 THEN 'LONG'
+        ELSE 'VERY_LONG'
+      END
+    comment: Duration bucket for trend analysis
+    display_name: Duration Category
+    synonyms:
+      - runtime bucket
+      - duration bucket
+
+measures:
+  # === Volume Measures ===
+  - name: total_runs
+    expr: COUNT(source.run_id)
+    comment: Total number of job runs for volume analysis
+    display_name: Total Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - run count
+      - executions
+      - jobs run
+      - runs
+
+  - name: unique_jobs
+    expr: COUNT(DISTINCT source.job_id)
+    comment: Number of distinct jobs that ran
+    display_name: Unique Jobs
+    format:
+      type: number
+    synonyms:
+      - job count
+      - distinct jobs
+      - workflows
+
+  # === Success/Failure Measures ===
+  - name: successful_runs
+    expr: SUM(CASE WHEN source.is_success THEN 1 ELSE 0 END)
+    comment: Count of successful job runs (uses pre-calculated is_success flag)
+    display_name: Successful Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - successes
+      - passed runs
+      - completed runs
+
+  - name: failed_runs
+    expr: SUM(CASE WHEN source.is_success = FALSE AND source.result_state IS NOT NULL THEN 1 ELSE 0 END)
+    comment: Count of failed job runs (excludes in-progress runs)
+    display_name: Failed Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - failures
+      - failed jobs
+      - errors
+
+  - name: success_rate
+    expr: (SUM(CASE WHEN source.is_success THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.run_id), 0)
+    comment: Percentage of successful job runs. Primary reliability metric.
+    display_name: Success Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - success percentage
+      - pass rate
+      - reliability
+      - job reliability
+
+  - name: failure_rate
+    expr: (SUM(CASE WHEN source.is_success = FALSE AND source.result_state IS NOT NULL THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.run_id), 0)
+    comment: Percentage of failed job runs (inverse of success rate)
+    display_name: Failure Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - failure percentage
+      - error rate
+
+  # === Duration Measures ===
+  - name: total_duration_minutes
+    expr: SUM(source.run_duration_minutes)
+    comment: Total execution time in minutes across all runs
+    display_name: Total Duration (min)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+      abbreviation: compact
+    synonyms:
+      - total time
+      - execution time
+      - cumulative runtime
+
+  - name: total_duration_hours
+    expr: SUM(source.run_duration_minutes) / 60.0
+    comment: Total execution time in hours across all runs
+    display_name: Total Duration (hrs)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+      abbreviation: compact
+    synonyms:
+      - total hours
+      - cumulative hours
+
+  - name: avg_duration_minutes
+    expr: AVG(source.run_duration_minutes)
+    comment: Average job run duration in minutes
+    display_name: Avg Duration (min)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - average duration
+      - mean runtime
+      - typical duration
+      - avg runtime
+
+  - name: max_duration_minutes
+    expr: MAX(source.run_duration_minutes)
+    comment: Maximum job run duration in minutes
+    display_name: Max Duration (min)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - longest run
+      - peak duration
+      - maximum runtime
+
+  - name: min_duration_minutes
+    expr: MIN(source.run_duration_minutes)
+    comment: Minimum job run duration in minutes
+    display_name: Min Duration (min)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - shortest run
+      - fastest run
+      - minimum runtime
+
+  - name: p50_duration_minutes
+    expr: PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY source.run_duration_minutes)
+    comment: Median (50th percentile) job duration in minutes
+    display_name: P50 Duration (min)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - median duration
+      - typical duration
+      - p50
+
+  - name: p95_duration_minutes
+    expr: PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY source.run_duration_minutes)
+    comment: 95th percentile job duration for SLA monitoring
+    display_name: P95 Duration (min)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - sla duration
+      - p95
+      - tail latency
+
+  - name: p99_duration_minutes
+    expr: PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY source.run_duration_minutes)
+    comment: 99th percentile job duration for outlier analysis
+    display_name: P99 Duration (min)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - p99
+      - worst case duration
+      - outlier duration
+
+  # === Trigger Type Measures ===
+  - name: scheduled_runs
+    expr: SUM(CASE WHEN source.trigger_type = 'SCHEDULE' THEN 1 ELSE 0 END)
+    comment: Count of scheduled (automated) job runs
+    display_name: Scheduled Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - automated runs
+      - cron jobs
+      - scheduled
+
+  - name: manual_runs
+    expr: SUM(CASE WHEN source.trigger_type = 'MANUAL' THEN 1 ELSE 0 END)
+    comment: Count of manually triggered job runs
+    display_name: Manual Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - ad hoc runs
+      - human triggered
+      - manual
+
+  - name: continuous_runs
+    expr: SUM(CASE WHEN source.trigger_type = 'CONTINUOUS' THEN 1 ELSE 0 END)
+    comment: Count of continuous job runs
+    display_name: Continuous Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - streaming runs
+
+  - name: retry_runs
+    expr: SUM(CASE WHEN source.trigger_type = 'RETRY' THEN 1 ELSE 0 END)
+    comment: Count of retry job runs (repairs after failures)
+    display_name: Retry Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - retries
+      - repair runs
+      - rerun
+
+  # === Termination Analysis ===
+  - name: timeout_count
+    expr: SUM(CASE WHEN source.termination_code = 'TIMED_OUT' OR source.result_state = 'TIMED_OUT' THEN 1 ELSE 0 END)
+    comment: Count of jobs that timed out
+    display_name: Timeouts
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - timed out
+      - timeout failures
+
+  - name: canceled_count
+    expr: SUM(CASE WHEN source.result_state = 'CANCELED' THEN 1 ELSE 0 END)
+    comment: Count of jobs that were canceled
+    display_name: Canceled
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - cancellations
+      - cancelled runs
+
+  # === Blog-Derived Measures (Workflow Advisor Dashboard) ===
+  - name: stddev_duration_minutes
+    expr: STDDEV(source.run_duration_minutes)
+    comment: Standard deviation of job duration - high values indicate inconsistent jobs (from Workflow Advisor blog)
+    display_name: Duration StdDev (min)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - duration variance
+      - runtime variability
+
+  - name: duration_cv
+    expr: STDDEV(source.run_duration_minutes) / NULLIF(AVG(source.run_duration_minutes), 0)
+    comment: Coefficient of variation for duration - measures relative variability (from Workflow Advisor blog)
+    display_name: Duration CV
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - relative variance
+      - normalized variability
+
+  - name: existing_cluster_runs
+    expr: SUM(CASE WHEN source.cluster_spec LIKE '%"existing_cluster_id"%' THEN 1 ELSE 0 END)
+    comment: Jobs using existing all-purpose clusters (less efficient) - from Workflow Advisor blog
+    display_name: All-Purpose Cluster Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - all purpose runs
+      - existing cluster jobs
+
+  - name: job_cluster_runs
+    expr: SUM(CASE WHEN source.cluster_spec LIKE '%"new_cluster"%' THEN 1 ELSE 0 END)
+    comment: Jobs using dedicated job clusters (more efficient) - from Workflow Advisor blog
+    display_name: Job Cluster Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - dedicated cluster runs
+      - new cluster jobs
+
+  - name: internal_error_count
+    expr: SUM(CASE WHEN source.result_state = 'INTERNAL_ERROR' THEN 1 ELSE 0 END)
+    comment: Count of jobs with internal errors (platform issues)
+    display_name: Internal Errors
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - platform errors
+      - system failures
+
+  - name: skipped_count
+    expr: SUM(CASE WHEN source.result_state = 'SKIPPED' THEN 1 ELSE 0 END)
+    comment: Count of skipped job runs
+    display_name: Skipped Runs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - skipped jobs
+

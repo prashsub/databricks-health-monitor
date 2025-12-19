@@ -137,10 +137,10 @@ columns:
 
   # === Flattened Nested Columns ===
 
-  - name: custom_tags_json
-    type: STRING
+  - name: custom_tags
+    type: MAP<STRING, STRING>
     nullable: true
-    description: "Tags applied by the users to this usage. Includes compute resource tags and jobs tags. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+    description: "Tags applied by users to this usage record. Business: Cost attribution tags for chargeback, budgeting, and governance. Query directly using custom_tags['team'] or custom_tags['cost_center'] syntax. Common keys: team, cost_center, project, environment, owner, application. Essential for tag-based cost allocation and filtering. Technical: Native MAP<STRING,STRING> type enabling efficient key-value lookup without JSON parsing. Supports map_keys(), map_values(), and element_at() functions."
 
   - name: usage_metadata_cluster_id
     type: STRING
@@ -477,4 +477,32 @@ columns:
     nullable: true
     description: "Details about the specific product features used. [Nested field: lakeflow_connect]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from product_features.lakeflow_connect, STRING type, nullable."
     # Flattened from: product_features.lakeflow_connect
+
+  # === Derived/Enriched Columns (from system.billing.list_prices) ===
+
+  - name: list_price
+    type: DECIMAL(18,6)
+    nullable: true
+    description: "List price per usage unit at time of consumption. Business: The official Databricks list price for this SKU at the time usage occurred. Critical for cost calculations, chargeback, and FinOps analysis. Enables accurate cost attribution without runtime joins. Technical: Enriched during Gold merge from system.billing.list_prices using cloud, sku_name, and usage time matching. Represents pricing.default value."
+    # Enriched from: system.billing.list_prices.pricing.default
+
+  - name: list_cost
+    type: DECIMAL(18,6)
+    nullable: true
+    description: "Calculated list cost for this usage record. Business: Total cost calculated as usage_quantity * list_price. The primary cost metric for FinOps dashboards, budget tracking, and chargeback. Pre-calculated to avoid repeated computation in queries. Technical: Derived column computed during Gold merge. DECIMAL(18,6) for financial precision."
+    # Derived: usage_quantity * list_price
+
+  # === Derived Tag Governance Columns ===
+
+  - name: is_tagged
+    type: BOOLEAN
+    nullable: false
+    description: "Indicates whether this usage record has any custom tags. Business: Key metric for tag governance - tracks tag coverage across the organization. Used for identifying untagged resources and enforcing tagging policies. Technical: Derived as custom_tags IS NOT NULL AND size(custom_tags) > 0. Boolean flag for efficient filtering."
+    # Derived: size(custom_tags) > 0
+
+  - name: tag_count
+    type: INT
+    nullable: true
+    description: "Number of custom tags on this usage record. Business: Measures tagging completeness - higher counts indicate better metadata. Used for tag governance reporting and compliance tracking. Technical: Derived as size(custom_tags). NULL if custom_tags is NULL."
+    # Derived: size(custom_tags)
 

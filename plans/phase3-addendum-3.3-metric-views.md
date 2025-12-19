@@ -168,8 +168,8 @@ version: "1.1"
     
     # Owner dimensions
     - name: run_as
-      expr: source.run_as
-      comment: User or service principal who ran the workload
+      expr: source.identity_metadata_run_as
+      comment: User or service principal who ran the workload (flattened from identity_metadata)
       display_name: Run As User
       synonyms:
         - owner
@@ -218,9 +218,9 @@ version: "1.1"
     
     # Tag dimensions for cost attribution (NEW)
     # Reference: https://docs.databricks.com/aws/en/admin/system-tables/billing
-    - name: is_tagged
-      expr: CASE WHEN source.custom_tags IS NOT NULL AND cardinality(source.custom_tags) > 0 THEN 'Tagged' ELSE 'Untagged' END
-      comment: Whether the usage record has custom tags for cost attribution
+    - name: tag_status
+      expr: CASE WHEN source.is_tagged = TRUE THEN 'Tagged' ELSE 'Untagged' END
+      comment: Whether the usage record has custom tags for cost attribution (uses pre-calculated is_tagged flag)
       display_name: Tag Status
       synonyms:
         - tagged
@@ -282,8 +282,8 @@ version: "1.1"
         - usage
     
     - name: total_cost
-      expr: SUM(source.usage_quantity * COALESCE(source.list_price, 0))
-      comment: Total estimated cost in USD based on list price
+      expr: SUM(source.list_cost)
+      comment: Total estimated cost in USD (pre-calculated from list_price * usage_quantity)
       display_name: Total Cost
       format:
         type: currency
@@ -300,7 +300,7 @@ version: "1.1"
         - amount
     
     - name: avg_daily_cost
-      expr: AVG(source.usage_quantity * COALESCE(source.list_price, 0))
+      expr: AVG(source.list_cost)
       comment: Average daily cost
       display_name: Avg Daily Cost
       format:
@@ -354,7 +354,7 @@ version: "1.1"
     # Tag Coverage Measures (NEW)
     # Support fine-grained cost attribution via custom_tags
     - name: tagged_cost
-      expr: SUM(CASE WHEN source.custom_tags IS NOT NULL AND cardinality(source.custom_tags) > 0 THEN source.usage_quantity * COALESCE(source.list_price, 0) ELSE 0 END)
+      expr: SUM(CASE WHEN source.is_tagged = TRUE THEN source.list_cost ELSE 0 END)
       comment: Cost from resources that have custom tags assigned
       display_name: Tagged Cost
       format:
@@ -369,7 +369,7 @@ version: "1.1"
         - attributed cost
     
     - name: untagged_cost
-      expr: SUM(CASE WHEN source.custom_tags IS NULL OR cardinality(source.custom_tags) = 0 THEN source.usage_quantity * COALESCE(source.list_price, 0) ELSE 0 END)
+      expr: SUM(CASE WHEN source.is_tagged = FALSE THEN source.list_cost ELSE 0 END)
       comment: Cost from resources without custom tags - needs tagging for proper attribution
       display_name: Untagged Cost
       format:
@@ -384,7 +384,7 @@ version: "1.1"
         - cost needing tags
     
     - name: tag_coverage_pct
-      expr: SUM(CASE WHEN source.custom_tags IS NOT NULL AND cardinality(source.custom_tags) > 0 THEN source.usage_quantity * COALESCE(source.list_price, 0) ELSE 0 END) / NULLIF(SUM(source.usage_quantity * COALESCE(source.list_price, 0)), 0) * 100
+      expr: SUM(CASE WHEN source.is_tagged = TRUE THEN source.list_cost ELSE 0 END) / NULLIF(SUM(source.list_cost), 0) * 100
       comment: Percentage of cost that has custom tags for attribution
       display_name: Tag Coverage %
       format:
@@ -445,7 +445,7 @@ version: "1.1"
   
   measures:
     - name: monthly_spend
-      expr: SUM(source.usage_quantity * COALESCE(source.list_price, 0))
+      expr: SUM(source.list_cost)
       comment: Total monthly spend in USD
       display_name: Monthly Spend
       format:
@@ -491,7 +491,7 @@ version: "1.1"
         - run rate target
     
     - name: ytd_spend
-      expr: SUM(SUM(source.usage_quantity * COALESCE(source.list_price, 0))) OVER (ORDER BY DATE_TRUNC('month', source.usage_date))
+      expr: SUM(SUM(source.list_cost)) OVER (ORDER BY DATE_TRUNC('month', source.usage_date))
       comment: Year-to-date cumulative spend
       display_name: YTD Spend
       format:
@@ -535,7 +535,7 @@ version: "1.1"
     
     - name: dim_date
       source: ${catalog}.${gold_schema}.dim_date
-      'on': DATE(source.period_start_time) = dim_date.date
+      'on': source.run_date = dim_date.date  # Using pre-calculated run_date
   
   dimensions:
     - name: job_id
@@ -596,7 +596,7 @@ version: "1.1"
         - cluster
     
     - name: run_date
-      expr: DATE(source.period_start_time)
+      expr: source.run_date  # Using pre-calculated run_date
       comment: Date of job run
       display_name: Run Date
       synonyms:
@@ -638,8 +638,8 @@ version: "1.1"
         - run count
     
     - name: successful_runs
-      expr: SUM(CASE WHEN source.result_state = 'SUCCEEDED' THEN 1 ELSE 0 END)
-      comment: Number of successful job runs
+      expr: SUM(CASE WHEN source.is_success = TRUE THEN 1 ELSE 0 END)
+      comment: Number of successful job runs (uses pre-calculated is_success flag)
       display_name: Successful Runs
       format:
         type: number
@@ -661,8 +661,8 @@ version: "1.1"
         - failed
     
     - name: success_rate
-      expr: (SUM(CASE WHEN source.result_state = 'SUCCEEDED' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)) * 100
-      comment: Percentage of successful runs
+      expr: (SUM(CASE WHEN source.is_success = TRUE THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)) * 100
+      comment: Percentage of successful runs (uses pre-calculated is_success flag)
       display_name: Success Rate
       format:
         type: percentage
@@ -675,8 +675,8 @@ version: "1.1"
         - reliability
     
     - name: failure_rate
-      expr: (SUM(CASE WHEN source.result_state IN ('FAILED', 'ERROR', 'TIMED_OUT') THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)) * 100
-      comment: Percentage of failed runs
+      expr: (SUM(CASE WHEN source.is_success = FALSE THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)) * 100
+      comment: Percentage of failed runs (inverse of is_success flag)
       display_name: Failure Rate
       format:
         type: percentage
@@ -688,8 +688,8 @@ version: "1.1"
         - error rate
     
     - name: avg_duration_minutes
-      expr: AVG(TIMESTAMPDIFF(MINUTE, source.period_start_time, source.period_end_time))
-      comment: Average job run duration in minutes
+      expr: AVG(source.run_duration_minutes)
+      comment: Average job run duration in minutes (uses pre-calculated run_duration_minutes)
       display_name: Avg Duration (min)
       format:
         type: number
@@ -702,8 +702,8 @@ version: "1.1"
         - typical duration
     
     - name: total_runtime_hours
-      expr: SUM(TIMESTAMPDIFF(MINUTE, source.period_start_time, source.period_end_time)) / 60
-      comment: Total cumulative runtime in hours
+      expr: SUM(source.run_duration_minutes) / 60
+      comment: Total cumulative runtime in hours (uses pre-calculated run_duration_minutes)
       display_name: Total Runtime (hrs)
       format:
         type: number
@@ -1218,6 +1218,142 @@ version: "1.1"
 
 ---
 
+## 🆕 ML-Enhanced Metric Views (Phase 3.3a)
+
+### Overview
+
+The ML model inference pipeline (batch_inference_all_models.py) produces prediction tables that can significantly enhance Genie queries with predictive insights. This section defines new metric views that leverage ML predictions.
+
+### ML Inference Output Tables
+
+| Domain | Model | Output Table | Key Predictions |
+|--------|-------|--------------|-----------------|
+| **Cost** | cost_anomaly_detector | cost_anomaly_predictions | is_anomaly, anomaly_score |
+| **Cost** | budget_forecaster | budget_forecast_predictions | predicted_cost, confidence |
+| **Cost** | commitment_recommender | commitment_recommendations | recommended_commit |
+| **Security** | security_threat_detector | security_threat_predictions | threat_score, is_threat |
+| **Security** | exfiltration_detector | exfiltration_predictions | exfil_risk_score |
+| **Performance** | performance_regression_detector | performance_regression_predictions | is_regression, regression_score |
+| **Reliability** | job_failure_predictor | failure_predictions | failure_probability |
+| **Reliability** | sla_breach_predictor | sla_breach_predictions | breach_probability |
+| **Quality** | data_drift_detector | data_drift_predictions | drift_score, is_drift |
+
+### New Metric Views
+
+#### 1. ml_intelligence_metrics (NEW)
+
+Unified view of ML predictions across all domains for executive dashboards and alerting.
+
+```yaml
+version: "1.1"
+comment: >
+  Unified ML intelligence metrics aggregating predictions across all domains.
+  Use for: Executive AI/ML dashboards, anomaly monitoring, predictive alerts.
+  Example: "How many anomalies detected today?", "Show high-risk entities"
+
+source: ${catalog}.${ml_schema}.ml_predictions_summary
+
+dimensions:
+  - name: prediction_date
+    expr: source.prediction_date
+    comment: Date of ML prediction
+  - name: domain
+    expr: source.domain
+    comment: Domain (cost, security, performance, reliability, quality)
+  - name: model_name
+    expr: source.model_name
+    comment: ML model that generated the prediction
+  - name: entity_type
+    expr: source.entity_type
+    comment: Type of entity (workspace, job, warehouse, user)
+  - name: entity_id
+    expr: source.entity_id
+    comment: ID of the entity being scored
+
+measures:
+  - name: total_predictions
+    expr: COUNT(source.prediction_id)
+    comment: Total predictions generated
+  - name: anomaly_count
+    expr: SUM(CASE WHEN source.is_anomaly THEN 1 ELSE 0 END)
+    comment: Count of detected anomalies
+  - name: high_risk_count
+    expr: SUM(CASE WHEN source.risk_score > 0.8 THEN 1 ELSE 0 END)
+    comment: Count of high-risk predictions (score > 0.8)
+  - name: avg_risk_score
+    expr: AVG(source.risk_score)
+    comment: Average risk/anomaly score (0-1)
+  - name: anomaly_rate
+    expr: (SUM(CASE WHEN source.is_anomaly THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(*), 0)
+    comment: Percentage of predictions flagged as anomalies
+```
+
+#### 2. data_quality_metrics (NEW)
+
+Data quality monitoring metrics combining Lakehouse Monitor outputs with Gold layer metadata.
+
+```yaml
+version: "1.1"
+comment: >
+  Data quality metrics for freshness, drift, and schema monitoring.
+  Use for: Data quality dashboards, SLA monitoring, data governance.
+  Example: "Which tables are stale?", "Show data quality score by domain"
+
+source: ${catalog}.${gold_schema}.dim_table
+
+joins:
+  - name: freshness
+    source: ${catalog}.${ml_schema}.freshness_predictions
+    'on': source.table_full_name = freshness.table_full_name
+
+dimensions:
+  - name: domain
+    expr: source.domain
+    comment: Data domain (billing, compute, security, etc.)
+  - name: table_name
+    expr: source.table_name
+    comment: Table name
+  - name: table_type
+    expr: source.table_type
+    comment: Type (fact, dim)
+  - name: last_modified
+    expr: source.last_modified
+    comment: Last modification time
+
+measures:
+  - name: total_tables
+    expr: COUNT(source.table_id)
+    comment: Total tables in Gold layer
+  - name: stale_tables
+    expr: SUM(CASE WHEN freshness.is_stale THEN 1 ELSE 0 END)
+    comment: Tables exceeding freshness SLA
+  - name: freshness_rate
+    expr: (1 - SUM(CASE WHEN freshness.is_stale THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)) * 100
+    comment: Percentage of tables meeting freshness SLA
+  - name: avg_hours_since_update
+    expr: AVG(TIMESTAMPDIFF(HOUR, source.last_modified, CURRENT_TIMESTAMP()))
+    comment: Average hours since last update
+```
+
+### Enhancement to Existing Metric Views
+
+The following existing metric views should be enhanced with ML prediction joins:
+
+| Metric View | ML Table to Join | New Measures |
+|-------------|------------------|--------------|
+| cost_analytics | cost_anomaly_predictions | is_cost_anomaly, anomaly_score, predicted_cost |
+| job_performance | failure_predictions, sla_breach_predictions | failure_probability, sla_risk |
+| security_events | security_threat_predictions | threat_score, is_high_risk_user |
+| query_performance | performance_regression_predictions | is_regression, regression_severity |
+
+### Implementation Priority
+
+1. **Phase 1 (Core):** ml_intelligence_metrics, data_quality_metrics
+2. **Phase 2 (Enhancement):** Add ML joins to existing metric views
+3. **Phase 3 (Advanced):** Create domain-specific ML dashboards
+
+---
+
 ## Deployment Configuration
 
 ```yaml
@@ -1295,15 +1431,588 @@ def create_metric_view(spark, catalog: str, schema: str, view_config: dict):
 
 ---
 
+## 🆕 Dashboard Pattern Enhancements for Metric Views
+
+Based on analysis of real-world Databricks dashboards (see [phase3-use-cases.md SQL Patterns Catalog](./phase3-use-cases.md#-sql-query-patterns-catalog-from-dashboard-analysis)), the following dimensions and measures should be added to existing metric views:
+
+### New Dimensions (from Dashboard Patterns)
+
+#### Entity Type Classification (Pattern 11)
+**Source:** LakeFlow System Tables Dashboard
+
+Add to `cost_analytics_metrics`:
+```yaml
+- name: entity_type
+  expr: >
+    CONCAT_WS(' ',
+      CASE WHEN source.is_serverless THEN 'SERVERLESS' ELSE 'CLASSIC' END,
+      CASE
+        WHEN source.billing_origin_product = 'JOBS' THEN 'JOB'
+        WHEN source.billing_origin_product IN ('DLT', 'LAKEFLOW_CONNECT') THEN 'PIPELINE'
+        WHEN source.billing_origin_product = 'SQL' AND source.dlt_pipeline_id IS NOT NULL THEN 'PIPELINE'
+        WHEN source.billing_origin_product = 'SQL' THEN 'WAREHOUSE'
+        ELSE source.billing_origin_product
+      END)
+  comment: Classification of workload by serverless status and product type
+  display_name: Entity Type
+  synonyms:
+    - workload type
+    - compute type
+    - product type
+    - serverless status
+```
+
+#### Risk Level Classification
+**Source:** Serverless Cost Dashboard (P90 deviation)
+
+Add to `job_performance_metrics`:
+```yaml
+- name: cost_risk_level
+  expr: >
+    CASE
+      WHEN source.run_cost > (source.job_avg_cost * 2) THEN 'HIGH'
+      WHEN source.run_cost > (source.job_avg_cost * 1.5) THEN 'MEDIUM'
+      ELSE 'NORMAL'
+    END
+  comment: Risk classification based on deviation from typical job cost
+  display_name: Cost Risk Level
+  synonyms:
+    - outlier status
+    - cost warning level
+    - deviation level
+```
+
+### New Measures (from Dashboard Patterns)
+
+#### Period Comparison Measures (Pattern 1, 2)
+**Source:** Azure Serverless Cost Dashboard
+
+Add to `cost_analytics_metrics`:
+```yaml
+# 7-day vs prior 7-day comparison
+- name: last_7_day_cost
+  expr: >
+    SUM(CASE WHEN source.usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -7) AND CURRENT_DATE()
+        THEN source.list_cost ELSE 0 END)
+  comment: Total cost in the last 7 days
+  display_name: Last 7 Day Cost
+  format:
+    type: currency
+    currency_code: USD
+  synonyms:
+    - this week cost
+    - recent week spend
+
+- name: prior_7_day_cost
+  expr: >
+    SUM(CASE WHEN source.usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -14) AND DATE_ADD(CURRENT_DATE(), -7)
+        THEN source.list_cost ELSE 0 END)
+  comment: Total cost in the 7 days prior to last week
+  display_name: Prior 7 Day Cost
+  format:
+    type: currency
+    currency_code: USD
+  synonyms:
+    - last week cost
+    - previous week spend
+
+- name: week_over_week_growth_pct
+  expr: >
+    TRY_DIVIDE(
+      SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -7) THEN source.list_cost ELSE 0 END) -
+      SUM(CASE WHEN source.usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -14) AND DATE_ADD(CURRENT_DATE(), -7) THEN source.list_cost ELSE 0 END),
+      NULLIF(SUM(CASE WHEN source.usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -14) AND DATE_ADD(CURRENT_DATE(), -7) THEN source.list_cost ELSE 0 END), 0)
+    ) * 100
+  comment: Week-over-week cost growth percentage
+  display_name: WoW Growth %
+  format:
+    type: percentage
+    decimal_places:
+      type: exact
+      places: 1
+  synonyms:
+    - weekly growth
+    - wow change
+    - week over week
+
+# 30-day vs 60-day comparison
+- name: last_30_day_cost
+  expr: >
+    SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30)
+        THEN source.list_cost ELSE 0 END)
+  comment: Total cost in the last 30 days
+  display_name: Last 30 Day Cost
+  format:
+    type: currency
+    currency_code: USD
+  synonyms:
+    - this month cost
+    - recent month spend
+
+- name: month_over_month_growth_pct
+  expr: >
+    TRY_DIVIDE(
+      SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30) THEN source.list_cost ELSE 0 END) -
+      SUM(CASE WHEN source.usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -60) AND DATE_ADD(CURRENT_DATE(), -30) THEN source.list_cost ELSE 0 END),
+      NULLIF(SUM(CASE WHEN source.usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -60) AND DATE_ADD(CURRENT_DATE(), -30) THEN source.list_cost ELSE 0 END), 0)
+    ) * 100
+  comment: Month-over-month cost growth percentage (30 vs prior 30 days)
+  display_name: MoM Growth %
+  format:
+    type: percentage
+    decimal_places:
+      type: exact
+      places: 1
+  synonyms:
+    - monthly growth
+    - mom change
+    - month over month
+```
+
+#### KPI Summary Measures (Pattern 13)
+**Source:** Azure Serverless Cost Dashboard
+
+Add to `cost_analytics_metrics`:
+```yaml
+- name: unique_jobs_30d
+  expr: COUNT(DISTINCT CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30) THEN source.usage_metadata_job_id END)
+  comment: Count of unique jobs that incurred cost in last 30 days
+  display_name: Active Jobs (30d)
+  format:
+    type: number
+  synonyms:
+    - job count
+    - active jobs
+
+- name: unique_users_30d
+  expr: COUNT(DISTINCT CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30) THEN source.identity_metadata_run_as END)
+  comment: Count of unique users who ran workloads in last 30 days
+  display_name: Active Users (30d)
+  format:
+    type: number
+  synonyms:
+    - user count
+    - active users
+
+- name: unique_workspaces_30d
+  expr: COUNT(DISTINCT CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30) THEN source.workspace_id END)
+  comment: Count of unique workspaces with activity in last 30 days
+  display_name: Active Workspaces (30d)
+  format:
+    type: number
+  synonyms:
+    - workspace count
+    - active environments
+```
+
+#### Lineage Activity Measures (Pattern 7)
+**Source:** Governance Hub Dashboard
+
+Add to new `governance_analytics_metrics`:
+```yaml
+- name: active_table_count
+  expr: COUNT(DISTINCT CASE WHEN source.event_date >= DATE_ADD(CURRENT_DATE(), -30) THEN COALESCE(source.source_table_full_name, source.target_table_full_name) END)
+  comment: Tables with read or write activity in last 30 days
+  display_name: Active Tables
+  format:
+    type: number
+  synonyms:
+    - tables with activity
+    - used tables
+
+- name: read_event_count
+  expr: SUM(CASE WHEN source.source_table_full_name IS NOT NULL THEN 1 ELSE 0 END)
+  comment: Count of read operations from tables
+  display_name: Read Events
+  format:
+    type: number
+  synonyms:
+    - reads
+    - table reads
+
+- name: write_event_count
+  expr: SUM(CASE WHEN source.target_table_full_name IS NOT NULL THEN 1 ELSE 0 END)
+  comment: Count of write operations to tables
+  display_name: Write Events
+  format:
+    type: number
+  synonyms:
+    - writes
+    - table writes
+```
+
+### New Metric View: governance_analytics_metrics (🆕)
+
+Based on Governance Hub Dashboard patterns, add a new metric view:
+
+**Source:** `${catalog}.${gold_schema}.fact_table_lineage`
+
+**Key Dimensions:**
+- `table_catalog`, `table_schema`, `table_name`
+- `created_by` (user who triggered lineage event)
+- `event_type` (READ, WRITE)
+- `activity_status` (ACTIVE if accessed in 30 days)
+
+**Key Measures:**
+- `total_lineage_events` - COUNT(*)
+- `active_table_count` - Tables with recent activity
+- `inactive_table_count` - Tables without recent activity
+- `read_write_ratio` - Read events / Write events
+- `unique_users` - Distinct users accessing data
+
+---
+
+## 🆕 GitHub Repository Pattern Enhancements for Metric Views
+
+Based on analysis of open-source Databricks repositories, the following enhancements should be incorporated into metric views:
+
+### From system-tables-audit-logs Repository
+
+#### Time-Windowed Measures
+**Pattern:** 24-hour and 90-day rolling window aggregations for baseline comparison
+
+Add to `security_analytics_metrics`:
+```yaml
+# Time-windowed security measures (from audit logs repo)
+measures:
+  - name: events_24h
+    expr: COUNT(CASE WHEN source.event_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS THEN 1 END)
+    comment: Events in last 24 hours for anomaly detection baseline
+    display_name: Events (24h)
+    synonyms:
+      - daily events
+      - recent events
+
+  - name: events_7d_avg
+    expr: COUNT(*) / 7
+    comment: Average daily events over 7 days
+    display_name: Avg Daily Events (7d)
+    synonyms:
+      - average events
+      - daily average
+
+  - name: event_growth_rate
+    expr: >
+      (COUNT(CASE WHEN source.event_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS THEN 1 END) -
+       COUNT(CASE WHEN source.event_time BETWEEN CURRENT_TIMESTAMP() - INTERVAL 48 HOURS
+                                            AND CURRENT_TIMESTAMP() - INTERVAL 24 HOURS THEN 1 END)) /
+      NULLIF(COUNT(CASE WHEN source.event_time BETWEEN CURRENT_TIMESTAMP() - INTERVAL 48 HOURS
+                                                   AND CURRENT_TIMESTAMP() - INTERVAL 24 HOURS THEN 1 END), 0) * 100
+    comment: 24-hour event growth rate compared to prior 24 hours
+    display_name: Event Growth %
+    synonyms:
+      - growth rate
+      - day over day
+```
+
+#### System Account Exclusion Dimension
+**Pattern:** Filter out system and service accounts from user-centric analysis
+
+```yaml
+# System account filtering (from audit logs repo)
+dimensions:
+  - name: user_type
+    expr: >
+      CASE
+        WHEN source.created_by LIKE 'system.%' THEN 'SYSTEM'
+        WHEN source.created_by LIKE 'databricks-%' THEN 'PLATFORM'
+        WHEN source.created_by LIKE '%service-principal%' THEN 'SERVICE_PRINCIPAL'
+        WHEN source.created_by LIKE '%@%' THEN 'HUMAN_USER'
+        ELSE 'UNKNOWN'
+      END
+    comment: User type classification for filtering system vs human activity
+    display_name: User Type
+    synonyms:
+      - account type
+      - user classification
+
+  - name: is_human_user
+    expr: >
+      CASE
+        WHEN source.created_by NOT LIKE 'system.%'
+         AND source.created_by NOT LIKE 'databricks-%'
+         AND source.created_by LIKE '%@%'
+        THEN 'Yes' ELSE 'No'
+      END
+    comment: Flag for human users (excludes system and service accounts)
+    display_name: Human User
+    synonyms:
+      - real user
+      - human activity
+```
+
+### From Workflow Advisor Repository
+
+#### Resource Efficiency Dimensions
+**Pattern:** Cluster utilization status classification
+
+Add to `cluster_utilization_metrics`:
+```yaml
+# Provisioning status dimension (from Workflow Advisor repo)
+dimensions:
+  - name: provisioning_status
+    expr: >
+      CASE
+        WHEN source.cpu_user_percent + source.cpu_system_percent > 90
+          OR source.mem_used_percent > 85 THEN 'UNDERPROVISIONED'
+        WHEN source.cpu_user_percent + source.cpu_system_percent < 20
+         AND source.mem_used_percent < 30 THEN 'OVERPROVISIONED'
+        WHEN source.cpu_user_percent + source.cpu_system_percent < 50
+         AND source.mem_used_percent < 50 THEN 'UNDERUTILIZED'
+        ELSE 'OPTIMAL'
+      END
+    comment: Cluster provisioning status based on CPU and memory utilization
+    display_name: Provisioning Status
+    synonyms:
+      - sizing status
+      - utilization status
+      - right-sizing status
+
+  - name: savings_opportunity
+    expr: >
+      CASE
+        WHEN source.cpu_user_percent + source.cpu_system_percent < 30
+         AND source.mem_used_percent < 40 THEN 'HIGH'
+        WHEN source.cpu_user_percent + source.cpu_system_percent < 50
+         AND source.mem_used_percent < 60 THEN 'MEDIUM'
+        ELSE 'LOW'
+      END
+    comment: Cost savings opportunity level based on underutilization
+    display_name: Savings Opportunity
+    synonyms:
+      - cost opportunity
+      - right-sizing potential
+```
+
+#### Resource Efficiency Measures
+```yaml
+# Cost efficiency measures (from Workflow Advisor repo)
+measures:
+  - name: wasted_capacity_pct
+    expr: >
+      (100 - AVG(source.cpu_user_percent + source.cpu_system_percent)) *
+      (100 - AVG(source.mem_used_percent)) / 10000
+    comment: Combined CPU and memory waste percentage - lower is better
+    display_name: Wasted Capacity %
+    format:
+      type: percentage
+    synonyms:
+      - waste percentage
+      - unused capacity
+
+  - name: resource_efficiency_score
+    expr: AVG(source.cpu_user_percent + source.cpu_system_percent) * AVG(source.mem_used_percent) / 100
+    comment: Combined efficiency score (0-100) - higher is better utilization
+    display_name: Efficiency Score
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - utilization score
+      - efficiency rating
+
+  - name: potential_savings_pct
+    expr: >
+      CASE
+        WHEN AVG(source.cpu_user_percent + source.cpu_system_percent) < 30 THEN 50
+        WHEN AVG(source.cpu_user_percent + source.cpu_system_percent) < 50 THEN 30
+        WHEN AVG(source.cpu_user_percent + source.cpu_system_percent) < 70 THEN 15
+        ELSE 0
+      END
+    comment: Estimated potential cost savings percentage from right-sizing
+    display_name: Potential Savings %
+    format:
+      type: percentage
+    synonyms:
+      - savings estimate
+      - cost reduction opportunity
+```
+
+### From DBSQL Warehouse Advisor Repository
+
+#### Query Efficiency Dimensions
+**Pattern:** Pre-calculated efficiency flags for dashboard filtering
+
+Add to `query_analytics_metrics`:
+```yaml
+# Query efficiency dimensions (from DBSQL Warehouse Advisor repo)
+dimensions:
+  - name: query_efficiency_status
+    expr: >
+      CASE
+        WHEN (COALESCE(source.spill_local_bytes, 0) + COALESCE(source.spill_remote_bytes, 0)) > 100000000 THEN 'HIGH_SPILL'
+        WHEN source.waiting_at_capacity_duration_ms > source.total_duration_ms * 0.1 THEN 'HIGH_QUEUE'
+        WHEN source.total_duration_ms > 300000 THEN 'SLOW'
+        ELSE 'EFFICIENT'
+      END
+    comment: Query efficiency classification for performance analysis
+    display_name: Efficiency Status
+    synonyms:
+      - query status
+      - performance status
+
+  - name: query_complexity
+    expr: >
+      CASE
+        WHEN LENGTH(source.statement_text) > 10000 THEN 'VERY_COMPLEX'
+        WHEN LENGTH(source.statement_text) > 5000 THEN 'COMPLEX'
+        WHEN LENGTH(source.statement_text) > 1000 THEN 'MODERATE'
+        ELSE 'SIMPLE'
+      END
+    comment: Query complexity classification based on query length
+    display_name: Query Complexity
+    synonyms:
+      - complexity level
+      - query size
+
+  - name: warehouse_sizing_indicator
+    expr: >
+      CASE
+        WHEN AVG(source.waiting_at_capacity_duration_ms) > 30000 THEN 'SCALE_UP_NEEDED'
+        WHEN AVG(source.total_duration_ms) < 1000
+         AND COUNT(*) < 100 THEN 'SCALE_DOWN_POSSIBLE'
+        ELSE 'OPTIMAL'
+      END
+    comment: Warehouse sizing recommendation based on queue times and query patterns
+    display_name: Sizing Indicator
+    synonyms:
+      - scaling recommendation
+      - size adjustment
+```
+
+#### Query Efficiency Measures
+```yaml
+# Query efficiency measures (from DBSQL Warehouse Advisor repo)
+measures:
+  - name: inefficient_query_count
+    expr: >
+      COUNT(CASE
+        WHEN (COALESCE(source.spill_local_bytes, 0) + COALESCE(source.spill_remote_bytes, 0)) > 0
+          OR source.waiting_at_capacity_duration_ms > 30000
+          OR source.total_duration_ms > 300000
+        THEN 1
+      END)
+    comment: Count of queries with efficiency issues (spill, queue, or slow)
+    display_name: Inefficient Queries
+    synonyms:
+      - problem queries
+      - queries needing optimization
+
+  - name: efficiency_rate
+    expr: >
+      (1 - COUNT(CASE
+        WHEN (COALESCE(source.spill_local_bytes, 0) + COALESCE(source.spill_remote_bytes, 0)) > 0
+          OR source.waiting_at_capacity_duration_ms > 30000
+          OR source.total_duration_ms > 300000
+        THEN 1
+      END) / NULLIF(COUNT(*), 0)) * 100
+    comment: Percentage of queries without efficiency issues
+    display_name: Efficiency Rate
+    format:
+      type: percentage
+    synonyms:
+      - success rate
+      - health rate
+
+  - name: avg_queue_to_execution_ratio
+    expr: >
+      AVG(source.waiting_at_capacity_duration_ms * 100.0 / NULLIF(source.total_duration_ms, 0))
+    comment: Average ratio of queue time to total execution time - lower is better
+    display_name: Queue/Execution Ratio
+    format:
+      type: percentage
+    synonyms:
+      - queue ratio
+      - wait percentage
+```
+
+### New Metric View: cluster_efficiency_metrics (🆕)
+**Source:** Workflow Advisor Repository
+
+A dedicated metric view for cluster right-sizing analysis:
+
+```yaml
+version: "1.1"
+
+- name: cluster_efficiency_metrics
+  comment: |
+    Cluster efficiency and right-sizing metrics for cost optimization.
+    Use for: Right-sizing recommendations, cost savings identification, capacity planning.
+    Example queries: "Which clusters are overprovisioned?", "Show potential savings"
+    Source pattern: Workflow Advisor repository
+
+  source: ${catalog}.${gold_schema}.fact_node_timeline
+
+  joins:
+    - name: dim_cluster
+      source: ${catalog}.${gold_schema}.dim_cluster
+      'on': source.cluster_id = dim_cluster.cluster_id AND dim_cluster.is_current = true
+
+  dimensions:
+    - name: cluster_name
+      expr: dim_cluster.cluster_name
+      comment: Cluster name
+      display_name: Cluster
+      synonyms: [cluster]
+
+    - name: provisioning_status
+      expr: >
+        CASE
+          WHEN source.cpu_user_percent + source.cpu_system_percent > 90 THEN 'UNDERPROVISIONED'
+          WHEN source.cpu_user_percent + source.cpu_system_percent < 20 THEN 'OVERPROVISIONED'
+          ELSE 'OPTIMAL'
+        END
+      comment: Cluster sizing status
+      display_name: Status
+      synonyms: [sizing status, utilization status]
+
+  measures:
+    - name: avg_cpu_utilization
+      expr: AVG(source.cpu_user_percent + source.cpu_system_percent)
+      comment: Average CPU utilization
+      display_name: Avg CPU %
+      format:
+        type: percentage
+      synonyms: [cpu, cpu usage]
+
+    - name: avg_memory_utilization
+      expr: AVG(source.mem_used_percent)
+      comment: Average memory utilization
+      display_name: Avg Memory %
+      format:
+        type: percentage
+      synonyms: [memory, mem usage]
+
+    - name: underprovisioned_hours
+      expr: >
+        SUM(CASE WHEN source.cpu_user_percent + source.cpu_system_percent > 90 THEN 1 ELSE 0 END) / 60.0
+      comment: Hours of CPU saturation
+      display_name: Saturated Hours
+      synonyms: [overloaded time]
+
+    - name: wasted_hours
+      expr: >
+        SUM(CASE WHEN source.cpu_user_percent + source.cpu_system_percent < 20 THEN 1 ELSE 0 END) / 60.0
+      comment: Hours of significant underutilization
+      display_name: Wasted Hours
+      synonyms: [idle time, unused capacity]
+```
+
+---
+
 ## Success Criteria
 
 | Criteria | Target | Measurement |
 |----------|--------|-------------|
-| **Metric Views Created** | 5 views | Count in information_schema |
+| **Metric Views Created** | 10 views (6 core + 2 ML-enhanced + 1 governance + 1 efficiency) | Count in information_schema |
 | **Genie Recognition** | 100% | All views discoverable in Genie |
 | **Synonym Coverage** | 3+ per measure | Average synonyms per measure |
 | **Query Performance** | <3s response | P95 latency for Genie queries |
 | **Documentation** | Complete | LLM comments on every field |
+| **ML Integration** | 2 new views | ml_intelligence_metrics, data_quality_metrics |
+| **Efficiency Metrics** | Complete | Right-sizing dimensions and measures |
 
 ---
 
@@ -1318,10 +2027,167 @@ def create_metric_view(spark, catalog: str, schema: str, view_config: dict):
 - [Metric Views Semantic Metadata](https://docs.databricks.com/aws/en/metric-views/semantic-metadata)
 - [Metric Views Joins](https://docs.databricks.com/aws/en/metric-views/joins)
 
-### Inspiration Repositories
-- [DBSQL Warehouse Advisor](https://github.com/CodyAustinDavis/dbsql_sme) - Query efficiency metrics patterns
-- [System Tables Audit Logs](https://github.com/andyweaves/system-tables-audit-logs) - Security metrics patterns
+### GitHub Repository References (🆕)
+- [system-tables-audit-logs](https://github.com/andyweaves/system-tables-audit-logs) - Time-windowed aggregations, system account filtering
+- [DBSQL Warehouse Advisor](https://github.com/CodyAustinDavis/dbsql_sme) - Query efficiency metrics, warehouse sizing indicators
+- [Workflow Advisor](https://github.com/yati1002/Workflowadvisor) - Resource efficiency dimensions, right-sizing measures
+
+### Blog Post References (🆕)
+- [DBSQL Warehouse Advisor v5](https://medium.com/dbsql-sme-engineering/the-dbsql-warehouse-advisor-dashboard-v5-multi-warehouse-analytics-ef4f07578ac1) - P95/P99 percentiles, QPS/QPM metrics, multi-warehouse analytics
+- [Workflow Advisor Dashboard](https://medium.com/dbsql-sme-engineering/analyzing-workflows-in-dbsql-with-the-workflows-advisor-dashboard-95fee9f01fe6) - Job state classification, owner attribution, duration regression
 
 ### Cursor Rules Reference
 - [Cursor Rule: Metric Views Patterns](mdc:.cursor/rules/14-metric-views-patterns.mdc)
+
+---
+
+## 🆕 Blog Post Pattern Enhancements for Metric Views
+
+Based on analysis of Databricks engineering blog posts, the following metric view enhancements should be incorporated:
+
+### From "DBSQL Warehouse Advisor v5" Blog
+
+#### P99 Percentile Measures (Enhancement)
+**Pattern:** Blog tracks "P95/99 percentiles" not just P95 - add P99 for stricter SLA monitoring
+
+Add to `query_analytics_metrics`:
+```yaml
+# P99 measures for stricter SLA analysis (from Warehouse Advisor v5 blog)
+measures:
+  - name: p99_query_duration_sec
+    expr: PERCENTILE(source.total_duration_ms / 1000.0, 0.99)
+    comment: 99th percentile query duration in seconds - for strict SLA tracking
+    display_name: P99 Duration (sec)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - p99 latency
+      - 99th percentile duration
+
+  - name: p99_queue_time_sec
+    expr: PERCENTILE(source.waiting_at_capacity_duration_ms / 1000.0, 0.99)
+    comment: 99th percentile queue time - identifies worst-case waits
+    display_name: P99 Queue Time (sec)
+    synonyms:
+      - p99 wait time
+      - worst case queue
+```
+
+#### Throughput Measures (QPS/QPM)
+**Pattern:** Blog tracks "QPS/QPM metrics (queries per second/minute) for throughput analysis"
+
+```yaml
+# Throughput measures (from Warehouse Advisor v5 blog)
+measures:
+  - name: queries_per_minute
+    expr: COUNT(*) / NULLIF(TIMESTAMPDIFF(MINUTE, MIN(source.query_start_time), MAX(source.query_start_time)), 0)
+    comment: Average queries per minute - throughput metric
+    display_name: QPM
+    synonyms:
+      - throughput
+      - query rate
+      - queries per minute
+
+  - name: queries_per_second
+    expr: COUNT(*) / NULLIF(TIMESTAMPDIFF(SECOND, MIN(source.query_start_time), MAX(source.query_start_time)), 0)
+    comment: Average queries per second - high-frequency throughput metric
+    display_name: QPS
+    synonyms:
+      - query throughput
+      - queries per second
+```
+
+#### Multi-Warehouse Comparison Dimensions
+**Pattern:** Blog enables "side-by-side SLA comparison across multiple warehouses"
+
+```yaml
+# Multi-warehouse comparison support (from Warehouse Advisor v5 blog)
+dimensions:
+  - name: warehouse_tier
+    expr: >
+      CASE
+        WHEN dim_warehouse.warehouse_size IN ('2X-Small', 'X-Small', 'Small') THEN 'SMALL'
+        WHEN dim_warehouse.warehouse_size IN ('Medium', 'Large') THEN 'MEDIUM'
+        WHEN dim_warehouse.warehouse_size IN ('X-Large', '2X-Large', '3X-Large', '4X-Large') THEN 'LARGE'
+        ELSE 'UNKNOWN'
+      END
+    comment: Warehouse size tier for comparative SLA analysis
+    display_name: Warehouse Tier
+    synonyms:
+      - size category
+      - warehouse class
+```
+
+### From "Workflow Advisor Dashboard" Blog
+
+#### Job State Dimensions
+**Pattern:** Blog tracks 5 distinct outcome states: succeeded, errored, failed, timed_out, cancelled
+
+Add to `job_performance_metrics`:
+```yaml
+# Complete job state classification (from Workflow Advisor blog)
+dimensions:
+  - name: outcome_category
+    expr: >
+      CASE
+        WHEN source.result_state = 'SUCCEEDED' THEN 'SUCCESS'
+        WHEN source.result_state IN ('ERRORED', 'FAILED') THEN 'FAILURE'
+        WHEN source.result_state = 'TIMED_OUT' THEN 'TIMEOUT'
+        WHEN source.result_state = 'CANCELLED' THEN 'CANCELLED'
+        ELSE 'OTHER'
+      END
+    comment: Grouped outcome category for simplified analysis
+    display_name: Outcome
+    synonyms:
+      - result category
+      - job outcome
+
+  - name: cluster_type_efficiency
+    expr: >
+      CASE
+        WHEN source.cluster_spec LIKE '%all_purpose%' THEN 'ALL_PURPOSE (Less Efficient)'
+        WHEN source.cluster_spec LIKE '%job%' THEN 'JOB_CLUSTER (Efficient)'
+        ELSE 'OTHER'
+      END
+    comment: Cluster type with efficiency indicator - ALL_PURPOSE clusters are less cost-efficient
+    display_name: Cluster Efficiency Type
+    synonyms:
+      - cluster type
+      - compute type
+```
+
+#### Duration Regression Measure
+**Pattern:** Blog tracks "% Change in duration of last job from its previous run"
+
+```yaml
+# Duration regression detection (from Workflow Advisor blog)
+measures:
+  - name: jobs_with_regression
+    expr: >
+      COUNT(CASE
+        WHEN source.run_duration_seconds > source.prev_run_duration_seconds * 1.5
+        THEN 1
+      END)
+    comment: Count of jobs with >50% duration increase from previous run
+    display_name: Jobs with Regression
+    synonyms:
+      - regressed jobs
+      - slower jobs
+```
+
+#### Dashboard Layout Recommendations (Implementation Note)
+From the blog: **"Counter metrics at the top provide quick snapshots; rollup charts beneath enable dimensional analysis"**
+
+Metric views should be designed with this hierarchy in mind:
+1. **KPI counters** - Single-value metrics for quick health checks
+2. **Trend measures** - Time-series aggregations for pattern detection
+3. **Dimensional breakdowns** - Grouped metrics for drill-down analysis
+
+#### Temporal Granularity Options
+Blog recommends supporting: **hour, day, week, month, quarter, year**
+
+All time-based metric views should include a `time_grain` dimension that supports these levels for flexible analysis.
 

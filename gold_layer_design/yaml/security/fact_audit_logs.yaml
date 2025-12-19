@@ -104,10 +104,10 @@ columns:
     description: "A map of key/value pairs that can be used to identify the person or service principal that initiated the request. Contains keys such as email and subject_name. An email of System-User is used for background system tasks. [Nested field: subject_name]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Tec..."
     # Flattened from: user_identity.subject_name
 
-  - name: request_params_json
-    type: STRING
+  - name: request_params
+    type: MAP<STRING, STRING>
     nullable: true
-    description: "A map of key/value pairs with the request parameters. Request parameters vary by request type. See [documentation of request parameters per action](https://docs.databricks.com/aws/admin/account-settings/audit-logs) for details. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing ..."
+    description: "Request parameters for this audit event. Business: Contains action-specific parameters like table names, permissions, and resource IDs. Query directly using request_params['tableName'] or request_params['permission'] syntax. Essential for detailed security analysis and compliance auditing. Technical: Native MAP<STRING,STRING> type enabling efficient key-value lookup. Common keys vary by action_name - see Databricks audit log documentation for action-specific parameters."
 
   - name: response_status_code
     type: INT
@@ -144,4 +144,18 @@ columns:
     nullable: true
     description: "A struct with the identities from the audit event. This includes `run_by` (the identity who initiated the event) and `run_as` (the identity being used for authorisation purposes). See [Auditing group dedicated compute activity documentation](https://docs.databricks.com/aws/compute/group-access#auditing-group-dedicated-compute-activity) for more details. [Nested field: acting_resource]. Business..."
     # Flattened from: identity_metadata.acting_resource
+
+  # === Derived Security Analysis Columns ===
+
+  - name: is_sensitive_action
+    type: BOOLEAN
+    nullable: false
+    description: "Indicates whether this is a sensitive security action. Business: Flag for security-sensitive operations like permission changes, secret access, or admin actions. Used for security alerting and compliance monitoring. Technical: Derived from action_name matching sensitive action patterns (e.g., 'grant', 'revoke', 'delete', 'getSecret')."
+    # Derived: action_name matching sensitive patterns
+
+  - name: is_failed_action
+    type: BOOLEAN
+    nullable: false
+    description: "Indicates whether this action failed. Business: Flag for failed operations, useful for detecting unauthorized access attempts, error patterns, and security incidents. Technical: Derived from response_status_code >= 400 OR response_error_message IS NOT NULL."
+    # Derived: response_status_code >= 400
 

@@ -155,6 +155,7 @@ Phase 5 ────────────────────────
 
 ## Related Documentation
 
+- [Gold Layer Column Mapping Guide](./GOLD_COLUMN_MAPPING.md) ⚠️ **Critical for Phase 3 implementation**
 - [Gold Layer Design Overview](../gold_layer_design/design/00_design_overview.md)
 - [ERD Documentation](../gold_layer_design/erd/)
 - [YAML Schemas](../gold_layer_design/yaml/)

@@ -26,11 +26,11 @@ resources:
         - task_key: create_feature_tables
           environment_key: ml_features
           notebook_task:
-            notebook_path: ../src/ml/features/create_feature_tables.py
+            notebook_path: ../../src/ml/features/create_feature_tables.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
+              feature_schema: ${var.feature_schema}
       
       # Schedule: Daily at 1 AM (before training)
       schedule:
@@ -49,4 +49,3 @@ resources:
         layer: ml
         job_type: feature_engineering
         compute_type: serverless
-

@@ -1,0 +1,42 @@
+# Metric View Deployment Job
+# Deploys all Metric Views for Genie natural language queries
+#
+# Metric Views enable:
+#   - Natural language queries via Genie
+#   - Semantic layer over Gold tables
+#   - Consistent metric definitions across dashboards
+#
+# Run after Gold layer setup
+# Reference: https://docs.databricks.com/sql/language-manual/sql-ref-syntax-ddl-create-metric-view.html
+
+resources:
+  jobs:
+    metric_view_deployment_job:
+      name: "[${bundle.target}] Health Monitor - Metric View Deployment"
+      description: "Deploys all Metric Views for Genie natural language queries"
+
+      tasks:
+        - task_key: deploy_all_metric_views
+          notebook_task:
+            notebook_path: ../../src/metric_views/deploy_metric_views.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+      # No schedule - run on demand after Gold setup
+      # Can also be triggered after schema changes
+
+      # Timeout: 30 minutes
+      timeout_seconds: 1800
+
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: semantic
+        job_type: deployment
+        compute_type: serverless

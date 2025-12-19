@@ -1,165 +1,118 @@
 # Databricks notebook source
 """
-Job Failure Predictor - MLflow 3.0 Training Script
-==================================================
+Train Job Failure Predictor Model
+=================================
 
-Model 4.1: Job Failure Predictor
-Problem Type: Binary Classification
-Business Value: Reduce failed runs, improve SLA compliance, proactive intervention
+Problem: Classification
+Algorithm: Gradient Boosting Classifier
+Domain: Reliability
 
-Features:
-- Historical job performance (failure rate, consecutive failures)
-- Job configuration (task count, dependencies, retries)
-- Cluster features (memory, cores, DBR version)
-- Runtime statistics (avg, std, p99)
-- Time features (hour, day, business hours)
+Predicts job failures before they happen.
 
-MLflow 3.0 Features:
-- Model signature required for Unity Catalog
-- Automatic lineage with Feature Engineering
+MLflow 3.1+ Best Practices Applied
 """
 
 # COMMAND ----------
 
+from pyspark.sql import SparkSession
 import mlflow
-import numpy as np
-import pandas as pd
+from mlflow.models.signature import infer_signature
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import classification_report
-import sys
-import os
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import pandas as pd
+import numpy as np
+from datetime import datetime
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from common.mlflow_utils import (
-    MLflowConfig, setup_mlflow_experiment, log_model_with_signature
-)
-from common.training_utils import TrainingConfig, split_data, evaluate_model
+mlflow.set_registry_uri("databricks-uc")
 
 # COMMAND ----------
 
 def get_parameters():
-    """Get job parameters from dbutils widgets."""
-    catalog = dbutils.widgets.get("catalog")
-    gold_schema = dbutils.widgets.get("gold_schema")
-    feature_schema = dbutils.widgets.get("feature_schema")
-    return catalog, gold_schema, feature_schema
+    return (dbutils.widgets.get("catalog"), dbutils.widgets.get("gold_schema"), dbutils.widgets.get("feature_schema"))
+
+def setup_mlflow_experiment(model_name):
+    mlflow.set_experiment(f"/Shared/health_monitor_ml_{model_name}")
+
+def log_training_dataset(spark, catalog, schema, table_name):
+    try:
+        df = spark.table(f"{catalog}.{schema}.{table_name}")
+        mlflow.log_input(mlflow.data.from_spark(df=df, table_name=f"{catalog}.{schema}.{table_name}", version="latest"), context="training")
+    except: pass
+
+def get_run_name(model_name, algorithm):
+    return f"{model_name}_{algorithm}_v1_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+def get_standard_tags(model_name, domain, model_type, algorithm, use_case, training_table):
+    return {"project": "databricks_health_monitor", "domain": domain, "model_name": model_name,
+            "model_type": model_type, "algorithm": algorithm, "use_case": use_case, "training_data": training_table}
 
 # COMMAND ----------
 
-def prepare_failure_prediction_features(spark, catalog: str, feature_schema: str, gold_schema: str) -> pd.DataFrame:
-    """
-    Prepare features for job failure prediction.
+def load_and_prepare_data(spark, catalog, feature_schema):
+    df = spark.table(f"{catalog}.{feature_schema}.reliability_features")
+    # Actual columns: total_runs, avg_duration_sec, success_rate, total_failures_30d, duration_cv, rolling_avg_duration_30d
+    feature_cols = ["total_runs", "avg_duration_sec", "success_rate", "total_failures_30d",
+                    "duration_cv", "rolling_avg_duration_30d", "is_weekend", "day_of_week"]
+    target = "prev_day_failed"  # Using prev_day_failed as target
     
-    Combines reliability features with job/cluster metadata.
-    """
-    reliability_features = f"{catalog}.{feature_schema}.reliability_features"
-    dim_job = f"{catalog}.{gold_schema}.dim_job"
+    pdf = df.select(feature_cols + [target]).toPandas()
+    for c in pdf.columns:
+        pdf[c] = pd.to_numeric(pdf[c], errors='coerce')
+    pdf = pdf.fillna(0).replace([np.inf, -np.inf], 0)
     
-    df = spark.sql(f"""
-        SELECT 
-            r.job_id,
-            r.job_name,
-            r.task_count,
-            r.run_date,
-            r.run_count,
-            r.success_count,
-            r.failure_count,
-            r.avg_duration_minutes,
-            r.duration_std_minutes,
-            r.max_duration_minutes,
-            r.failure_rate,
-            r.success_rate,
-            r.duration_cv,
-            r.failure_rate_30d,
-            -- Time features
-            DAYOFWEEK(r.run_date) AS day_of_week,
-            CASE WHEN DAYOFWEEK(r.run_date) IN (1, 7) THEN 1 ELSE 0 END AS is_weekend,
-            -- Label: did any failure occur that day?
-            CASE WHEN r.failure_count > 0 THEN 1 ELSE 0 END AS had_failure
-        FROM {reliability_features} r
-        WHERE r.run_count >= 1
-    """).toPandas()
+    X = pdf[feature_cols]
+    y = (pdf[target] > 0).astype(int)  # Binary classification
     
-    df = df.fillna(0)
-    print(f"Failure prediction features shape: {df.shape}")
-    print(f"Failure rate in data: {df['had_failure'].mean()*100:.2f}%")
-    
-    return df
+    return train_test_split(X, y, test_size=0.2, random_state=42, stratify=y if y.sum() > 1 else None) + [feature_cols]
 
 # COMMAND ----------
 
-def train_failure_predictor(df: pd.DataFrame) -> tuple:
-    """
-    Train Gradient Boosting Classifier for failure prediction.
-    """
-    feature_columns = [
-        "task_count", "run_count", "failure_rate", "success_rate",
-        "avg_duration_minutes", "duration_std_minutes", "duration_cv",
-        "failure_rate_30d", "day_of_week", "is_weekend"
-    ]
+def train_and_log(X_train, X_test, y_train, y_test, feature_cols, catalog, feature_schema, spark):
+    model_name = "job_failure_predictor"
+    registered_name = f"{catalog}.{feature_schema}.{model_name}"
     
-    X = df[feature_columns]
-    y = df["had_failure"]
-    
-    config = TrainingConfig(test_size=0.2, validation_size=0.1)
-    X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y, config)
-    
-    # Handle class imbalance with class_weight
-    model = Pipeline([
-        ("scaler", StandardScaler()),
-        ("classifier", GradientBoostingClassifier(
-            n_estimators=100, max_depth=5, learning_rate=0.1,
-            random_state=42, verbose=1
-        ))
-    ])
-    
+    model = GradientBoostingClassifier(n_estimators=100, max_depth=5, random_state=42)
     model.fit(X_train, y_train)
     
-    # Evaluate
     y_pred = model.predict(X_test)
-    print("\nClassification Report:")
-    print(classification_report(y_test, y_pred))
+    metrics = {
+        "accuracy": accuracy_score(y_test, y_pred),
+        "precision": precision_score(y_test, y_pred, zero_division=0),
+        "recall": recall_score(y_test, y_pred, zero_division=0),
+        "f1": f1_score(y_test, y_pred, zero_division=0)
+    }
     
-    return model, X_train, y_train, X_test, y_test, feature_columns
+    mlflow.autolog(disable=True)
+    with mlflow.start_run(run_name=get_run_name(model_name, "gradient_boosting")) as run:
+        mlflow.set_tags(get_standard_tags(model_name, "reliability", "classification", "gradient_boosting",
+                                          "failure_prediction", f"{catalog}.{feature_schema}.reliability_features"))
+        log_training_dataset(spark, catalog, feature_schema, "reliability_features")
+        mlflow.log_params({"n_estimators": 100, "max_depth": 5})
+        mlflow.log_metrics(metrics)
+        
+        signature = infer_signature(X_train.head(5), model.predict(X_train.head(5)))
+        mlflow.sklearn.log_model(model, "model", signature=signature, input_example=X_train.head(5), registered_model_name=registered_name)
+        return run.info.run_id
 
 # COMMAND ----------
 
 def main():
-    """Main training pipeline."""
+    print("\n" + "=" * 60 + "\nJOB FAILURE PREDICTOR - TRAINING\n" + "=" * 60)
     catalog, gold_schema, feature_schema = get_parameters()
-    
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.appName("Job Failure Predictor").getOrCreate()
-    
-    config = MLflowConfig(catalog=catalog, schema=feature_schema, model_prefix="health_monitor")
-    setup_mlflow_experiment(config, "reliability", "job_failure_predictor")
+    spark = SparkSession.builder.getOrCreate()
+    setup_mlflow_experiment("job_failure_predictor")
     
     try:
-        df = prepare_failure_prediction_features(spark, catalog, feature_schema, gold_schema)
-        model, X_train, y_train, X_test, y_test, feature_columns = train_failure_predictor(df)
-        
-        metrics = evaluate_model(model, X_test, y_test, problem_type="classification")
-        
-        log_model_with_signature(
-            model=model, model_name="job_failure_predictor", config=config,
-            flavor="sklearn", X_sample=X_train, y_sample=y_train,
-            metrics=metrics, params={"n_estimators": 100, "max_depth": 5},
-            custom_tags={"agent_domain": "reliability", "model_type": "failure_prediction"}
-        )
-        
-        print("✓ Job Failure Predictor Training Complete!")
-        
+        X_train, X_test, y_train, y_test, feature_cols = load_and_prepare_data(spark, catalog, feature_schema)
+        run_id = train_and_log(X_train, X_test, y_train, y_test, feature_cols, catalog, feature_schema, spark)
+        print(f"✓ COMPLETE - Run: {run_id}")
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        raise
-    finally:
-        spark.stop()
-
-# COMMAND ----------
+        import traceback
+        print(f"❌ {e}\n{traceback.format_exc()}")
+        dbutils.notebook.exit(f"FAILED: {e}")
+    
+    dbutils.notebook.exit("SUCCESS")
 
 if __name__ == "__main__":
     main()
-

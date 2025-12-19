@@ -312,8 +312,8 @@ columns:
     description: "Query parameters values associated with the query. Only one of named_parameters or pos_parameters can be populated. [Nested field: truncated]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from query_parameters.truncated, BOOLEAN type, nullable."
     # Flattened from: query_parameters.truncated
 
-  - name: query_tags_json
-    type: STRING
+  - name: query_tags
+    type: MAP<STRING, STRING>
     nullable: true
-    description: "The user-supplied custom tags associated with this statement execution. Stored as JSON MAP. Business: Preserves list/map structure for detailed analysis. Query using array/map SQL functions or JSON parsing. Technical: STRING type containing JSON-serialized MAP, enables flexible querying of variable-length collections."
+    description: "User-supplied custom tags associated with this query execution. Business: Query-level metadata for cost attribution, workload classification, and governance. Query directly using query_tags['tag_key'] syntax. Enables tracking queries by application, team, or purpose. Technical: Native MAP<STRING,STRING> type enabling efficient key-value lookup without JSON parsing."
 

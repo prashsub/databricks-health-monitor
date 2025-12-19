@@ -1,0 +1,287 @@
+# Metric View: commit_tracking
+# Budget and commitment tracking metrics for FinOps
+#
+# Source: fact_usage (billing domain)
+# Schema validation done against: gold_layer_design/yaml/billing/fact_usage.yaml
+
+version: "1.1"
+comment: >
+  Budget and commitment tracking analytics for FinOps and finance teams.
+  Optimized for Genie natural language queries about spend vs budget, burn rate, and forecasting.
+  Use for questions like "How much have we spent this month?" or "What's our burn rate?"
+
+source: ${catalog}.${gold_schema}.fact_usage
+
+joins:
+  - name: dim_workspace
+    source: ${catalog}.${gold_schema}.dim_workspace
+    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
+
+  - name: dim_sku
+    source: ${catalog}.${gold_schema}.dim_sku
+    'on': source.sku_name = dim_sku.sku_name AND dim_sku.is_current = true
+
+dimensions:
+  - name: usage_date
+    expr: source.usage_date
+    comment: Date of usage for time-based analysis
+    display_name: Usage Date
+    synonyms:
+      - date
+      - day
+      - billing date
+
+  - name: usage_month
+    expr: DATE_TRUNC('month', source.usage_date)
+    comment: First day of the usage month for monthly analysis
+    display_name: Usage Month
+    synonyms:
+      - month
+      - billing month
+
+  - name: workspace_id
+    expr: source.workspace_id
+    comment: Workspace identifier for workspace-level budget tracking
+    display_name: Workspace ID
+    synonyms:
+      - workspace
+      - ws id
+
+  - name: workspace_name
+    expr: dim_workspace.workspace_name
+    comment: Human-readable workspace name for reporting
+    display_name: Workspace Name
+    synonyms:
+      - workspace
+      - environment
+
+  - name: cloud
+    expr: source.cloud
+    comment: Cloud provider (AWS, Azure, GCP)
+    display_name: Cloud
+    synonyms:
+      - cloud provider
+      - provider
+
+  - name: sku_name
+    expr: source.sku_name
+    comment: SKU name for product-level budget tracking
+    display_name: SKU
+    synonyms:
+      - sku
+      - product
+      - service
+
+  - name: billing_origin_product
+    expr: source.billing_origin_product
+    comment: Product that originated the usage
+    display_name: Product
+    synonyms:
+      - product
+      - origin product
+
+  - name: is_serverless
+    expr: source.product_features_is_serverless
+    comment: Whether usage is from serverless compute
+    display_name: Is Serverless
+    synonyms:
+      - serverless
+      - serverless compute
+
+  - name: job_name
+    expr: source.usage_metadata_job_name
+    comment: Job name for job-level cost attribution
+    display_name: Job Name
+    synonyms:
+      - job
+      - workflow
+
+  - name: owner
+    expr: source.identity_metadata_owned_by
+    comment: Resource owner for chargeback attribution
+    display_name: Owner
+    synonyms:
+      - resource owner
+      - owned by
+
+measures:
+  - name: total_dbu
+    expr: SUM(source.usage_quantity)
+    comment: Total DBU consumption for volume tracking
+    display_name: Total DBU
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - dbu
+      - dbu consumption
+      - databricks units
+
+  - name: total_cost
+    expr: SUM(source.list_cost)
+    comment: Total estimated cost in USD
+    display_name: Total Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - cost
+      - spend
+      - expense
+
+  - name: mtd_cost
+    expr: SUM(CASE WHEN source.usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN source.list_cost ELSE 0 END)
+    comment: Month-to-date cost (current month only)
+    display_name: MTD Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - month to date
+      - current month spend
+
+  - name: ytd_cost
+    expr: SUM(CASE WHEN source.usage_date >= DATE_TRUNC('year', CURRENT_DATE()) THEN source.list_cost ELSE 0 END)
+    comment: Year-to-date cost (current year only)
+    display_name: YTD Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - year to date
+      - annual spend
+
+  - name: daily_avg_cost
+    expr: SUM(source.list_cost) / NULLIF(COUNT(DISTINCT source.usage_date), 0)
+    comment: Average daily cost (total cost / distinct days)
+    display_name: Avg Daily Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - daily average
+      - daily burn rate
+      - burn rate
+
+  - name: projected_monthly_cost
+    expr: (SUM(CASE WHEN source.usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN source.list_cost ELSE 0 END) / NULLIF(DATEDIFF(CURRENT_DATE(), DATE_TRUNC('month', CURRENT_DATE())) + 1, 0)) * DAY(LAST_DAY(CURRENT_DATE()))
+    comment: Projected month-end cost based on current MTD burn rate
+    display_name: Projected Monthly Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - forecast
+      - projected spend
+      - month projection
+
+  - name: cost_per_dbu
+    expr: SUM(source.list_cost) / NULLIF(SUM(source.usage_quantity), 0)
+    comment: Average cost per DBU (effective blended rate)
+    display_name: Cost per DBU
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 4
+    synonyms:
+      - dbu rate
+      - unit cost
+
+  - name: serverless_cost
+    expr: SUM(CASE WHEN source.product_features_is_serverless THEN source.list_cost ELSE 0 END)
+    comment: Total serverless compute cost
+    display_name: Serverless Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - serverless spend
+
+  - name: classic_compute_cost
+    expr: SUM(CASE WHEN NOT source.product_features_is_serverless OR source.product_features_is_serverless IS NULL THEN source.list_cost ELSE 0 END)
+    comment: Total classic (non-serverless) compute cost
+    display_name: Classic Compute Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - classic spend
+      - cluster cost
+
+  - name: serverless_ratio
+    expr: (SUM(CASE WHEN source.product_features_is_serverless THEN source.list_cost ELSE 0 END) * 100.0) / NULLIF(SUM(source.list_cost), 0)
+    comment: Percentage of spend on serverless compute
+    display_name: Serverless Ratio
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - serverless percentage
+      - serverless adoption
+
+  - name: unique_workspaces
+    expr: COUNT(DISTINCT source.workspace_id)
+    comment: Number of workspaces with usage
+    display_name: Workspaces
+    format:
+      type: number
+    synonyms:
+      - workspace count
+      - environments
+
+  - name: unique_jobs
+    expr: COUNT(DISTINCT source.usage_metadata_job_id)
+    comment: Number of distinct jobs with usage
+    display_name: Jobs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - job count
+      - workflows
+
+  - name: usage_records
+    expr: COUNT(source.record_id)
+    comment: Number of billing records
+    display_name: Records
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - record count
+      - billing records
+

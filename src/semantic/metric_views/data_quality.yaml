@@ -1,0 +1,327 @@
+# Metric View: data_quality
+# Data quality and freshness metrics for Gold layer governance
+#
+# Source: information_schema.tables
+# Schema validation: Uses system information_schema
+#
+# Key Business Questions Answered:
+#   - Which tables are stale?
+#   - What's the freshness status by domain?
+#   - How many tables were updated today?
+#   - Show me the table update trend
+#   - What's our overall data freshness rate?
+
+version: "1.1"
+comment: >
+  Data quality and freshness metrics for Gold layer tables.
+  Tracks table update times, staleness, and data governance compliance.
+
+  DIMENSIONS: Filter by table name, table type (fact/dim), domain, freshness status.
+
+  MEASURES: Table count, fresh tables, stale tables, freshness rate,
+  hours since update, update frequency.
+
+  Example queries:
+  - "Which tables are stale?"
+  - "What's our table freshness rate?"
+  - "Show me tables not updated in 24 hours"
+  - "How many tables were updated today?"
+  - "What domains have freshness issues?"
+
+  NOTE: Uses information_schema for real-time table metadata.
+  Freshness threshold is 24 hours by default.
+
+source: ${catalog}.information_schema.tables
+
+dimensions:
+  # === Primary Dimensions ===
+  - name: table_catalog
+    expr: source.table_catalog
+    comment: Catalog containing the table
+    display_name: Catalog
+    synonyms:
+      - catalog
+      - database
+
+  - name: table_schema
+    expr: source.table_schema
+    comment: Schema containing the table
+    display_name: Schema
+    synonyms:
+      - schema
+      - namespace
+
+  - name: table_name
+    expr: source.table_name
+    comment: Name of the table
+    display_name: Table Name
+    synonyms:
+      - table
+      - name
+
+  - name: table_full_name
+    expr: CONCAT(source.table_catalog, '.', source.table_schema, '.', source.table_name)
+    comment: Fully qualified table name
+    display_name: Full Table Name
+    synonyms:
+      - fqn
+      - qualified name
+
+  - name: table_type
+    expr: source.table_type
+    comment: Type of table (MANAGED, EXTERNAL, VIEW)
+    display_name: Table Type
+    synonyms:
+      - type
+      - storage type
+
+  # === Table Classification Dimensions ===
+  - name: is_fact_table
+    expr: CASE WHEN source.table_name LIKE 'fact_%' THEN TRUE ELSE FALSE END
+    comment: Whether this is a fact table (name starts with fact_)
+    display_name: Is Fact Table
+    synonyms:
+      - fact
+      - fact table
+
+  - name: is_dim_table
+    expr: CASE WHEN source.table_name LIKE 'dim_%' THEN TRUE ELSE FALSE END
+    comment: Whether this is a dimension table (name starts with dim_)
+    display_name: Is Dimension Table
+    synonyms:
+      - dimension
+      - dim table
+
+  - name: table_category
+    expr: CASE WHEN source.table_name LIKE 'fact_%' THEN 'FACT' WHEN source.table_name LIKE 'dim_%' THEN 'DIMENSION' ELSE 'OTHER' END
+    comment: Category of table (FACT, DIMENSION, OTHER)
+    display_name: Table Category
+    synonyms:
+      - category
+      - type category
+
+  - name: domain
+    expr: >
+      CASE
+        WHEN source.table_name LIKE '%usage%' OR source.table_name LIKE '%price%' OR source.table_name LIKE '%billing%' THEN 'billing'
+        WHEN source.table_name LIKE '%job%' OR source.table_name LIKE '%pipeline%' OR source.table_name LIKE '%run%' THEN 'lakeflow'
+        WHEN source.table_name LIKE '%query%' OR source.table_name LIKE '%warehouse%' THEN 'query_performance'
+        WHEN source.table_name LIKE '%cluster%' OR source.table_name LIKE '%node%' THEN 'compute'
+        WHEN source.table_name LIKE '%audit%' OR source.table_name LIKE '%lineage%' OR source.table_name LIKE '%security%' THEN 'security'
+        WHEN source.table_name LIKE '%mlflow%' OR source.table_name LIKE '%model%' THEN 'mlflow'
+        ELSE 'other'
+      END
+    comment: Data domain inferred from table name
+    display_name: Domain
+    synonyms:
+      - data domain
+      - area
+
+  # === Freshness Dimensions ===
+  - name: last_modified
+    expr: source.last_altered
+    comment: Last modification timestamp of the table
+    display_name: Last Modified
+    synonyms:
+      - last update
+      - modified time
+      - updated at
+
+  - name: hours_since_update
+    expr: TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP())
+    comment: Hours since the table was last updated
+    display_name: Hours Since Update
+    synonyms:
+      - hours old
+      - age hours
+
+  - name: freshness_status
+    expr: CASE WHEN TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()) <= 24 THEN 'FRESH' WHEN TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()) <= 48 THEN 'WARNING' ELSE 'STALE' END
+    comment: Freshness status based on hours since update (FRESH ≤24h, WARNING ≤48h, STALE >48h)
+    display_name: Freshness Status
+    synonyms:
+      - status
+      - freshness
+      - health
+
+  - name: is_stale
+    expr: CASE WHEN TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()) > 24 THEN TRUE ELSE FALSE END
+    comment: Whether the table is stale (>24 hours since update)
+    display_name: Is Stale
+    synonyms:
+      - stale
+      - outdated
+
+  # === Time Dimensions ===
+  - name: last_update_date
+    expr: DATE(source.last_altered)
+    comment: Date of last update
+    display_name: Last Update Date
+    synonyms:
+      - update date
+      - modified date
+
+  - name: created_date
+    expr: DATE(source.created)
+    comment: Date the table was created
+    display_name: Created Date
+    synonyms:
+      - creation date
+
+measures:
+  # === Primary Measures ===
+  - name: total_tables
+    expr: COUNT(source.table_name)
+    comment: Total number of tables
+    display_name: Total Tables
+    format:
+      type: number
+    synonyms:
+      - table count
+      - tables
+
+  - name: fact_tables
+    expr: SUM(CASE WHEN source.table_name LIKE 'fact_%' THEN 1 ELSE 0 END)
+    comment: Count of fact tables
+    display_name: Fact Tables
+    format:
+      type: number
+    synonyms:
+      - facts
+      - fact count
+
+  - name: dim_tables
+    expr: SUM(CASE WHEN source.table_name LIKE 'dim_%' THEN 1 ELSE 0 END)
+    comment: Count of dimension tables
+    display_name: Dimension Tables
+    format:
+      type: number
+    synonyms:
+      - dimensions
+      - dim count
+
+  # === Freshness Measures ===
+  - name: fresh_tables
+    expr: SUM(CASE WHEN TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()) <= 24 THEN 1 ELSE 0 END)
+    comment: Tables updated within last 24 hours
+    display_name: Fresh Tables
+    format:
+      type: number
+    synonyms:
+      - updated tables
+      - current tables
+
+  - name: stale_tables
+    expr: SUM(CASE WHEN TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()) > 24 THEN 1 ELSE 0 END)
+    comment: Tables not updated in over 24 hours
+    display_name: Stale Tables
+    format:
+      type: number
+    synonyms:
+      - outdated tables
+      - old tables
+
+  - name: critical_stale_tables
+    expr: SUM(CASE WHEN TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()) > 48 THEN 1 ELSE 0 END)
+    comment: Tables not updated in over 48 hours (critical)
+    display_name: Critical Stale Tables
+    format:
+      type: number
+    synonyms:
+      - very stale
+      - critical tables
+
+  - name: freshness_rate
+    expr: (SUM(CASE WHEN TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()) <= 24 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.table_name), 0)
+    comment: Percentage of tables that are fresh (updated within 24 hours)
+    display_name: Freshness Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - freshness percentage
+      - up-to-date rate
+      - data currency
+
+  - name: staleness_rate
+    expr: (SUM(CASE WHEN TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()) > 24 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.table_name), 0)
+    comment: Percentage of tables that are stale (not updated within 24 hours)
+    display_name: Staleness Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - stale percentage
+      - outdated rate
+
+  # === Age Measures ===
+  - name: avg_hours_since_update
+    expr: AVG(TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()))
+    comment: Average hours since tables were last updated
+    display_name: Avg Hours Since Update
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - average age
+      - mean hours old
+
+  - name: max_hours_since_update
+    expr: MAX(TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()))
+    comment: Maximum hours since any table was updated (oldest table)
+    display_name: Max Hours Since Update
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - oldest table age
+      - max staleness
+
+  - name: min_hours_since_update
+    expr: MIN(TIMESTAMPDIFF(HOUR, source.last_altered, CURRENT_TIMESTAMP()))
+    comment: Minimum hours since any table was updated (newest update)
+    display_name: Min Hours Since Update
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - newest update age
+      - most recent
+
+  # === Domain Coverage ===
+  - name: unique_schemas
+    expr: COUNT(DISTINCT source.table_schema)
+    comment: Number of distinct schemas with tables
+    display_name: Unique Schemas
+    format:
+      type: number
+    synonyms:
+      - schema count
+      - namespaces
+
+  - name: unique_domains
+    expr: COUNT(DISTINCT CASE
+        WHEN source.table_name LIKE '%usage%' OR source.table_name LIKE '%price%' THEN 'billing'
+        WHEN source.table_name LIKE '%job%' OR source.table_name LIKE '%pipeline%' THEN 'lakeflow'
+        WHEN source.table_name LIKE '%query%' OR source.table_name LIKE '%warehouse%' THEN 'query_performance'
+        WHEN source.table_name LIKE '%cluster%' OR source.table_name LIKE '%node%' THEN 'compute'
+        WHEN source.table_name LIKE '%audit%' OR source.table_name LIKE '%lineage%' THEN 'security'
+        ELSE 'other'
+      END)
+    comment: Number of distinct data domains with tables
+    display_name: Unique Domains
+    format:
+      type: number
+    synonyms:
+      - domain count
+      - areas covered

@@ -1,0 +1,585 @@
+# Metric View: security_events
+# Security audit and compliance metrics
+#
+# Source: fact_audit_logs (security domain)
+# Schema validation done against: gold_layer_design/yaml/security/fact_audit_logs.yaml
+#
+# Key Business Questions Answered:
+#   - Who accessed what resources today?
+#   - What permission changes happened this week?
+#   - Are there after-hours suspicious activities?
+#   - Which users have the most failed attempts?
+#   - What sensitive actions were performed?
+
+version: "1.1"
+comment: >
+  Security event analytics for compliance, auditing, and threat detection.
+  Optimized for Genie natural language queries about user activity, permission changes, and security incidents.
+
+  DIMENSIONS: Filter and group by user, service, action, time hierarchy, audit level,
+  source IP, off-hours flag, sensitive action flag.
+
+  MEASURES: Event count, unique users, sensitive events, failed events,
+  failure rate, permission changes, client/server errors.
+
+  Example queries:
+  - "Who accessed sensitive data today?"
+  - "What permission changes happened this week?"
+  - "Show after-hours activity by user"
+  - "Which users have the most failed attempts?"
+  - "What are the top services by event count?"
+
+source: ${catalog}.${gold_schema}.fact_audit_logs
+
+joins:
+  - name: dim_workspace
+    source: ${catalog}.${gold_schema}.dim_workspace
+    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
+
+dimensions:
+  # === Primary Dimensions ===
+  - name: event_date
+    expr: source.event_date
+    comment: Calendar date of the security event for daily analysis
+    display_name: Event Date
+    synonyms:
+      - date
+      - day
+      - audit date
+
+  - name: workspace_id
+    expr: source.workspace_id
+    comment: Workspace identifier (0 for account-level events)
+    display_name: Workspace ID
+    synonyms:
+      - workspace
+      - ws id
+      - environment id
+
+  - name: workspace_name
+    expr: dim_workspace.workspace_name
+    comment: Human-readable workspace name for reporting
+    display_name: Workspace Name
+    synonyms:
+      - workspace
+      - environment
+
+  # === Time Dimensions ===
+  - name: year
+    expr: YEAR(source.event_time)
+    comment: Calendar year for annual analysis
+    display_name: Year
+    synonyms:
+      - calendar year
+
+  - name: quarter
+    expr: QUARTER(source.event_time)
+    comment: Calendar quarter (1-4)
+    display_name: Quarter
+    synonyms:
+      - q
+      - qtr
+
+  - name: month
+    expr: MONTH(source.event_time)
+    comment: Month number (1-12)
+    display_name: Month
+    synonyms:
+      - calendar month
+
+  - name: week_of_year
+    expr: WEEKOFYEAR(source.event_time)
+    comment: Week number for weekly analysis
+    display_name: Week
+    synonyms:
+      - week
+
+  - name: day_of_week
+    expr: DAYOFWEEK(source.event_time)
+    comment: Day of week (1=Sunday) for weekday patterns
+    display_name: Day of Week
+    synonyms:
+      - weekday
+
+  - name: hour_of_day
+    expr: HOUR(source.event_time)
+    comment: Hour of day (0-23) for time-of-day analysis
+    display_name: Hour
+    synonyms:
+      - hour
+
+  - name: is_off_hours
+    expr: CASE WHEN HOUR(source.event_time) < 8 OR HOUR(source.event_time) >= 18 THEN TRUE ELSE FALSE END
+    comment: Whether event occurred outside business hours (before 8am or after 6pm UTC)
+    display_name: Off Hours
+    synonyms:
+      - after hours
+      - outside business hours
+      - non-business hours
+
+  - name: is_weekend
+    expr: CASE WHEN DAYOFWEEK(source.event_time) IN (1, 7) THEN TRUE ELSE FALSE END
+    comment: Whether event occurred on weekend (Saturday or Sunday)
+    display_name: Is Weekend
+    synonyms:
+      - weekend
+      - saturday sunday
+
+  # === User/Actor Dimensions ===
+  - name: user_email
+    expr: source.user_identity_email
+    comment: Email of user who performed the action
+    display_name: User Email
+    synonyms:
+      - user
+      - email
+      - actor
+      - performed by
+
+  - name: run_as_identity
+    expr: source.identity_metadata_run_as
+    comment: Identity used for authorization (may differ from user_email)
+    display_name: Run As Identity
+    synonyms:
+      - run as
+      - identity
+      - principal
+
+  - name: run_by_identity
+    expr: source.identity_metadata_run_by
+    comment: Identity who initiated the request
+    display_name: Run By Identity
+    synonyms:
+      - run by
+      - initiator
+
+  # === Service/Action Dimensions ===
+  - name: service_name
+    expr: source.service_name
+    comment: Databricks service that generated the event
+    display_name: Service
+    synonyms:
+      - service
+      - databricks service
+      - source service
+
+  - name: action_name
+    expr: source.action_name
+    comment: Specific action performed (e.g., createCluster, grantPermission)
+    display_name: Action
+    synonyms:
+      - action
+      - operation
+      - event type
+
+  - name: audit_level
+    expr: source.audit_level
+    comment: Whether event is ACCOUNT_LEVEL or WORKSPACE_LEVEL
+    display_name: Audit Level
+    synonyms:
+      - level
+      - scope
+
+  # === Source/Client Dimensions ===
+  - name: source_ip
+    expr: source.source_ip_address
+    comment: IP address from which the request originated
+    display_name: Source IP
+    synonyms:
+      - ip address
+      - client ip
+      - origin
+
+  - name: user_agent
+    expr: source.user_agent
+    comment: Client or tool that made the request
+    display_name: User Agent
+    synonyms:
+      - client
+      - browser
+      - tool
+
+  # === Security Flag Dimensions ===
+  - name: is_sensitive_action
+    expr: source.is_sensitive_action
+    comment: Pre-calculated flag for security-sensitive operations
+    display_name: Is Sensitive
+    synonyms:
+      - sensitive
+      - high risk
+      - security relevant
+
+  - name: is_failed_action
+    expr: source.is_failed_action
+    comment: Pre-calculated flag indicating the action failed
+    display_name: Is Failed
+    synonyms:
+      - failed
+      - error
+      - unsuccessful
+
+  - name: response_status_code
+    expr: source.response_status_code
+    comment: HTTP status code of the response
+    display_name: Status Code
+    synonyms:
+      - status
+      - http code
+      - response code
+
+  # === Blog-Derived Dimensions (system-tables-audit-logs repo) ===
+  - name: user_type
+    expr: >
+      CASE
+        WHEN source.user_identity_email LIKE 'system.%' THEN 'SYSTEM'
+        WHEN source.user_identity_email LIKE 'databricks-%' THEN 'PLATFORM'
+        WHEN source.user_identity_email LIKE '%service-principal%' THEN 'SERVICE_PRINCIPAL'
+        WHEN source.user_identity_email NOT LIKE '%@%' THEN 'SERVICE_PRINCIPAL'
+        WHEN source.user_identity_email LIKE '%@%' THEN 'HUMAN_USER'
+        ELSE 'UNKNOWN'
+      END
+    comment: User type classification - filters system vs human activity (from system-tables-audit-logs repo)
+    display_name: User Type
+    synonyms:
+      - account type
+      - user classification
+
+  - name: is_human_user
+    expr: >
+      CASE
+        WHEN source.user_identity_email NOT LIKE 'system.%'
+         AND source.user_identity_email NOT LIKE 'databricks-%'
+         AND source.user_identity_email LIKE '%@%'
+        THEN TRUE ELSE FALSE
+      END
+    comment: Flag for human users - excludes system and service accounts (from system-tables-audit-logs repo)
+    display_name: Is Human User
+    synonyms:
+      - real user
+      - human activity
+
+  - name: action_category
+    expr: >
+      CASE
+        WHEN source.action_name LIKE '%create%' OR source.action_name LIKE '%Create%' THEN 'CREATE'
+        WHEN source.action_name LIKE '%delete%' OR source.action_name LIKE '%Delete%' THEN 'DELETE'
+        WHEN source.action_name LIKE '%update%' OR source.action_name LIKE '%Update%' OR source.action_name LIKE '%edit%' OR source.action_name LIKE '%Edit%' THEN 'UPDATE'
+        WHEN source.action_name LIKE '%get%' OR source.action_name LIKE '%Get%' OR source.action_name LIKE '%list%' OR source.action_name LIKE '%List%' THEN 'READ'
+        WHEN source.action_name LIKE '%grant%' OR source.action_name LIKE '%Grant%' OR source.action_name LIKE '%revoke%' OR source.action_name LIKE '%Revoke%' THEN 'PERMISSION'
+        ELSE 'OTHER'
+      END
+    comment: Action category for simplified analysis
+    display_name: Action Category
+    synonyms:
+      - operation type
+      - action group
+
+measures:
+  - name: total_events
+    expr: COUNT(source.event_id)
+    comment: Total number of audit events
+    display_name: Total Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - event count
+      - audit records
+      - actions
+
+  - name: unique_users
+    expr: COUNT(DISTINCT source.user_identity_email)
+    comment: Number of distinct users with audit activity
+    display_name: Unique Users
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - active users
+      - distinct users
+
+  - name: sensitive_events
+    expr: SUM(CASE WHEN source.is_sensitive_action THEN 1 ELSE 0 END)
+    comment: Count of security-sensitive actions
+    display_name: Sensitive Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - high risk events
+      - sensitive actions
+
+  - name: failed_events
+    expr: SUM(CASE WHEN source.is_failed_action THEN 1 ELSE 0 END)
+    comment: Count of failed actions (potential security incidents)
+    display_name: Failed Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - failures
+      - errors
+      - denied actions
+
+  - name: failure_rate
+    expr: (SUM(CASE WHEN source.is_failed_action THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.event_id), 0)
+    comment: Percentage of actions that failed
+    display_name: Failure Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - error rate
+      - denied rate
+
+  - name: permission_changes
+    expr: SUM(CASE WHEN source.action_name LIKE '%grant%' OR source.action_name LIKE '%revoke%' OR source.action_name LIKE '%Permission%' THEN 1 ELSE 0 END)
+    comment: Count of permission grant/revoke operations
+    display_name: Permission Changes
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - grants
+      - access changes
+
+  - name: unique_services
+    expr: COUNT(DISTINCT source.service_name)
+    comment: Number of distinct services generating events
+    display_name: Unique Services
+    format:
+      type: number
+    synonyms:
+      - services used
+      - active services
+
+  - name: unique_ips
+    expr: COUNT(DISTINCT source.source_ip_address)
+    comment: Number of distinct source IP addresses
+    display_name: Unique IPs
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - ip addresses
+      - client locations
+
+  - name: account_level_events
+    expr: SUM(CASE WHEN source.audit_level = 'ACCOUNT_LEVEL' THEN 1 ELSE 0 END)
+    comment: Count of account-level administrative events
+    display_name: Account Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - admin events
+      - account actions
+
+  - name: workspace_level_events
+    expr: SUM(CASE WHEN source.audit_level = 'WORKSPACE_LEVEL' THEN 1 ELSE 0 END)
+    comment: Count of workspace-level events
+    display_name: Workspace Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - ws events
+      - workspace actions
+
+  - name: client_error_events
+    expr: SUM(CASE WHEN source.response_status_code >= 400 AND source.response_status_code < 500 THEN 1 ELSE 0 END)
+    comment: Count of client error responses (4xx status codes)
+    display_name: Client Errors
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - 4xx errors
+      - bad requests
+
+  - name: server_error_events
+    expr: SUM(CASE WHEN source.response_status_code >= 500 THEN 1 ELSE 0 END)
+    comment: Count of server error responses (5xx status codes)
+    display_name: Server Errors
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - 5xx errors
+      - system errors
+
+  # === Off-Hours Analysis ===
+  - name: off_hours_events
+    expr: SUM(CASE WHEN HOUR(source.event_time) < 8 OR HOUR(source.event_time) >= 18 THEN 1 ELSE 0 END)
+    comment: Count of events outside business hours (before 8am or after 6pm UTC)
+    display_name: Off Hours Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - after hours events
+      - non-business hours events
+
+  - name: weekend_events
+    expr: SUM(CASE WHEN DAYOFWEEK(source.event_time) IN (1, 7) THEN 1 ELSE 0 END)
+    comment: Count of events on weekends (Saturday or Sunday)
+    display_name: Weekend Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - saturday events
+      - sunday events
+
+  - name: off_hours_sensitive_events
+    expr: SUM(CASE WHEN (HOUR(source.event_time) < 8 OR HOUR(source.event_time) >= 18) AND source.is_sensitive_action THEN 1 ELSE 0 END)
+    comment: Sensitive actions performed outside business hours (potential security concern)
+    display_name: Off Hours Sensitive
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - after hours sensitive
+      - suspicious after hours
+
+  - name: off_hours_failed_events
+    expr: SUM(CASE WHEN (HOUR(source.event_time) < 8 OR HOUR(source.event_time) >= 18) AND source.is_failed_action THEN 1 ELSE 0 END)
+    comment: Failed actions outside business hours (potential unauthorized access attempts)
+    display_name: Off Hours Failures
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - after hours failures
+      - suspicious failures
+
+  # === Blog-Derived Measures (system-tables-audit-logs repo) ===
+  - name: human_user_events
+    expr: >
+      SUM(CASE
+        WHEN source.user_identity_email NOT LIKE 'system.%'
+         AND source.user_identity_email NOT LIKE 'databricks-%'
+         AND source.user_identity_email LIKE '%@%'
+        THEN 1 ELSE 0
+      END)
+    comment: Events from human users only - excludes system and service accounts (from audit logs repo)
+    display_name: Human User Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - real user events
+      - human activity count
+
+  - name: system_events
+    expr: >
+      SUM(CASE
+        WHEN source.user_identity_email LIKE 'system.%'
+          OR source.user_identity_email LIKE 'databricks-%'
+        THEN 1 ELSE 0
+      END)
+    comment: Events from system and platform accounts
+    display_name: System Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - automated events
+      - platform events
+
+  - name: service_principal_events
+    expr: >
+      SUM(CASE
+        WHEN source.user_identity_email NOT LIKE 'system.%'
+         AND source.user_identity_email NOT LIKE 'databricks-%'
+         AND source.user_identity_email NOT LIKE '%@%'
+        THEN 1 ELSE 0
+      END)
+    comment: Events from service principals (application identities)
+    display_name: Service Principal Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - app events
+      - service events
+
+  - name: off_hours_pct
+    expr: (SUM(CASE WHEN HOUR(source.event_time) < 8 OR HOUR(source.event_time) >= 18 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.event_id), 0)
+    comment: Percentage of events outside business hours - high values may indicate anomalous behavior (from audit logs repo)
+    display_name: Off Hours %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - after hours percentage
+      - non-business hours rate
+
+  - name: human_failure_rate
+    expr: >
+      (SUM(CASE
+        WHEN source.user_identity_email NOT LIKE 'system.%'
+         AND source.user_identity_email NOT LIKE 'databricks-%'
+         AND source.user_identity_email LIKE '%@%'
+         AND source.is_failed_action
+        THEN 1 ELSE 0
+      END) * 100.0) /
+      NULLIF(SUM(CASE
+        WHEN source.user_identity_email NOT LIKE 'system.%'
+         AND source.user_identity_email NOT LIKE 'databricks-%'
+         AND source.user_identity_email LIKE '%@%'
+        THEN 1 ELSE 0
+      END), 0)
+    comment: Failure rate for human users only (excludes system/service accounts) - from audit logs repo
+    display_name: Human Failure Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - real user failure rate
+      - human error rate
+
+  - name: create_events
+    expr: SUM(CASE WHEN source.action_name LIKE '%create%' OR source.action_name LIKE '%Create%' THEN 1 ELSE 0 END)
+    comment: Count of resource creation events
+    display_name: Create Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - creations
+      - new resources
+
+  - name: delete_events
+    expr: SUM(CASE WHEN source.action_name LIKE '%delete%' OR source.action_name LIKE '%Delete%' THEN 1 ELSE 0 END)
+    comment: Count of resource deletion events (high-risk operations)
+    display_name: Delete Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - deletions
+      - removals
+
+  - name: unique_human_users
+    expr: >
+      COUNT(DISTINCT CASE
+        WHEN source.user_identity_email NOT LIKE 'system.%'
+         AND source.user_identity_email NOT LIKE 'databricks-%'
+         AND source.user_identity_email LIKE '%@%'
+        THEN source.user_identity_email
+      END)
+    comment: Number of distinct human users - excludes system accounts (from audit logs repo)
+    display_name: Unique Human Users
+    format:
+      type: number
+    synonyms:
+      - real users
+      - human user count
+

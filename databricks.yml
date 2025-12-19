@@ -33,6 +33,10 @@ variables:
     description: Schema name for Gold layer (system tables dimensional model)
     default: system_gold
   
+  feature_schema:
+    description: Schema name for ML Feature Store tables
+    default: system_gold_features
+  
   warehouse_id:
     description: SQL Warehouse ID for serverless execution
     default: "4b9b953939869799"
@@ -46,6 +50,7 @@ targets:
       system_bronze_schema: dev_${workspace.current_user.short_name}_system_bronze
       system_silver_schema: dev_${workspace.current_user.short_name}_system_silver
       gold_schema: dev_${workspace.current_user.short_name}_system_gold
+      feature_schema: dev_${workspace.current_user.short_name}_system_gold_features
       warehouse_id: "4b9b953939869799"
       
   prod:
@@ -55,6 +60,7 @@ targets:
       system_bronze_schema: system_bronze
       system_silver_schema: system_silver
       gold_schema: system_gold
+      feature_schema: system_gold_features
       warehouse_id: "4b9b953939869799"
 
 # Include all resource definitions organized by medallion layer

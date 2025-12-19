@@ -1,0 +1,86 @@
+{
+  "displayName": "Job Reliability Dashboard",
+  "warehouse_id": "${warehouse_id}",
+  "pages": [
+    {
+      "name": "page_reliability",
+      "displayName": "Job Reliability",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_success_rate",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_success_rate", "fields": [{"name": "success_rate", "expression": "`success_rate`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "success_rate"}}, "frame": {"showTitle": true, "title": "Success Rate (7d)"}}
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_total_runs",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_run_count", "fields": [{"name": "total_runs", "expression": "`total_runs`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "total_runs"}}, "frame": {"showTitle": true, "title": "Total Runs (7d)"}}
+          },
+          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_failures",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_failures", "fields": [{"name": "failure_count", "expression": "`failure_count`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "failure_count"}}, "frame": {"showTitle": true, "title": "Failures (7d)"}}
+          },
+          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "chart_success_trend",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_success_trend", "fields": [{"name": "run_date", "expression": "`run_date`"}, {"name": "success_rate", "expression": "`success_rate`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "run_date", "displayName": "Date", "scale": {"type": "temporal"}}, "y": {"fieldName": "success_rate", "displayName": "Success Rate (%)", "scale": {"type": "quantitative"}}}, "frame": {"showTitle": true, "title": "Success Rate Trend"}}
+          },
+          "position": {"x": 0, "y": 2, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_failed_jobs",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_failed_jobs", "fields": [{"name": "job_name", "expression": "`job_name`"}, {"name": "result_state", "expression": "`result_state`"}, {"name": "termination_code", "expression": "`termination_code`"}, {"name": "run_date", "expression": "`run_date`"}], "disaggregated": false}}],
+            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "Failed Jobs Today"}, "encodings": {"columns": [{"fieldName": "job_name", "title": "Job"}, {"fieldName": "result_state", "title": "State"}, {"fieldName": "termination_code", "title": "Reason"}, {"fieldName": "run_date", "title": "Date"}]}, "itemsPerPage": 15}
+          },
+          "position": {"x": 0, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_failures_by_code",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_failures_by_code", "fields": [{"name": "termination_code", "expression": "`termination_code`"}, {"name": "count", "expression": "`count`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "pie", "encodings": {"angle": {"fieldName": "count", "scale": {"type": "quantitative"}}, "color": {"fieldName": "termination_code", "scale": {"type": "categorical"}}}, "frame": {"showTitle": true, "title": "Failures by Reason"}}
+          },
+          "position": {"x": 3, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_low_success_jobs",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_low_success", "fields": [{"name": "job_name", "expression": "`job_name`"}, {"name": "total_runs", "expression": "`total_runs`"}, {"name": "success_rate", "expression": "`success_rate`"}], "disaggregated": false}}],
+            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "Jobs with Lowest Success Rate"}, "encodings": {"columns": [{"fieldName": "job_name", "title": "Job"}, {"fieldName": "total_runs", "title": "Runs"}, {"fieldName": "success_rate", "title": "Success %"}]}, "itemsPerPage": 10}
+          },
+          "position": {"x": 0, "y": 14, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_duration_trend",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_duration", "fields": [{"name": "run_date", "expression": "`run_date`"}, {"name": "avg_duration_min", "expression": "`avg_duration_min`"}, {"name": "p95_duration_min", "expression": "`p95_duration_min`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "run_date", "displayName": "Date", "scale": {"type": "temporal"}}, "y": {"fieldName": "p95_duration_min", "displayName": "P95 Duration (min)", "scale": {"type": "quantitative"}}}, "frame": {"showTitle": true, "title": "Job Duration Trend (P95)"}}
+          },
+          "position": {"x": 3, "y": 14, "width": 3, "height": 6}
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {"name": "ds_success_rate", "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN is_success THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND result_state IS NOT NULL"},
+    {"name": "ds_run_count", "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_runs FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_failures", "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN result_state IN ('FAILED', 'ERROR') THEN 1 ELSE 0 END), 0) AS failure_count FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_success_trend", "query": "SELECT DATE(run_date) AS run_date, ROUND(SUM(CASE WHEN is_success THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND result_state IS NOT NULL GROUP BY DATE(run_date) ORDER BY run_date"},
+    {"name": "ds_failed_jobs", "query": "SELECT j.job_name, f.result_state, f.termination_code, DATE(f.run_date) AS run_date FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id AND j.is_current = TRUE WHERE f.run_date = CURRENT_DATE() AND f.result_state IN ('FAILED', 'ERROR') ORDER BY f.run_date DESC LIMIT 25"},
+    {"name": "ds_failures_by_code", "query": "SELECT COALESCE(termination_code, 'UNKNOWN') AS termination_code, COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND result_state IN ('FAILED', 'ERROR') GROUP BY termination_code ORDER BY count DESC LIMIT 10"},
+    {"name": "ds_low_success", "query": "SELECT j.job_name, COUNT(*) AS total_runs, ROUND(SUM(CASE WHEN f.is_success THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id AND j.is_current = TRUE WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND f.result_state IS NOT NULL GROUP BY j.job_name HAVING COUNT(*) >= 5 ORDER BY success_rate ASC LIMIT 15"},
+    {"name": "ds_duration", "query": "SELECT DATE(run_date) AS run_date, ROUND(AVG(run_duration_minutes), 1) AS avg_duration_min, ROUND(PERCENTILE(run_duration_minutes, 0.95), 1) AS p95_duration_min FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY DATE(run_date) ORDER BY run_date"}
+  ]
+}

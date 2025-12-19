@@ -43,6 +43,54 @@ FROM ${catalog}.${gold_schema}.fact_usage
 
 ---
 
+## ✅ Gold Schema Column Reference (Enhanced)
+
+**Reference:** [GOLD_COLUMN_MAPPING.md](./GOLD_COLUMN_MAPPING.md) for complete mapping details.
+
+### fact_usage Columns
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `list_price` | DECIMAL(18,6) | ✅ Pre-enriched from system.billing.list_prices |
+| `list_cost` | DECIMAL(18,6) | ✅ Pre-calculated: usage_quantity * list_price |
+| `custom_tags` | MAP<STRING,STRING> | ✅ Native MAP - use `custom_tags['team']` |
+| `is_tagged` | BOOLEAN | ✅ Derived flag for tag governance |
+| `usage_metadata_job_id` | STRING | Flattened from nested struct |
+| `usage_metadata_cluster_id` | STRING | Flattened from nested struct |
+| `usage_metadata_warehouse_id` | STRING | Flattened from nested struct |
+| `identity_metadata_run_as` | STRING | Flattened from nested struct |
+
+### fact_job_run_timeline Columns
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `run_date` | DATE | ✅ Derived from period_start_time |
+| `run_duration_seconds` | BIGINT | ✅ Pre-calculated duration |
+| `run_duration_minutes` | DOUBLE | ✅ Pre-calculated duration |
+| `is_success` | BOOLEAN | ✅ Derived from result_state |
+| `compute_ids` | ARRAY<STRING> | ✅ Native ARRAY - use `array_contains()` |
+| `job_parameters` | MAP<STRING,STRING> | ✅ Native MAP |
+
+### fact_audit_logs Columns
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `request_params` | MAP<STRING,STRING> | ✅ Native MAP - use `request_params['tableName']` |
+| `is_sensitive_action` | BOOLEAN | ✅ Derived security flag |
+| `is_failed_action` | BOOLEAN | ✅ Derived failure flag |
+
+### fact_query_history Columns
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `compute_warehouse_id` | STRING | Use instead of `warehouse_id` |
+| `read_bytes` | BIGINT | Use instead of `bytes_read` |
+| `written_bytes` | BIGINT | Use instead of `bytes_written` |
+| `execution_status` | STRING | Use instead of `status` |
+| `query_tags` | MAP<STRING,STRING> | ✅ Native MAP |
+
+---
+
 ## TVF Catalog by Agent Domain
 
 | Agent Domain | TVF Count | Key Functions |
@@ -86,7 +134,7 @@ RETURN
             w.workspace_name,
             f.sku_name,
             SUM(f.usage_quantity) AS total_dbu,
-            SUM(f.usage_quantity * COALESCE(f.list_price, 0)) AS total_cost
+            SUM(f.list_cost) AS total_cost  -- Using pre-calculated list_cost
         FROM ${catalog}.${gold_schema}.fact_usage f
         LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w 
             ON f.workspace_id = w.workspace_id AND w.is_current = TRUE
@@ -136,7 +184,7 @@ RETURN
             usage_date,
             sku_name,
             SUM(usage_quantity) AS daily_dbu,
-            SUM(usage_quantity * COALESCE(list_price, 0)) AS daily_cost
+            SUM(list_cost) AS daily_cost  -- Using pre-calculated list_cost
         FROM ${catalog}.${gold_schema}.fact_usage
         WHERE usage_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
             AND (sku_filter = 'ALL' OR sku_name = sku_filter)
@@ -187,10 +235,10 @@ RETURN
                 WHEN COALESCE(run_as, owned_by) LIKE '%@%' THEN 'USER'
                 ELSE 'SERVICE_PRINCIPAL'
             END AS owner_type,
-            SUM(usage_quantity * COALESCE(list_price, 0)) AS total_cost,
-            SUM(CASE WHEN job_id IS NOT NULL THEN usage_quantity * COALESCE(list_price, 0) ELSE 0 END) AS job_cost,
-            SUM(CASE WHEN cluster_id IS NOT NULL AND job_id IS NULL THEN usage_quantity * COALESCE(list_price, 0) ELSE 0 END) AS cluster_cost,
-            COUNT(DISTINCT job_run_id) AS run_count
+            SUM(list_cost) AS total_cost,
+            SUM(CASE WHEN usage_metadata_job_id IS NOT NULL THEN list_cost ELSE 0 END) AS job_cost,
+            SUM(CASE WHEN usage_metadata_cluster_id IS NOT NULL AND usage_metadata_job_id IS NULL THEN list_cost ELSE 0 END) AS cluster_cost,
+            COUNT(DISTINCT usage_metadata_job_run_id) AS run_count
         FROM ${catalog}.${gold_schema}.fact_usage
         WHERE usage_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         GROUP BY 1, 2
@@ -225,7 +273,7 @@ RETURN
     WITH weekly_costs AS (
         SELECT 
             DATE_SUB(usage_date, DAYOFWEEK(usage_date)) AS week_start,
-            SUM(usage_quantity * COALESCE(list_price, 0)) AS weekly_cost,
+            SUM(list_cost) AS weekly_cost,
             COUNT(DISTINCT usage_date) AS days_in_week
         FROM ${catalog}.${gold_schema}.fact_usage
         WHERE usage_date >= CURRENT_DATE() - INTERVAL weeks_back WEEK
@@ -293,9 +341,9 @@ RETURN
     LEFT JOIN ${catalog}.${gold_schema}.dim_job j 
         ON jrt.job_id = j.job_id AND j.is_current = TRUE
     LEFT JOIN (
-        SELECT job_id, run_id, SUM(usage_quantity * COALESCE(list_price, 0)) AS failure_cost
+        SELECT usage_metadata_job_id AS job_id, usage_metadata_job_run_id AS run_id, SUM(list_cost) AS failure_cost
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE job_id IS NOT NULL AND job_run_id IS NOT NULL
+        WHERE usage_metadata_job_id IS NOT NULL AND usage_metadata_job_run_id IS NOT NULL
         GROUP BY job_id, run_id
     ) u ON jrt.job_id = u.job_id AND jrt.run_id = u.run_id
     WHERE jrt.result_state IN ('ERROR', 'FAILED', 'TIMED_OUT')
@@ -350,9 +398,9 @@ RETURN
             COALESCE(u.total_cost, 0) AS total_cost
         FROM job_stats js
         LEFT JOIN (
-            SELECT job_id, SUM(usage_quantity * COALESCE(list_price, 0)) AS total_cost
+            SELECT usage_metadata_job_id AS job_id, SUM(list_cost) AS total_cost
             FROM ${catalog}.${gold_schema}.fact_usage
-            WHERE job_id IS NOT NULL
+            WHERE usage_metadata_job_id IS NOT NULL
             GROUP BY job_id
         ) u ON js.job_id = u.job_id
     )
@@ -387,9 +435,9 @@ RETURN
         SELECT 
             u.job_id,
             j.name AS job_name,
-            FIRST(u.run_as, TRUE) AS run_as,
-            COUNT(DISTINCT u.job_run_id) AS run_count,
-            SUM(u.usage_quantity * COALESCE(u.list_price, 0)) AS total_cost,
+            FIRST(u.identity_metadata_run_as, TRUE) AS run_as,
+            COUNT(DISTINCT u.usage_metadata_job_run_id) AS run_count,
+            SUM(u.list_cost) AS total_cost,
             MAX(u.usage_date) AS last_run_date
         FROM ${catalog}.${gold_schema}.fact_usage u
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j 
@@ -476,54 +524,49 @@ COMMENT 'LLM: Returns jobs with highest repair (retry) costs.
 Use for identifying jobs with reliability issues causing wasted spend.
 Example: "Which jobs have the highest repair costs?" or "Show me job retry costs"'
 RETURN
-    WITH job_run_timeline_with_cost AS (
+    -- Using Gold layer tables with pre-calculated list_cost
+    WITH job_run_costs AS (
         SELECT
-            t1.*,
-            t2.job_id,
-            t2.run_id,
-            t1.identity_metadata.run_as as run_as,
-            t2.result_state,
-            t1.usage_quantity * list_prices.pricing.default as list_cost
-        FROM system.billing.usage t1
-        INNER JOIN system.lakeflow.job_run_timeline t2
-            ON t1.workspace_id = t2.workspace_id
-            AND t1.usage_metadata.job_id = t2.job_id
-            AND t1.usage_metadata.job_run_id = t2.run_id
-            AND t1.usage_start_time >= date_trunc("Hour", t2.period_start_time)
-            AND t1.usage_start_time < date_trunc("Hour", t2.period_end_time) + INTERVAL 1 HOUR
-        INNER JOIN system.billing.list_prices list_prices 
-            ON t1.cloud = list_prices.cloud 
-            AND t1.sku_name = list_prices.sku_name
-            AND t1.usage_start_time >= list_prices.price_start_time
-            AND (t1.usage_end_time <= list_prices.price_end_time OR list_prices.price_end_time IS NULL)
-        WHERE t1.billing_origin_product = 'JOBS'
-            AND t1.usage_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
+            u.workspace_id,
+            u.usage_metadata_job_id AS job_id,
+            u.usage_metadata_job_run_id AS run_id,
+            u.identity_metadata_run_as AS run_as,
+            jrt.result_state,
+            u.list_cost
+        FROM ${catalog}.${gold_schema}.fact_usage u
+        INNER JOIN ${catalog}.${gold_schema}.fact_job_run_timeline jrt
+            ON u.workspace_id = jrt.workspace_id
+            AND u.usage_metadata_job_id = jrt.job_id
+            AND u.usage_metadata_job_run_id = jrt.run_id
+        WHERE u.billing_origin_product = 'JOBS'
+            AND u.usage_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
     ),
     repaired_runs AS (
         SELECT workspace_id, job_id, run_id, COUNT(*) AS cnt
-        FROM system.lakeflow.job_run_timeline
+        FROM ${catalog}.${gold_schema}.fact_job_run_timeline
         WHERE result_state IS NOT NULL
+            AND run_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         GROUP BY ALL
         HAVING cnt > 1
     ),
     successful_repairs AS (
-        SELECT t1.workspace_id, t1.job_id, t1.run_id, MAX(t1.period_end_time) AS period_end_time
-        FROM system.lakeflow.job_run_timeline t1
-        JOIN repaired_runs t2 USING (workspace_id, job_id, run_id)
-        WHERE t1.result_state = 'SUCCEEDED'
+        SELECT jrt.workspace_id, jrt.job_id, jrt.run_id, MAX(jrt.period_end_time) AS period_end_time
+        FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
+        JOIN repaired_runs rr USING (workspace_id, job_id, run_id)
+        WHERE jrt.result_state = 'SUCCESS'
         GROUP BY ALL
     ),
     cost_per_unsuccessful AS (
         SELECT workspace_id, job_id, run_id, 
                FIRST(run_as, TRUE) AS run_as,
                SUM(list_cost) AS repair_cost
-        FROM job_run_timeline_with_cost
-        WHERE result_state != 'SUCCEEDED'
+        FROM job_run_costs
+        WHERE result_state NOT IN ('SUCCESS', 'SUCCEEDED')
         GROUP BY ALL
     ),
     most_recent_jobs AS (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) AS rn
-        FROM system.lakeflow.jobs QUALIFY rn = 1
+        FROM ${catalog}.${gold_schema}.dim_job QUALIFY rn = 1
     ),
     combined AS (
         SELECT 
@@ -581,7 +624,7 @@ RETURN
             t1.usage_metadata.job_id AS job_id,
             t1.identity_metadata.run_as AS run_as,
             t1.usage_quantity * list_prices.pricing.default AS list_cost
-        FROM system.billing.usage t1
+        FROM ${catalog}.${gold_schema}.fact_usage t1
         INNER JOIN system.billing.list_prices list_prices
             ON t1.cloud = list_prices.cloud
             AND t1.sku_name = list_prices.sku_name
@@ -592,7 +635,7 @@ RETURN
     ),
     most_recent_jobs AS (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) AS rn
-        FROM system.lakeflow.jobs QUALIFY rn = 1
+        FROM ${catalog}.${gold_schema}.dim_job QUALIFY rn = 1
     ),
     aggregated AS (
         SELECT
@@ -666,7 +709,7 @@ RETURN
             t2.run_id,
             t2.result_state,
             t1.usage_quantity * list_prices.pricing.default AS list_cost
-        FROM system.billing.usage t1
+        FROM ${catalog}.${gold_schema}.fact_usage t1
         INNER JOIN system.lakeflow.job_run_timeline t2
             ON t1.workspace_id = t2.workspace_id
             AND t1.usage_metadata.job_id = t2.job_id
@@ -692,13 +735,13 @@ RETURN
             workspace_id, job_id,
             CASE WHEN result_state IN ('ERROR', 'FAILED', 'TIMED_OUT') THEN 1 ELSE 0 END AS is_failure,
             period_end_time AS last_seen_date
-        FROM system.lakeflow.job_run_timeline
+        FROM ${catalog}.${gold_schema}.fact_job_run_timeline
         WHERE result_state IS NOT NULL
             AND period_end_time BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
     ),
     most_recent_jobs AS (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) AS rn
-        FROM system.lakeflow.jobs QUALIFY rn = 1
+        FROM ${catalog}.${gold_schema}.dim_job QUALIFY rn = 1
     ),
     aggregated AS (
         SELECT
@@ -756,7 +799,7 @@ RETURN
             job_id,
             run_id,
             CAST(SUM(period_end_time - period_start_time) AS LONG) AS duration
-        FROM system.lakeflow.job_run_timeline
+        FROM ${catalog}.${gold_schema}.fact_job_run_timeline
         WHERE period_start_time > CURRENT_TIMESTAMP() - INTERVAL days_back DAYS
         GROUP BY ALL
     ),
@@ -873,11 +916,11 @@ RETURN
     ),
     warehouse_cost AS (
         SELECT 
-            warehouse_id,
+            usage_metadata_warehouse_id AS warehouse_id,
             SUM(usage_quantity) AS total_dbu,
-            SUM(usage_quantity * COALESCE(list_price, 0)) AS total_cost
+            SUM(list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE warehouse_id IS NOT NULL
+        WHERE usage_metadata_warehouse_id IS NOT NULL
             AND usage_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         GROUP BY warehouse_id
     )
@@ -925,7 +968,7 @@ RETURN
         IFNULL(request_params.full_name_arg, request_params.name) AS table_name,
         action_name AS access_type,
         event_time AS access_time
-    FROM system.access.audit
+    FROM ${catalog}.${gold_schema}.fact_audit_logs
     WHERE (
         request_params.full_name_arg = table_full_name
         OR (
@@ -1055,9 +1098,9 @@ RETURN
         GROUP BY nt.cluster_id, c.cluster_name, c.cluster_source, c.owned_by
     ),
     cluster_cost AS (
-        SELECT cluster_id, SUM(usage_quantity * COALESCE(list_price, 0)) AS total_cost
+        SELECT usage_metadata_cluster_id AS cluster_id, SUM(list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE cluster_id IS NOT NULL
+        WHERE usage_metadata_cluster_id IS NOT NULL
             AND usage_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         GROUP BY cluster_id
     )
@@ -1120,7 +1163,7 @@ RETURN
             AVG(network_received_bytes) / (1024 * 1024) AS avg_network_mb_received,
             AVG(network_sent_bytes) / (1024 * 1024) AS avg_network_mb_sent,
             ROW_NUMBER() OVER (ORDER BY AVG(cpu_user_percent + cpu_system_percent) DESC) AS rank
-        FROM system.compute.node_timeline
+        FROM ${catalog}.${gold_schema}.fact_node_timeline
         WHERE start_time >= date_add(now(), -days_back)
         GROUP BY cluster_id, driver
     )
@@ -1164,7 +1207,7 @@ RETURN
             ROUND(AVG(nt.cpu_user_percent + nt.cpu_system_percent), 1) AS avg_cpu_pct,
             ROUND(AVG(nt.mem_used_percent), 1) AS avg_mem_pct,
             SUM(TIMESTAMPDIFF(HOUR, nt.start_time, nt.end_time)) AS total_hours
-        FROM system.compute.node_timeline nt
+        FROM ${catalog}.${gold_schema}.fact_node_timeline nt
         LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c 
             ON nt.cluster_id = c.cluster_id AND c.is_current = TRUE
         WHERE nt.start_time >= CURRENT_DATE() - INTERVAL days_back DAYS
@@ -1172,7 +1215,7 @@ RETURN
         HAVING total_hours >= min_hours
     ),
     cluster_cost AS (
-        SELECT cluster_id, SUM(usage_quantity * COALESCE(list_price, 0)) AS total_cost
+        SELECT usage_metadata_cluster_id AS cluster_id, SUM(list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage
         WHERE usage_date >= CURRENT_DATE() - INTERVAL days_back DAYS
         GROUP BY cluster_id
@@ -1230,7 +1273,7 @@ Example: "Which jobs produce unused data?" or "Show stale dataset producers"'
 RETURN
     WITH producers AS (
         SELECT workspace_id, entity_id AS job_id, target_table_full_name, created_by
-        FROM system.access.table_lineage
+        FROM ${catalog}.${gold_schema}.fact_table_lineage
         WHERE entity_type = 'JOB' 
             AND target_table_full_name IS NOT NULL
             AND event_date > CURRENT_DATE() - INTERVAL days_back DAY
@@ -1238,14 +1281,14 @@ RETURN
     ),
     consumers AS (
         SELECT workspace_id, source_table_full_name
-        FROM system.access.table_lineage
+        FROM ${catalog}.${gold_schema}.fact_table_lineage
         WHERE source_table_full_name IS NOT NULL 
             AND event_date > CURRENT_DATE() - INTERVAL days_back DAY
         GROUP BY ALL
     ),
     jobs_with_datasets AS (
         SELECT workspace_id, entity_id AS job_id, collect_set(target_table_full_name) AS populated_sets
-        FROM system.access.table_lineage
+        FROM ${catalog}.${gold_schema}.fact_table_lineage
         WHERE entity_type = 'JOB' AND target_table_full_name IS NOT NULL
         GROUP BY ALL
     ),
@@ -1259,7 +1302,7 @@ RETURN
     ),
     most_recent_jobs AS (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) AS rn
-        FROM system.lakeflow.jobs QUALIFY rn = 1
+        FROM ${catalog}.${gold_schema}.dim_job QUALIFY rn = 1
     )
     SELECT 
         t1.workspace_id,
@@ -1280,7 +1323,7 @@ RETURN
             SELECT t1.workspace_id, t1.usage_metadata.job_id AS job_id, 
                    t1.identity_metadata.run_as AS run_as,
                    t1.usage_quantity * list_prices.pricing.default AS list_cost
-            FROM system.billing.usage t1
+            FROM ${catalog}.${gold_schema}.fact_usage t1
             INNER JOIN system.billing.list_prices list_prices 
                 ON t1.cloud = list_prices.cloud 
                 AND t1.sku_name = list_prices.sku_name
@@ -1323,7 +1366,7 @@ RETURN
             t1.usage_metadata.job_id,
             t1.usage_metadata.cluster_id,
             SUM(t1.usage_quantity * list_prices.pricing.default) AS list_cost
-        FROM system.billing.usage t1
+        FROM ${catalog}.${gold_schema}.fact_usage t1
         INNER JOIN system.billing.list_prices list_prices 
             ON t1.cloud = list_prices.cloud 
             AND t1.sku_name = list_prices.sku_name
@@ -1335,7 +1378,7 @@ RETURN
     ),
     most_recent_jobs AS (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) AS rn
-        FROM system.lakeflow.jobs QUALIFY rn = 1
+        FROM ${catalog}.${gold_schema}.dim_job QUALIFY rn = 1
     ),
     jobs_rolling AS (
         SELECT t2.name, t1.job_id, t1.workspace_id, t1.cluster_id, SUM(list_cost) AS list_cost
@@ -1352,7 +1395,7 @@ RETURN
             AVG(nt.mem_used_percent) AS avg_memory_utilization,
             MAX(nt.mem_used_percent) AS peak_memory_utilization,
             SUM(jr.list_cost) AS job_cost_30d
-        FROM system.compute.node_timeline nt
+        FROM ${catalog}.${gold_schema}.fact_node_timeline nt
         JOIN jobs_rolling jr ON nt.cluster_id = jr.cluster_id
         WHERE nt.start_time >= CURRENT_DATE() - INTERVAL days_back DAY
         GROUP BY jr.workspace_id, jr.name
@@ -1397,7 +1440,7 @@ Example: "Which jobs dont use autoscaling?" or "Show fixed-size cluster jobs"'
 RETURN
     WITH clusters AS (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY workspace_id, cluster_id ORDER BY change_time DESC) AS rn
-        FROM system.compute.clusters
+        FROM ${catalog}.${gold_schema}.dim_cluster
         WHERE cluster_source = 'JOB'
         QUALIFY rn = 1
     ),
@@ -1408,7 +1451,7 @@ RETURN
             SELECT t1.workspace_id, t1.usage_metadata.job_id, t1.usage_metadata.cluster_id,
                    FIRST(t1.identity_metadata.run_as, TRUE) AS run_as,
                    SUM(t1.usage_quantity * list_prices.pricing.default) AS list_cost
-            FROM system.billing.usage t1
+            FROM ${catalog}.${gold_schema}.fact_usage t1
             INNER JOIN system.billing.list_prices list_prices ON t1.cloud = list_prices.cloud 
                 AND t1.sku_name = list_prices.sku_name
             WHERE t1.sku_name LIKE '%JOBS%' 
@@ -1419,7 +1462,7 @@ RETURN
         ) t1
         LEFT JOIN (
             SELECT *, ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) AS rn
-            FROM system.lakeflow.jobs QUALIFY rn = 1
+            FROM ${catalog}.${gold_schema}.dim_job QUALIFY rn = 1
         ) t2 USING (workspace_id, job_id)
         GROUP BY ALL
     )
@@ -1460,7 +1503,7 @@ RETURN
         SELECT 
             explode(custom_tags) AS (tag_key, tag_value),
             (usage_quantity * list_prices.pricing.default) AS list_cost
-        FROM system.billing.usage t1
+        FROM ${catalog}.${gold_schema}.fact_usage t1
         INNER JOIN system.billing.list_prices list_prices 
             ON t1.cloud = list_prices.cloud 
             AND t1.sku_name = list_prices.sku_name
@@ -1476,7 +1519,7 @@ RETURN
     ),
     untagged AS (
         SELECT 'Untagged' AS tag_key_value, SUM(usage_quantity * list_prices.pricing.default) AS list_cost
-        FROM system.billing.usage t1
+        FROM ${catalog}.${gold_schema}.fact_usage t1
         INNER JOIN system.billing.list_prices list_prices 
             ON t1.cloud = list_prices.cloud 
             AND t1.sku_name = list_prices.sku_name
@@ -1521,13 +1564,13 @@ RETURN
     WITH latest_jobs AS (
         SELECT workspace_id, job_id, name,
                ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) AS rn
-        FROM system.lakeflow.jobs
+        FROM ${catalog}.${gold_schema}.dim_job
         WHERE delete_time IS NULL
         QUALIFY rn = 1
     ),
     latest_clusters AS (
         SELECT workspace_id, cluster_id, MAX_BY(dbr_version, change_time) AS dbr_version
-        FROM system.compute.clusters
+        FROM ${catalog}.${gold_schema}.dim_cluster
         WHERE delete_time IS NULL
         GROUP BY workspace_id, cluster_id
     ),
@@ -1538,7 +1581,7 @@ RETURN
             jtr.job_id,
             lc.dbr_version,
             CAST(regexp_extract(COALESCE(lc.dbr_version, '0'), '^(\\d+)', 1) AS INT) AS dbr_major
-        FROM system.lakeflow.job_task_run_timeline jtr
+        FROM ${catalog}.${gold_schema}.fact_job_task_run_timeline jtr
         CROSS JOIN LATERAL explode(jtr.compute_ids) AS t(cluster_id)
         INNER JOIN latest_clusters lc 
             ON jtr.workspace_id = lc.workspace_id AND t.cluster_id = lc.cluster_id
@@ -1610,7 +1653,7 @@ RETURN
         SELECT 
             MONTH(usage_date) AS month_num,
             DATE_FORMAT(usage_date, 'MMMM') AS month_name,
-            SUM(usage_quantity * list_price) AS monthly_spend
+            SUM(list_cost) AS monthly_spend
         FROM ${catalog}.${gold_schema}.fact_usage
         WHERE YEAR(usage_date) = get_commit_vs_actual.commit_year
             AND usage_date <= COALESCE(CAST(as_of_date AS DATE), CURRENT_DATE())
@@ -1729,7 +1772,7 @@ RETURN
         SELECT 
             COALESCE(custom_tags[tag_key], 'UNTAGGED') AS tag_value,
             SUM(usage_quantity) AS total_dbu,
-            SUM(usage_quantity * list_price) AS total_cost,
+            SUM(list_cost) AS total_cost,
             COUNT(DISTINCT workspace_id) AS workspace_count,
             COUNT(DISTINCT usage_metadata.job_id) AS job_count
         FROM ${catalog}.${gold_schema}.fact_usage
@@ -1797,8 +1840,8 @@ RETURN
         ON j.workspace_id = w.workspace_id AND w.is_current = TRUE
     LEFT JOIN (
         SELECT 
-            usage_metadata.job_id AS job_id,
-            SUM(usage_quantity * list_price) AS total_cost,
+            usage_metadata_job_id AS job_id,
+            SUM(list_cost) AS total_cost,
             MAX(usage_date) AS last_used
         FROM ${catalog}.${gold_schema}.fact_usage
         WHERE usage_date >= CURRENT_DATE() - INTERVAL lookback_days DAYS
@@ -1827,8 +1870,8 @@ RETURN
         ON c.workspace_id = w.workspace_id AND w.is_current = TRUE
     LEFT JOIN (
         SELECT 
-            usage_metadata.cluster_id AS cluster_id,
-            SUM(usage_quantity * list_price) AS total_cost,
+            usage_metadata_cluster_id AS cluster_id,
+            SUM(list_cost) AS total_cost,
             MAX(usage_date) AS last_used
         FROM ${catalog}.${gold_schema}.fact_usage
         WHERE usage_date >= CURRENT_DATE() - INTERVAL lookback_days DAYS
@@ -1880,7 +1923,7 @@ RETURN
                 ELSE 'TAGGED'
             END AS tag_status,
             usage_quantity,
-            usage_quantity * list_price AS cost
+            list_cost AS cost
         FROM ${catalog}.${gold_schema}.fact_usage
         WHERE usage_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
     )
@@ -1965,15 +2008,519 @@ resources:
 
 ---
 
+---
+
+## 🆕 Additional TVFs from Dashboard Pattern Analysis
+
+Based on analysis of real-world Databricks dashboards (see [phase3-use-cases.md SQL Patterns Catalog](./phase3-use-cases.md#-sql-query-patterns-catalog-from-dashboard-analysis)), these additional TVFs should be implemented:
+
+### Pattern-Derived TVFs (8 NEW)
+
+| TVF Name | Pattern Source | Use Case | Priority |
+|----------|----------------|----------|----------|
+| `get_cost_growth_by_period` | Azure Serverless Dashboard | 7 vs 14 day, 30 vs 60 day comparison | HIGH |
+| `get_job_outlier_runs` | Serverless Cost Dashboard | P90 deviation analysis for runaway runs | HIGH |
+| `get_cost_weekly_trend` | Serverless Cost Dashboard | WoW growth with 3-month moving average | MEDIUM |
+| `get_most_expensive_entities` | Serverless Cost Dashboard | Generic top-N for job/notebook/user/workspace | HIGH |
+| `get_cost_by_user_and_product` | Serverless Cost Dashboard | User cost split by jobs vs notebooks | MEDIUM |
+| `get_table_activity_status` | Governance Hub Dashboard | Active vs inactive tables from lineage | MEDIUM |
+| `get_popular_columns` | Governance Hub Dashboard | Most accessed columns from lineage | LOW |
+| `get_jobs_by_tags` | LakeFlow Dashboard | Complex tag filtering (key1=value1;key2=value2) | HIGH |
+
+### TVF: get_cost_growth_by_period
+
+```sql
+CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_cost_growth_by_period(
+    entity_type STRING COMMENT 'Entity type: job, user, workspace, or all',
+    days_current INT DEFAULT 7 COMMENT 'Days in current period',
+    days_prior INT DEFAULT 7 COMMENT 'Days in prior period',
+    top_n INT DEFAULT 100 COMMENT 'Number of results to return'
+)
+RETURNS TABLE(
+    entity_id STRING COMMENT 'Entity identifier (job_id, user_email, or workspace_id)',
+    entity_name STRING COMMENT 'Entity display name',
+    workspace_id STRING COMMENT 'Workspace identifier',
+    current_period_spend DOUBLE COMMENT 'Spend in current period (USD)',
+    prior_period_spend DOUBLE COMMENT 'Spend in prior period (USD)',
+    growth_amount DOUBLE COMMENT 'Absolute growth (current - prior)',
+    growth_pct DOUBLE COMMENT 'Growth percentage'
+)
+COMMENT 'LLM: Compares cost between two periods to identify highest growth entities.
+Use for identifying cost increases that need investigation.
+Example: "Which jobs had highest cost growth in the last 7 days vs prior 7 days?"
+Example: "Show me users with biggest spend increase this week"'
+RETURN
+    WITH cost_by_period AS (
+        SELECT
+            CASE
+                WHEN entity_type = 'job' THEN usage_metadata_job_id
+                WHEN entity_type = 'user' THEN identity_metadata_run_as
+                WHEN entity_type = 'workspace' THEN workspace_id
+                ELSE COALESCE(usage_metadata_job_id, identity_metadata_run_as, workspace_id)
+            END AS entity_id,
+            workspace_id,
+            SUM(CASE WHEN usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -(days_current + 1))
+                AND DATE_ADD(CURRENT_DATE(), -1) THEN list_cost ELSE 0 END) AS current_period_spend,
+            SUM(CASE WHEN usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -(days_current + days_prior + 1))
+                AND DATE_ADD(CURRENT_DATE(), -(days_current + 1)) THEN list_cost ELSE 0 END) AS prior_period_spend
+        FROM ${catalog}.${gold_schema}.fact_usage
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -(days_current + days_prior + 1))
+        GROUP BY 1, 2
+    )
+    SELECT
+        entity_id,
+        entity_id AS entity_name,
+        workspace_id,
+        current_period_spend,
+        prior_period_spend,
+        current_period_spend - prior_period_spend AS growth_amount,
+        TRY_DIVIDE((current_period_spend - prior_period_spend), prior_period_spend) * 100 AS growth_pct
+    FROM cost_by_period
+    WHERE entity_id IS NOT NULL
+    ORDER BY growth_amount DESC
+    LIMIT top_n;
+```
+
+### TVF: get_job_outlier_runs
+
+```sql
+CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_job_outlier_runs(
+    days_back INT DEFAULT 30 COMMENT 'Number of days to analyze',
+    percentile_threshold DOUBLE DEFAULT 0.9 COMMENT 'Percentile for baseline (0.9 = P90)',
+    deviation_multiplier DOUBLE DEFAULT 1.5 COMMENT 'Multiplier above percentile to flag as outlier'
+)
+RETURNS TABLE(
+    workspace_id STRING COMMENT 'Workspace identifier',
+    job_id STRING COMMENT 'Job identifier',
+    job_name STRING COMMENT 'Job display name',
+    run_count INT COMMENT 'Total number of runs',
+    total_cost DOUBLE COMMENT 'Total cost across all runs',
+    avg_cost DOUBLE COMMENT 'Average cost per run',
+    max_cost DOUBLE COMMENT 'Maximum single run cost',
+    p90_cost DOUBLE COMMENT 'P90 cost (90th percentile)',
+    deviation_from_p90 DOUBLE COMMENT 'Difference between max and P90',
+    deviation_pct DOUBLE COMMENT 'Deviation as percentage of P90'
+)
+COMMENT 'LLM: Finds jobs with outlier runs that exceed the P90 cost threshold.
+Use to identify runaway jobs that occasionally have expensive runs.
+Example: "Which jobs have occasional expensive outlier runs?"
+Example: "Find jobs where max cost is much higher than typical runs"'
+RETURN
+    WITH run_costs AS (
+        SELECT
+            workspace_id,
+            usage_metadata_job_id AS job_id,
+            usage_metadata_job_run_id AS job_run_id,
+            SUM(list_cost) AS run_cost
+        FROM ${catalog}.${gold_schema}.fact_usage
+        WHERE usage_metadata_job_id IS NOT NULL
+            AND usage_metadata_job_run_id IS NOT NULL
+            AND usage_date >= DATE_ADD(CURRENT_DATE(), -days_back)
+        GROUP BY workspace_id, usage_metadata_job_id, usage_metadata_job_run_id
+    ),
+    job_stats AS (
+        SELECT
+            workspace_id,
+            job_id,
+            COUNT(DISTINCT job_run_id) AS run_count,
+            SUM(run_cost) AS total_cost,
+            AVG(run_cost) AS avg_cost,
+            MAX(run_cost) AS max_cost,
+            PERCENTILE(run_cost, percentile_threshold) AS p90_cost
+        FROM run_costs
+        GROUP BY workspace_id, job_id
+        HAVING run_count >= 5  -- Need enough runs for meaningful percentile
+    )
+    SELECT
+        js.workspace_id,
+        js.job_id,
+        dj.job_name,
+        js.run_count,
+        js.total_cost,
+        js.avg_cost,
+        js.max_cost,
+        js.p90_cost,
+        js.max_cost - js.p90_cost AS deviation_from_p90,
+        TRY_DIVIDE(js.max_cost - js.p90_cost, js.p90_cost) * 100 AS deviation_pct
+    FROM job_stats js
+    LEFT JOIN ${catalog}.${gold_schema}.dim_job dj
+        ON js.job_id = dj.job_id AND dj.is_current = TRUE
+    WHERE js.max_cost > js.p90_cost * deviation_multiplier
+    ORDER BY deviation_from_p90 DESC;
+```
+
+### TVF: get_cost_weekly_trend
+
+```sql
+CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_cost_weekly_trend(
+    weeks_back INT DEFAULT 12 COMMENT 'Number of weeks to analyze',
+    moving_avg_periods INT DEFAULT 4 COMMENT 'Number of weeks for moving average'
+)
+RETURNS TABLE(
+    week_start DATE COMMENT 'Week start date (Sunday)',
+    weekly_cost DOUBLE COMMENT 'Total cost for the week',
+    prior_week_cost DOUBLE COMMENT 'Cost from prior week',
+    weekly_growth_pct DOUBLE COMMENT 'Week-over-week growth percentage',
+    moving_avg_growth DOUBLE COMMENT 'Moving average of weekly growth'
+)
+COMMENT 'LLM: Shows weekly cost trends with week-over-week growth and moving averages.
+Use for identifying cost trends and seasonality patterns.
+Example: "What is our weekly cost trend?"
+Example: "Show me week-over-week cost growth"'
+RETURN
+    WITH weekly_spend AS (
+        SELECT
+            DATE_SUB(TO_DATE(usage_date), DAYOFWEEK(TO_DATE(usage_date))) AS week_start,
+            SUM(list_cost) AS weekly_cost,
+            COUNT(DISTINCT TO_DATE(usage_date)) AS days_in_week
+        FROM ${catalog}.${gold_schema}.fact_usage
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -(weeks_back * 7))
+        GROUP BY 1
+        HAVING days_in_week = 7  -- Only complete weeks
+    ),
+    growth_calc AS (
+        SELECT
+            week_start,
+            weekly_cost,
+            LAG(weekly_cost, 1) OVER (ORDER BY week_start) AS prior_week_cost,
+            TRY_DIVIDE(
+                (weekly_cost - LAG(weekly_cost, 1) OVER (ORDER BY week_start)),
+                LAG(weekly_cost, 1) OVER (ORDER BY week_start)
+            ) * 100 AS weekly_growth_pct
+        FROM weekly_spend
+    )
+    SELECT
+        week_start,
+        weekly_cost,
+        prior_week_cost,
+        weekly_growth_pct,
+        AVG(weekly_growth_pct) OVER (
+            ORDER BY week_start
+            ROWS BETWEEN (moving_avg_periods - 1) PRECEDING AND CURRENT ROW
+        ) AS moving_avg_growth
+    FROM growth_calc
+    ORDER BY week_start;
+```
+
+### TVF: get_table_activity_status
+
+```sql
+CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_table_activity_status(
+    days_lookback INT DEFAULT 30 COMMENT 'Days to look back for activity'
+)
+RETURNS TABLE(
+    table_full_name STRING COMMENT 'Fully qualified table name',
+    catalog_name STRING COMMENT 'Catalog name',
+    schema_name STRING COMMENT 'Schema name',
+    table_name STRING COMMENT 'Table name',
+    activity_status STRING COMMENT 'ACTIVE or INACTIVE based on lineage',
+    last_read_date DATE COMMENT 'Most recent read activity',
+    last_write_date DATE COMMENT 'Most recent write activity',
+    read_count INT COMMENT 'Number of read operations',
+    write_count INT COMMENT 'Number of write operations'
+)
+COMMENT 'LLM: Identifies active vs inactive tables based on lineage activity.
+Use for finding stale tables that may be candidates for cleanup.
+Example: "Which tables are inactive (no reads/writes in 30 days)?"
+Example: "Show me stale tables that might need cleanup"'
+RETURN
+    WITH activity AS (
+        SELECT
+            COALESCE(source_table_full_name, target_table_full_name) AS table_full_name,
+            MAX(CASE WHEN source_table_full_name IS NOT NULL THEN event_date END) AS last_read_date,
+            MAX(CASE WHEN target_table_full_name IS NOT NULL THEN event_date END) AS last_write_date,
+            SUM(CASE WHEN source_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS read_count,
+            SUM(CASE WHEN target_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS write_count
+        FROM ${catalog}.${gold_schema}.fact_table_lineage
+        WHERE event_date >= DATE_ADD(CURRENT_DATE(), -days_lookback)
+        GROUP BY COALESCE(source_table_full_name, target_table_full_name)
+    ),
+    all_tables AS (
+        SELECT
+            table_full_name,
+            table_catalog AS catalog_name,
+            table_schema AS schema_name,
+            table_name
+        FROM ${catalog}.${gold_schema}.dim_table
+        WHERE is_current = TRUE
+    )
+    SELECT
+        t.table_full_name,
+        t.catalog_name,
+        t.schema_name,
+        t.table_name,
+        CASE WHEN a.table_full_name IS NOT NULL THEN 'ACTIVE' ELSE 'INACTIVE' END AS activity_status,
+        a.last_read_date,
+        a.last_write_date,
+        COALESCE(a.read_count, 0) AS read_count,
+        COALESCE(a.write_count, 0) AS write_count
+    FROM all_tables t
+    LEFT JOIN activity a ON t.table_full_name = a.table_full_name
+    ORDER BY activity_status DESC, t.table_full_name;
+```
+
+---
+
+## 🆕 GitHub Repository Pattern Enhancements for TVFs
+
+Based on analysis of open-source Databricks repositories, the following new TVFs should be added:
+
+### From Workflow Advisor Repository
+
+#### TVF: get_cluster_right_sizing_recommendations (🆕)
+
+```sql
+CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_cluster_right_sizing_recommendations(
+    days_back INT DEFAULT 7 COMMENT 'Days of history to analyze',
+    min_observation_hours INT DEFAULT 10 COMMENT 'Minimum hours of data required'
+)
+RETURNS TABLE(
+    cluster_id STRING COMMENT 'Cluster ID',
+    cluster_name STRING COMMENT 'Cluster name',
+    observation_hours DOUBLE COMMENT 'Hours of observation data',
+    avg_cpu_util DOUBLE COMMENT 'Average CPU utilization percentage',
+    p95_cpu_util DOUBLE COMMENT '95th percentile CPU utilization',
+    avg_memory_util DOUBLE COMMENT 'Average memory utilization percentage',
+    p95_memory_util DOUBLE COMMENT '95th percentile memory utilization',
+    cpu_saturation_pct DOUBLE COMMENT 'Percent of time CPU > 90%',
+    cpu_idle_pct DOUBLE COMMENT 'Percent of time CPU < 20%',
+    sizing_status STRING COMMENT 'UNDERPROVISIONED, OVERPROVISIONED, or OPTIMAL',
+    savings_opportunity STRING COMMENT 'HIGH, MEDIUM, LOW, or NONE',
+    recommendation STRING COMMENT 'Action recommendation'
+)
+COMMENT 'LLM: Analyzes cluster utilization to provide right-sizing recommendations.
+Pattern from Workflow Advisor repository.
+Use for cost optimization and capacity planning.
+Example: "Which clusters are overprovisioned?"
+Example: "Show me clusters with cost savings opportunities"'
+RETURN
+    WITH cluster_metrics AS (
+        SELECT
+            nt.cluster_id,
+            dc.cluster_name,
+            COUNT(*) / 60.0 AS observation_hours,
+            AVG(nt.cpu_user_percent + nt.cpu_system_percent) AS avg_cpu_util,
+            PERCENTILE(nt.cpu_user_percent + nt.cpu_system_percent, 0.95) AS p95_cpu_util,
+            AVG(nt.mem_used_percent) AS avg_memory_util,
+            PERCENTILE(nt.mem_used_percent, 0.95) AS p95_memory_util,
+            SUM(CASE WHEN nt.cpu_user_percent + nt.cpu_system_percent > 90 THEN 1 ELSE 0 END) * 100.0 /
+                NULLIF(COUNT(*), 0) AS cpu_saturation_pct,
+            SUM(CASE WHEN nt.cpu_user_percent + nt.cpu_system_percent < 20 THEN 1 ELSE 0 END) * 100.0 /
+                NULLIF(COUNT(*), 0) AS cpu_idle_pct
+        FROM ${catalog}.${gold_schema}.fact_node_timeline nt
+        LEFT JOIN ${catalog}.${gold_schema}.dim_cluster dc
+            ON nt.cluster_id = dc.cluster_id AND dc.is_current = TRUE
+        WHERE nt.start_time >= CURRENT_TIMESTAMP() - INTERVAL days_back DAY
+        GROUP BY nt.cluster_id, dc.cluster_name
+        HAVING observation_hours >= min_observation_hours
+    )
+    SELECT
+        cluster_id,
+        cluster_name,
+        observation_hours,
+        avg_cpu_util,
+        p95_cpu_util,
+        avg_memory_util,
+        p95_memory_util,
+        cpu_saturation_pct,
+        cpu_idle_pct,
+        CASE
+            WHEN cpu_saturation_pct > 20 OR p95_memory_util > 85 THEN 'UNDERPROVISIONED'
+            WHEN cpu_idle_pct > 70 AND avg_memory_util < 30 THEN 'OVERPROVISIONED'
+            WHEN cpu_idle_pct > 50 AND avg_memory_util < 50 THEN 'UNDERUTILIZED'
+            ELSE 'OPTIMAL'
+        END AS sizing_status,
+        CASE
+            WHEN cpu_idle_pct > 70 THEN 'HIGH'
+            WHEN cpu_idle_pct > 50 THEN 'MEDIUM'
+            WHEN cpu_idle_pct > 30 THEN 'LOW'
+            ELSE 'NONE'
+        END AS savings_opportunity,
+        CASE
+            WHEN cpu_saturation_pct > 20 THEN 'Consider increasing cluster size or adding workers'
+            WHEN p95_memory_util > 85 THEN 'Memory pressure detected - consider larger instance type'
+            WHEN cpu_idle_pct > 70 THEN 'Significant underutilization - consider downsizing'
+            WHEN cpu_idle_pct > 50 THEN 'Moderate underutilization - review cluster sizing'
+            ELSE 'Cluster is appropriately sized'
+        END AS recommendation
+    FROM cluster_metrics
+    ORDER BY
+        CASE sizing_status
+            WHEN 'OVERPROVISIONED' THEN 1
+            WHEN 'UNDERPROVISIONED' THEN 2
+            WHEN 'UNDERUTILIZED' THEN 3
+            ELSE 4
+        END,
+        cpu_idle_pct DESC;
+```
+
+### From system-tables-audit-logs Repository
+
+#### TVF: get_user_activity_patterns (🆕)
+
+```sql
+CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_user_activity_patterns(
+    days_back INT DEFAULT 7 COMMENT 'Days of history to analyze',
+    exclude_system_accounts BOOLEAN DEFAULT TRUE COMMENT 'Exclude system and service accounts'
+)
+RETURNS TABLE(
+    user_id STRING COMMENT 'User or service principal',
+    user_type STRING COMMENT 'HUMAN_USER, SERVICE_PRINCIPAL, or SYSTEM',
+    total_events BIGINT COMMENT 'Total events in period',
+    unique_tables_accessed INT COMMENT 'Distinct tables accessed',
+    avg_events_per_hour DOUBLE COMMENT 'Average events per active hour',
+    max_events_per_hour BIGINT COMMENT 'Peak hourly events',
+    burst_ratio DOUBLE COMMENT 'Peak / Average ratio (high = bursty)',
+    active_hours INT COMMENT 'Number of hours with activity',
+    off_hours_pct DOUBLE COMMENT 'Percent of activity outside 6AM-10PM'
+)
+COMMENT 'LLM: Analyzes user activity patterns for security monitoring.
+Pattern from system-tables-audit-logs repository.
+Use for anomaly detection and access pattern analysis.
+Example: "Which users have bursty activity patterns?"
+Example: "Show me users with significant off-hours activity"'
+RETURN
+    WITH hourly_activity AS (
+        SELECT
+            created_by AS user_id,
+            DATE_TRUNC('hour', event_time) AS activity_hour,
+            COUNT(*) AS events_in_hour,
+            COUNT(DISTINCT COALESCE(source_table_full_name, target_table_full_name)) AS tables_in_hour
+        FROM ${catalog}.${gold_schema}.fact_table_lineage
+        WHERE event_date >= CURRENT_DATE() - INTERVAL days_back DAY
+            AND (NOT exclude_system_accounts OR (
+                created_by NOT LIKE 'system.%'
+                AND created_by NOT LIKE 'databricks-%'
+            ))
+        GROUP BY created_by, DATE_TRUNC('hour', event_time)
+    ),
+    user_stats AS (
+        SELECT
+            user_id,
+            SUM(events_in_hour) AS total_events,
+            COUNT(DISTINCT tables_in_hour) AS unique_tables_accessed,
+            AVG(events_in_hour) AS avg_events_per_hour,
+            MAX(events_in_hour) AS max_events_per_hour,
+            TRY_DIVIDE(MAX(events_in_hour), AVG(events_in_hour)) AS burst_ratio,
+            COUNT(DISTINCT activity_hour) AS active_hours,
+            SUM(CASE WHEN HOUR(activity_hour) < 6 OR HOUR(activity_hour) > 22 THEN events_in_hour ELSE 0 END) * 100.0 /
+                NULLIF(SUM(events_in_hour), 0) AS off_hours_pct
+        FROM hourly_activity
+        GROUP BY user_id
+        HAVING active_hours >= 3  -- Require some activity for meaningful patterns
+    )
+    SELECT
+        user_id,
+        CASE
+            WHEN user_id LIKE 'system.%' THEN 'SYSTEM'
+            WHEN user_id LIKE 'databricks-%' THEN 'PLATFORM'
+            WHEN user_id LIKE '%service-principal%' OR user_id NOT LIKE '%@%' THEN 'SERVICE_PRINCIPAL'
+            ELSE 'HUMAN_USER'
+        END AS user_type,
+        total_events,
+        unique_tables_accessed,
+        avg_events_per_hour,
+        max_events_per_hour,
+        burst_ratio,
+        active_hours,
+        off_hours_pct
+    FROM user_stats
+    ORDER BY burst_ratio DESC;
+```
+
+### From DBSQL Warehouse Advisor Repository
+
+#### TVF: get_query_efficiency_analysis (🆕)
+
+```sql
+CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_query_efficiency_analysis(
+    hours_back INT DEFAULT 24 COMMENT 'Hours of history to analyze',
+    warehouse_filter STRING DEFAULT 'ALL' COMMENT 'Warehouse ID or ALL'
+)
+RETURNS TABLE(
+    warehouse_id STRING COMMENT 'SQL Warehouse ID',
+    warehouse_name STRING COMMENT 'Warehouse name',
+    total_queries BIGINT COMMENT 'Total queries executed',
+    efficient_queries BIGINT COMMENT 'Queries without issues',
+    high_spill_queries BIGINT COMMENT 'Queries with disk spill',
+    high_queue_queries BIGINT COMMENT 'Queries with >10% queue time',
+    slow_queries BIGINT COMMENT 'Queries > 5 minutes',
+    efficiency_rate DOUBLE COMMENT 'Percent of efficient queries',
+    avg_queue_ratio DOUBLE COMMENT 'Average queue/execution ratio',
+    spill_rate DOUBLE COMMENT 'Percent of queries with spill',
+    sizing_indicator STRING COMMENT 'SCALE_UP_NEEDED, OPTIMAL, or SCALE_DOWN_POSSIBLE'
+)
+COMMENT 'LLM: Analyzes query efficiency patterns by warehouse.
+Pattern from DBSQL Warehouse Advisor repository.
+Use for warehouse optimization and scaling decisions.
+Example: "Which warehouses need to scale up?"
+Example: "Show me query efficiency by warehouse"'
+RETURN
+    WITH query_metrics AS (
+        SELECT
+            qh.warehouse_id,
+            dw.warehouse_name,
+            COUNT(*) AS total_queries,
+            SUM(CASE
+                WHEN (COALESCE(qh.spill_local_bytes, 0) + COALESCE(qh.spill_remote_bytes, 0)) = 0
+                 AND qh.waiting_at_capacity_duration_ms <= qh.total_duration_ms * 0.1
+                 AND qh.total_duration_ms <= 300000
+                THEN 1 ELSE 0
+            END) AS efficient_queries,
+            SUM(CASE WHEN (COALESCE(qh.spill_local_bytes, 0) + COALESCE(qh.spill_remote_bytes, 0)) > 0 THEN 1 ELSE 0 END) AS high_spill_queries,
+            SUM(CASE WHEN qh.waiting_at_capacity_duration_ms > qh.total_duration_ms * 0.1 THEN 1 ELSE 0 END) AS high_queue_queries,
+            SUM(CASE WHEN qh.total_duration_ms > 300000 THEN 1 ELSE 0 END) AS slow_queries,
+            AVG(TRY_DIVIDE(qh.waiting_at_capacity_duration_ms * 100.0, qh.total_duration_ms)) AS avg_queue_ratio
+        FROM ${catalog}.${gold_schema}.fact_query_history qh
+        LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse dw
+            ON qh.warehouse_id = dw.warehouse_id AND dw.is_current = TRUE
+        WHERE qh.query_start_time >= CURRENT_TIMESTAMP() - INTERVAL hours_back HOUR
+            AND qh.total_duration_ms > 1000  -- Exclude trivial queries
+            AND (warehouse_filter = 'ALL' OR qh.warehouse_id = warehouse_filter)
+        GROUP BY qh.warehouse_id, dw.warehouse_name
+    )
+    SELECT
+        warehouse_id,
+        warehouse_name,
+        total_queries,
+        efficient_queries,
+        high_spill_queries,
+        high_queue_queries,
+        slow_queries,
+        TRY_DIVIDE(efficient_queries * 100.0, total_queries) AS efficiency_rate,
+        avg_queue_ratio,
+        TRY_DIVIDE(high_spill_queries * 100.0, total_queries) AS spill_rate,
+        CASE
+            WHEN TRY_DIVIDE(high_queue_queries * 100.0, total_queries) > 20 THEN 'SCALE_UP_NEEDED'
+            WHEN total_queries < 50 AND TRY_DIVIDE(efficient_queries * 100.0, total_queries) > 95 THEN 'SCALE_DOWN_POSSIBLE'
+            ELSE 'OPTIMAL'
+        END AS sizing_indicator
+    FROM query_metrics
+    ORDER BY efficiency_rate ASC;
+```
+
+### GitHub Repo TVF Summary
+
+| TVF Name | Source Repo | Domain | Purpose |
+|----------|-------------|--------|---------|
+| `get_cluster_right_sizing_recommendations` | Workflow Advisor | Performance/Cost | Cluster sizing analysis |
+| `get_user_activity_patterns` | system-tables-audit-logs | Security | User behavior analysis |
+| `get_query_efficiency_analysis` | DBSQL Warehouse Advisor | Performance | Warehouse optimization |
+
+**Total New TVFs from GitHub Repos: 3**
+
+---
+
 ## Success Criteria
 
 | Criteria | Target | Measurement |
 |----------|--------|-------------|
-| **TVF Count** | 31 functions | Count in information_schema |
+| **TVF Count** | 62 functions | Count in information_schema (51 + 8 dashboard + 3 GitHub) |
 | **Genie Compatibility** | 100% | All use STRING dates, proper COMMENTS |
 | **Test Coverage** | 100% | Each TVF tested with sample queries |
 | **Documentation** | Complete | LLM comments on every function |
 | **Performance** | <5s response | P95 latency for typical parameters |
+| **Right-Sizing TVFs** | Complete | Cluster and warehouse sizing analysis |
 
 ---
 
@@ -1982,4 +2529,9 @@ resources:
 - [Databricks Table-Valued Functions](https://docs.databricks.com/sql/language-manual/sql-ref-syntax-qry-select-tvf)
 - [Genie Trusted Assets](https://docs.databricks.com/genie/trusted-assets)
 - [Cursor Rule: TVF Patterns](../.cursor/rules/15-databricks-table-valued-functions.mdc)
+
+### GitHub Repository References (🆕)
+- [system-tables-audit-logs](https://github.com/andyweaves/system-tables-audit-logs) - User activity pattern analysis
+- [DBSQL Warehouse Advisor](https://github.com/CodyAustinDavis/dbsql_sme) - Query efficiency and warehouse sizing
+- [Workflow Advisor](https://github.com/yati1002/Workflowadvisor) - Cluster right-sizing recommendations
 

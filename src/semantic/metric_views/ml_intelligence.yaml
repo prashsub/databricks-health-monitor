@@ -1,0 +1,325 @@
+# Metric View: ml_intelligence
+# ML-powered insights for anomaly detection and predictive analytics
+#
+# Source: cost_anomaly_predictions (ml domain)
+# Schema validation done against: ML inference output tables
+#
+# Key Business Questions Answered:
+#   - What cost anomalies were detected today?
+#   - Which workspaces have the highest anomaly scores?
+#   - Show me the trend of anomalies over time
+#   - Are there any high-risk predictions I should investigate?
+#   - What's our overall anomaly rate?
+
+version: "1.1"
+comment: >
+  ML-powered intelligence metrics for anomaly detection and predictive insights.
+  Provides visibility into ML model predictions for proactive monitoring.
+
+  DIMENSIONS: Filter by prediction date, workspace, SKU, anomaly status, risk level.
+
+  MEASURES: Total predictions, anomaly count, anomaly rate, avg/max anomaly scores,
+  high-risk count, cost associated with anomalies.
+
+  Example queries:
+  - "How many cost anomalies were detected today?"
+  - "Which workspaces have the highest anomaly scores?"
+  - "What's our anomaly rate this week?"
+  - "Show anomaly trend over the last 30 days"
+  - "What cost is associated with detected anomalies?"
+
+  NOTE: This view requires the ML inference pipeline to have run at least once.
+  Source: cost_anomaly_predictions from batch inference pipeline.
+
+source: ${catalog}.${feature_schema}.cost_anomaly_predictions
+
+joins:
+  - name: dim_workspace
+    source: ${catalog}.${gold_schema}.dim_workspace
+    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
+
+  - name: dim_sku
+    source: ${catalog}.${gold_schema}.dim_sku
+    'on': source.sku_name = dim_sku.sku_name AND dim_sku.is_current = true
+
+  - name: fact_usage
+    source: ${catalog}.${gold_schema}.fact_usage
+    'on': source.workspace_id = fact_usage.workspace_id AND source.sku_name = fact_usage.sku_name AND source.usage_date = fact_usage.usage_date
+
+dimensions:
+  # === Primary Dimensions ===
+  - name: prediction_date
+    expr: source.usage_date
+    comment: Date of the prediction (aligned with usage date)
+    display_name: Prediction Date
+    synonyms:
+      - date
+      - analysis date
+      - score date
+
+  - name: workspace_id
+    expr: source.workspace_id
+    comment: Workspace identifier for workspace-level anomaly analysis
+    display_name: Workspace ID
+    synonyms:
+      - workspace
+      - ws id
+      - environment id
+
+  - name: workspace_name
+    expr: dim_workspace.workspace_name
+    comment: Human-readable workspace name
+    display_name: Workspace Name
+    synonyms:
+      - workspace
+      - environment
+
+  - name: sku_name
+    expr: source.sku_name
+    comment: SKU name for product-level anomaly analysis
+    display_name: SKU
+    synonyms:
+      - sku
+      - product
+      - compute type
+
+  - name: sku_description
+    expr: dim_sku.sku_description
+    comment: Human-readable SKU description
+    display_name: SKU Description
+    synonyms:
+      - product description
+      - sku desc
+
+  # === Time Dimensions ===
+  - name: year
+    expr: YEAR(source.usage_date)
+    comment: Calendar year for annual analysis
+    display_name: Year
+    synonyms:
+      - calendar year
+
+  - name: quarter
+    expr: QUARTER(source.usage_date)
+    comment: Calendar quarter (1-4)
+    display_name: Quarter
+    synonyms:
+      - q
+      - qtr
+
+  - name: month
+    expr: MONTH(source.usage_date)
+    comment: Month number (1-12)
+    display_name: Month
+    synonyms:
+      - calendar month
+
+  - name: week_of_year
+    expr: WEEKOFYEAR(source.usage_date)
+    comment: Week number for weekly analysis
+    display_name: Week
+    synonyms:
+      - week
+
+  - name: day_of_week
+    expr: DAYOFWEEK(source.usage_date)
+    comment: Day of week (1=Sunday)
+    display_name: Day of Week
+    synonyms:
+      - weekday
+
+  # === Prediction Dimensions ===
+  - name: is_anomaly
+    expr: source.is_anomaly
+    comment: Whether the prediction flagged this as an anomaly
+    display_name: Is Anomaly
+    synonyms:
+      - anomaly
+      - anomalous
+      - flagged
+
+  - name: risk_level
+    expr: CASE WHEN source.anomaly_score >= 0.9 THEN 'CRITICAL' WHEN source.anomaly_score >= 0.7 THEN 'HIGH' WHEN source.anomaly_score >= 0.5 THEN 'MEDIUM' ELSE 'LOW' END
+    comment: Risk level based on anomaly score thresholds
+    display_name: Risk Level
+    synonyms:
+      - severity
+      - alert level
+      - priority
+
+  - name: model_version
+    expr: source.model_version
+    comment: Version of the ML model that generated the prediction
+    display_name: Model Version
+    synonyms:
+      - version
+      - ml version
+
+measures:
+  # === Primary Measures ===
+  - name: total_predictions
+    expr: COUNT(source.prediction_id)
+    comment: Total number of ML predictions generated
+    display_name: Total Predictions
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - predictions
+      - scored records
+      - inference count
+
+  - name: anomaly_count
+    expr: SUM(CASE WHEN source.is_anomaly THEN 1 ELSE 0 END)
+    comment: Count of records flagged as anomalies by ML model
+    display_name: Anomaly Count
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - anomalies
+      - detected anomalies
+      - flagged records
+
+  - name: anomaly_rate
+    expr: (SUM(CASE WHEN source.is_anomaly THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.prediction_id), 0)
+    comment: Percentage of predictions flagged as anomalies
+    display_name: Anomaly Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - anomaly percentage
+      - flag rate
+      - detection rate
+
+  # === Risk Score Measures ===
+  - name: avg_anomaly_score
+    expr: AVG(source.anomaly_score)
+    comment: Average anomaly score across all predictions (0-1 scale)
+    display_name: Avg Anomaly Score
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 3
+    synonyms:
+      - average score
+      - mean score
+      - avg risk
+
+  - name: max_anomaly_score
+    expr: MAX(source.anomaly_score)
+    comment: Maximum anomaly score observed
+    display_name: Max Anomaly Score
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 3
+    synonyms:
+      - highest score
+      - peak score
+      - worst score
+
+  - name: high_risk_count
+    expr: SUM(CASE WHEN source.anomaly_score >= 0.7 THEN 1 ELSE 0 END)
+    comment: Count of high-risk predictions (score >= 0.7)
+    display_name: High Risk Count
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - high risk
+      - critical count
+      - severe anomalies
+
+  - name: critical_count
+    expr: SUM(CASE WHEN source.anomaly_score >= 0.9 THEN 1 ELSE 0 END)
+    comment: Count of critical predictions (score >= 0.9)
+    display_name: Critical Count
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - critical
+      - severe
+      - urgent
+
+  # === Cost Impact Measures ===
+  - name: anomaly_cost
+    expr: SUM(CASE WHEN source.is_anomaly THEN fact_usage.list_cost ELSE 0 END)
+    comment: Total cost associated with anomalous usage
+    display_name: Anomaly Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - flagged cost
+      - anomalous spend
+      - detected cost
+
+  - name: normal_cost
+    expr: SUM(CASE WHEN NOT source.is_anomaly THEN fact_usage.list_cost ELSE 0 END)
+    comment: Total cost associated with normal (non-anomalous) usage
+    display_name: Normal Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - expected cost
+      - normal spend
+
+  - name: anomaly_cost_pct
+    expr: (SUM(CASE WHEN source.is_anomaly THEN fact_usage.list_cost ELSE 0 END) * 100.0) / NULLIF(SUM(fact_usage.list_cost), 0)
+    comment: Percentage of total cost flagged as anomalous
+    display_name: Anomaly Cost %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - anomaly percentage of cost
+      - flagged cost ratio
+
+  # === Coverage Measures ===
+  - name: unique_workspaces
+    expr: COUNT(DISTINCT source.workspace_id)
+    comment: Number of workspaces with predictions
+    display_name: Workspaces Analyzed
+    format:
+      type: number
+    synonyms:
+      - workspace count
+      - environments scored
+
+  - name: unique_skus
+    expr: COUNT(DISTINCT source.sku_name)
+    comment: Number of SKUs with predictions
+    display_name: SKUs Analyzed
+    format:
+      type: number
+    synonyms:
+      - sku count
+      - products scored
+
+  - name: prediction_days
+    expr: COUNT(DISTINCT source.usage_date)
+    comment: Number of days with predictions
+    display_name: Days Analyzed
+    format:
+      type: number
+    synonyms:
+      - days scored
+      - analysis days

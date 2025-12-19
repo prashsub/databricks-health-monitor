@@ -20,7 +20,18 @@ primary_key:
   composite: True
 
 foreign_keys:
-  [] # No foreign keys defined
+  - columns: ['workspace_id']
+    references: dim_workspace(workspace_id)
+    nullable: True
+  - columns: ['entity_metadata_job_id']
+    references: dim_job(job_id)
+    nullable: True
+  - columns: ['entity_metadata_pipeline_id']
+    references: dim_pipeline(pipeline_id)
+    nullable: True
+  - columns: ['statement_id']
+    references: fact_query_history(statement_id)
+    nullable: True
 
 columns:
   - name: account_id
@@ -153,41 +164,53 @@ columns:
     nullable: true
     description: "Query statement identifier. Business: Globally unique ID for SQL statement execution. Links to Query History UI for troubleshooting slow queries, tracking query costs, and analyzing query patterns. Can join with lineage tables. Technical: STRING UUID from Databricks SQL engine, globally unique across all workspaces/warehouses. Primary key for query history, foreign key from lineage tables."
 
-  # === Flattened Nested Columns ===
+  # === Flattened Entity Metadata Columns (for FK relationships) ===
 
-  - name: entity_metadata_job_info
+  - name: entity_metadata_job_id
     type: STRING
     nullable: true
-    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: job_info]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.job_info, STRING type, nullable."
-    # Flattened from: entity_metadata.job_info
+    description: "Job ID from entity metadata. Business: Links lineage event to the job that caused it. Enables analysis of which jobs read/write which columns. FK to dim_job. Technical: Extracted from entity_metadata.job_info.job_id, STRING type."
+    # Flattened from: entity_metadata.job_info.job_id
+
+  - name: entity_metadata_job_run_id
+    type: STRING
+    nullable: true
+    description: "Job run ID from entity metadata. Business: Links to specific job execution that caused this lineage event. Enables drill-down from lineage to job run details. Technical: Extracted from entity_metadata.job_info.job_run_id, STRING type."
+    # Flattened from: entity_metadata.job_info.job_run_id
 
   - name: entity_metadata_dashboard_id
     type: STRING
     nullable: true
-    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: dashboard_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.dashboard_id, STRING type, nullable."
+    description: "AI/BI Dashboard ID that generated this lineage. Business: Links lineage to dashboard for understanding dashboard data dependencies. Technical: Extracted from entity_metadata.dashboard_id, STRING type."
     # Flattened from: entity_metadata.dashboard_id
 
   - name: entity_metadata_legacy_dashboard_id
     type: STRING
     nullable: true
-    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: legacy_dashboard_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.legacy_dashboard_id, STRING type, nullable."
+    description: "Legacy DBSQL Dashboard ID that generated this lineage. Business: Links lineage to legacy dashboards for migration planning. Technical: Extracted from entity_metadata.legacy_dashboard_id, STRING type."
     # Flattened from: entity_metadata.legacy_dashboard_id
 
   - name: entity_metadata_notebook_id
     type: STRING
     nullable: true
-    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: notebook_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.notebook_id, STRING type, nullable."
+    description: "Notebook ID that generated this lineage. Business: Links lineage to notebook for understanding notebook data dependencies. Technical: Extracted from entity_metadata.notebook_id, STRING type."
     # Flattened from: entity_metadata.notebook_id
 
   - name: entity_metadata_sql_query_id
     type: STRING
     nullable: true
-    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: sql_query_id]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.sql_query_id, STRING type, nullable."
+    description: "SQL Query ID that generated this lineage. Business: Links lineage to saved SQL query for understanding query data dependencies. Technical: Extracted from entity_metadata.sql_query_id, STRING type."
     # Flattened from: entity_metadata.sql_query_id
 
-  - name: entity_metadata_dlt_pipeline_info
+  - name: entity_metadata_pipeline_id
     type: STRING
     nullable: true
-    description: "It is a list of ids of the query context which is joinable with other system tables. [Nested field: dlt_pipeline_info]. Business: Extracted from nested structure for direct SQL access without JSON parsing. Enables efficient filtering and joins on this attribute. Technical: Flattened from entity_metadata.dlt_pipeline_info, STRING type, nullable."
-    # Flattened from: entity_metadata.dlt_pipeline_info
+    description: "DLT Pipeline ID from entity metadata. Business: Links lineage event to the DLT pipeline that caused it. FK to dim_pipeline. Enables analysis of pipeline data flows. Technical: Extracted from entity_metadata.dlt_pipeline_info.dlt_pipeline_id, STRING type."
+    # Flattened from: entity_metadata.dlt_pipeline_info.dlt_pipeline_id
+
+  - name: entity_metadata_pipeline_update_id
+    type: STRING
+    nullable: true
+    description: "DLT Pipeline Update ID from entity metadata. Business: Links to specific pipeline update that caused this lineage event. Enables drill-down from lineage to pipeline run details. Technical: Extracted from entity_metadata.dlt_pipeline_info.dlt_update_id, STRING type."
+    # Flattened from: entity_metadata.dlt_pipeline_info.dlt_update_id
 

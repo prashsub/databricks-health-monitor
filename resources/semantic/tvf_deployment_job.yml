@@ -1,0 +1,42 @@
+# TVF Deployment Job
+# Deploys all Table-Valued Functions to Unity Catalog
+#
+# TVFs enable:
+#   - Reusable parameterized SQL functions
+#   - Genie natural language queries
+#   - Consistent business logic across dashboards
+#
+# Run after Gold layer setup
+# Reference: https://docs.databricks.com/sql/language-manual/sql-ref-syntax-ddl-create-sql-function
+
+resources:
+  jobs:
+    tvf_deployment_job:
+      name: "[${bundle.target}] Health Monitor - TVF Deployment"
+      description: "Deploys all Table-Valued Functions for analytics and Genie queries"
+
+      tasks:
+        - task_key: deploy_all_tvfs
+          notebook_task:
+            notebook_path: ../../src/tvfs/deploy_tvfs.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+      # No schedule - run on demand after Gold setup
+      # Can also be triggered after schema changes
+
+      # Timeout: 30 minutes
+      timeout_seconds: 1800
+
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: semantic
+        job_type: deployment
+        compute_type: serverless

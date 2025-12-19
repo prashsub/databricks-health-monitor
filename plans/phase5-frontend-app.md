@@ -67,6 +67,7 @@
 | **State** | React Server Components + SWR | Server-first, minimal client state |
 | **Backend** | Next.js API Routes | Unified codebase, automatic code splitting |
 | **Databricks SDK** | @databricks/sql | Native SQL connectivity |
+| **OLTP Database** | Lakebase (PostgreSQL) | App state, chat history, user preferences |
 | **Deployment** | Databricks Apps | Native integration, SSO, permissions |
 | **Auth** | Databricks OAuth | Unified authentication |
 
@@ -81,12 +82,28 @@
     "ai": "^3.0.0",
     "@ai-sdk/openai": "^0.0.40",
     "@databricks/sql": "^1.8.0",
+    "pg": "^8.11.0",
     "recharts": "^2.12.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.4.0",
     "zod": "^3.22.0"
   }
 }
+```
+
+### Python Backend Dependencies (for Lakebase)
+
+If using a Python API layer (FastAPI) alongside Next.js for Lakebase:
+
+```txt
+# requirements.txt
+databricks-sdk>=0.60.0
+sqlalchemy>=2.0.0
+asyncpg>=0.29.0
+psycopg[binary,pool]>=3.1.0
+python-dotenv>=1.0.0
+fastapi>=0.111.0
+uvicorn>=0.30.0
 ```
 
 ---
@@ -148,12 +165,18 @@ src/frontend_app/
 │   ├── databricks/
 │   │   ├── client.ts            # Databricks SDK client
 │   │   ├── sql.ts               # SQL query utilities
-│   │   └── serving.ts           # Model serving utilities
+│   │   ├── serving.ts           # Model serving utilities
+│   │   └── lakebase.ts          # Lakebase PostgreSQL connection
 │   ├── agents/
 │   │   ├── cost-agent.ts        # Cost analysis agent
 │   │   ├── security-agent.ts    # Security agent
 │   │   ├── performance-agent.ts # Performance agent
 │   │   └── orchestrator.ts      # Agent orchestrator
+│   ├── db/
+│   │   ├── schema.ts            # Lakebase table schemas
+│   │   ├── chat-history.ts      # Chat history persistence
+│   │   ├── user-preferences.ts  # User settings storage
+│   │   └── alerts.ts            # Alert configurations
 │   └── utils/
 │       ├── format.ts            # Formatting utilities
 │       └── constants.ts         # App constants
@@ -192,6 +215,32 @@ env:
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: sql-warehouse
 
+  # Lakebase PostgreSQL Configuration
+  - name: LAKEBASE_INSTANCE_NAME
+    value: 'health-monitor-db'
+
+  - name: LAKEBASE_DATABASE_NAME
+    value: 'health_monitor_app'
+
+  - name: LAKEBASE_CATALOG_NAME
+    value: 'health-monitor-pg-catalog'
+
+  # Database Connection Pool Settings
+  - name: DB_POOL_SIZE
+    value: '5'
+
+  - name: DB_MAX_OVERFLOW
+    value: '10'
+
+  - name: DB_POOL_TIMEOUT
+    value: '10'
+
+  - name: DB_POOL_RECYCLE_INTERVAL
+    value: '3600'
+
+  - name: DATABRICKS_DATABASE_PORT
+    value: '5432'
+
   # Unity Catalog Configuration
   - name: DATABRICKS_CATALOG
     value: 'health_monitor'
@@ -223,6 +272,9 @@ variables:
   warehouse_id:
     description: SQL Warehouse ID
     default: "your-warehouse-id"
+  lakebase_instance:
+    description: Lakebase PostgreSQL instance name
+    default: "health-monitor-db"
 
 resources:
   apps:
@@ -253,6 +305,10 @@ resources:
           genie_space:
             id: "your-genie-space-id"
             permission: "CAN_VIEW"
+
+        # Lakebase PostgreSQL Instance (for app state & chat history)
+        # Note: Lakebase is configured via environment variables
+        # The app service principal needs access to the Lakebase instance
 
 targets:
   dev:
@@ -584,6 +640,381 @@ export async function getCostTrend(days: number = 30) {
     GROUP BY usage_date
     ORDER BY usage_date
   `);
+}
+```
+
+### 5. Lakebase PostgreSQL Integration
+
+**Reference:** [Databricks Apps Cookbook - Lakebase Connection](https://github.com/databricks-solutions/databricks-apps-cookbook/blob/main/docs/docs/fastapi/getting_started/lakebase_connection.mdx)
+
+Lakebase provides OLTP PostgreSQL storage for transactional app data such as:
+- **Chat History**: Persist conversation threads across sessions
+- **User Preferences**: Store dashboard layouts, alert configurations
+- **Alert Rules**: Custom alert definitions and thresholds
+- **App State**: Session management and feature flags
+
+**`lib/databricks/lakebase.ts`** - Lakebase Connection with Token Rotation
+
+```typescript
+import { WorkspaceClient } from '@databricks/sdk';
+import { Pool, PoolClient } from 'pg';
+import { v4 as uuidv4 } from 'uuid';
+
+// Global state for token management
+let postgresPassword: string | null = null;
+let lastPasswordRefresh: number = 0;
+let pool: Pool | null = null;
+let workspaceClient: WorkspaceClient | null = null;
+
+const TOKEN_REFRESH_INTERVAL = 50 * 60 * 1000; // 50 minutes
+
+/**
+ * Custom connection class that rotates OAuth tokens
+ */
+async function getRotatingToken(): Promise<string> {
+  const now = Date.now();
+  
+  // Check if token needs refresh (every 50 minutes)
+  if (!postgresPassword || now - lastPasswordRefresh > TOKEN_REFRESH_INTERVAL) {
+    if (!workspaceClient) {
+      workspaceClient = new WorkspaceClient();
+    }
+    
+    const instanceName = process.env.LAKEBASE_INSTANCE_NAME!;
+    const credential = await workspaceClient.database.generateDatabaseCredential({
+      requestId: uuidv4(),
+      instanceNames: [instanceName],
+    });
+    
+    postgresPassword = credential.token;
+    lastPasswordRefresh = now;
+    console.log('Lakebase: OAuth token refreshed');
+  }
+  
+  return postgresPassword!;
+}
+
+/**
+ * Initialize the Lakebase connection pool
+ */
+export async function initLakebase(): Promise<Pool> {
+  if (pool) return pool;
+
+  workspaceClient = new WorkspaceClient();
+  const instanceName = process.env.LAKEBASE_INSTANCE_NAME!;
+  
+  // Get database instance details
+  const dbInstance = await workspaceClient.database.getDatabaseInstance({
+    name: instanceName,
+  });
+
+  // Get initial token
+  const token = await getRotatingToken();
+
+  // Create connection pool
+  pool = new Pool({
+    host: dbInstance.readWriteDns,
+    port: parseInt(process.env.DATABRICKS_DATABASE_PORT || '5432'),
+    database: process.env.LAKEBASE_DATABASE_NAME!,
+    user: process.env.DATABRICKS_CLIENT_ID || (await workspaceClient.currentUser.me()).userName,
+    password: token,
+    ssl: { rejectUnauthorized: true },
+    max: parseInt(process.env.DB_POOL_SIZE || '5'),
+    idleTimeoutMillis: parseInt(process.env.DB_POOL_TIMEOUT || '10') * 1000,
+    connectionTimeoutMillis: 30000,
+  });
+
+  // Set up token rotation on acquire
+  pool.on('acquire', async (client: PoolClient) => {
+    const freshToken = await getRotatingToken();
+    // Note: pg doesn't support password rotation per-connection
+    // For production, consider using pgbouncer or connection factory pattern
+  });
+
+  console.log(`Lakebase: Connection pool initialized for ${process.env.LAKEBASE_DATABASE_NAME}`);
+  return pool;
+}
+
+/**
+ * Execute a query with automatic connection management
+ */
+export async function queryLakebase<T>(sql: string, params?: any[]): Promise<T[]> {
+  const p = await initLakebase();
+  const client = await p.connect();
+  
+  try {
+    const result = await client.query(sql, params);
+    return result.rows as T[];
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Health check for Lakebase connection
+ */
+export async function lakebaseHealth(): Promise<boolean> {
+  try {
+    await queryLakebase('SELECT 1');
+    return true;
+  } catch (error) {
+    console.error('Lakebase health check failed:', error);
+    return false;
+  }
+}
+```
+
+**`lib/db/schema.ts`** - Lakebase Table Schemas
+
+```typescript
+import { queryLakebase } from '../databricks/lakebase';
+
+/**
+ * Initialize Lakebase tables for the Health Monitor app
+ */
+export async function initializeSchema(): Promise<void> {
+  // Chat history table
+  await queryLakebase(`
+    CREATE TABLE IF NOT EXISTS chat_conversations (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT NOT NULL,
+      agent_type TEXT NOT NULL,
+      title TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await queryLakebase(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      conversation_id UUID REFERENCES chat_conversations(id) ON DELETE CASCADE,
+      role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system', 'tool')),
+      content TEXT NOT NULL,
+      tool_calls JSONB,
+      tool_results JSONB,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // User preferences table
+  await queryLakebase(`
+    CREATE TABLE IF NOT EXISTS user_preferences (
+      user_id TEXT PRIMARY KEY,
+      dashboard_layout JSONB DEFAULT '{}',
+      default_filters JSONB DEFAULT '{}',
+      notification_settings JSONB DEFAULT '{}',
+      theme TEXT DEFAULT 'dark',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Alert configurations table
+  await queryLakebase(`
+    CREATE TABLE IF NOT EXISTS alert_rules (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      rule_type TEXT NOT NULL,
+      conditions JSONB NOT NULL,
+      actions JSONB NOT NULL,
+      enabled BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Alert history table
+  await queryLakebase(`
+    CREATE TABLE IF NOT EXISTS alert_history (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      rule_id UUID REFERENCES alert_rules(id) ON DELETE CASCADE,
+      triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      severity TEXT NOT NULL,
+      message TEXT NOT NULL,
+      context JSONB,
+      acknowledged BOOLEAN DEFAULT false,
+      acknowledged_at TIMESTAMP,
+      acknowledged_by TEXT
+    )
+  `);
+
+  console.log('Lakebase: Schema initialized');
+}
+```
+
+**`lib/db/chat-history.ts`** - Chat History Persistence
+
+```typescript
+import { queryLakebase } from '../databricks/lakebase';
+import { Message } from 'ai';
+
+interface Conversation {
+  id: string;
+  userId: string;
+  agentType: string;
+  title: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Create a new conversation
+ */
+export async function createConversation(
+  userId: string,
+  agentType: string,
+  title?: string
+): Promise<string> {
+  const result = await queryLakebase<{ id: string }>(
+    `INSERT INTO chat_conversations (user_id, agent_type, title)
+     VALUES ($1, $2, $3)
+     RETURNING id`,
+    [userId, agentType, title || null]
+  );
+  return result[0].id;
+}
+
+/**
+ * Save a message to a conversation
+ */
+export async function saveMessage(
+  conversationId: string,
+  message: Message
+): Promise<void> {
+  await queryLakebase(
+    `INSERT INTO chat_messages (conversation_id, role, content, tool_calls, tool_results)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [
+      conversationId,
+      message.role,
+      message.content,
+      message.toolInvocations ? JSON.stringify(message.toolInvocations) : null,
+      null, // tool_results handled separately
+    ]
+  );
+
+  // Update conversation timestamp
+  await queryLakebase(
+    `UPDATE chat_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [conversationId]
+  );
+}
+
+/**
+ * Get conversation history for a user
+ */
+export async function getConversations(
+  userId: string,
+  limit: number = 20
+): Promise<Conversation[]> {
+  return queryLakebase<Conversation>(
+    `SELECT id, user_id as "userId", agent_type as "agentType", title, 
+            created_at as "createdAt", updated_at as "updatedAt"
+     FROM chat_conversations
+     WHERE user_id = $1
+     ORDER BY updated_at DESC
+     LIMIT $2`,
+    [userId, limit]
+  );
+}
+
+/**
+ * Get messages for a conversation
+ */
+export async function getMessages(conversationId: string): Promise<Message[]> {
+  const rows = await queryLakebase<{
+    id: string;
+    role: string;
+    content: string;
+    tool_calls: any;
+    created_at: Date;
+  }>(
+    `SELECT id, role, content, tool_calls, created_at
+     FROM chat_messages
+     WHERE conversation_id = $1
+     ORDER BY created_at ASC`,
+    [conversationId]
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    role: row.role as Message['role'],
+    content: row.content,
+    toolInvocations: row.tool_calls,
+  }));
+}
+```
+
+**`lib/db/user-preferences.ts`** - User Settings Storage
+
+```typescript
+import { queryLakebase } from '../databricks/lakebase';
+
+interface UserPreferences {
+  userId: string;
+  dashboardLayout: Record<string, any>;
+  defaultFilters: Record<string, any>;
+  notificationSettings: Record<string, any>;
+  theme: 'dark' | 'light';
+}
+
+/**
+ * Get user preferences (creates default if not exists)
+ */
+export async function getUserPreferences(userId: string): Promise<UserPreferences> {
+  const result = await queryLakebase<UserPreferences>(
+    `INSERT INTO user_preferences (user_id)
+     VALUES ($1)
+     ON CONFLICT (user_id) DO UPDATE SET user_id = user_preferences.user_id
+     RETURNING 
+       user_id as "userId",
+       dashboard_layout as "dashboardLayout",
+       default_filters as "defaultFilters",
+       notification_settings as "notificationSettings",
+       theme`,
+    [userId]
+  );
+  return result[0];
+}
+
+/**
+ * Update user preferences
+ */
+export async function updateUserPreferences(
+  userId: string,
+  updates: Partial<Omit<UserPreferences, 'userId'>>
+): Promise<void> {
+  const setClause: string[] = [];
+  const values: any[] = [userId];
+  let paramIndex = 2;
+
+  if (updates.dashboardLayout !== undefined) {
+    setClause.push(`dashboard_layout = $${paramIndex++}`);
+    values.push(JSON.stringify(updates.dashboardLayout));
+  }
+  if (updates.defaultFilters !== undefined) {
+    setClause.push(`default_filters = $${paramIndex++}`);
+    values.push(JSON.stringify(updates.defaultFilters));
+  }
+  if (updates.notificationSettings !== undefined) {
+    setClause.push(`notification_settings = $${paramIndex++}`);
+    values.push(JSON.stringify(updates.notificationSettings));
+  }
+  if (updates.theme !== undefined) {
+    setClause.push(`theme = $${paramIndex++}`);
+    values.push(updates.theme);
+  }
+
+  if (setClause.length > 0) {
+    setClause.push('updated_at = CURRENT_TIMESTAMP');
+    await queryLakebase(
+      `UPDATE user_preferences SET ${setClause.join(', ')} WHERE user_id = $1`,
+      values
+    );
+  }
 }
 ```
 
@@ -923,6 +1354,18 @@ DATABRICKS_CLIENT_SECRET=<service-principal-client-secret>
 DATABRICKS_WAREHOUSE_ID=<warehouse-id>
 SERVING_ENDPOINT_NAME=<model-serving-endpoint>
 
+# Lakebase PostgreSQL Configuration
+LAKEBASE_INSTANCE_NAME=health-monitor-db
+LAKEBASE_DATABASE_NAME=health_monitor_app
+LAKEBASE_CATALOG_NAME=health-monitor-pg-catalog
+DATABRICKS_DATABASE_PORT=5432
+
+# Database Connection Pool Settings
+DB_POOL_SIZE=5
+DB_MAX_OVERFLOW=10
+DB_POOL_TIMEOUT=10
+DB_POOL_RECYCLE_INTERVAL=3600
+
 # Application Configuration
 DATABRICKS_CATALOG=health_monitor
 DATABRICKS_SCHEMA_GOLD=gold
@@ -1016,6 +1459,9 @@ jobs:
 - [ ] Mobile-responsive design (Tailwind breakpoints)
 - [ ] SSO authentication via Databricks service principal
 - [ ] Sub-second page load times (Server Components)
+- [ ] Lakebase PostgreSQL integration for app state persistence
+- [ ] Chat history persisted across sessions
+- [ ] User preferences stored in Lakebase
 - [ ] Deployed to Databricks Apps
 - [ ] CI/CD pipeline with automated tests
 - [ ] User documentation complete
@@ -1040,3 +1486,10 @@ jobs:
 ### Databricks SDK
 - [@databricks/sql](https://www.npmjs.com/package/@databricks/sql)
 - [Databricks SQL Driver for Node.js](https://docs.databricks.com/en/dev-tools/nodejs-sql-driver.html)
+
+### Lakebase (PostgreSQL OLTP)
+- [Databricks Apps Cookbook - Lakebase Connection](https://github.com/databricks-solutions/databricks-apps-cookbook/blob/main/docs/docs/fastapi/getting_started/lakebase_connection.mdx)
+- [Databricks Apps Cookbook - OLTP Database](https://github.com/databricks-solutions/databricks-apps-cookbook/blob/main/docs/docs/dash/tables/oltp_database.mdx)
+- [Lakebase Database Instance API](https://docs.databricks.com/api/workspace/database)
+- [psycopg (Python PostgreSQL adapter)](https://www.psycopg.org/psycopg3/docs/)
+- [pg (Node.js PostgreSQL client)](https://node-postgres.com/)

@@ -52,7 +52,7 @@ resources:
         job_type: refresh
         compute_type: serverless
         streaming_tables: "24"
-        nonstreaming_tables: "8"
+        nonstreaming_tables: "9"
 
 
 

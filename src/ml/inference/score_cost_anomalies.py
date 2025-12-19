@@ -1,27 +1,28 @@
 # Databricks notebook source
 """
-Cost Anomaly Scoring - Batch Inference
+Score Cost Anomalies - Batch Inference
 ======================================
 
-Scores cost data using the trained cost anomaly detection model.
-Results are stored in an inference table for dashboards and alerting.
+Runs batch inference using the trained Cost Anomaly Detector model
+and stores predictions in an inference table for monitoring.
 
-MLflow 3.0 Features:
-- Load model from Unity Catalog with alias
-- Feature lookup from Feature Engineering tables
-- Store predictions in inference table
-
-Reference: https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-inference/
+MLflow 3.1+ Best Practices:
+- Loads model from Unity Catalog
+- Signature-driven preprocessing
+- Proper exit signaling
 """
 
 # COMMAND ----------
 
-import mlflow
-from mlflow.tracking import MlflowClient
-import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+import mlflow
+from mlflow import MlflowClient
+import pandas as pd
+import numpy as np
 from datetime import datetime
+
+mlflow.set_registry_uri("databricks-uc")
 
 # COMMAND ----------
 
@@ -34,211 +35,162 @@ def get_parameters():
 
 # COMMAND ----------
 
-def load_model_from_uc(catalog: str, schema: str, model_name: str, alias: str = "champion"):
-    """
-    Load a model from Unity Catalog using alias.
+def load_model_with_signature(catalog: str, feature_schema: str):
+    """Load model and extract signature for preprocessing validation."""
+    model_name = f"{catalog}.{feature_schema}.cost_anomaly_detector"
     
-    MLflow 3.0: Models use aliases instead of stages.
-    'champion' is the production-ready model.
+    client = MlflowClient()
     
-    Args:
-        catalog: Unity Catalog name
-        schema: Schema name
-        model_name: Short model name
-        alias: Model alias (default: champion)
-        
-    Returns:
-        Loaded model
-    """
-    mlflow.set_registry_uri("databricks-uc")
-    
-    full_model_name = f"{catalog}.{schema}.health_monitor_{model_name}"
-    model_uri = f"models:/{full_model_name}@{alias}"
+    try:
+        # Try to get latest version
+        versions = client.search_model_versions(f"name='{model_name}'")
+        if versions:
+            latest = max(versions, key=lambda v: int(v.version))
+            model_uri = f"models:/{model_name}/{latest.version}"
+            print(f"✓ Using model version {latest.version}")
+        else:
+            model_uri = f"models:/{model_name}/1"
+    except Exception as e:
+        print(f"⚠ Version lookup failed: {e}, using version 1")
+        model_uri = f"models:/{model_name}/1"
     
     print(f"Loading model: {model_uri}")
     model = mlflow.pyfunc.load_model(model_uri)
     
-    return model
+    # Extract signature if available
+    signature = getattr(model.metadata, 'signature', None)
+    if signature:
+        print(f"  Input schema: {[inp.name for inp in signature.inputs]}")
+    
+    return model, model_name, signature
 
 # COMMAND ----------
 
-def load_features_for_scoring(spark, catalog: str, feature_schema: str) -> pd.DataFrame:
-    """
-    Load recent features for anomaly scoring.
-    
-    Scores the last 24 hours of data for real-time anomaly detection.
-    """
+def load_features(spark: SparkSession, catalog: str, feature_schema: str):
+    """Load latest cost features for scoring."""
     feature_table = f"{catalog}.{feature_schema}.cost_features"
+    print(f"Loading features from {feature_table}...")
     
-    df = spark.sql(f"""
-        SELECT *
-        FROM {feature_table}
-        WHERE usage_date >= CURRENT_DATE() - INTERVAL 1 DAY
-    """).toPandas()
+    features_df = spark.table(feature_table)
+    print(f"✓ Loaded {features_df.count()} rows")
     
-    print(f"Features loaded: {len(df)} rows")
-    return df
+    return features_df
 
 # COMMAND ----------
 
-def score_anomalies(model, df: pd.DataFrame) -> pd.DataFrame:
+def prepare_features_for_inference(pdf: pd.DataFrame, feature_columns: list, signature=None):
     """
-    Score data for cost anomalies.
+    Prepare features matching training preprocessing.
     
-    Args:
-        model: Loaded MLflow model
-        df: DataFrame with features
-        
-    Returns:
-        DataFrame with predictions added
+    CRITICAL: Must replicate exact preprocessing from training.
     """
+    X = pdf[feature_columns].copy()
+    
+    # Type conversions (matching training)
+    for col in feature_columns:
+        X[col] = pd.to_numeric(X[col], errors='coerce')
+    
+    # Handle missing and infinite values
+    X = X.fillna(0).replace([np.inf, -np.inf], 0)
+    
+    return X
+
+# COMMAND ----------
+
+def score_anomalies(model, features_df, signature):
+    """Score features using the model."""
     feature_columns = [
-        "daily_dbu", "job_count", "cluster_count", "warehouse_count",
-        "dow_sin", "dow_cos", "dom_sin", "dom_cos",
-        "is_weekend", "is_month_end",
-        "dbu_7day_avg", "dbu_7day_std", "dbu_30day_avg",
-        "z_score", "pct_change_7day"
+        "daily_dbu", "avg_dbu_7d", "avg_dbu_30d", "z_score_7d", "z_score_30d",
+        "dbu_change_pct_1d", "dbu_change_pct_7d", "dow_sin", "dow_cos", "is_weekend", "is_month_end"
     ]
     
-    # Ensure all columns exist and fill missing
-    for col in feature_columns:
-        if col not in df.columns:
-            df[col] = 0
+    pandas_df = features_df.select(
+        ["workspace_id", "sku_name", "usage_date"] + feature_columns
+    ).toPandas()
     
-    X = df[feature_columns].fillna(0)
+    X = prepare_features_for_inference(pandas_df, feature_columns, signature)
     
-    # Get predictions
-    predictions = model.predict(X)
+    # Get underlying sklearn model for full functionality
+    sklearn_model = model._model_impl.sklearn_model
+    predictions = sklearn_model.predict(X)
+    anomaly_scores = sklearn_model.decision_function(X)
     
-    # Isolation Forest returns -1 for anomaly, 1 for normal
-    df["anomaly_prediction"] = predictions
-    df["is_anomaly"] = (predictions == -1).astype(int)
-    df["scored_at"] = datetime.now()
+    pandas_df["is_anomaly"] = (predictions == -1).astype(int)
+    pandas_df["anomaly_score"] = anomaly_scores
+    pandas_df["scored_at"] = datetime.now()
     
-    anomaly_count = df["is_anomaly"].sum()
-    print(f"Anomalies detected: {anomaly_count} ({anomaly_count/len(df)*100:.2f}%)")
+    n_anomalies = pandas_df["is_anomaly"].sum()
+    print(f"✓ Scored {len(pandas_df)} records, found {n_anomalies} anomalies")
     
-    return df
+    return pandas_df
 
 # COMMAND ----------
 
-def save_predictions(
-    spark,
-    df: pd.DataFrame,
-    catalog: str,
-    schema: str,
-    table_name: str = "cost_anomaly_predictions"
-):
-    """
-    Save predictions to an inference table in Unity Catalog.
+def save_predictions(spark: SparkSession, predictions_df: pd.DataFrame, 
+                     catalog: str, feature_schema: str, model_name: str):
+    """Save predictions to inference table."""
+    spark_df = spark.createDataFrame(predictions_df)
+    spark_df = spark_df.withColumn("model_name", F.lit(model_name))
     
-    Uses MERGE to update existing records and insert new ones.
-    """
-    full_table_name = f"{catalog}.{schema}.{table_name}"
+    output_table = f"{catalog}.{feature_schema}.cost_anomaly_predictions"
+    print(f"Saving predictions to {output_table}...")
     
-    # Convert to Spark DataFrame
-    spark_df = spark.createDataFrame(df)
+    spark_df.write.format("delta").mode("append").saveAsTable(output_table)
+    print(f"✓ Predictions saved")
     
-    # Create table if not exists
-    spark.sql(f"""
-        CREATE TABLE IF NOT EXISTS {full_table_name} (
-            workspace_id STRING,
-            sku_name STRING,
-            usage_date DATE,
-            daily_dbu DOUBLE,
-            is_anomaly INT,
-            anomaly_prediction INT,
-            z_score DOUBLE,
-            pct_change_7day DOUBLE,
-            scored_at TIMESTAMP
-        )
-        USING DELTA
-        CLUSTER BY AUTO
-        TBLPROPERTIES (
-            'delta.enableChangeDataFeed' = 'true',
-            'layer' = 'inference',
-            'model' = 'cost_anomaly_detector'
-        )
-        COMMENT 'Cost anomaly detection predictions from ML model'
-    """)
+    return output_table
+
+# COMMAND ----------
+
+def generate_alerts(predictions_df: pd.DataFrame):
+    """Generate alerts for detected anomalies."""
+    anomalies = predictions_df[predictions_df["is_anomaly"] == 1]
     
-    # Create temp view for merge
-    spark_df.createOrReplaceTempView("new_predictions")
+    if len(anomalies) == 0:
+        print("No anomalies detected")
+        return
     
-    # Merge predictions
-    spark.sql(f"""
-        MERGE INTO {full_table_name} AS target
-        USING new_predictions AS source
-        ON target.workspace_id = source.workspace_id
-           AND target.sku_name = source.sku_name
-           AND target.usage_date = source.usage_date
-        WHEN MATCHED THEN UPDATE SET *
-        WHEN NOT MATCHED THEN INSERT *
-    """)
+    print("\n" + "=" * 60)
+    print("COST ANOMALY ALERTS")
+    print("=" * 60)
     
-    print(f"Predictions saved to {full_table_name}")
+    anomalies = anomalies.sort_values("anomaly_score")
+    
+    for _, row in anomalies.head(10).iterrows():
+        print(f"\n🚨 ANOMALY: {row['workspace_id']} / {row['sku_name']}")
+        print(f"   Date: {row['usage_date']}, DBU: {row['daily_dbu']:.2f}, Z-Score: {row['z_score_7d']:.2f}")
+    
+    if len(anomalies) > 10:
+        print(f"\n... and {len(anomalies) - 10} more")
 
 # COMMAND ----------
 
 def main():
-    """Main inference pipeline."""
-    print("\n" + "=" * 80)
-    print("Cost Anomaly Scoring - Batch Inference")
-    print("=" * 80)
+    """Main entry point for batch inference."""
+    print("\n" + "=" * 60)
+    print("COST ANOMALY DETECTION - BATCH INFERENCE")
+    print("=" * 60)
     
     catalog, gold_schema, feature_schema = get_parameters()
-    
-    spark = SparkSession.builder.appName("Cost Anomaly Scoring").getOrCreate()
+    spark = SparkSession.builder.getOrCreate()
     
     try:
-        # Load model
-        model = load_model_from_uc(
-            catalog=catalog,
-            schema=feature_schema,
-            model_name="cost_anomaly_detector"
-        )
+        model, model_name, signature = load_model_with_signature(catalog, feature_schema)
+        features_df = load_features(spark, catalog, feature_schema)
+        predictions_df = score_anomalies(model, features_df, signature)
+        output_table = save_predictions(spark, predictions_df, catalog, feature_schema, model_name)
+        generate_alerts(predictions_df)
         
-        # Load features
-        df = load_features_for_scoring(spark, catalog, feature_schema)
-        
-        if len(df) == 0:
-            print("No data to score. Exiting.")
-            return
-        
-        # Score anomalies
-        scored_df = score_anomalies(model, df)
-        
-        # Save predictions
-        save_predictions(
-            spark=spark,
-            df=scored_df,
-            catalog=catalog,
-            schema=feature_schema,
-            table_name="cost_anomaly_predictions"
-        )
-        
-        # Log high-severity anomalies
-        high_severity = scored_df[
-            (scored_df["is_anomaly"] == 1) & 
-            (scored_df["z_score"].abs() > 3)
-        ]
-        
-        if len(high_severity) > 0:
-            print(f"\n⚠️ HIGH-SEVERITY ANOMALIES: {len(high_severity)}")
-            print(high_severity[["workspace_id", "sku_name", "usage_date", "daily_dbu", "z_score"]].to_string())
-        
-        print("\n" + "=" * 80)
-        print("✓ Cost Anomaly Scoring Complete!")
-        print("=" * 80)
+        print("\n✓ BATCH INFERENCE COMPLETE")
         
     except Exception as e:
-        print(f"\n❌ Error during scoring: {str(e)}")
-        raise
-    finally:
-        spark.stop()
+        import traceback
+        print(f"❌ Error: {e}\n{traceback.format_exc()}")
+        dbutils.notebook.exit(f"FAILED: {e}")
+    
+    dbutils.notebook.exit("SUCCESS")
 
 # COMMAND ----------
 
 if __name__ == "__main__":
     main()
-

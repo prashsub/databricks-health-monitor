@@ -1,0 +1,95 @@
+{
+  "displayName": "Cluster Utilization Dashboard",
+  "warehouse_id": "${warehouse_id}",
+  "pages": [
+    {
+      "name": "page_cluster_util",
+      "displayName": "Cluster Utilization",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_avg_cpu",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_avg_cpu", "fields": [{"name": "avg_cpu", "expression": "`avg_cpu`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "avg_cpu"}}, "frame": {"showTitle": true, "title": "Avg CPU Util (7d)"}}
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_memory",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_avg_memory", "fields": [{"name": "avg_memory", "expression": "`avg_memory`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "avg_memory"}}, "frame": {"showTitle": true, "title": "Avg Memory Util (7d)"}}
+          },
+          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_active_clusters",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_active_clusters", "fields": [{"name": "active_clusters", "expression": "`active_clusters`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "active_clusters"}}, "frame": {"showTitle": true, "title": "Active Clusters (7d)"}}
+          },
+          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "chart_cpu_trend",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_cpu_trend", "fields": [{"name": "day", "expression": "`day`"}, {"name": "avg_cpu_user", "expression": "`avg_cpu_user`"}, {"name": "avg_cpu_total", "expression": "`avg_cpu_total`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "day", "displayName": "Date", "scale": {"type": "temporal"}}, "y": {"fieldName": "avg_cpu_total", "displayName": "CPU Usage (%)", "scale": {"type": "quantitative"}}}, "frame": {"showTitle": true, "title": "CPU Utilization Trend"}}
+          },
+          "position": {"x": 0, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_memory_trend",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_memory_trend", "fields": [{"name": "day", "expression": "`day`"}, {"name": "avg_memory", "expression": "`avg_memory`"}, {"name": "max_memory", "expression": "`max_memory`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "day", "displayName": "Date", "scale": {"type": "temporal"}}, "y": {"fieldName": "avg_memory", "displayName": "Memory Usage (%)", "scale": {"type": "quantitative"}}}, "frame": {"showTitle": true, "title": "Memory Utilization Trend"}}
+          },
+          "position": {"x": 3, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_underutilized",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_underutilized", "fields": [{"name": "cluster_id", "expression": "`cluster_id`"}, {"name": "node_type", "expression": "`node_type`"}, {"name": "avg_cpu", "expression": "`avg_cpu`"}, {"name": "avg_memory", "expression": "`avg_memory`"}], "disaggregated": false}}],
+            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "Underutilized Clusters (< 30% CPU)"}, "encodings": {"columns": [{"fieldName": "cluster_id", "title": "Cluster"}, {"fieldName": "node_type", "title": "Node Type"}, {"fieldName": "avg_cpu", "title": "Avg CPU %"}, {"fieldName": "avg_memory", "title": "Avg Mem %"}]}, "itemsPerPage": 10}
+          },
+          "position": {"x": 0, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_node_types",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_node_types", "fields": [{"name": "node_type", "expression": "`node_type`"}, {"name": "node_hours", "expression": "`node_hours`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "node_hours", "displayName": "Node Hours", "scale": {"type": "quantitative"}}, "y": {"fieldName": "node_type", "displayName": "Node Type", "scale": {"type": "categorical"}}}, "frame": {"showTitle": true, "title": "Usage by Node Type"}}
+          },
+          "position": {"x": 3, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_high_memory_swap",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_high_swap", "fields": [{"name": "cluster_id", "expression": "`cluster_id`"}, {"name": "node_type", "expression": "`node_type`"}, {"name": "avg_swap", "expression": "`avg_swap`"}, {"name": "max_swap", "expression": "`max_swap`"}], "disaggregated": false}}],
+            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "High Memory Swap (Memory Pressure)"}, "encodings": {"columns": [{"fieldName": "cluster_id", "title": "Cluster"}, {"fieldName": "node_type", "title": "Node Type"}, {"fieldName": "avg_swap", "title": "Avg Swap %"}, {"fieldName": "max_swap", "title": "Max Swap %"}]}, "itemsPerPage": 10}
+          },
+          "position": {"x": 0, "y": 14, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_network_io",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_network_trend", "fields": [{"name": "day", "expression": "`day`"}, {"name": "sent_gb", "expression": "`sent_gb`"}, {"name": "received_gb", "expression": "`received_gb`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "day", "displayName": "Date", "scale": {"type": "temporal"}}, "y": {"fieldName": "received_gb", "displayName": "Network (GB)", "scale": {"type": "quantitative"}}}, "frame": {"showTitle": true, "title": "Network I/O Trend"}}
+          },
+          "position": {"x": 3, "y": 14, "width": 3, "height": 6}
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {"name": "ds_avg_cpu", "query": "SELECT CONCAT(ROUND(AVG(cpu_user_percent + cpu_system_percent), 1), '%') AS avg_cpu FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_avg_memory", "query": "SELECT CONCAT(ROUND(AVG(mem_used_percent), 1), '%') AS avg_memory FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_active_clusters", "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT cluster_id), 0) AS active_clusters FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_cpu_trend", "query": "SELECT DATE(start_time) AS day, ROUND(AVG(cpu_user_percent), 1) AS avg_cpu_user, ROUND(AVG(cpu_user_percent + cpu_system_percent), 1) AS avg_cpu_total FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY DATE(start_time) ORDER BY day"},
+    {"name": "ds_memory_trend", "query": "SELECT DATE(start_time) AS day, ROUND(AVG(mem_used_percent), 1) AS avg_memory, ROUND(MAX(mem_used_percent), 1) AS max_memory FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY DATE(start_time) ORDER BY day"},
+    {"name": "ds_underutilized", "query": "SELECT cluster_id, node_type, ROUND(AVG(cpu_user_percent + cpu_system_percent), 1) AS avg_cpu, ROUND(AVG(mem_used_percent), 1) AS avg_memory FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY cluster_id, node_type HAVING AVG(cpu_user_percent + cpu_system_percent) < 30 ORDER BY avg_cpu LIMIT 15"},
+    {"name": "ds_node_types", "query": "SELECT node_type, ROUND(COUNT(*), 0) AS node_hours FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY node_type ORDER BY node_hours DESC LIMIT 10"},
+    {"name": "ds_high_swap", "query": "SELECT cluster_id, node_type, ROUND(AVG(mem_swap_percent), 1) AS avg_swap, ROUND(MAX(mem_swap_percent), 1) AS max_swap FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND mem_swap_percent > 5 GROUP BY cluster_id, node_type ORDER BY avg_swap DESC LIMIT 15"},
+    {"name": "ds_network_trend", "query": "SELECT DATE(start_time) AS day, ROUND(SUM(network_sent_bytes) / 1073741824.0, 2) AS sent_gb, ROUND(SUM(network_received_bytes) / 1073741824.0, 2) AS received_gb FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY DATE(start_time) ORDER BY day"}
+  ]
+}

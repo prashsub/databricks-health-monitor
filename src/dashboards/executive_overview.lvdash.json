@@ -1,0 +1,300 @@
+{
+  "displayName": "Executive Health Overview",
+  "warehouse_id": "${warehouse_id}",
+  "pages": [
+    {
+      "name": "page_overview",
+      "displayName": "Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_cost",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_mtd_cost",
+                  "fields": [
+                    {"name": "metric_value", "expression": "`metric_value`"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {"fieldName": "metric_value"}
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Cost (MTD)",
+                "showDescription": true,
+                "description": "Month-to-date Databricks spend"
+              }
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_success_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_success",
+                  "fields": [
+                    {"name": "success_rate", "expression": "`success_rate`"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {"fieldName": "success_rate"}
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Job Success Rate",
+                "showDescription": true,
+                "description": "Last 7 days"
+              }
+            }
+          },
+          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_active_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_active_users",
+                  "fields": [
+                    {"name": "user_count", "expression": "`user_count`"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {"fieldName": "user_count"}
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Users",
+                "showDescription": true,
+                "description": "Last 30 days"
+              }
+            }
+          },
+          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "chart_cost_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_cost_trend",
+                  "fields": [
+                    {"name": "usage_date", "expression": "`usage_date`"},
+                    {"name": "daily_cost", "expression": "`daily_cost`"},
+                    {"name": "rolling_7day_avg", "expression": "`rolling_7day_avg`"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "usage_date",
+                  "displayName": "Date",
+                  "scale": {"type": "temporal"}
+                },
+                "y": {
+                  "fieldName": "daily_cost",
+                  "displayName": "Daily Cost ($)",
+                  "scale": {"type": "quantitative"}
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Cost Trend (30 Days)",
+                "showDescription": true,
+                "description": "Daily cost with 7-day rolling average"
+              }
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_cost_by_sku",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_cost_by_sku",
+                  "fields": [
+                    {"name": "sku_name", "expression": "`sku_name`"},
+                    {"name": "total_cost", "expression": "`total_cost`"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "total_cost",
+                  "displayName": "Cost",
+                  "scale": {"type": "quantitative"}
+                },
+                "color": {
+                  "fieldName": "sku_name",
+                  "displayName": "SKU",
+                  "scale": {"type": "categorical"}
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Cost by SKU",
+                "showDescription": true,
+                "description": "Cost breakdown by product"
+              }
+            }
+          },
+          "position": {"x": 0, "y": 8, "width": 2, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_job_failures",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_failures",
+                  "fields": [
+                    {"name": "run_date", "expression": "`run_date`"},
+                    {"name": "failure_count", "expression": "`failure_count`"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_date",
+                  "displayName": "Date",
+                  "scale": {"type": "temporal"}
+                },
+                "y": {
+                  "fieldName": "failure_count",
+                  "displayName": "Failures",
+                  "scale": {"type": "quantitative"}
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Job Failures",
+                "showDescription": true,
+                "description": "Daily job failure count"
+              }
+            }
+          },
+          "position": {"x": 2, "y": 8, "width": 2, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_query_p95",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_query_latency",
+                  "fields": [
+                    {"name": "query_date", "expression": "`query_date`"},
+                    {"name": "p95_duration_sec", "expression": "`p95_duration_sec`"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "query_date",
+                  "displayName": "Date",
+                  "scale": {"type": "temporal"}
+                },
+                "y": {
+                  "fieldName": "p95_duration_sec",
+                  "displayName": "P95 Duration (sec)",
+                  "scale": {"type": "quantitative"}
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Query P95 Latency",
+                "showDescription": true,
+                "description": "95th percentile query duration"
+              }
+            }
+          },
+          "position": {"x": 4, "y": 8, "width": 2, "height": 6}
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {
+      "name": "ds_mtd_cost",
+      "query": "SELECT CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS metric_value FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())"
+    },
+    {
+      "name": "ds_job_success",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN is_success THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND result_state IS NOT NULL"
+    },
+    {
+      "name": "ds_active_users",
+      "query": "SELECT COUNT(DISTINCT identity_metadata_owned_by) AS user_count FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS"
+    },
+    {
+      "name": "ds_cost_trend",
+      "query": "SELECT usage_date, SUM(list_cost) AS daily_cost, SUM(SUM(list_cost)) OVER (ORDER BY usage_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) / 7 AS rolling_7day_avg FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY usage_date ORDER BY usage_date"
+    },
+    {
+      "name": "ds_cost_by_sku",
+      "query": "SELECT sku_name, SUM(list_cost) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY sku_name ORDER BY total_cost DESC LIMIT 10"
+    },
+    {
+      "name": "ds_job_failures",
+      "query": "SELECT DATE(run_date) AS run_date, SUM(CASE WHEN result_state IN ('FAILED', 'ERROR') THEN 1 ELSE 0 END) AS failure_count FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY DATE(run_date) ORDER BY run_date"
+    },
+    {
+      "name": "ds_query_latency",
+      "query": "SELECT DATE(start_time) AS query_date, PERCENTILE(total_duration_ms / 1000.0, 0.95) AS p95_duration_sec FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY DATE(start_time) ORDER BY query_date"
+    }
+  ]
+}

@@ -43,29 +43,47 @@ resources:
         - task_key: train_cost_anomaly_detector
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../src/ml/cost/train_cost_anomaly.py
+            notebook_path: ../../src/ml/cost/train_cost_anomaly.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
+              feature_schema: ${var.feature_schema}
         
         - task_key: train_budget_forecaster
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../src/ml/cost/train_budget_forecaster.py
+            notebook_path: ../../src/ml/cost/train_budget_forecaster.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
+              feature_schema: ${var.feature_schema}
         
         - task_key: train_job_cost_optimizer
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../src/ml/cost/train_job_cost_optimizer.py
+            notebook_path: ../../src/ml/cost/train_job_cost_optimizer.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_chargeback_attribution
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/cost/train_chargeback_attribution.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_commitment_recommender
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/cost/train_commitment_recommender.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
         
         # ========================================
         # 🔒 SECURITY AGENT MODELS (4 models)
@@ -73,63 +91,158 @@ resources:
         - task_key: train_security_threat_detector
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../src/ml/security/train_threat_detector.py
+            notebook_path: ../../src/ml/security/train_threat_detector.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_exfiltration_detector
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/security/train_exfiltration_detector.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_privilege_escalation_detector
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/security/train_privilege_escalation.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_user_behavior_baseline
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/security/train_user_behavior_baseline.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
         
         # ========================================
-        # ⚡ PERFORMANCE AGENT MODELS (6 models)
+        # ⚡ PERFORMANCE AGENT MODELS (3 models)
         # ========================================
         - task_key: train_query_forecaster
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../src/ml/performance/train_query_forecaster.py
+            notebook_path: ../../src/ml/performance/train_query_forecaster.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_warehouse_optimizer
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/performance/train_warehouse_optimizer.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_performance_regression_detector
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/performance/train_regression_detector.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
         
         # ========================================
-        # 🔄 RELIABILITY AGENT MODELS (5 models)
+        # 🔄 RELIABILITY AGENT MODELS (3 models)
         # ========================================
         - task_key: train_failure_predictor
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../src/ml/reliability/train_failure_predictor.py
+            notebook_path: ../../src/ml/reliability/train_failure_predictor.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
-              feature_schema: ${var.gold_schema}_features
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_duration_forecaster
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/reliability/train_duration_forecaster.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_sla_breach_predictor
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/reliability/train_sla_breach_predictor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
         
         # ========================================
-        # MODEL REGISTRATION & DEPLOYMENT
+        # 📊 QUALITY AGENT MODELS (3 models)
+        # ========================================
+        - task_key: train_drift_detector
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/quality/train_drift_detector.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_schema_change_predictor
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/quality/train_schema_change_predictor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_freshness_predictor
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/quality/train_freshness_predictor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        # ========================================
+        # MODEL REGISTRATION
         # ========================================
         - task_key: register_all_models
           depends_on:
             - task_key: train_cost_anomaly_detector
             - task_key: train_budget_forecaster
             - task_key: train_job_cost_optimizer
+            - task_key: train_chargeback_attribution
+            - task_key: train_commitment_recommender
             - task_key: train_security_threat_detector
+            - task_key: train_exfiltration_detector
+            - task_key: train_privilege_escalation_detector
+            - task_key: train_user_behavior_baseline
             - task_key: train_query_forecaster
+            - task_key: train_warehouse_optimizer
+            - task_key: train_performance_regression_detector
             - task_key: train_failure_predictor
+            - task_key: train_duration_forecaster
+            - task_key: train_sla_breach_predictor
+            - task_key: train_drift_detector
+            - task_key: train_schema_change_predictor
+            - task_key: train_freshness_predictor
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../src/ml/deployment/register_all_models.py
+            notebook_path: ../../src/ml/deployment/register_all_models.py
             base_parameters:
               catalog: ${var.catalog}
-              feature_schema: ${var.gold_schema}_features
-        
-        - task_key: deploy_serving_endpoints
-          depends_on:
-            - task_key: register_all_models
-          environment_key: ml_training
-          notebook_task:
-            notebook_path: ../src/ml/deployment/deploy_endpoints.py
-            base_parameters:
-              catalog: ${var.catalog}
-              feature_schema: ${var.gold_schema}_features
+              feature_schema: ${var.feature_schema}
       
       # Schedule: Daily at 3 AM (after feature pipeline)
       schedule:
@@ -153,4 +266,3 @@ resources:
         layer: ml
         job_type: training
         compute_type: serverless
-

@@ -1,160 +1,109 @@
 # Databricks notebook source
 """
-Query Performance Forecaster - MLflow 3.0 Training Script
-=========================================================
+Train Query Performance Forecaster Model
+========================================
 
-Model 3.1: Query Performance Forecaster
-Problem Type: Regression
-Business Value: Accurate SLA commitments, better capacity planning
+Problem: Regression
+Algorithm: Gradient Boosting
+Domain: Performance
 
-Features:
-- Query characteristics (length, joins, aggregations)
-- Historical query performance
-- Warehouse features (size, load, queue depth)
-- Time features (peak hours, day of week)
+Forecasts query performance metrics for capacity planning.
 
-MLflow 3.0 Features:
-- Model signature for Unity Catalog registration
-- Feature Engineering integration
+MLflow 3.1+ Best Practices Applied
 """
 
 # COMMAND ----------
 
+from pyspark.sql import SparkSession
 import mlflow
-import numpy as np
-import pandas as pd
+from mlflow.models.signature import infer_signature
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-import sys
-import os
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, r2_score
+import pandas as pd
+import numpy as np
+from datetime import datetime
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from common.mlflow_utils import (
-    MLflowConfig, setup_mlflow_experiment, log_model_with_signature
-)
-from common.training_utils import TrainingConfig, split_data, evaluate_model
+mlflow.set_registry_uri("databricks-uc")
 
 # COMMAND ----------
 
 def get_parameters():
-    """Get job parameters from dbutils widgets."""
-    catalog = dbutils.widgets.get("catalog")
-    gold_schema = dbutils.widgets.get("gold_schema")
-    feature_schema = dbutils.widgets.get("feature_schema")
-    return catalog, gold_schema, feature_schema
+    return (dbutils.widgets.get("catalog"), dbutils.widgets.get("gold_schema"), dbutils.widgets.get("feature_schema"))
+
+def setup_mlflow_experiment(model_name):
+    mlflow.set_experiment(f"/Shared/health_monitor_ml_{model_name}")
+
+def log_training_dataset(spark, catalog, schema, table_name):
+    try:
+        df = spark.table(f"{catalog}.{schema}.{table_name}")
+        mlflow.log_input(mlflow.data.from_spark(df=df, table_name=f"{catalog}.{schema}.{table_name}", version="latest"), context="training")
+    except: pass
+
+def get_run_name(model_name, algorithm):
+    return f"{model_name}_{algorithm}_v1_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+def get_standard_tags(model_name, domain, model_type, algorithm, use_case, training_table):
+    return {"project": "databricks_health_monitor", "domain": domain, "model_name": model_name,
+            "model_type": model_type, "algorithm": algorithm, "use_case": use_case, "training_data": training_table}
 
 # COMMAND ----------
 
-def prepare_query_features(spark, catalog: str, gold_schema: str) -> pd.DataFrame:
-    """
-    Prepare features for query performance prediction.
-    """
-    fact_query = f"{catalog}.{gold_schema}.fact_query_history"
-    dim_warehouse = f"{catalog}.{gold_schema}.dim_warehouse"
+def load_and_prepare_data(spark, catalog, feature_schema):
+    df = spark.table(f"{catalog}.{feature_schema}.performance_features")
+    feature_cols = ["query_count", "avg_duration_ms", "p50_duration_ms", "p95_duration_ms",
+                    "error_rate", "spill_rate", "avg_query_count_7d", "is_weekend"]
+    target = "p99_duration_ms"
     
-    df = spark.sql(f"""
-        SELECT 
-            q.query_id,
-            q.warehouse_id,
-            w.name AS warehouse_name,
-            w.cluster_size,
-            q.duration_ms AS target_duration_ms,
-            -- Query features
-            LENGTH(q.statement_text) AS query_length,
-            q.read_bytes,
-            q.spill_to_disk_bytes,
-            q.result_fetch_time_ms,
-            -- Time features
-            HOUR(q.start_time) AS hour_of_day,
-            DAYOFWEEK(q.start_time) AS day_of_week,
-            CASE WHEN HOUR(q.start_time) BETWEEN 9 AND 17 
-                AND DAYOFWEEK(q.start_time) NOT IN (1, 7) THEN 1 ELSE 0 END AS is_business_hours,
-            -- Error flag
-            CASE WHEN q.error_message IS NOT NULL THEN 1 ELSE 0 END AS has_error
-        FROM {fact_query} q
-        LEFT JOIN {dim_warehouse} w ON q.warehouse_id = w.warehouse_id
-        WHERE q.duration_ms IS NOT NULL 
-            AND q.duration_ms > 0
-            AND q.duration_ms < 3600000  -- Filter extreme outliers (1 hour)
-            AND q.start_time >= CURRENT_DATE() - INTERVAL 30 DAYS
-    """).toPandas()
+    pdf = df.select(feature_cols + [target]).toPandas()
+    for c in pdf.columns:
+        pdf[c] = pd.to_numeric(pdf[c], errors='coerce')
+    pdf = pdf.fillna(0).replace([np.inf, -np.inf], 0)
     
-    df = df.fillna(0)
-    
-    # Encode warehouse size
-    size_map = {'2X-Small': 1, 'X-Small': 2, 'Small': 3, 'Medium': 4, 'Large': 5, 'X-Large': 6, '2X-Large': 7}
-    df['warehouse_size_encoded'] = df['cluster_size'].map(size_map).fillna(3)
-    
-    print(f"Query features shape: {df.shape}")
-    return df
+    return train_test_split(pdf[feature_cols], pdf[target], test_size=0.2, random_state=42) + [feature_cols]
 
 # COMMAND ----------
 
-def train_query_forecaster(df: pd.DataFrame) -> tuple:
-    """Train model to predict query duration."""
-    feature_columns = [
-        "query_length", "read_bytes", "spill_to_disk_bytes",
-        "hour_of_day", "day_of_week", "is_business_hours",
-        "warehouse_size_encoded"
-    ]
+def train_and_log(X_train, X_test, y_train, y_test, feature_cols, catalog, feature_schema, spark):
+    model_name = "query_performance_forecaster"
+    registered_name = f"{catalog}.{feature_schema}.{model_name}"
     
-    X = df[feature_columns]
-    y = df["target_duration_ms"]
-    
-    # Log transform target for better distribution
-    y_log = np.log1p(y)
-    
-    config = TrainingConfig(test_size=0.2, validation_size=0.1)
-    X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y_log, config)
-    
-    model = Pipeline([
-        ("scaler", StandardScaler()),
-        ("regressor", GradientBoostingRegressor(
-            n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42
-        ))
-    ])
-    
+    model = GradientBoostingRegressor(n_estimators=100, max_depth=5, random_state=42)
     model.fit(X_train, y_train)
     
-    return model, X_train, y_train, X_test, y_test, feature_columns
+    y_pred = model.predict(X_test)
+    metrics = {"mae": mean_absolute_error(y_test, y_pred), "r2": r2_score(y_test, y_pred)}
+    
+    mlflow.autolog(disable=True)
+    with mlflow.start_run(run_name=get_run_name(model_name, "gradient_boosting")) as run:
+        mlflow.set_tags(get_standard_tags(model_name, "performance", "regression", "gradient_boosting",
+                                          "query_forecasting", f"{catalog}.{feature_schema}.performance_features"))
+        log_training_dataset(spark, catalog, feature_schema, "performance_features")
+        mlflow.log_params({"n_estimators": 100, "max_depth": 5})
+        mlflow.log_metrics(metrics)
+        
+        signature = infer_signature(X_train.head(5), model.predict(X_train.head(5)))
+        mlflow.sklearn.log_model(model, "model", signature=signature, input_example=X_train.head(5), registered_model_name=registered_name)
+        return run.info.run_id
 
 # COMMAND ----------
 
 def main():
-    """Main training pipeline."""
+    print("\n" + "=" * 60 + "\nQUERY PERFORMANCE FORECASTER - TRAINING\n" + "=" * 60)
     catalog, gold_schema, feature_schema = get_parameters()
-    
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.appName("Query Performance Forecaster").getOrCreate()
-    
-    config = MLflowConfig(catalog=catalog, schema=feature_schema, model_prefix="health_monitor")
-    setup_mlflow_experiment(config, "performance", "query_forecaster")
+    spark = SparkSession.builder.getOrCreate()
+    setup_mlflow_experiment("query_performance_forecaster")
     
     try:
-        df = prepare_query_features(spark, catalog, gold_schema)
-        model, X_train, y_train, X_test, y_test, feature_columns = train_query_forecaster(df)
-        
-        metrics = evaluate_model(model, X_test, y_test, problem_type="regression")
-        
-        log_model_with_signature(
-            model=model, model_name="query_forecaster", config=config,
-            flavor="sklearn", X_sample=X_train, y_sample=y_train,
-            metrics=metrics, params={"n_estimators": 100, "max_depth": 6},
-            custom_tags={"agent_domain": "performance", "model_type": "duration_prediction"}
-        )
-        
-        print("✓ Query Performance Forecaster Training Complete!")
-        
+        X_train, X_test, y_train, y_test, feature_cols = load_and_prepare_data(spark, catalog, feature_schema)
+        run_id = train_and_log(X_train, X_test, y_train, y_test, feature_cols, catalog, feature_schema, spark)
+        print(f"✓ COMPLETE - Run: {run_id}")
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        raise
-    finally:
-        spark.stop()
-
-# COMMAND ----------
+        import traceback
+        print(f"❌ {e}\n{traceback.format_exc()}")
+        dbutils.notebook.exit(f"FAILED: {e}")
+    
+    dbutils.notebook.exit("SUCCESS")
 
 if __name__ == "__main__":
     main()
-

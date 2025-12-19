@@ -1,0 +1,85 @@
+# Lakehouse Monitoring Setup Job
+# Creates and configures all Lakehouse Monitors for Gold layer tables
+#
+# Monitors created:
+#   - Cost Monitor: fact_usage
+#   - Job Monitor: fact_job_run_timeline
+#   - Query Monitor: fact_query_history
+#   - Cluster Monitor: fact_node_timeline
+#   - Security Monitor: fact_audit_logs
+#
+# Run after Gold layer setup
+# Reference: https://docs.databricks.com/lakehouse-monitoring
+
+resources:
+  jobs:
+    lakehouse_monitoring_setup_job:
+      name: "[${bundle.target}] Health Monitor - Lakehouse Monitoring Setup"
+      description: "Creates all Lakehouse Monitors for Gold layer tables"
+
+      tasks:
+        # Cost Agent Monitor
+        - task_key: create_cost_monitor
+          notebook_task:
+            notebook_path: ../../src/monitoring/cost_monitor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+        # Job Reliability Monitor
+        - task_key: create_job_monitor
+          depends_on:
+            - task_key: create_cost_monitor
+          notebook_task:
+            notebook_path: ../../src/monitoring/job_monitor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+        # Query Performance Monitor
+        - task_key: create_query_monitor
+          depends_on:
+            - task_key: create_job_monitor
+          notebook_task:
+            notebook_path: ../../src/monitoring/query_monitor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+        # Cluster Utilization Monitor
+        - task_key: create_cluster_monitor
+          depends_on:
+            - task_key: create_query_monitor
+          notebook_task:
+            notebook_path: ../../src/monitoring/cluster_monitor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+        # Security Access Monitor
+        - task_key: create_security_monitor
+          depends_on:
+            - task_key: create_cluster_monitor
+          notebook_task:
+            notebook_path: ../../src/monitoring/security_monitor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+      # No schedule - run on demand after Gold setup
+      # Monitors have their own refresh schedules
+
+      # Timeout: 60 minutes (monitor creation can take time)
+      timeout_seconds: 3600
+
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: monitoring
+        job_type: setup
+        compute_type: serverless

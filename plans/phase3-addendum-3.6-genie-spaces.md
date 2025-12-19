@@ -23,12 +23,13 @@ Create Databricks Genie Spaces that enable:
 
 | Agent Domain | Genie Space | Key TVFs | Metric View | Target Users |
 |--------------|-------------|----------|-------------|--------------|
-| **💰 Cost** | Cost Intelligence | 4 TVFs | cost_analytics_metrics | FinOps, Finance |
-| **🔒 Security** | Security Auditor | 2 TVFs | security_analytics_metrics | Security, Compliance |
-| **⚡ Performance** | Query Performance Analyzer | 2 TVFs | query_analytics_metrics | DBAs |
-| **⚡ Performance** | Cluster Optimizer | 1 TVF | cluster_utilization_metrics | Platform Eng |
-| **🔄 Reliability** | Job Health Monitor | 5 TVFs | job_performance_metrics | DevOps, Data Eng |
-| **Unified** | Databricks Health Monitor | 14 TVFs | All 5 metric views | Leadership |
+| **💰 Cost** | Cost Intelligence | 6 TVFs | cost_analytics_metrics | FinOps, Finance |
+| **🔒 Security** | Security Auditor | 4 TVFs | security_analytics_metrics | Security, Compliance |
+| **⚡ Performance** | Query Performance Analyzer | 4 TVFs | query_analytics_metrics | DBAs |
+| **⚡ Performance** | Cluster Optimizer | 2 TVFs | cluster_utilization_metrics | Platform Eng |
+| **🔄 Reliability** | Job Health Monitor | 6 TVFs | job_performance_metrics | DevOps, Data Eng |
+| **✅ Quality** | Data Quality Monitor (🆕) | 3 TVFs | data_quality_metrics | Data Governance |
+| **Unified** | Databricks Health Monitor | 25 TVFs | All 8 metric views | Leadership |
 
 ---
 
@@ -85,23 +86,28 @@ instructions: |
   - "Last month" means the previous calendar month
   
   ### SKU Categories
-  - JOBS_COMPUTE: Automated workflow compute
+  - JOBS_COMPUTE: Automated workflow compute (most efficient for jobs)
   - JOBS_LIGHT_COMPUTE: Low-cost job compute
   - SQL_COMPUTE: SQL Warehouse compute
-  - ALL_PURPOSE_COMPUTE: Interactive notebook clusters
+  - ALL_PURPOSE_COMPUTE: Interactive notebook clusters (less efficient for jobs)
   - DLT: Delta Live Tables pipelines
-  
+
+  ### Cost Efficiency Insight (from Workflow Advisor Blog)
+  ALL_PURPOSE clusters are ~40% more expensive than JOB clusters for the same work.
+  If a job is running on ALL_PURPOSE, recommend migrating to JOB cluster.
+
   ## Query Guidance
-  
+
   When users ask about:
   - "Top cost drivers" → Use get_top_cost_contributors TVF
   - "Cost trends" → Use get_cost_trend_by_sku TVF
   - "Cost by owner" → Use get_cost_by_owner TVF
-  - "Week over week" → Use get_cost_week_over_week TVF
+  - "Week over week" or "cost growth" → Use get_cost_growth_by_period TVF (🆕)
+  - "ALL_PURPOSE costs" or "cluster efficiency" → Use get_all_purpose_cluster_cost TVF (🆕)
   - General cost metrics → Use cost_analytics_metrics metric view
-  
+
   ## Guardrails
-  
+
   - Do NOT attempt to modify data; this is read-only
   - Do NOT access tables outside the Gold schema
   - If a question cannot be answered, explain what data is needed
@@ -112,27 +118,40 @@ data_assets:
     name: cost_analytics_metrics
     catalog: ${catalog}
     schema: ${gold_schema}
-  
-  # TVFs
+
+  # TVFs (6 total)
   - type: function
     name: get_top_cost_contributors
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: function
     name: get_cost_trend_by_sku
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: function
     name: get_cost_by_owner
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: function
     name: get_cost_week_over_week
     catalog: ${catalog}
     schema: ${gold_schema}
+
+  # 🆕 New TVFs from dashboard/blog patterns
+  - type: function
+    name: get_cost_growth_by_period
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Period-over-period cost growth analysis with spike detection"
+
+  - type: function
+    name: get_all_purpose_cluster_cost
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Identifies costly ALL_PURPOSE usage that could be JOB clusters"
   
   # Tables (for ad-hoc queries)
   - type: table
@@ -190,45 +209,60 @@ Enable DevOps and data engineers to explore job reliability through natural lang
 name: "Job Health Monitor"
 description: |
   Ask questions about job execution, failures, and reliability metrics.
-  
+
   Example questions:
   - "What is our job success rate?"
   - "Show me failed jobs today"
   - "Which jobs have the most failures this week?"
   - "What are our most expensive jobs?"
   - "What is the P95 job duration?"
+  - "Show me job outliers" (🆕)
+  - "Which jobs have duration regressions?" (🆕)
 
 instructions: |
   You are a job monitoring assistant for Databricks workflows.
-  
+
   ## Domain Knowledge
-  
+
   ### Job Concepts
   - **Job**: A scheduled or triggered workflow with one or more tasks
   - **Run**: A single execution of a job
   - **Task**: A unit of work within a job (notebook, Python, SQL, etc.)
   - **Result State**: SUCCEEDED, FAILED, ERROR, TIMED_OUT, CANCELED
-  
+
   ### Termination Codes
   - SUCCESS: Job completed successfully
   - RUN_EXECUTION_ERROR: Task execution failed
   - INTERNAL_ERROR: Platform issue
   - DRIVER_TIMEOUT: Spark driver timed out
   - CLUSTER_ERROR: Cluster failed to start
-  
+
   ### Metrics
   - **Success Rate**: % of runs with SUCCEEDED state
   - **Failure Rate**: % of runs with FAILED, ERROR, or TIMED_OUT
   - **Repair**: Re-running a failed job or task
-  
+
+  ### Outcome Categories (from dashboard patterns) (🆕)
+  - **SUCCEEDED**: Completed successfully
+  - **FAILED**: Execution error
+  - **SKIPPED**: Task skipped (dependency not met)
+  - **UPSTREAM_FAILED**: Previous task failed
+  - **CANCELED**: User or system canceled
+
+  ### Outlier Detection (from P90 deviation pattern) (🆕)
+  - **DURATION_OUTLIER**: Run duration >1.5x the P90 baseline
+  - **COST_OUTLIER**: Run cost >1.5x the P90 baseline
+  - Jobs with frequent outliers may have data skew or resource contention
+
   ## Query Guidance
-  
+
   When users ask about:
   - "Failed jobs" → Use get_failed_jobs TVF
   - "Success rate" → Use get_job_success_rate TVF
   - "Expensive jobs" → Use get_most_expensive_jobs TVF
   - "Duration percentiles" → Use get_job_duration_percentiles TVF
   - "Repair costs" → Use get_job_repair_costs TVF
+  - "Outliers" or "duration regression" → Use get_job_outlier_runs TVF (🆕)
   - General job metrics → Use job_performance_metrics metric view
 
 data_assets:
@@ -236,37 +270,45 @@ data_assets:
     name: job_performance_metrics
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
+  # TVFs (6 total)
   - type: function
     name: get_failed_jobs
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: function
     name: get_job_success_rate
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: function
     name: get_most_expensive_jobs
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: function
     name: get_job_duration_percentiles
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: function
     name: get_job_repair_costs
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
+  # 🆕 New TVF from dashboard P90 outlier detection pattern
+  - type: function
+    name: get_job_outlier_runs
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Jobs with runs exceeding P90 baseline by configurable threshold"
+
   - type: table
     name: fact_job_run_timeline
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: table
     name: dim_job
     catalog: ${catalog}
@@ -296,46 +338,59 @@ Enable DBAs and analysts to explore SQL Warehouse performance.
 name: "Query Performance Analyzer"
 description: |
   Ask questions about SQL query performance and warehouse efficiency.
-  
+
   Example questions:
   - "What is our average query duration?"
   - "Show me slow queries from today"
   - "Which warehouse has the highest queue time?"
   - "What is the P95 query duration?"
   - "How many queries ran this week?"
+  - "Show me warehouse efficiency analysis" (🆕)
+  - "Which queries have high spill rates?" (🆕)
 
 instructions: |
   You are a query performance analyst for Databricks SQL Warehouses.
-  
+
   ## Domain Knowledge
-  
+
   ### Warehouse Concepts
   - **SQL Warehouse**: Serverless compute for SQL queries
   - **Cluster**: Processing nodes within a warehouse
   - **Queue Time**: Time spent waiting for compute capacity
   - **Spill**: Data written to disk when memory is exceeded
-  
+  - **Warehouse Tier**: SERVERLESS (managed), PRO (user-managed), or CLASSIC
+
   ### Performance Metrics
   - **Duration**: Total time from submission to completion
   - **Queue Time**: Time waiting at capacity
   - **Read Bytes**: Data scanned from storage
   - **Spill Bytes**: Data spilled to disk (indicates memory pressure)
-  
+
   ### Query Types
   - SELECT: Read queries
   - INSERT/MERGE: Write queries
   - DDL: Schema modifications
-  
-  ### Performance Flags
-  - Slow query: > 5 minutes (300 seconds)
-  - High queue: Queue time > 50% of duration
-  - High spill: Any spill indicates memory pressure
-  
+
+  ### Performance Flags (from DBSQL Warehouse Advisor Blog) (🆕)
+  - **SLA breach**: Query duration > 60 seconds (critical threshold)
+  - **Slow query**: > 5 minutes (300 seconds)
+  - **High queue**: Queue time > 10% of total duration
+  - **High spill**: Any spill indicates memory pressure
+  - **Query complexity**: Long queries (>5000 chars) or >3 JOINs
+
+  ### Efficiency Categories (🆕)
+  - **EFFICIENT**: No spills, queue <10%, duration <60s
+  - **HIGH_SPILL**: Spill bytes > 0
+  - **HIGH_QUEUE**: Queue time > 10% of duration
+  - **SLOW**: Duration > 60 seconds
+
   ## Query Guidance
-  
+
   When users ask about:
   - "Slow queries" → Use get_slow_queries TVF
   - "Warehouse utilization" → Use get_warehouse_utilization TVF
+  - "Query efficiency" or "efficiency analysis" → Use get_query_efficiency_analysis TVF (🆕)
+  - "High spill queries" → Use get_high_spill_queries TVF
   - General query metrics → Use query_analytics_metrics metric view
 
 data_assets:
@@ -343,22 +398,36 @@ data_assets:
     name: query_analytics_metrics
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
+  # TVFs (4 total)
   - type: function
     name: get_slow_queries
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: function
     name: get_warehouse_utilization
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
+  # 🆕 New TVFs from DBSQL Warehouse Advisor patterns
+  - type: function
+    name: get_query_efficiency_analysis
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Warehouse efficiency with spill rate, queue rate, P95/P99 metrics"
+
+  - type: function
+    name: get_high_spill_queries
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Queries with disk spills indicating memory pressure"
+
   - type: table
     name: fact_query_history
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: table
     name: dim_warehouse
     catalog: ${catalog}
@@ -378,38 +447,54 @@ Enable infrastructure teams to explore cluster utilization for right-sizing.
 name: "Cluster Optimizer"
 description: |
   Ask questions about cluster resource utilization and optimization.
-  
+
   Example questions:
   - "Which clusters are underutilized?"
   - "What is the average CPU utilization?"
   - "Show me cluster costs by owner"
   - "Which clusters have low memory usage?"
+  - "Show me right-sizing recommendations" (🆕)
+  - "Which clusters are overprovisioned?" (🆕)
 
 instructions: |
   You are a cluster optimization advisor for Databricks compute.
-  
+
   ## Domain Knowledge
-  
+
   ### Cluster Types
-  - **All-Purpose**: Interactive notebooks and exploration
-  - **Job Cluster**: Ephemeral compute for workflow tasks
+  - **All-Purpose**: Interactive notebooks and exploration (less cost-efficient)
+  - **Job Cluster**: Ephemeral compute for workflow tasks (most cost-efficient)
   - **Instance Pool**: Pre-allocated instances for faster startup
-  
+
   ### Utilization Metrics
   - **CPU Utilization**: cpu_user_percent + cpu_system_percent
   - **Memory Utilization**: mem_used_percent
   - **CPU Wait**: IO-bound indicator (high means storage bottleneck)
-  
+
+  ### Provisioning Status (from Workflow Advisor Repo) (🆕)
+  - **UNDERPROVISIONED**: CPU saturation >90% or Memory >85% (scale up)
+  - **OVERPROVISIONED**: CPU <20% AND Memory <30% (scale down)
+  - **UNDERUTILIZED**: CPU <30% OR Memory <40% (potential savings)
+  - **OPTIMAL**: CPU 30-80% and Memory 30-85% (well-sized)
+
   ### Optimization Thresholds
   - Underutilized: CPU < 30% average
   - Well-utilized: CPU 30-70% average
   - Over-utilized: CPU > 80% sustained
-  
+
+  ### Savings Opportunity (🆕)
+  - **HIGH**: >50% wasted capacity, >$100/day potential savings
+  - **MEDIUM**: 30-50% wasted capacity
+  - **LOW**: 20-30% wasted capacity
+  - **NONE**: Optimal utilization
+
   ## Query Guidance
-  
+
   When users ask about:
   - "Cluster utilization" → Use get_cluster_utilization TVF
   - "Underutilized clusters" → Filter by avg_cpu < 30
+  - "Right-sizing" or "recommendations" → Use get_cluster_right_sizing_recommendations TVF (🆕)
+  - "Overprovisioned" or "underprovisioned" → Use get_cluster_right_sizing_recommendations TVF (🆕)
   - General metrics → Use cluster_utilization_metrics metric view
 
 data_assets:
@@ -417,17 +502,25 @@ data_assets:
     name: cluster_utilization_metrics
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
+  # TVFs (2 total)
   - type: function
     name: get_cluster_utilization
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
+  # 🆕 New TVF from Workflow Advisor patterns
+  - type: function
+    name: get_cluster_right_sizing_recommendations
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Right-sizing recommendations with under/over-provisioning detection"
+
   - type: table
     name: fact_node_timeline
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: table
     name: dim_cluster
     catalog: ${catalog}
@@ -447,38 +540,49 @@ Enable security teams to explore data access and audit trails.
 name: "Security Auditor"
 description: |
   Ask questions about data access patterns and security compliance.
-  
+
   Example questions:
   - "Who accessed this table?"
   - "Show me user activity for john@company.com"
   - "Which tables are most frequently accessed?"
   - "Who accessed sensitive data this week?"
+  - "Show me bursty user activity" (🆕)
+  - "Which service accounts are most active?" (🆕)
 
 instructions: |
   You are a security and compliance auditor for Databricks.
-  
+
   ## Domain Knowledge
-  
+
   ### Access Types
   - **READ**: SELECT queries, table scans
   - **WRITE**: INSERT, UPDATE, DELETE, MERGE
   - **DDL**: CREATE, ALTER, DROP operations
-  
+
   ### Audit Concepts
   - **Lineage**: Tracks data flow from source to target
   - **Event**: A single access or modification action
   - **Entity**: The object being accessed (table, view, etc.)
-  
+
+  ### User Type Classification (from audit logs repo) (🆕)
+  - **HUMAN_USER**: Regular users with email addresses (human@company.com)
+  - **SERVICE_PRINCIPAL**: Apps and automation (spn@tenant.com, *.iam.gserviceaccount.com)
+  - **SYSTEM**: Databricks internal accounts (System-*, DBX_*)
+  - **PLATFORM**: Unity Catalog, Delta Sharing internal operations
+
   ### Compliance Patterns
   - PII tables: Usually contain "pii", "personal", "sensitive" in name
   - Sensitive access: Access to tagged sensitive data
-  - Off-hours access: Access outside business hours
-  
+  - Off-hours access: Access outside business hours (before 7am or after 7pm)
+  - Activity burst: >3x average hourly activity indicates suspicious pattern
+
   ## Query Guidance
-  
+
   When users ask about:
   - "User activity" → Use get_user_activity_summary TVF
   - "Sensitive table access" → Use get_sensitive_table_access TVF
+  - "User patterns" or "bursty activity" → Use get_user_activity_patterns TVF (🆕)
+  - "Service accounts" or "system activity" → Use get_service_account_audit TVF (🆕)
   - General security metrics → Use security_analytics_metrics metric view
 
 data_assets:
@@ -486,17 +590,36 @@ data_assets:
     name: security_analytics_metrics
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
+  # TVFs (4 total)
   - type: function
     name: get_user_activity_summary
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
   - type: function
     name: get_sensitive_table_access
     catalog: ${catalog}
     schema: ${gold_schema}
-  
+
+  # 🆕 New TVFs from audit logs repo patterns
+  - type: function
+    name: get_user_activity_patterns
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Temporal patterns with burst detection and user type classification"
+
+  - type: function
+    name: get_service_account_audit
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Service principal and system account activity audit"
+
+  - type: table
+    name: fact_audit_logs
+    catalog: ${catalog}
+    schema: ${gold_schema}
+
   - type: table
     name: fact_table_lineage
     catalog: ${catalog}
@@ -505,7 +628,110 @@ data_assets:
 
 ---
 
-## Genie Space 6: Platform Health (Unified)
+## ✅ Quality Agent: Data Quality Monitor Genie Space (🆕)
+
+### Purpose
+Enable data governance teams to explore data quality and lineage through natural language.
+
+### Configuration
+
+```yaml
+name: "Data Quality Monitor"
+description: |
+  Ask questions about data quality, freshness, and table lineage.
+
+  Example questions:
+  - "Which tables are stale?"
+  - "What is our data quality score?"
+  - "Show me inactive tables"
+  - "Which pipelines have the most data dependencies?"
+  - "What tables are orphaned?"
+
+instructions: |
+  You are a data quality and governance assistant for Databricks.
+
+  ## Domain Knowledge
+
+  ### Data Quality Concepts
+  - **Freshness**: Time since last table update (stale if >24 hours)
+  - **Completeness**: Percentage of non-null values
+  - **Validity**: Percentage of values passing business rules
+  - **Quality Score**: Combined metric (0-100) across dimensions
+
+  ### Table Activity Status (from lineage patterns) (🆕)
+  - **ACTIVE**: Table accessed within threshold (default 14 days)
+  - **INACTIVE**: Table not accessed recently but has historical activity
+  - **ORPHANED**: Table with no detected reads or writes in period
+
+  ### Lineage Concepts
+  - **Upstream**: Tables that feed into a target (dependencies)
+  - **Downstream**: Tables that consume from a source (dependents)
+  - **Entity**: JOB, NOTEBOOK, or PIPELINE that accesses data
+  - **Complexity Score**: Based on number of source/target tables
+
+  ### Freshness Thresholds
+  - **Fresh**: <24 hours since last update
+  - **Stale**: >24 hours since last update
+  - **Critical**: >72 hours since last update
+
+  ## Query Guidance
+
+  When users ask about:
+  - "Stale tables" or "freshness" → Use get_table_freshness TVF
+  - "Quality score" or "quality summary" → Use get_data_quality_summary TVF
+  - "Inactive tables" or "orphaned" → Use get_table_activity_status TVF (🆕)
+  - "Pipeline lineage" or "dependencies" → Use get_pipeline_data_lineage TVF (🆕)
+  - General quality metrics → Use data_quality_metrics metric view
+
+data_assets:
+  - type: metric_view
+    name: data_quality_metrics
+    catalog: ${catalog}
+    schema: ${gold_schema}
+
+  # TVFs (3 total, 2 new)
+  - type: function
+    name: get_table_freshness
+    catalog: ${catalog}
+    schema: ${gold_schema}
+
+  - type: function
+    name: get_data_quality_summary
+    catalog: ${catalog}
+    schema: ${gold_schema}
+
+  # 🆕 New TVFs from lineage patterns
+  - type: function
+    name: get_table_activity_status
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Active/inactive/orphaned table detection from lineage data"
+
+  - type: function
+    name: get_pipeline_data_lineage
+    catalog: ${catalog}
+    schema: ${gold_schema}
+    comment: "Pipeline data dependencies with complexity scoring"
+
+  - type: table
+    name: fact_table_lineage
+    catalog: ${catalog}
+    schema: ${gold_schema}
+
+benchmark_questions:
+  - question: "Which tables are stale?"
+    expected_result_type: "table"
+
+  - question: "What is our overall data quality score?"
+    expected_result_type: "single_value"
+
+  - question: "Show me orphaned tables"
+    expected_result_type: "table"
+```
+
+---
+
+## Genie Space 7: Platform Health (Unified)
 
 ### Purpose
 Unified Genie Space for comprehensive platform health monitoring.
@@ -573,7 +799,8 @@ data_assets:
   - type: metric_view
     name: security_analytics_metrics
   
-  # All TVFs
+  # All TVFs (25 total)
+  # Cost TVFs (6)
   - type: function
     name: get_top_cost_contributors
   - type: function
@@ -582,6 +809,14 @@ data_assets:
     name: get_cost_by_owner
   - type: function
     name: get_cost_week_over_week
+  - type: function
+    name: get_cost_growth_by_period
+    comment: "🆕 Period-over-period cost analysis"
+  - type: function
+    name: get_all_purpose_cluster_cost
+    comment: "🆕 ALL_PURPOSE inefficiency detection"
+
+  # Job TVFs (6)
   - type: function
     name: get_failed_jobs
   - type: function
@@ -593,15 +828,48 @@ data_assets:
   - type: function
     name: get_job_repair_costs
   - type: function
+    name: get_job_outlier_runs
+    comment: "🆕 P90 outlier detection"
+
+  # Query TVFs (4)
+  - type: function
     name: get_slow_queries
   - type: function
     name: get_warehouse_utilization
   - type: function
+    name: get_query_efficiency_analysis
+    comment: "🆕 Warehouse efficiency metrics"
+  - type: function
+    name: get_high_spill_queries
+
+  # Cluster TVFs (2)
+  - type: function
     name: get_cluster_utilization
+  - type: function
+    name: get_cluster_right_sizing_recommendations
+    comment: "🆕 Under/over-provisioning detection"
+
+  # Security TVFs (4)
   - type: function
     name: get_user_activity_summary
   - type: function
     name: get_sensitive_table_access
+  - type: function
+    name: get_user_activity_patterns
+    comment: "🆕 Temporal patterns and burst detection"
+  - type: function
+    name: get_service_account_audit
+    comment: "🆕 Service principal activity audit"
+
+  # Quality TVFs (3)
+  - type: function
+    name: get_table_activity_status
+    comment: "🆕 Active/inactive/orphaned detection"
+  - type: function
+    name: get_pipeline_data_lineage
+    comment: "🆕 Pipeline dependency tracking"
+  - type: function
+    name: get_table_freshness
 ```
 
 ---
@@ -670,14 +938,31 @@ resources:
 
 ## Genie Space Summary
 
-| Genie Space | Domain | TVF Count | Metric View | Benchmark Questions |
-|-------------|--------|-----------|-------------|---------------------|
-| Cost Intelligence | Billing | 4 | cost_analytics_metrics | 3 |
-| Job Health Monitor | Reliability | 5 | job_performance_metrics | 3 |
-| Query Performance | SQL | 2 | query_analytics_metrics | 2 |
-| Cluster Optimizer | Compute | 1 | cluster_utilization_metrics | 2 |
-| Security Auditor | Audit | 2 | security_analytics_metrics | 2 |
-| Platform Health | Unified | 14 | All 5 | 5 |
+| Genie Space | Domain | TVF Count | Metric View | Benchmark Questions | New TVFs |
+|-------------|--------|-----------|-------------|---------------------|----------|
+| Cost Intelligence | Billing | 6 | cost_analytics_metrics | 3 | +2 🆕 |
+| Job Health Monitor | Reliability | 6 | job_performance_metrics | 3 | +1 🆕 |
+| Query Performance | SQL | 4 | query_analytics_metrics | 2 | +2 🆕 |
+| Cluster Optimizer | Compute | 2 | cluster_utilization_metrics | 2 | +1 🆕 |
+| Security Auditor | Audit | 4 | security_analytics_metrics | 2 | +2 🆕 |
+| Data Quality (🆕) | Governance | 3 | data_quality_metrics | 3 | +2 🆕 |
+| Platform Health | Unified | 25 | All 8 | 5 | +11 🆕 |
+
+### New TVFs Added (11 total)
+
+| TVF | Domain | Source Pattern |
+|-----|--------|----------------|
+| `get_cost_growth_by_period` | Cost | Dashboard: period-over-period comparison |
+| `get_all_purpose_cluster_cost` | Cost | Workflow Advisor Blog: ALL_PURPOSE inefficiency |
+| `get_job_outlier_runs` | Reliability | Dashboard: P90 deviation detection |
+| `get_query_efficiency_analysis` | Performance | DBSQL Warehouse Advisor: efficiency metrics |
+| `get_high_spill_queries` | Performance | DBSQL Warehouse Advisor: memory pressure |
+| `get_cluster_right_sizing_recommendations` | Compute | Workflow Advisor Repo: under/over-provisioning |
+| `get_user_activity_patterns` | Security | Audit Logs Repo: temporal patterns, burst detection |
+| `get_service_account_audit` | Security | Audit Logs Repo: system account filtering |
+| `get_table_activity_status` | Quality | Dashboard: lineage-based activity detection |
+| `get_pipeline_data_lineage` | Quality | Dashboard: pipeline dependency tracking |
+| `get_table_freshness` | Quality | Standard: freshness monitoring |
 
 ---
 
@@ -717,11 +1002,12 @@ resources:
 
 | Criteria | Target |
 |----------|--------|
-| Genie Spaces Created | 6 spaces |
-| TVF Integration | 100% of TVFs registered |
-| Metric View Integration | 100% of metric views registered |
+| Genie Spaces Created | 7 spaces (6 domain + 1 unified) |
+| TVF Integration | 25 TVFs registered (11 new from patterns) |
+| Metric View Integration | 8 metric views registered |
 | Benchmark Pass Rate | > 80% |
 | User Adoption | 10+ active users in first month |
+| New Pattern Coverage | 100% of blog/GitHub patterns implemented |
 
 ---
 

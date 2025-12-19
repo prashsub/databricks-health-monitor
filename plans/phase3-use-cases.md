@@ -37,7 +37,458 @@ The Phase 3 addendums have been significantly enriched based on analysis of real
 | **DBR Migration Dashboard** | Legacy DBR detection, version distribution, serverless adoption tracking |
 | **LakeFlow Dashboard** | Top N jobs/pipelines with tag filtering, entity type classification |
 | **Workflow Advisor** | Job optimization patterns, repair time tracking |
-| **Governance Hub** | Security and audit patterns |
+| **Governance Hub** | Entity counts, active/inactive tables, lineage traversal, tag coverage, predictive optimization status |
+
+---
+
+## 🆕 SQL Query Patterns Catalog (from Dashboard Analysis)
+
+The following SQL patterns were extracted from real Databricks dashboards and should be incorporated into our TVFs, Metric Views, and Dashboards.
+
+### Pattern 1: Period-Over-Period Comparison (7 vs 14 Day)
+
+**Source:** Azure Serverless Cost Observability Dashboard
+
+**Use Case:** Identify jobs/users/notebooks with highest cost growth between periods
+
+```sql
+-- Gold Layer Adaptation: Highest change jobs in weekly spend (7 vs 14 days)
+WITH cost_by_period AS (
+  SELECT
+    workspace_id,
+    job_id,
+    SUM(list_cost) AS total_spend,
+    SUM(CASE WHEN usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -8) AND DATE_ADD(CURRENT_DATE(), -1)
+        THEN list_cost ELSE 0 END) AS last_7_day_spend,
+    SUM(CASE WHEN usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -15) AND DATE_ADD(CURRENT_DATE(), -8)
+        THEN list_cost ELSE 0 END) AS prior_7_day_spend
+  FROM ${catalog}.${gold_schema}.fact_usage
+  WHERE usage_date >= CURRENT_DATE() - INTERVAL 15 DAYS
+    AND job_id IS NOT NULL
+  GROUP BY workspace_id, job_id
+)
+SELECT
+  workspace_id,
+  job_id,
+  last_7_day_spend,
+  prior_7_day_spend,
+  last_7_day_spend - prior_7_day_spend AS growth_amount,
+  TRY_DIVIDE((last_7_day_spend - prior_7_day_spend), prior_7_day_spend) * 100 AS growth_pct
+FROM cost_by_period
+ORDER BY growth_amount DESC
+LIMIT 100
+```
+
+**TVF Opportunity:** `get_cost_growth_by_period(entity_type, days_current, days_prior, top_n)`
+
+---
+
+### Pattern 2: 30 vs 60 Day Spend Comparison
+
+**Source:** Azure Serverless Cost Observability Dashboard
+
+**Use Case:** Month-over-month spend analysis with growth percentage
+
+```sql
+-- Gold Layer Adaptation: 30/60 day spend comparison
+SELECT
+  *,
+  TRY_DIVIDE((last_30_day_spend - prior_30_day_spend), prior_30_day_spend) * 100 AS growth_30_day_pct
+FROM (
+  SELECT
+    SUM(list_cost) AS total_spend,
+    SUM(CASE WHEN usage_date >= DATE_ADD(CURRENT_DATE(), -30)
+        THEN list_cost ELSE 0 END) AS last_30_day_spend,
+    SUM(CASE WHEN usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -60) AND DATE_ADD(CURRENT_DATE(), -31)
+        THEN list_cost ELSE 0 END) AS prior_30_day_spend
+  FROM ${catalog}.${gold_schema}.fact_usage
+  WHERE usage_date >= CURRENT_DATE() - INTERVAL 60 DAYS
+)
+```
+
+**TVF Opportunity:** `get_cost_period_comparison(days_period)`
+
+---
+
+### Pattern 3: Outlier Detection with P90 Deviation
+
+**Source:** Azure Serverless Cost Observability Dashboard
+
+**Use Case:** Find jobs with runaway runs that exceed normal patterns
+
+```sql
+-- Gold Layer Adaptation: Jobs with outlier runs (cost >> P90)
+WITH run_costs AS (
+  SELECT
+    workspace_id,
+    job_id,
+    job_run_id,
+    SUM(list_cost) AS run_cost,
+    MIN(usage_start_time) AS first_seen,
+    MAX(usage_end_time) AS last_seen
+  FROM ${catalog}.${gold_schema}.fact_usage
+  WHERE job_id IS NOT NULL
+    AND job_run_id IS NOT NULL
+    AND usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY workspace_id, job_id, job_run_id
+),
+job_stats AS (
+  SELECT
+    workspace_id,
+    job_id,
+    COUNT(job_run_id) AS run_count,
+    SUM(run_cost) AS total_cost,
+    AVG(run_cost) AS avg_cost,
+    MAX(run_cost) AS max_cost,
+    PERCENTILE(run_cost, 0.9) AS p90_cost
+  FROM run_costs
+  GROUP BY workspace_id, job_id
+)
+SELECT
+  *,
+  max_cost - p90_cost AS deviation_from_p90,
+  TRY_DIVIDE(max_cost - p90_cost, p90_cost) * 100 AS deviation_pct
+FROM job_stats
+WHERE max_cost > p90_cost * 1.5  -- Outlier threshold: 50% above P90
+ORDER BY deviation_from_p90 DESC
+```
+
+**TVF Opportunity:** `get_job_outlier_runs(percentile_threshold, deviation_multiplier)`
+
+---
+
+### Pattern 4: Week-Over-Week Growth with Moving Average
+
+**Source:** Azure Serverless Cost Observability Dashboard
+
+**Use Case:** Track weekly spending trends with smoothed 3-month moving average
+
+```sql
+-- Gold Layer Adaptation: WoW growth with moving average
+WITH weekly_spend AS (
+  SELECT
+    DATE_SUB(TO_DATE(usage_date), DAYOFWEEK(TO_DATE(usage_date))) AS week_start,
+    SUM(list_cost) AS weekly_cost,
+    COUNT(DISTINCT TO_DATE(usage_date)) AS days_in_week
+  FROM ${catalog}.${gold_schema}.fact_usage
+  GROUP BY 1
+  HAVING days_in_week = 7  -- Only complete weeks
+  ORDER BY 1
+),
+growth_calc AS (
+  SELECT
+    week_start,
+    weekly_cost,
+    100 * (weekly_cost - LAG(weekly_cost, 1) OVER (ORDER BY week_start))
+      / NULLIF(LAG(weekly_cost, 1) OVER (ORDER BY week_start), 0) AS weekly_growth_pct
+  FROM weekly_spend
+)
+SELECT
+  week_start,
+  weekly_cost,
+  weekly_growth_pct,
+  AVG(weekly_growth_pct) OVER (ORDER BY week_start ROWS BETWEEN 12 PRECEDING AND CURRENT ROW)
+    AS growth_3_month_moving_avg
+FROM growth_calc
+```
+
+**TVF Opportunity:** `get_cost_weekly_trend(weeks_back, moving_avg_periods)`
+
+---
+
+### Pattern 5: Most Expensive Entities (Jobs/Notebooks/Users)
+
+**Source:** Azure Serverless Cost Observability Dashboard
+
+**Use Case:** Top N cost contributors with metadata enrichment
+
+```sql
+-- Gold Layer Adaptation: Most expensive jobs with metadata
+SELECT
+  f.workspace_id,
+  f.job_id,
+  d.job_name,
+  COUNT(DISTINCT f.job_run_id) AS run_count,
+  SUM(f.list_cost) AS total_cost,
+  FIRST(f.run_as, TRUE) AS run_as,
+  FIRST(f.custom_tags, TRUE) AS custom_tags,
+  MAX(f.usage_end_time) AS last_seen
+FROM ${catalog}.${gold_schema}.fact_usage f
+LEFT JOIN ${catalog}.${gold_schema}.dim_job d
+  ON f.job_id = d.job_id AND d.is_current = TRUE
+WHERE f.job_id IS NOT NULL
+  AND f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+GROUP BY f.workspace_id, f.job_id, d.job_name
+ORDER BY total_cost DESC
+LIMIT 100
+```
+
+**TVF Opportunity:** `get_most_expensive_entities(entity_type, days_back, top_n)` where entity_type IN ('job', 'notebook', 'user', 'workspace')
+
+---
+
+### Pattern 6: User Cost Breakdown by Product
+
+**Source:** Azure Serverless Cost Observability Dashboard
+
+**Use Case:** Cost attribution by user split by jobs vs notebooks
+
+```sql
+-- Gold Layer Adaptation: User cost breakdown
+WITH user_costs AS (
+  SELECT
+    workspace_id,
+    run_as AS user_email,
+    SUM(CASE WHEN sku_name LIKE '%JOBS%' THEN list_cost ELSE 0 END) AS jobs_cost,
+    SUM(CASE WHEN notebook_id IS NOT NULL THEN list_cost ELSE 0 END) AS notebooks_cost
+  FROM ${catalog}.${gold_schema}.fact_usage
+  WHERE run_as IS NOT NULL
+    AND usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY workspace_id, run_as
+)
+SELECT
+  workspace_id,
+  user_email,
+  jobs_cost,
+  notebooks_cost,
+  jobs_cost + notebooks_cost AS total_cost
+FROM user_costs
+ORDER BY total_cost DESC
+```
+
+**TVF Opportunity:** `get_cost_by_user_and_product(days_back, top_n)`
+
+---
+
+### Pattern 7: Active vs Inactive Tables from Lineage
+
+**Source:** Governance Hub Dashboard
+
+**Use Case:** Identify tables that are actively used vs stale tables with no activity
+
+```sql
+-- Gold Layer Adaptation: Active tables from lineage
+WITH active_tables AS (
+  SELECT DISTINCT
+    COALESCE(source_table_full_name, target_table_full_name) AS table_full_name
+  FROM ${catalog}.${gold_schema}.fact_table_lineage
+  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+),
+all_tables AS (
+  SELECT table_full_name
+  FROM ${catalog}.${gold_schema}.dim_table
+  WHERE is_current = TRUE
+)
+SELECT
+  t.table_full_name,
+  CASE WHEN a.table_full_name IS NOT NULL THEN 'ACTIVE' ELSE 'INACTIVE' END AS activity_status
+FROM all_tables t
+LEFT JOIN active_tables a ON t.table_full_name = a.table_full_name
+```
+
+**TVF Opportunity:** `get_table_activity_status(days_lookback)`
+
+---
+
+### Pattern 8: Top Tables by Column Access
+
+**Source:** Governance Hub Dashboard
+
+**Use Case:** Most frequently accessed columns for data governance and optimization
+
+```sql
+-- Gold Layer Adaptation: Popular columns from column lineage
+SELECT
+  target_table_full_name AS table_name,
+  target_column_name AS column_name,
+  COUNT(*) AS access_count,
+  COUNT(DISTINCT source_table_full_name) AS source_table_count
+FROM ${catalog}.${gold_schema}.fact_column_lineage
+WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+GROUP BY target_table_full_name, target_column_name
+ORDER BY access_count DESC
+LIMIT 100
+```
+
+**TVF Opportunity:** `get_popular_columns(days_back, top_n)`
+
+---
+
+### Pattern 9: Tag Coverage Analysis
+
+**Source:** Governance Hub Dashboard
+
+**Use Case:** Track which resources have proper tags for chargeback and governance
+
+```sql
+-- Gold Layer Adaptation: Tag coverage across jobs
+SELECT
+  workspace_id,
+  COUNT(*) AS total_jobs,
+  SUM(CASE WHEN custom_tags IS NOT NULL AND SIZE(custom_tags) > 0 THEN 1 ELSE 0 END) AS tagged_jobs,
+  SUM(CASE WHEN custom_tags IS NULL OR SIZE(custom_tags) = 0 THEN 1 ELSE 0 END) AS untagged_jobs,
+  ROUND(SUM(CASE WHEN custom_tags IS NOT NULL AND SIZE(custom_tags) > 0 THEN 1 ELSE 0 END) * 100.0
+    / NULLIF(COUNT(*), 0), 2) AS tag_coverage_pct
+FROM (
+  SELECT DISTINCT workspace_id, job_id, custom_tags
+  FROM ${catalog}.${gold_schema}.fact_usage
+  WHERE job_id IS NOT NULL
+    AND usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+)
+GROUP BY workspace_id
+ORDER BY untagged_jobs DESC
+```
+
+**TVF Opportunity:** `get_tag_coverage_by_entity(entity_type)` -- already exists, enhance with this pattern
+
+---
+
+### Pattern 10: Jobs with Complex Tag Filtering
+
+**Source:** LakeFlow System Tables Dashboard
+
+**Use Case:** Filter jobs/pipelines by multiple tag key=value pairs
+
+```sql
+-- Gold Layer Adaptation: Tag-based job filtering
+WITH tag_filter AS (
+  SELECT
+    SPLIT(:tag_filter, ';') AS tag_entries  -- e.g., 'team=data;env=prod'
+),
+parsed_tags AS (
+  SELECT
+    TRANSFORM(tag_entries, t -> SPLIT(t, '=')[0]) AS filter_keys,
+    tag_entries AS filter_expected
+  FROM tag_filter
+),
+filtered_jobs AS (
+  SELECT
+    f.*,
+    TRANSFORM(filter_keys, k -> CONCAT(k, '=', f.custom_tags[k])) AS filter_actual
+  FROM ${catalog}.${gold_schema}.fact_usage f
+  CROSS JOIN parsed_tags p
+  WHERE f.job_id IS NOT NULL
+    AND f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+)
+SELECT *
+FROM filtered_jobs
+WHERE filter_actual = filter_expected
+  OR :tag_filter = '<ANY>'
+```
+
+**TVF Opportunity:** `get_jobs_by_tags(tag_filter, days_back)` where tag_filter format is 'key1=value1;key2=value2'
+
+---
+
+### Pattern 11: Entity Type Classification
+
+**Source:** LakeFlow System Tables Dashboard
+
+**Use Case:** Classify workloads by serverless status and product type
+
+```sql
+-- Gold Layer Adaptation: Classify billing by entity type
+SELECT
+  *,
+  CONCAT_WS(' ',
+    CASE WHEN is_serverless THEN 'SERVERLESS' ELSE 'CLASSIC' END,
+    CASE
+      WHEN billing_origin_product = 'JOBS' THEN 'JOB'
+      WHEN billing_origin_product IN ('DLT', 'LAKEFLOW_CONNECT') THEN 'PIPELINE'
+      WHEN billing_origin_product = 'SQL' AND dlt_pipeline_id IS NOT NULL THEN 'PIPELINE'
+      WHEN billing_origin_product = 'SQL' THEN 'WAREHOUSE'
+      ELSE billing_origin_product
+    END
+  ) AS entity_type
+FROM ${catalog}.${gold_schema}.fact_usage
+WHERE usage_date >= :start_date AND usage_date <= :end_date
+```
+
+**TVF Opportunity:** Add `entity_type` dimension to cost metric views
+
+---
+
+### Pattern 12: Parameterized Date Filtering with Defaults
+
+**Source:** LakeFlow System Tables Dashboard
+
+**Use Case:** Support date range parameters with sensible defaults
+
+```sql
+-- Pattern: Date filtering with NOW-based defaults
+-- Parameters use format like "now-60d/d" for 60 days ago
+WHERE usage_date BETWEEN :param_start_date AND :param_end_date
+
+-- Default values:
+-- param_start_date: now-60d/d (60 days ago)
+-- param_end_date: now/d (today)
+```
+
+**Implementation Note:** All TVFs should use STRING date parameters with default values like '30 DAYS AGO' for Genie compatibility.
+
+---
+
+### Pattern 13: KPI Aggregation with Multiple Filters
+
+**Source:** Azure Serverless Cost Observability Dashboard
+
+**Use Case:** Summary KPIs with multiple dimension aggregations
+
+```sql
+-- Gold Layer Adaptation: 30-day summary KPIs
+SELECT
+  COUNT(DISTINCT job_id) AS unique_jobs,
+  COUNT(DISTINCT notebook_id) AS unique_notebooks,
+  COUNT(DISTINCT run_as) AS unique_users,
+  COUNT(DISTINCT workspace_id) AS unique_workspaces,
+  SUM(list_cost) AS total_cost
+FROM ${catalog}.${gold_schema}.fact_usage
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+```
+
+**Dashboard Widget:** Counter widgets showing these KPIs
+
+---
+
+### Pattern 14: Predictive Optimization Status (From Governance Hub)
+
+**Source:** Governance Hub Dashboard
+
+**Use Case:** Track Delta optimization recommendations
+
+```sql
+-- Gold Layer Adaptation: Tables needing optimization
+SELECT
+  table_full_name,
+  optimization_type,
+  recommendation_status,
+  estimated_improvement_pct,
+  last_optimization_time
+FROM ${catalog}.${gold_schema}.dim_table_optimization
+WHERE recommendation_status = 'RECOMMENDED'
+ORDER BY estimated_improvement_pct DESC
+```
+
+**Note:** This requires a new Gold table `dim_table_optimization` from predictive optimization system tables.
+
+---
+
+## 🆕 Additional TVFs to Implement (from Pattern Analysis)
+
+Based on the SQL patterns extracted, these additional TVFs should be added:
+
+| TVF Name | Pattern Source | Use Case |
+|----------|----------------|----------|
+| `get_cost_growth_by_period` | Pattern 1, 2 | Period-over-period cost comparison |
+| `get_job_outlier_runs` | Pattern 3 | P90 deviation analysis |
+| `get_cost_weekly_trend` | Pattern 4 | WoW growth with moving average |
+| `get_most_expensive_entities` | Pattern 5 | Generic top-N expensive entities |
+| `get_cost_by_user_and_product` | Pattern 6 | User cost split by product |
+| `get_table_activity_status` | Pattern 7 | Active vs inactive tables |
+| `get_popular_columns` | Pattern 8 | Most accessed columns |
+| `get_jobs_by_tags` | Pattern 10 | Complex tag filtering |
+
+**Updated TVF Count:** 51 existing + 8 new = **59 TVFs**
 
 ### New Query Patterns Added
 

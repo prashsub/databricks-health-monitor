@@ -300,3 +300,6 @@ def load_model_for_inference(config: MLflowConfig, model_name: str, version: Opt
     
     return mlflow.pyfunc.load_model(model_uri)
 
+
+
+

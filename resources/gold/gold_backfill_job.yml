@@ -1,0 +1,95 @@
+# Gold Layer Historical Backfill Job
+# Processes historical data in monthly chunks for large tables
+# Works alongside incremental job - backfills data BEFORE current Gold min date
+#
+# Usage:
+#   databricks bundle run -t dev gold_backfill_job
+#
+# Structure: 1 job with 3 parallel tasks (one per large table)
+
+resources:
+  jobs:
+    gold_backfill_job:
+      name: "[${bundle.target}] Health Monitor - Gold Historical Backfill"
+      description: >
+        Processes historical data in monthly chunks for large Gold tables.
+        Runs 3 parallel tasks: fact_audit_logs, fact_usage, fact_query_history.
+        Backfills data BEFORE the current Gold table's minimum date.
+        Run alongside incremental job - they don't overlap.
+      
+      # Serverless environment
+      environments:
+        - environment_key: default
+          spec:
+            client: "1"
+            dependencies:
+              - python-dateutil>=2.8.2
+      
+      # Job-level parameters
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: bronze_schema
+          default: ${var.system_bronze_schema}
+        - name: gold_schema
+          default: ${var.gold_schema}
+        - name: months_to_backfill
+          default: "12"
+      
+      # 3 parallel tasks - one per large table
+      tasks:
+        # Task 1: Backfill fact_audit_logs (7.2B records)
+        - task_key: backfill_fact_audit_logs
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/backfill_large_tables.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              bronze_schema: "{{job.parameters.bronze_schema}}"
+              gold_schema: "{{job.parameters.gold_schema}}"
+              table_name: "fact_audit_logs"
+              months_to_backfill: "{{job.parameters.months_to_backfill}}"
+        
+        # Task 2: Backfill fact_usage (109M records) - runs in parallel
+        - task_key: backfill_fact_usage
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/backfill_large_tables.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              bronze_schema: "{{job.parameters.bronze_schema}}"
+              gold_schema: "{{job.parameters.gold_schema}}"
+              table_name: "fact_usage"
+              months_to_backfill: "{{job.parameters.months_to_backfill}}"
+        
+        # Task 3: Backfill fact_query_history (68M records) - runs in parallel
+        - task_key: backfill_fact_query_history
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/gold/backfill_large_tables.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              bronze_schema: "{{job.parameters.bronze_schema}}"
+              gold_schema: "{{job.parameters.gold_schema}}"
+              table_name: "fact_query_history"
+              months_to_backfill: "{{job.parameters.months_to_backfill}}"
+      
+      # No schedule - run manually when needed
+      
+      # Timeout: 8 hours (large backfills can take time)
+      timeout_seconds: 28800
+      
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - prashanth.subrahmanyam@databricks.com
+        on_success:
+          - prashanth.subrahmanyam@databricks.com
+      
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: gold
+        job_type: backfill
+        compute_type: serverless
+

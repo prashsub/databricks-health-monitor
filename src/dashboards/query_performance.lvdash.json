@@ -1,0 +1,86 @@
+{
+  "displayName": "Query Performance Dashboard",
+  "warehouse_id": "${warehouse_id}",
+  "pages": [
+    {
+      "name": "page_query_perf",
+      "displayName": "Query Performance",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_queries",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_total_queries", "fields": [{"name": "total_queries", "expression": "`total_queries`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "total_queries"}}, "frame": {"showTitle": true, "title": "Total Queries (7d)"}}
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_duration",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_avg_duration", "fields": [{"name": "avg_duration", "expression": "`avg_duration`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "avg_duration"}}, "frame": {"showTitle": true, "title": "Avg Duration (sec)"}}
+          },
+          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_error_rate",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_error_rate", "fields": [{"name": "error_rate", "expression": "`error_rate`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "error_rate"}}, "frame": {"showTitle": true, "title": "Error Rate (%)"}}
+          },
+          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "chart_latency_trend",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_latency_trend", "fields": [{"name": "query_date", "expression": "`query_date`"}, {"name": "p50_ms", "expression": "`p50_ms`"}, {"name": "p95_ms", "expression": "`p95_ms`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "query_date", "displayName": "Date", "scale": {"type": "temporal"}}, "y": {"fieldName": "p95_ms", "displayName": "P95 Latency (ms)", "scale": {"type": "quantitative"}}}, "frame": {"showTitle": true, "title": "Query Latency Trend (P95)"}}
+          },
+          "position": {"x": 0, "y": 2, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_slow_queries",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_slow_queries", "fields": [{"name": "executed_by", "expression": "`executed_by`"}, {"name": "statement_type", "expression": "`statement_type`"}, {"name": "duration_sec", "expression": "`duration_sec`"}, {"name": "read_gb", "expression": "`read_gb`"}], "disaggregated": false}}],
+            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "Slowest Queries Today"}, "encodings": {"columns": [{"fieldName": "executed_by", "title": "User"}, {"fieldName": "statement_type", "title": "Type"}, {"fieldName": "duration_sec", "title": "Duration (s)"}, {"fieldName": "read_gb", "title": "Read (GB)"}]}, "itemsPerPage": 15}
+          },
+          "position": {"x": 0, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_queries_by_type",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_queries_by_type", "fields": [{"name": "statement_type", "expression": "`statement_type`"}, {"name": "count", "expression": "`count`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "pie", "encodings": {"angle": {"fieldName": "count", "scale": {"type": "quantitative"}}, "color": {"fieldName": "statement_type", "scale": {"type": "categorical"}}}, "frame": {"showTitle": true, "title": "Queries by Type"}}
+          },
+          "position": {"x": 3, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_spill_queries",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_spill_queries", "fields": [{"name": "executed_by", "expression": "`executed_by`"}, {"name": "spill_gb", "expression": "`spill_gb`"}, {"name": "read_gb", "expression": "`read_gb`"}, {"name": "duration_sec", "expression": "`duration_sec`"}], "disaggregated": false}}],
+            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "High Spill Queries (Optimization Targets)"}, "encodings": {"columns": [{"fieldName": "executed_by", "title": "User"}, {"fieldName": "spill_gb", "title": "Spill (GB)"}, {"fieldName": "read_gb", "title": "Read (GB)"}, {"fieldName": "duration_sec", "title": "Duration (s)"}]}, "itemsPerPage": 10}
+          },
+          "position": {"x": 0, "y": 14, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_cache_hit_rate",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_cache_trend", "fields": [{"name": "query_date", "expression": "`query_date`"}, {"name": "cache_hit_rate", "expression": "`cache_hit_rate`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "query_date", "displayName": "Date", "scale": {"type": "temporal"}}, "y": {"fieldName": "cache_hit_rate", "displayName": "Cache Hit Rate (%)", "scale": {"type": "quantitative"}}}, "frame": {"showTitle": true, "title": "Cache Hit Rate Trend"}}
+          },
+          "position": {"x": 3, "y": 14, "width": 3, "height": 6}
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {"name": "ds_total_queries", "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_avg_duration", "query": "SELECT ROUND(AVG(total_duration_ms) / 1000.0, 2) AS avg_duration FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND execution_status = 'FINISHED'"},
+    {"name": "ds_error_rate", "query": "SELECT ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS error_rate FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"},
+    {"name": "ds_latency_trend", "query": "SELECT DATE(start_time) AS query_date, ROUND(PERCENTILE(total_duration_ms, 0.50), 0) AS p50_ms, ROUND(PERCENTILE(total_duration_ms, 0.95), 0) AS p95_ms FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS AND execution_status = 'FINISHED' GROUP BY DATE(start_time) ORDER BY query_date"},
+    {"name": "ds_slow_queries", "query": "SELECT executed_by, statement_type, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, ROUND(read_bytes / 1073741824.0, 2) AS read_gb FROM ${catalog}.${gold_schema}.fact_query_history WHERE DATE(start_time) = CURRENT_DATE() AND execution_status = 'FINISHED' ORDER BY total_duration_ms DESC LIMIT 25"},
+    {"name": "ds_queries_by_type", "query": "SELECT COALESCE(statement_type, 'UNKNOWN') AS statement_type, COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY statement_type ORDER BY count DESC LIMIT 10"},
+    {"name": "ds_spill_queries", "query": "SELECT executed_by, ROUND(spilled_local_bytes / 1073741824.0, 2) AS spill_gb, ROUND(read_bytes / 1073741824.0, 2) AS read_gb, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND spilled_local_bytes > 1073741824 ORDER BY spilled_local_bytes DESC LIMIT 15"},
+    {"name": "ds_cache_trend", "query": "SELECT DATE(start_time) AS query_date, ROUND(SUM(CASE WHEN from_result_cache = TRUE THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS cache_hit_rate FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY DATE(start_time) ORDER BY query_date"}
+  ]
+}

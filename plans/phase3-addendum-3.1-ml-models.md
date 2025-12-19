@@ -55,7 +55,7 @@ cost_features = {
     # Volume features
     "daily_dbu_usage": "SUM(usage_quantity) per day",
     "hourly_dbu_usage": "SUM(usage_quantity) per hour",
-    "daily_cost": "SUM(usage_quantity * list_price)",
+    "daily_cost": "SUM(usage_quantity) * list_price (join dim_sku)",
     
     # Rolling statistics
     "dbu_7day_moving_avg": "AVG(daily_dbu) OVER (ORDER BY date ROWS 7 PRECEDING)",
@@ -96,19 +96,22 @@ cost_features = {
 
 ```sql
 -- Cost anomaly feature extraction from Gold layer tables
+-- NOTE: fact_usage requires join to dim_sku for list_price
 WITH daily_cost AS (
     SELECT 
         f.usage_date,
         f.workspace_id,
         w.workspace_name,
         SUM(f.usage_quantity) AS daily_dbu,
-        SUM(f.usage_quantity * f.list_price) AS daily_cost,
+        SUM(f.usage_quantity * s.list_price) AS daily_cost,
         COUNT(DISTINCT f.sku_name) AS sku_count,
-        COUNT(DISTINCT f.cluster_id) AS cluster_count,
-        COUNT(DISTINCT f.job_id) AS job_count
+        COUNT(DISTINCT f.usage_metadata_cluster_id) AS cluster_count,
+        COUNT(DISTINCT f.usage_metadata_job_id) AS job_count
     FROM ${catalog}.${gold_schema}.fact_usage f
     LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w 
         ON f.workspace_id = w.workspace_id AND w.is_current = TRUE
+    LEFT JOIN ${catalog}.${gold_schema}.dim_sku s
+        ON f.sku_name = s.sku_name
     WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS
     GROUP BY f.usage_date, f.workspace_id, w.workspace_name
 ),
@@ -204,16 +207,18 @@ budget_features = {
 
 ```sql
 -- Budget forecasting features from Gold layer
+-- NOTE: fact_usage requires join to dim_sku for list_price
 WITH monthly_costs AS (
     SELECT 
-        DATE_TRUNC('month', usage_date) AS month_start,
-        workspace_id,
-        SUM(usage_quantity * list_price) AS monthly_cost,
-        SUM(usage_quantity) AS monthly_dbu,
-        COUNT(DISTINCT usage_date) AS active_days
-    FROM ${catalog}.${gold_schema}.fact_usage
-    WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -365)
-    GROUP BY DATE_TRUNC('month', usage_date), workspace_id
+        DATE_TRUNC('month', f.usage_date) AS month_start,
+        f.workspace_id,
+        SUM(f.usage_quantity * s.list_price) AS monthly_cost,
+        SUM(f.usage_quantity) AS monthly_dbu,
+        COUNT(DISTINCT f.usage_date) AS active_days
+    FROM ${catalog}.${gold_schema}.fact_usage f
+    LEFT JOIN ${catalog}.${gold_schema}.dim_sku s ON f.sku_name = s.sku_name
+    WHERE f.usage_date >= DATE_ADD(CURRENT_DATE(), -365)
+    GROUP BY DATE_TRUNC('month', f.usage_date), f.workspace_id
 ),
 with_trends AS (
     SELECT *,
@@ -321,19 +326,25 @@ job_cost_features = {
 
 ```sql
 -- Job cost optimization features (pattern from Jobs System Tables Dashboard)
+-- NOTE: fact_usage.usage_metadata_job_id links to jobs, requires dim_sku join for pricing
 WITH job_costs AS (
     SELECT
-        f.job_id,
+        f.usage_metadata_job_id AS job_id,
         j.name AS job_name,
-        SUM(f.usage_quantity * f.list_price) AS total_cost,
+        SUM(f.usage_quantity * s.list_price) AS total_cost,
         COUNT(DISTINCT f.usage_metadata_job_run_id) AS run_count,
-        AVG(f.usage_quantity * f.list_price) AS avg_cost_per_run
+        AVG(f.usage_quantity * s.list_price) AS avg_cost_per_run
     FROM ${catalog}.${gold_schema}.fact_usage f
-    LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id AND j.is_current = TRUE
+    LEFT JOIN ${catalog}.${gold_schema}.dim_sku s ON f.sku_name = s.sku_name
+    LEFT JOIN ${catalog}.${gold_schema}.dim_job j 
+        ON f.workspace_id = j.workspace_id 
+        AND f.usage_metadata_job_id = j.job_id 
+        AND j.is_current = TRUE
     WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-        AND f.job_id IS NOT NULL
-    GROUP BY f.job_id, j.name
+        AND f.usage_metadata_job_id IS NOT NULL
+    GROUP BY f.usage_metadata_job_id, j.name
 ),
+-- NOTE: fact_job_run_timeline uses compute_ids_json (JSON array) for cluster linkage
 job_utilization AS (
     SELECT 
         jrt.job_id,
@@ -342,8 +353,10 @@ job_utilization AS (
         AVG(nt.mem_used_percent) AS avg_mem_util,
         MAX(nt.mem_used_percent) AS peak_mem_util
     FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
+    -- Parse cluster_id from compute_ids_json array
+    LATERAL VIEW EXPLODE(from_json(jrt.compute_ids_json, 'array<string>')) AS cluster_id
     INNER JOIN ${catalog}.${gold_schema}.fact_node_timeline nt 
-        ON jrt.cluster_id = nt.cluster_id
+        ON cluster_id = nt.cluster_id
         AND nt.start_time BETWEEN jrt.period_start_time AND jrt.period_end_time
     WHERE jrt.period_start_time >= CURRENT_DATE() - INTERVAL 30 DAYS
     GROUP BY jrt.job_id
@@ -413,7 +426,7 @@ tag_features = {
 
 | Aspect | Details |
 |--------|---------|
-| **Gold Tables** | `fact_table_lineage`, `fact_audit_events`, `dim_workspace` |
+| **Gold Tables** | `fact_table_lineage`, `fact_audit_logs`, `dim_workspace` |
 | **Output** | Threat score (0-1), threat_type classification, alert_priority |
 | **Algorithm** | Isolation Forest + Rule-based Classification |
 | **Refresh** | Real-time scoring, daily model updates |
@@ -499,11 +512,11 @@ SELECT * FROM with_rolling WHERE avg_events_7d IS NOT NULL
 ```python
 # Data Exfiltration Features
 exfiltration_features = {
-    # Volume anomalies
-    "bytes_read_24h": "Total bytes read in 24 hours",
-    "bytes_read_vs_avg": "Ratio to user's average",
-    "bytes_read_vs_peer": "Ratio to peer average",
-    "large_query_count": "Queries reading > 1GB",
+    # Volume anomalies (using fact_query_history.read_bytes)
+    "read_bytes_24h": "Total bytes read in 24 hours",
+    "read_bytes_vs_avg": "Ratio to user's average",
+    "read_bytes_vs_peer": "Ratio to peer average",
+    "large_query_count": "Queries with read_bytes > 1GB",
     
     # Pattern anomalies
     "unique_tables_read": "Tables accessed",
@@ -526,7 +539,7 @@ exfiltration_features = {
 
 | Aspect | Details |
 |--------|---------|
-| **Gold Tables** | `fact_audit_events`, `fact_table_lineage` |
+| **Gold Tables** | `fact_audit_logs`, `fact_table_lineage` |
 | **Output** | Escalation risk score, suspicious_action flag |
 | **Algorithm** | Gradient Boosting Classifier |
 | **Refresh** | Real-time |
@@ -605,9 +618,10 @@ query_features = {
     "query_historical_p95": "P95 duration for this query",
     
     # Data volume features (from DBSQL Warehouse Advisor patterns)
+    # NOTE: fact_query_history uses read_bytes, spilled_local_bytes
     "estimated_rows_scanned": "From query plan",
-    "historical_bytes_read": "Actual bytes from similar queries",
-    "historical_spill_bytes": "Spill from similar queries",
+    "historical_read_bytes": "Actual read_bytes from similar queries",
+    "historical_spill_bytes": "spilled_local_bytes from similar queries",
     
     # Warehouse features
     "warehouse_size_encoded": "XS=1, S=2, M=3, L=4, etc",
@@ -745,10 +759,11 @@ WITH cluster_utilization AS (
 ),
 cluster_costs AS (
     SELECT 
-        cluster_id,
-        SUM(usage_quantity * list_price) AS total_cost_30d
-    FROM ${catalog}.${gold_schema}.fact_usage
-    WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+        f.usage_metadata_cluster_id AS cluster_id,
+        SUM(f.usage_quantity * s.list_price) AS total_cost_30d
+    FROM ${catalog}.${gold_schema}.fact_usage f
+    LEFT JOIN ${catalog}.${gold_schema}.dim_sku s ON f.sku_name = s.sku_name
+    WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
         AND cluster_id IS NOT NULL
     GROUP BY cluster_id
 )
@@ -893,11 +908,13 @@ failure_features = {
 
 ```sql
 -- Job failure prediction features from Gold layer
+-- NOTE: fact_job_run_timeline does not have cluster_id column
+-- Use compute_ids_json for cluster information if needed
 WITH job_history AS (
     SELECT 
         f.job_id,
         f.run_id,
-        f.cluster_id,
+        f.compute_ids_json,  -- JSON array of cluster IDs
         f.result_state,
         TIMESTAMPDIFF(MINUTE, f.period_start_time, f.period_end_time) AS duration_minutes,
         f.period_start_time,
@@ -1420,11 +1437,251 @@ resources:
 
 ---
 
+## 🆕 Dashboard Pattern Enhancements for ML Models
+
+Based on analysis of real-world Databricks dashboards (see [phase3-use-cases.md SQL Patterns Catalog](./phase3-use-cases.md#-sql-query-patterns-catalog-from-dashboard-analysis)), the following feature engineering and model enhancements should be implemented:
+
+### New Features from Dashboard Patterns
+
+#### Period Comparison Features (Pattern 1, 2)
+**Source:** Azure Serverless Cost Dashboard
+
+Add to **Cost Anomaly Detector** and **Budget Forecaster**:
+```python
+# Period comparison features for anomaly detection
+period_features = {
+    # Short-term growth features
+    "cost_7d_vs_prior_7d_growth": "(last_7d_cost - prior_7d_cost) / NULLIF(prior_7d_cost, 0)",
+    "cost_7d_vs_prior_7d_abs_change": "last_7d_cost - prior_7d_cost",
+
+    # Medium-term growth features
+    "cost_30d_vs_prior_30d_growth": "(last_30d_cost - prior_30d_cost) / NULLIF(prior_30d_cost, 0)",
+    "cost_30d_vs_prior_30d_abs_change": "last_30d_cost - prior_30d_cost",
+
+    # Acceleration feature (growth of growth)
+    "growth_acceleration": "cost_7d_growth - prior_cost_7d_growth",
+
+    # Consistency feature
+    "growth_consistency": "1 - STDDEV(daily_growth) / NULLIF(AVG(daily_growth), 0)",
+}
+```
+
+#### P90 Deviation Features (Pattern 3)
+**Source:** Azure Serverless Cost Dashboard
+
+Add to **Cost Anomaly Detector** and **Job Cost Optimizer**:
+```python
+# Outlier detection features at job level
+outlier_features = {
+    # Current vs historical percentiles
+    "cost_vs_p50_ratio": "current_run_cost / NULLIF(job_p50_cost, 0)",
+    "cost_vs_p90_ratio": "current_run_cost / NULLIF(job_p90_cost, 0)",
+    "cost_vs_p99_ratio": "current_run_cost / NULLIF(job_p99_cost, 0)",
+
+    # Deviation from baseline
+    "p90_deviation_pct": "(current_run_cost - job_p90_cost) / NULLIF(job_p90_cost, 0) * 100",
+
+    # Is outlier flag (can be used as label for semi-supervised learning)
+    "is_statistical_outlier": "CASE WHEN z_score > 3 OR cost_vs_p90_ratio > 2 THEN 1 ELSE 0 END",
+
+    # Historical outlier frequency
+    "job_outlier_frequency": "COUNT(CASE WHEN run_cost > p90_cost * 1.5) / NULLIF(total_runs, 0)",
+}
+```
+
+#### Entity Type Features (Pattern 11)
+**Source:** LakeFlow System Tables Dashboard
+
+Add to all cost-related models:
+```python
+# Entity type classification features
+entity_features = {
+    "is_serverless": "CASE WHEN is_serverless = TRUE THEN 1 ELSE 0 END",
+    "is_job": "CASE WHEN billing_origin_product = 'JOBS' THEN 1 ELSE 0 END",
+    "is_pipeline": "CASE WHEN billing_origin_product IN ('DLT', 'LAKEFLOW_CONNECT') THEN 1 ELSE 0 END",
+    "is_warehouse": "CASE WHEN billing_origin_product = 'SQL' AND dlt_pipeline_id IS NULL THEN 1 ELSE 0 END",
+
+    # Entity type cost proportions
+    "serverless_cost_pct": "serverless_cost / NULLIF(total_cost, 0)",
+    "job_cost_pct": "job_cost / NULLIF(total_cost, 0)",
+    "pipeline_cost_pct": "pipeline_cost / NULLIF(total_cost, 0)",
+}
+```
+
+#### Tag Coverage Features (Pattern 9)
+**Source:** Jobs System Tables Dashboard, Governance Hub Dashboard
+
+Add to **Chargeback Optimizer** and **Cost Anomaly Detector**:
+```python
+# Tag hygiene features
+tag_features = {
+    # Coverage metrics
+    "tag_coverage_pct": "tagged_cost / NULLIF(total_cost, 0) * 100",
+    "untagged_cost_pct": "untagged_cost / NULLIF(total_cost, 0) * 100",
+
+    # Tag diversity
+    "unique_team_tags": "COUNT(DISTINCT custom_tags['team'])",
+    "unique_project_tags": "COUNT(DISTINCT custom_tags['project'])",
+    "tag_entropy": "Entropy of tag distribution (higher = more diverse)",
+
+    # Tag compliance risk
+    "is_high_cost_untagged": "CASE WHEN cost > 1000 AND is_tagged = FALSE THEN 1 ELSE 0 END",
+
+    # Tag drift
+    "tag_coverage_7d_change": "current_tag_coverage - prior_7d_tag_coverage",
+}
+```
+
+#### Active/Inactive Table Features (Pattern 7)
+**Source:** Governance Hub Dashboard
+
+Add to new **Data Staleness Predictor** model:
+```python
+# Table activity features for predicting staleness
+activity_features = {
+    # Activity recency
+    "days_since_last_read": "DATEDIFF(CURRENT_DATE(), last_read_date)",
+    "days_since_last_write": "DATEDIFF(CURRENT_DATE(), last_write_date)",
+    "days_since_any_activity": "LEAST(days_since_last_read, days_since_last_write)",
+
+    # Activity velocity
+    "reads_per_week": "read_count_30d / 4.3",
+    "writes_per_week": "write_count_30d / 4.3",
+    "read_write_ratio": "read_count / NULLIF(write_count, 0)",
+
+    # Activity trend
+    "activity_trend": "(activity_last_7d - activity_prior_7d) / NULLIF(activity_prior_7d, 0)",
+
+    # Consumer diversity
+    "unique_readers": "COUNT(DISTINCT reader_user)",
+    "unique_writers": "COUNT(DISTINCT writer_user)",
+}
+```
+
+### New Model: User Cost Behavior Predictor (🆕)
+**Source:** Azure Serverless Cost Dashboard (Pattern 6)
+
+**Problem Type:** Clustering + Regression
+**Use Case:** Predict user cost behavior and identify high-growth users early
+**Business Value:** Proactive cost management, capacity planning
+
+| Aspect | Details |
+|--------|---------|
+| **Gold Tables** | `fact_usage`, `dim_workspace` |
+| **Output** | User cluster assignment, predicted monthly cost, growth trajectory |
+| **Algorithm** | K-Means for behavior clustering + Gradient Boosting for cost prediction |
+| **Refresh** | Weekly |
+
+**Feature Engineering:**
+```python
+user_behavior_features = {
+    # Cost breakdown by product
+    "jobs_cost_pct": "jobs_cost / NULLIF(total_cost, 0)",
+    "notebooks_cost_pct": "notebooks_cost / NULLIF(total_cost, 0)",
+    "warehouse_cost_pct": "warehouse_cost / NULLIF(total_cost, 0)",
+
+    # Growth patterns
+    "cost_7d_growth": "Growth rate in last 7 days",
+    "cost_30d_growth": "Growth rate in last 30 days",
+    "growth_acceleration": "Change in growth rate",
+
+    # Usage patterns
+    "active_days_pct": "Days with activity / Total days",
+    "avg_daily_cost": "Total cost / Active days",
+    "cost_volatility": "STDDEV(daily_cost) / AVG(daily_cost)",
+
+    # Resource diversity
+    "unique_workspaces": "COUNT(DISTINCT workspace_id)",
+    "unique_clusters": "COUNT(DISTINCT cluster_id)",
+    "unique_jobs": "COUNT(DISTINCT job_id)",
+}
+```
+
+**User Behavior Clusters:**
+| Cluster | Profile | Action |
+|---------|---------|--------|
+| 0 | Low & Stable | Monitor |
+| 1 | Low & Growing | Watch |
+| 2 | High & Stable | Optimize |
+| 3 | High & Growing | **Alert** |
+| 4 | Declining | Investigate |
+
+### Enhanced Feature SQL (from Dashboard Patterns)
+
+```sql
+-- Enhanced cost anomaly features incorporating dashboard patterns
+WITH daily_metrics AS (
+    SELECT
+        usage_date,
+        workspace_id,
+        identity_metadata_run_as AS user_email,
+
+        -- Basic aggregations
+        SUM(list_cost) AS daily_cost,
+        SUM(usage_quantity) AS daily_dbu,
+
+        -- Entity type breakdown (Pattern 11)
+        SUM(CASE WHEN is_serverless THEN list_cost ELSE 0 END) AS serverless_cost,
+        SUM(CASE WHEN billing_origin_product = 'JOBS' THEN list_cost ELSE 0 END) AS jobs_cost,
+        SUM(CASE WHEN billing_origin_product = 'SQL' THEN list_cost ELSE 0 END) AS sql_cost,
+
+        -- Tag coverage (Pattern 9)
+        SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) AS tagged_cost,
+        SUM(CASE WHEN NOT is_tagged THEN list_cost ELSE 0 END) AS untagged_cost
+
+    FROM ${catalog}.${gold_schema}.fact_usage
+    WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -90)
+    GROUP BY usage_date, workspace_id, identity_metadata_run_as
+),
+with_periods AS (
+    SELECT
+        *,
+        -- 7-day period comparison (Pattern 1)
+        SUM(daily_cost) OVER (
+            PARTITION BY workspace_id
+            ORDER BY usage_date
+            ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+        ) AS cost_7d,
+        SUM(daily_cost) OVER (
+            PARTITION BY workspace_id
+            ORDER BY usage_date
+            ROWS BETWEEN 13 PRECEDING AND 7 PRECEDING
+        ) AS cost_prior_7d,
+
+        -- P90 calculation for outlier detection (Pattern 3)
+        PERCENTILE(daily_cost, 0.9) OVER (
+            PARTITION BY workspace_id
+            ORDER BY usage_date
+            ROWS BETWEEN 29 PRECEDING AND 1 PRECEDING
+        ) AS cost_p90_30d
+
+    FROM daily_metrics
+)
+SELECT
+    *,
+    -- Period growth features
+    (cost_7d - cost_prior_7d) / NULLIF(cost_prior_7d, 0) AS cost_7d_growth_pct,
+
+    -- Outlier score
+    (daily_cost - cost_p90_30d) / NULLIF(cost_p90_30d, 0) AS p90_deviation,
+
+    -- Tag coverage
+    tagged_cost / NULLIF(daily_cost, 0) AS tag_coverage_pct,
+
+    -- Entity mix
+    serverless_cost / NULLIF(daily_cost, 0) AS serverless_pct,
+    jobs_cost / NULLIF(daily_cost, 0) AS jobs_pct
+
+FROM with_periods
+```
+
+---
+
 # Success Criteria
 
 | Criteria | Target | Measurement |
 |----------|--------|-------------|
-| **Models Trained** | 23 models | Count of registered models |
+| **Models Trained** | 24 models (+1 User Behavior) | Count of registered models |
 | **Feature Store Tables** | 10 feature tables | One per domain + shared |
 | **Classification Accuracy** | >85% F1 | MLflow metrics |
 | **Regression MAPE** | <15% | MLflow metrics |
@@ -1432,6 +1689,242 @@ resources:
 | **Inference Coverage** | 100% | Daily data scored |
 | **Alert Precision** | >90% | False positive rate |
 | **Cost Savings Identified** | $X/month | From optimization models |
+
+---
+
+## 🆕 GitHub Repository Pattern Enhancements for ML Models
+
+Based on analysis of open-source Databricks repositories, the following enhancements should be incorporated:
+
+### From system-tables-audit-logs Repository
+
+#### Time-Windowed Aggregation Features
+**Pattern:** 24-hour rolling windows with temporal clustering
+
+Add to **Security Threat Detector** and **Data Exfiltration Detector**:
+```python
+# Time-windowed security features (from audit logs repo)
+time_window_features = {
+    # 24-hour rolling aggregations
+    "events_24h_rolling": "COUNT(*) OVER (PARTITION BY user_id ORDER BY event_time RANGE BETWEEN INTERVAL 24 HOURS PRECEDING AND CURRENT ROW)",
+    "unique_tables_24h": "COUNT(DISTINCT table_name) OVER 24-hour window",
+    "sensitive_access_24h": "COUNT sensitive table access in 24-hour window",
+
+    # Temporal clustering (60-minute periods)
+    "events_per_hour": "Events grouped into 60-minute buckets",
+    "activity_concentration": "% of activity in top 3 hours",
+    "burst_score": "MAX(hourly_events) / AVG(hourly_events)",
+
+    # System account exclusion
+    "is_system_account": "Exclude system.*, databricks-*, service principals from anomaly scoring",
+    "is_human_user": "Flag for human vs automated activity"
+}
+```
+
+#### Feature SQL Pattern (Temporal Clustering)
+```sql
+-- 60-minute temporal clustering for security analysis (from audit logs repo)
+WITH hourly_activity AS (
+    SELECT
+        created_by AS user_id,
+        DATE_TRUNC('hour', event_time) AS activity_hour,
+        COUNT(*) AS events_in_hour,
+        COUNT(DISTINCT COALESCE(source_table_full_name, target_table_full_name)) AS tables_in_hour
+    FROM ${catalog}.${gold_schema}.fact_table_lineage
+    WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+      -- Exclude system accounts (from audit logs repo pattern)
+      AND created_by NOT LIKE 'system.%'
+      AND created_by NOT LIKE 'databricks-%'
+    GROUP BY created_by, DATE_TRUNC('hour', event_time)
+),
+user_patterns AS (
+    SELECT
+        user_id,
+        AVG(events_in_hour) AS avg_hourly_events,
+        MAX(events_in_hour) AS max_hourly_events,
+        STDDEV(events_in_hour) AS stddev_hourly_events,
+        -- Burst detection (concentration in peak hours)
+        MAX(events_in_hour) / NULLIF(AVG(events_in_hour), 0) AS burst_ratio,
+        -- Activity spread (inverse of concentration)
+        COUNT(DISTINCT activity_hour) AS active_hours
+    FROM hourly_activity
+    GROUP BY user_id
+)
+SELECT
+    user_id,
+    avg_hourly_events,
+    max_hourly_events,
+    burst_ratio,
+    -- Anomaly indicators
+    CASE WHEN burst_ratio > 5 THEN 1 ELSE 0 END AS has_activity_burst,
+    CASE WHEN active_hours < 3 THEN 1 ELSE 0 END AS concentrated_activity
+FROM user_patterns
+```
+
+### From Workflow Advisor Repository
+
+#### Under/Over-Provisioning Detection Features
+**Pattern:** Resource utilization metrics for cluster right-sizing
+
+Add to **Job Cost Optimizer** and **Cluster Capacity Planner**:
+```python
+# Resource utilization features (from Workflow Advisor repo)
+provisioning_features = {
+    # Under-provisioning indicators
+    "cpu_saturation_rate": "% time CPU > 90%",
+    "memory_pressure_rate": "% time mem_used > 85%",
+    "io_wait_rate": "% time io_wait > 20%",
+    "autoscale_max_reached_rate": "% time at max workers",
+
+    # Over-provisioning indicators
+    "cpu_idle_rate": "% time CPU < 20%",
+    "memory_underutil_rate": "% time mem_used < 30%",
+    "worker_count_stability": "STDDEV(active_workers) / AVG(active_workers)",
+    "autoscale_min_time": "% time at min workers",
+
+    # Cost efficiency metrics
+    "dbu_per_successful_run": "total_dbu / successful_runs",
+    "cost_per_gb_processed": "total_cost / total_bytes_processed_gb",
+    "idle_cluster_cost": "Cost while CPU < 10%",
+
+    # Recommendations
+    "recommended_min_workers": "Based on 80th percentile utilization",
+    "recommended_max_workers": "Based on 95th percentile peaks",
+    "spot_opportunity": "% of runtime where spot would be safe"
+}
+```
+
+#### Feature SQL Pattern (Right-Sizing Analysis)
+```sql
+-- Cluster right-sizing features (from Workflow Advisor repo)
+WITH cluster_utilization AS (
+    SELECT
+        cluster_id,
+        DATE(start_time) AS util_date,
+        -- CPU utilization buckets
+        AVG(cpu_user_percent + cpu_system_percent) AS avg_cpu,
+        MAX(cpu_user_percent + cpu_system_percent) AS peak_cpu,
+        SUM(CASE WHEN cpu_user_percent + cpu_system_percent > 90 THEN 1 ELSE 0 END) * 100.0 /
+            NULLIF(COUNT(*), 0) AS cpu_saturation_pct,
+        SUM(CASE WHEN cpu_user_percent + cpu_system_percent < 20 THEN 1 ELSE 0 END) * 100.0 /
+            NULLIF(COUNT(*), 0) AS cpu_idle_pct,
+        -- Memory utilization
+        AVG(mem_used_percent) AS avg_memory,
+        MAX(mem_used_percent) AS peak_memory,
+        SUM(CASE WHEN mem_used_percent > 85 THEN 1 ELSE 0 END) * 100.0 /
+            NULLIF(COUNT(*), 0) AS memory_pressure_pct,
+        -- IO wait
+        AVG(cpu_wait_percent) AS avg_io_wait
+    FROM ${catalog}.${gold_schema}.fact_node_timeline
+    WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS
+    GROUP BY cluster_id, DATE(start_time)
+)
+SELECT
+    cluster_id,
+    AVG(avg_cpu) AS overall_avg_cpu,
+    AVG(peak_cpu) AS overall_peak_cpu,
+    AVG(cpu_saturation_pct) AS avg_saturation_pct,
+    AVG(cpu_idle_pct) AS avg_idle_pct,
+    -- Right-sizing recommendation
+    CASE
+        WHEN AVG(cpu_saturation_pct) > 20 AND AVG(peak_cpu) > 95 THEN 'UNDERPROVISIONED'
+        WHEN AVG(cpu_idle_pct) > 50 AND AVG(peak_cpu) < 60 THEN 'OVERPROVISIONED'
+        ELSE 'OPTIMAL'
+    END AS sizing_recommendation,
+    -- Potential savings estimate
+    CASE
+        WHEN AVG(cpu_idle_pct) > 50 THEN AVG(cpu_idle_pct) / 100 * 0.5  -- 50% of idle time recoverable
+        ELSE 0
+    END AS potential_savings_factor
+FROM cluster_utilization
+GROUP BY cluster_id
+```
+
+### From DBSQL Warehouse Advisor Repository
+
+#### Materialized View Layer Best Practices
+**Pattern:** Pre-aggregate metrics in Gold layer for dashboard performance
+
+Add to all feature tables and inference outputs:
+```python
+# Materialized view patterns (from DBSQL Warehouse Advisor repo)
+materialized_view_patterns = {
+    # Pre-calculated windows for dashboards
+    "daily_aggregates": "Pre-computed daily rollups for fast filtering",
+    "weekly_aggregates": "Pre-computed weekly summaries",
+    "monthly_aggregates": "Pre-computed monthly summaries",
+
+    # Dashboard-optimized grain
+    "entity_daily_grain": "One row per entity per day for most dashboards",
+    "hourly_grain_for_monitoring": "Hourly for real-time monitors",
+
+    # Query efficiency flags
+    "has_high_queue_time": "Pre-calculated flag for queue > 10% of runtime",
+    "has_high_spill": "Pre-calculated flag for spill > 100MB",
+    "is_complex_query": "Pre-calculated flag for joins > 5 or subqueries > 3"
+}
+```
+
+#### Implementation Recommendation
+```python
+# Create materialized Gold views for dashboard performance
+MATERIALIZED_VIEWS = [
+    {
+        "name": "mv_daily_cost_summary",
+        "source": "fact_usage",
+        "grain": "workspace_id, usage_date, sku_name",
+        "measures": ["total_cost", "total_dbu", "record_count", "avg_list_price"],
+        "refresh": "SCHEDULE CRON '0 0 2 * * ?'"  # Daily at 2 AM
+    },
+    {
+        "name": "mv_daily_job_summary",
+        "source": "fact_job_run_timeline",
+        "grain": "job_id, run_date",
+        "measures": ["run_count", "success_count", "failure_count", "avg_duration", "total_duration"],
+        "refresh": "SCHEDULE CRON '0 0 2 * * ?'"
+    },
+    {
+        "name": "mv_hourly_query_summary",
+        "source": "fact_query_history",
+        "grain": "warehouse_id, DATE_TRUNC('hour', start_time)",
+        "measures": ["query_count", "p50_duration", "p95_duration", "spill_query_count"],
+        "refresh": "SCHEDULE CRON '0 0 * * * ?'"  # Hourly
+    }
+]
+```
+
+### New Model: Cluster Right-Sizing Recommender (🆕)
+**Source:** Workflow Advisor Repository patterns
+
+**Problem Type:** Classification + Optimization
+**Use Case:** Recommend optimal cluster configuration based on historical utilization
+**Business Value:** 20-40% cost savings through right-sizing (validated in Workflow Advisor)
+
+| Aspect | Details |
+|--------|---------|
+| **Gold Tables** | `fact_node_timeline`, `fact_usage`, `dim_cluster` |
+| **Output** | sizing_recommendation, recommended_workers, potential_savings |
+| **Algorithm** | Gradient Boosting + Constraint Optimization |
+| **Refresh** | Weekly |
+
+**Feature Engineering:**
+```python
+rightsizing_features = {
+    # From Workflow Advisor patterns
+    "utilization_efficiency": "avg_cpu / peak_cpu ratio",
+    "memory_cpu_ratio": "avg_memory / avg_cpu",
+    "io_bottleneck_score": "avg_io_wait / avg_cpu",
+    "burst_handling_capability": "Peak handling without saturation",
+
+    # Cost metrics
+    "cost_per_compute_hour": "total_cost / compute_hours",
+    "idle_cost_ratio": "idle_time_cost / total_cost",
+
+    # Autoscaling effectiveness
+    "autoscale_response_time": "Time to scale up on load increase",
+    "scale_down_efficiency": "Time to scale down after load decrease"
+}
+```
 
 ---
 
@@ -1448,3 +1941,492 @@ resources:
 - **Jobs System Tables Dashboard** - Repair cost, cost savings patterns
 - **DBR Migration Dashboard** - Migration risk patterns
 - **Workflow Advisor** - Job optimization patterns
+
+### GitHub Repository References (🆕)
+- [system-tables-audit-logs](https://github.com/andyweaves/system-tables-audit-logs) - Time-windowed security analysis, temporal clustering
+- [DBSQL Warehouse Advisor](https://github.com/CodyAustinDavis/dbsql_sme) - Materialized view layer, query efficiency
+- [Workflow Advisor](https://github.com/yati1002/Workflowadvisor) - Under/over-provisioning detection, right-sizing
+
+---
+
+## 🆕 Blog Post Pattern Enhancements for ML Models
+
+Based on detailed analysis of Databricks engineering blog posts, the following specific enhancements should be incorporated:
+
+### From DBSQL Warehouse Advisor v5 Blog
+
+**Key Insight:** P99 percentiles are more important than P95 for SLA monitoring; queries exceeding 60 seconds are flagged as "slow" by default.
+
+#### Enhanced Query Performance Features
+
+Add to **Query Performance Forecaster** and **Warehouse Auto-Scaler Optimizer**:
+
+```python
+# DBSQL Warehouse Advisor v5 Blog features
+dbsql_advisor_features = {
+    # P99 metrics (critical for SLA monitoring)
+    "p99_duration_sec": "PERCENTILE(total_duration_ms / 1000.0, 0.99)",
+    "p99_vs_p95_ratio": "p99_duration / NULLIF(p95_duration, 0)",
+    "tail_latency_severity": "CASE WHEN p99 > 2 * p95 THEN 'SEVERE' WHEN p99 > 1.5 * p95 THEN 'MODERATE' ELSE 'NORMAL' END",
+
+    # 60-second SLA threshold (from blog)
+    "sla_breach_count": "COUNT(CASE WHEN total_duration_ms > 60000 THEN 1 END)",
+    "sla_breach_rate": "sla_breach_count / NULLIF(total_queries, 0) * 100",
+    "avg_sla_breach_severity": "AVG(CASE WHEN total_duration_ms > 60000 THEN (total_duration_ms - 60000) / 1000.0 END)",
+
+    # QPS/QPM throughput metrics
+    "queries_per_minute": "COUNT(*) / NULLIF(TIMESTAMPDIFF(MINUTE, MIN(start_time), MAX(end_time)), 0)",
+    "queries_per_second_peak": "MAX queries in any 1-second window",
+    "throughput_variability": "STDDEV(qpm) / NULLIF(AVG(qpm), 0)",
+
+    # Warehouse tier dimension
+    "warehouse_tier": "SERVERLESS, PRO, or CLASSIC",
+    "tier_efficiency_factor": "CASE WHEN warehouse_tier = 'SERVERLESS' THEN 1.0 WHEN warehouse_tier = 'PRO' THEN 0.85 ELSE 0.7 END",
+
+    # Query efficiency classification (from blog)
+    "efficiency_category": """
+        CASE
+            WHEN spilled_local_bytes = 0
+             AND waiting_at_capacity_duration_ms <= total_duration_ms * 0.1
+             AND total_duration_ms <= 60000
+            THEN 'EFFICIENT'
+            WHEN spilled_local_bytes > 0 THEN 'HIGH_SPILL'
+            WHEN waiting_at_capacity_duration_ms > total_duration_ms * 0.1 THEN 'HIGH_QUEUE'
+            ELSE 'SLOW'
+        END
+    """,
+}
+```
+
+#### Feature SQL (60-Second SLA Analysis)
+
+```sql
+-- DBSQL Warehouse Advisor v5 Blog SLA analysis features
+WITH query_metrics AS (
+    SELECT
+        qh.compute_warehouse_id AS warehouse_id,
+        DATE(qh.start_time) AS query_date,
+        qh.executed_by AS user_email,
+
+        -- Duration metrics
+        qh.total_duration_ms / 1000.0 AS duration_sec,
+        qh.waiting_at_capacity_duration_ms / 1000.0 AS queue_sec,
+
+        -- SLA breach flag (60-second threshold from blog)
+        CASE WHEN qh.total_duration_ms > 60000 THEN 1 ELSE 0 END AS is_sla_breach,
+
+        -- Efficiency flags
+        CASE WHEN qh.spilled_local_bytes > 0 THEN 1 ELSE 0 END AS has_spill,
+        CASE WHEN qh.waiting_at_capacity_duration_ms > qh.total_duration_ms * 0.1 THEN 1 ELSE 0 END AS has_high_queue,
+
+        -- Data volume
+        qh.read_bytes / 1073741824.0 AS read_gb
+
+    FROM ${catalog}.${gold_schema}.fact_query_history qh
+    WHERE qh.start_time >= CURRENT_DATE() - INTERVAL 30 DAYS
+        AND qh.execution_status = 'SUCCEEDED'
+),
+warehouse_stats AS (
+    SELECT
+        warehouse_id,
+        query_date,
+
+        -- Volume metrics
+        COUNT(*) AS total_queries,
+        COUNT(DISTINCT user_email) AS unique_users,
+
+        -- P95/P99 latency (P99 critical per blog)
+        PERCENTILE(duration_sec, 0.95) AS p95_duration_sec,
+        PERCENTILE(duration_sec, 0.99) AS p99_duration_sec,
+
+        -- SLA metrics (60-second threshold)
+        SUM(is_sla_breach) AS sla_breach_count,
+        SUM(is_sla_breach) * 100.0 / NULLIF(COUNT(*), 0) AS sla_breach_rate,
+
+        -- Efficiency breakdown
+        SUM(has_spill) * 100.0 / NULLIF(COUNT(*), 0) AS spill_rate,
+        SUM(has_high_queue) * 100.0 / NULLIF(COUNT(*), 0) AS high_queue_rate,
+
+        -- QPS metrics
+        COUNT(*) * 1.0 / NULLIF(TIMESTAMPDIFF(MINUTE, MIN(query_date), MAX(query_date)), 0) AS avg_qpm
+
+    FROM query_metrics
+    GROUP BY warehouse_id, query_date
+)
+SELECT
+    *,
+    -- Tail latency indicator
+    p99_duration_sec / NULLIF(p95_duration_sec, 0) AS tail_ratio,
+    -- Sizing indicator based on blog thresholds
+    CASE
+        WHEN sla_breach_rate > 10 OR high_queue_rate > 20 THEN 'SCALE_UP_NEEDED'
+        WHEN sla_breach_rate < 2 AND high_queue_rate < 5 THEN 'SCALE_DOWN_POSSIBLE'
+        ELSE 'OPTIMAL'
+    END AS sizing_indicator
+FROM warehouse_stats
+```
+
+### From Real-Time Query Monitoring Blog
+
+**Key Insight:** Duration regression detection compares current query duration to historical baseline to identify performance degradation.
+
+#### Duration Regression Detection Features
+
+Add to **Query Performance Forecaster** and new **Regression Detector** model:
+
+```python
+# Real-Time Query Monitoring Blog features
+regression_detection_features = {
+    # Duration regression vs baseline
+    "duration_vs_baseline_ratio": "current_duration / NULLIF(baseline_30d_avg, 0)",
+    "duration_regression_pct": "(current_duration - baseline_30d_avg) / NULLIF(baseline_30d_avg, 0) * 100",
+    "is_duration_regression": "CASE WHEN duration_regression_pct > 50 THEN 1 ELSE 0 END",
+
+    # Regression severity
+    "regression_severity": """
+        CASE
+            WHEN duration_regression_pct > 200 THEN 'CRITICAL'
+            WHEN duration_regression_pct > 100 THEN 'SEVERE'
+            WHEN duration_regression_pct > 50 THEN 'MODERATE'
+            ELSE 'NORMAL'
+        END
+    """,
+
+    # Query complexity metrics (from blog)
+    "query_complexity_score": """
+        CASE
+            WHEN LENGTH(statement_text) > 10000 THEN 5
+            WHEN LENGTH(statement_text) > 5000 THEN 4
+            WHEN REGEXP_COUNT(UPPER(statement_text), 'JOIN') > 5 THEN 4
+            WHEN REGEXP_COUNT(UPPER(statement_text), 'JOIN') > 3 THEN 3
+            WHEN REGEXP_COUNT(UPPER(statement_text), 'SUBQUERY|SELECT.*SELECT') > 2 THEN 3
+            ELSE 1
+        END
+    """,
+
+    # Query pattern changes
+    "query_plan_change_detected": "Hash of query plan differs from baseline",
+    "data_volume_growth_pct": "(current_read_bytes - baseline_read_bytes) / NULLIF(baseline_read_bytes, 0) * 100",
+}
+```
+
+### From Workflow Advisor Blog
+
+**Key Insight:** ALL_PURPOSE clusters are ~40% more expensive than JOB clusters for the same work. Identifying jobs running on ALL_PURPOSE is a major cost optimization opportunity.
+
+#### ALL_PURPOSE Cluster Inefficiency Features
+
+Add to **Job Cost Optimizer** and **Chargeback Optimizer**:
+
+```python
+# Workflow Advisor Blog features
+all_purpose_inefficiency_features = {
+    # Cluster type classification
+    "is_all_purpose_cluster": "CASE WHEN sku_name LIKE '%ALL_PURPOSE%' THEN 1 ELSE 0 END",
+    "is_job_cluster": "CASE WHEN sku_name LIKE '%JOBS%' THEN 1 ELSE 0 END",
+
+    # Inefficiency detection (jobs on ALL_PURPOSE)
+    "job_on_all_purpose": """
+        CASE WHEN sku_name LIKE '%ALL_PURPOSE%'
+             AND usage_metadata['job_id'] IS NOT NULL
+        THEN 1 ELSE 0 END
+    """,
+
+    # Cost impact (40% savings potential from blog)
+    "potential_savings_pct": "0.4 if job_on_all_purpose else 0",
+    "potential_savings_amount": "list_cost * 0.4 if job_on_all_purpose else 0",
+
+    # Cumulative inefficiency
+    "all_purpose_job_cost_30d": "SUM(list_cost) WHERE job_on_all_purpose = 1 over 30 days",
+    "total_potential_savings_30d": "all_purpose_job_cost_30d * 0.4",
+
+    # Recommendation priority
+    "migration_priority": """
+        CASE
+            WHEN potential_savings_amount > 1000 THEN 'HIGH'
+            WHEN potential_savings_amount > 100 THEN 'MEDIUM'
+            ELSE 'LOW'
+        END
+    """,
+}
+```
+
+#### Feature SQL (ALL_PURPOSE Inefficiency Analysis)
+
+```sql
+-- Workflow Advisor Blog: ALL_PURPOSE cluster inefficiency detection
+WITH job_cluster_analysis AS (
+    SELECT
+        f.usage_metadata_job_id AS job_id,
+        j.name AS job_name,
+
+        -- Cluster type breakdown
+        SUM(CASE WHEN f.sku_name LIKE '%ALL_PURPOSE%' THEN f.list_cost ELSE 0 END) AS all_purpose_cost,
+        SUM(CASE WHEN f.sku_name LIKE '%JOBS%' THEN f.list_cost ELSE 0 END) AS job_cluster_cost,
+        SUM(f.list_cost) AS total_cost,
+
+        -- Run counts by cluster type
+        COUNT(DISTINCT CASE WHEN f.sku_name LIKE '%ALL_PURPOSE%' THEN f.usage_metadata_job_run_id END) AS all_purpose_runs,
+        COUNT(DISTINCT CASE WHEN f.sku_name LIKE '%JOBS%' THEN f.usage_metadata_job_run_id END) AS job_cluster_runs,
+
+        -- Cost per run comparison
+        AVG(CASE WHEN f.sku_name LIKE '%ALL_PURPOSE%' THEN f.list_cost END) AS avg_all_purpose_cost_per_run,
+        AVG(CASE WHEN f.sku_name LIKE '%JOBS%' THEN f.list_cost END) AS avg_job_cluster_cost_per_run
+
+    FROM ${catalog}.${gold_schema}.fact_usage f
+    LEFT JOIN ${catalog}.${gold_schema}.dim_job j
+        ON f.usage_metadata_job_id = j.job_id AND j.is_current = TRUE
+    WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+        AND f.usage_metadata_job_id IS NOT NULL
+    GROUP BY f.usage_metadata_job_id, j.name
+)
+SELECT
+    job_id,
+    job_name,
+    all_purpose_cost,
+    job_cluster_cost,
+    total_cost,
+
+    -- Inefficiency metrics
+    all_purpose_cost / NULLIF(total_cost, 0) * 100 AS all_purpose_pct,
+
+    -- Potential savings (40% from Workflow Advisor Blog)
+    all_purpose_cost * 0.4 AS potential_savings,
+
+    -- Migration recommendation
+    CASE
+        WHEN all_purpose_cost > 1000 AND all_purpose_runs > job_cluster_runs THEN 'MIGRATE_HIGH_PRIORITY'
+        WHEN all_purpose_cost > 100 THEN 'MIGRATE_MEDIUM_PRIORITY'
+        WHEN all_purpose_cost > 0 THEN 'MIGRATE_LOW_PRIORITY'
+        ELSE 'OPTIMAL'
+    END AS recommendation,
+
+    -- ML features for migration risk
+    CASE WHEN job_cluster_runs > 0 THEN 0 ELSE 1 END AS never_used_job_cluster,
+    all_purpose_runs,
+    job_cluster_runs
+
+FROM job_cluster_analysis
+WHERE all_purpose_cost > 0
+ORDER BY potential_savings DESC
+```
+
+### Enhanced Security Features: User Type Classification
+
+**Source:** system-tables-audit-logs GitHub repo + Security Blog
+
+Add to **Security Threat Detector**, **Data Exfiltration Detector**, and **User Behavior Baseline**:
+
+```python
+# User type classification features (from audit logs repo)
+user_type_features = {
+    # User type classification
+    "user_type": """
+        CASE
+            -- System accounts (Databricks internal)
+            WHEN user_identity_email LIKE 'System-%' THEN 'SYSTEM'
+            WHEN user_identity_email LIKE 'system-%' THEN 'SYSTEM'
+            -- Platform accounts (automated)
+            WHEN user_identity_email IN ('Unity Catalog', 'Delta Sharing', 'Catalog', 'Schema') THEN 'PLATFORM'
+            WHEN user_identity_email LIKE 'DBX_%' THEN 'PLATFORM'
+            -- Service principals (apps)
+            WHEN user_identity_email LIKE '%@%.iam.gserviceaccount.com' THEN 'SERVICE_PRINCIPAL'
+            WHEN user_identity_email LIKE '%spn@%' THEN 'SERVICE_PRINCIPAL'
+            WHEN user_identity_email NOT LIKE '%@%' THEN 'SERVICE_PRINCIPAL'
+            -- Human users (everyone else with @ sign)
+            ELSE 'HUMAN_USER'
+        END
+    """,
+
+    # Human-specific features (more meaningful for security)
+    "is_human_user": "CASE WHEN user_type = 'HUMAN_USER' THEN 1 ELSE 0 END",
+    "is_automated": "CASE WHEN user_type IN ('SYSTEM', 'PLATFORM', 'SERVICE_PRINCIPAL') THEN 1 ELSE 0 END",
+
+    # Human activity anomaly features
+    "human_off_hours_events": "COUNT events WHERE is_human_user AND (hour < 7 OR hour >= 19)",
+    "human_off_hours_rate": "human_off_hours_events / NULLIF(human_events, 0) * 100",
+    "human_weekend_events": "COUNT events WHERE is_human_user AND day_of_week IN (1, 7)",
+
+    # Service principal anomaly features
+    "sp_new_ip_detected": "Service principal accessing from new IP",
+    "sp_volume_spike": "SP event count > 3x baseline",
+
+    # Activity pattern by user type
+    "human_to_sp_event_ratio": "human_events / NULLIF(sp_events, 0)",
+}
+```
+
+#### User Type Classification SQL
+
+```sql
+-- User type classification for security analysis (from audit logs repo)
+WITH classified_events AS (
+    SELECT
+        event_date,
+        user_identity_email,
+        event_time,
+        action_name,
+        service_name,
+        source_ip_address,
+        is_failed_action,
+        is_sensitive_action,
+
+        -- User type classification
+        CASE
+            WHEN user_identity_email LIKE 'System-%' OR user_identity_email LIKE 'system-%' THEN 'SYSTEM'
+            WHEN user_identity_email IN ('Unity Catalog', 'Delta Sharing', 'Catalog', 'Schema') THEN 'PLATFORM'
+            WHEN user_identity_email LIKE 'DBX_%' THEN 'PLATFORM'
+            WHEN user_identity_email LIKE '%@%.iam.gserviceaccount.com' THEN 'SERVICE_PRINCIPAL'
+            WHEN user_identity_email LIKE '%spn@%' THEN 'SERVICE_PRINCIPAL'
+            WHEN user_identity_email NOT LIKE '%@%' THEN 'SERVICE_PRINCIPAL'
+            ELSE 'HUMAN_USER'
+        END AS user_type
+
+    FROM ${catalog}.${gold_schema}.fact_audit_logs
+    WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+        AND user_identity_email IS NOT NULL
+),
+user_metrics AS (
+    SELECT
+        user_identity_email,
+        user_type,
+
+        -- Event counts
+        COUNT(*) AS total_events,
+        SUM(CASE WHEN is_failed_action THEN 1 ELSE 0 END) AS failed_events,
+        SUM(CASE WHEN is_sensitive_action THEN 1 ELSE 0 END) AS sensitive_events,
+
+        -- Off-hours activity (human-focused)
+        SUM(CASE WHEN HOUR(event_time) < 7 OR HOUR(event_time) >= 19 THEN 1 ELSE 0 END) AS off_hours_events,
+        SUM(CASE WHEN DAYOFWEEK(event_date) IN (1, 7) THEN 1 ELSE 0 END) AS weekend_events,
+
+        -- Unique IPs
+        COUNT(DISTINCT source_ip_address) AS unique_ips,
+        COUNT(DISTINCT service_name) AS unique_services
+
+    FROM classified_events
+    GROUP BY user_identity_email, user_type
+)
+SELECT
+    *,
+    -- Anomaly indicators by user type
+    CASE
+        WHEN user_type = 'HUMAN_USER' AND off_hours_events * 100.0 / NULLIF(total_events, 0) > 30 THEN 'HIGH_OFF_HOURS'
+        WHEN user_type = 'SERVICE_PRINCIPAL' AND unique_ips > 5 THEN 'MULTIPLE_IPS'
+        WHEN failed_events * 100.0 / NULLIF(total_events, 0) > 20 THEN 'HIGH_FAILURE_RATE'
+        ELSE 'NORMAL'
+    END AS anomaly_indicator,
+
+    -- Risk scoring (higher for humans in off-hours)
+    CASE user_type
+        WHEN 'HUMAN_USER' THEN off_hours_events * 2 + sensitive_events * 3 + failed_events
+        WHEN 'SERVICE_PRINCIPAL' THEN unique_ips * 2 + sensitive_events * 2 + failed_events
+        ELSE 0  -- System/Platform accounts are expected behavior
+    END AS risk_score
+
+FROM user_metrics
+ORDER BY risk_score DESC
+```
+
+### New Model: Query Regression Detector (🆕)
+
+**Source:** Real-Time Query Monitoring Blog
+
+**Problem Type:** Classification + Anomaly Detection
+**Use Case:** Detect queries with performance regression vs historical baseline
+**Business Value:** Early detection of performance degradation, prevent SLA breaches
+
+| Aspect | Details |
+|--------|---------|
+| **Gold Tables** | `fact_query_history`, `dim_warehouse` |
+| **Output** | regression_detected, regression_severity, root_cause_probability |
+| **Algorithm** | Isolation Forest + Rule-based classification |
+| **Refresh** | Real-time (per query) |
+
+**Feature Engineering:**
+```python
+regression_detector_features = {
+    # Baseline comparison (30-day rolling)
+    "baseline_avg_duration": "AVG duration for this query hash over 30 days",
+    "baseline_p95_duration": "P95 duration for this query hash over 30 days",
+    "baseline_read_bytes": "AVG read_bytes for this query hash",
+
+    # Current execution
+    "current_duration_sec": "Current query duration",
+    "current_read_bytes": "Current query read_bytes",
+
+    # Regression indicators
+    "duration_vs_baseline": "current / baseline ratio",
+    "regression_severity_score": "0-100 based on deviation from baseline",
+
+    # Root cause indicators
+    "data_volume_changed": "read_bytes vs baseline",
+    "plan_changed": "Query plan hash differs from baseline",
+    "warehouse_changed": "Different warehouse than baseline",
+    "peak_hours": "Running during high-load period"
+}
+```
+
+### New Model: ALL_PURPOSE Migration Recommender (🆕)
+
+**Source:** Workflow Advisor Blog
+
+**Problem Type:** Classification + Optimization
+**Use Case:** Recommend jobs to migrate from ALL_PURPOSE to JOB clusters
+**Business Value:** 40% cost savings on migrated jobs (validated in blog)
+
+| Aspect | Details |
+|--------|---------|
+| **Gold Tables** | `fact_usage`, `fact_job_run_timeline`, `dim_job`, `dim_cluster` |
+| **Output** | migration_recommendation, estimated_savings, migration_risk |
+| **Algorithm** | Gradient Boosting + Rule-based prioritization |
+| **Refresh** | Weekly |
+
+**Feature Engineering:**
+```python
+migration_features = {
+    # Current state
+    "all_purpose_cost_30d": "Cost on ALL_PURPOSE clusters",
+    "all_purpose_runs_30d": "Runs on ALL_PURPOSE",
+    "has_job_cluster_runs": "Has ever run on JOB cluster",
+
+    # Migration risk factors
+    "uses_init_scripts": "Custom initialization scripts",
+    "uses_cluster_policies": "Attached to cluster policy",
+    "uses_instance_pools": "Uses instance pool",
+    "uses_spark_config": "Has custom Spark config",
+
+    # Savings potential
+    "estimated_savings": "all_purpose_cost * 0.4",
+    "annual_projected_savings": "estimated_savings * 12",
+
+    # Priority scoring
+    "migration_priority_score": "savings * (1 - risk_score)",
+}
+```
+
+---
+
+## Updated Model Catalog Summary
+
+| Agent Domain | Model Count | New Models Added |
+|--------------|-------------|------------------|
+| **💰 Cost** | 7 models (+2) | User Cost Behavior Predictor, ALL_PURPOSE Migration Recommender |
+| **🔒 Security** | 4 models | (Enhanced with user type classification) |
+| **⚡ Performance** | 7 models (+1) | Query Regression Detector |
+| **🔄 Reliability** | 5 models | (Enhanced with duration regression) |
+| **✅ Quality** | 3 models | |
+| **Total** | **26 models** (+3) | |
+
+---
+
+## Updated Success Criteria
+
+| Criteria | Target | Source |
+|----------|--------|--------|
+| **Models Trained** | 26 models (+3 from blogs) | |
+| **SLA Breach Detection** | >95% recall on 60s threshold | DBSQL Advisor Blog |
+| **Regression Detection** | <5 min latency to detect | Real-Time Monitoring Blog |
+| **Cost Savings Identified** | >$X/month from ALL_PURPOSE migration | Workflow Advisor Blog |
+| **Human vs System Classification** | >99% accuracy | Audit Logs Repo |
+| **P99 Prediction Accuracy** | MAPE <20% | DBSQL Advisor Blog |

@@ -63,7 +63,7 @@ columns:
   # === Flattened Nested Columns ===
 
   - name: pricing_default
-    type: DECIMAL(38
+    type: DECIMAL(38,6)
     nullable: true
     description: "A structured data field that includes pricing info at the published list price rate. The key default will always return a single price that can be used for simple long-term estimates. The key promotional represents a temporary promotional price that all customers get which could be used for cost estimation during the temporary period. The key effective_list resolves list and promotional price, ..."
     # Flattened from: pricing.default

@@ -1,173 +1,126 @@
 # Databricks notebook source
 """
-Job Cost Optimizer - MLflow 3.0 Training Script
-===============================================
+Train Job Cost Optimizer Model
+==============================
 
-Model 1.4: Job Cost Optimizer
-Problem Type: Regression + Optimization
-Business Value: 20-50% cost reduction through right-sizing
+Problem: Regression/Classification
+Algorithm: Gradient Boosting
+Domain: Cost
 
-Features from Jobs System Tables Dashboard patterns:
-- Worker count, memory, autoscaling configuration
-- CPU/memory utilization metrics
-- Historical cost patterns
+Optimizes job configurations for cost efficiency by predicting cost-performance tradeoffs.
 
-MLflow 3.0 Features:
-- LoggedModel with signature
-- Unity Catalog Model Registry
-- Feature Engineering integration
+MLflow 3.1+ Best Practices Applied
 """
 
 # COMMAND ----------
 
+from pyspark.sql import SparkSession
 import mlflow
-import numpy as np
-import pandas as pd
+from mlflow.models.signature import infer_signature
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-import sys
-import os
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import pandas as pd
+import numpy as np
+from datetime import datetime
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from common.mlflow_utils import (
-    MLflowConfig, setup_mlflow_experiment, log_model_with_signature
-)
-from common.training_utils import (
-    TrainingConfig, split_data, evaluate_model, get_feature_importance
-)
+mlflow.set_registry_uri("databricks-uc")
 
 # COMMAND ----------
 
 def get_parameters():
-    """Get job parameters from dbutils widgets."""
     catalog = dbutils.widgets.get("catalog")
     gold_schema = dbutils.widgets.get("gold_schema")
     feature_schema = dbutils.widgets.get("feature_schema")
+    print(f"Catalog: {catalog}, Gold: {gold_schema}, Features: {feature_schema}")
     return catalog, gold_schema, feature_schema
 
-# COMMAND ----------
+def setup_mlflow_experiment(model_name: str) -> str:
+    experiment_name = f"/Shared/health_monitor_ml_{model_name}"
+    mlflow.set_experiment(experiment_name)
+    print(f"✓ Experiment: {experiment_name}")
+    return experiment_name
 
-def prepare_job_cost_features(spark, catalog: str, gold_schema: str) -> pd.DataFrame:
-    """
-    Prepare features for job cost optimization.
-    
-    Joins job run data with node utilization to identify
-    right-sizing opportunities.
-    """
-    fact_job_run = f"{catalog}.{gold_schema}.fact_job_run_timeline"
-    fact_usage = f"{catalog}.{gold_schema}.fact_usage"
-    dim_job = f"{catalog}.{gold_schema}.dim_job"
-    
-    df = spark.sql(f"""
-        WITH job_costs AS (
-            SELECT
-                u.usage_metadata_job_id AS job_id,
-                j.name AS job_name,
-                j.task_count,
-                SUM(u.usage_quantity) AS total_dbu,
-                COUNT(DISTINCT u.usage_metadata_job_run_id) AS run_count,
-                AVG(u.usage_quantity) AS avg_dbu_per_run
-            FROM {fact_usage} u
-            LEFT JOIN {dim_job} j ON u.usage_metadata_job_id = j.job_id
-            WHERE u.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-                AND u.usage_metadata_job_id IS NOT NULL
-            GROUP BY u.usage_metadata_job_id, j.name, j.task_count
-        ),
-        job_performance AS (
-            SELECT
-                job_id,
-                COUNT(*) AS total_runs,
-                SUM(CASE WHEN result_state = 'SUCCEEDED' THEN 1 ELSE 0 END) AS success_count,
-                AVG(TIMESTAMPDIFF(MINUTE, period_start_time, period_end_time)) AS avg_duration_minutes,
-                STDDEV(TIMESTAMPDIFF(MINUTE, period_start_time, period_end_time)) AS duration_std
-            FROM {fact_job_run}
-            WHERE period_start_time >= CURRENT_DATE() - INTERVAL 30 DAYS
-            GROUP BY job_id
-        )
-        SELECT 
-            jc.*,
-            jp.total_runs,
-            jp.success_count,
-            jp.avg_duration_minutes,
-            jp.duration_std,
-            COALESCE(jp.success_count / NULLIF(jp.total_runs, 0), 0) AS success_rate,
-            -- Cost efficiency metrics
-            jc.total_dbu / NULLIF(jc.run_count, 0) AS cost_per_run,
-            jc.total_dbu / NULLIF(jp.avg_duration_minutes * jc.run_count, 0) AS cost_per_minute
-        FROM job_costs jc
-        LEFT JOIN job_performance jp ON jc.job_id = jp.job_id
-        WHERE jc.run_count >= 5  -- Minimum runs for reliable statistics
-    """).toPandas()
-    
-    print(f"Job cost features shape: {df.shape}")
-    return df
+def log_training_dataset(spark, catalog: str, schema: str, table_name: str):
+    try:
+        df = spark.table(f"{catalog}.{schema}.{table_name}")
+        dataset = mlflow.data.from_spark(df=df, table_name=f"{catalog}.{schema}.{table_name}", version="latest")
+        mlflow.log_input(dataset, context="training")
+        print(f"  ✓ Dataset logged")
+    except Exception as e:
+        print(f"  ⚠ Dataset: {e}")
+
+def get_run_name(model_name: str, algorithm: str) -> str:
+    return f"{model_name}_{algorithm}_v1_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+def get_standard_tags(model_name, domain, model_type, algorithm, use_case, training_table):
+    return {"project": "databricks_health_monitor", "domain": domain, "model_name": model_name,
+            "model_type": model_type, "algorithm": algorithm, "use_case": use_case, "training_data": training_table}
 
 # COMMAND ----------
 
-def train_cost_predictor(df: pd.DataFrame) -> tuple:
-    """Train model to predict job cost."""
-    feature_columns = [
-        "task_count", "run_count", "avg_dbu_per_run",
-        "total_runs", "success_rate", "avg_duration_minutes", "duration_std"
-    ]
+def load_and_prepare_data(spark, catalog, feature_schema):
+    feature_table = f"{catalog}.{feature_schema}.cost_features"
+    print(f"Loading from {feature_table}...")
     
-    df = df.fillna(0)
-    df = df[df["total_dbu"] > 0]  # Valid cost data
+    df = spark.table(feature_table)
+    feature_cols = ["daily_dbu", "avg_dbu_7d", "avg_dbu_30d", "z_score_7d", "dow_sin", "dow_cos", "is_weekend"]
+    target = "daily_cost"
     
-    X = df[feature_columns]
-    y = df["total_dbu"]
+    pdf = df.select(feature_cols + [target]).toPandas()
+    for c in pdf.columns:
+        pdf[c] = pd.to_numeric(pdf[c], errors='coerce')
+    pdf = pdf.fillna(0).replace([np.inf, -np.inf], 0)
     
-    config = TrainingConfig(test_size=0.2, validation_size=0.1)
-    X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y, config)
+    X = pdf[feature_cols]
+    y = pdf[target]
+    return train_test_split(X, y, test_size=0.2, random_state=42) + [feature_cols]
+
+# COMMAND ----------
+
+def train_and_log(X_train, X_test, y_train, y_test, feature_cols, catalog, feature_schema, spark):
+    model_name = "job_cost_optimizer"
+    registered_name = f"{catalog}.{feature_schema}.{model_name}"
     
-    model = Pipeline([
-        ("scaler", StandardScaler()),
-        ("regressor", GradientBoostingRegressor(
-            n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42
-        ))
-    ])
-    
+    model = GradientBoostingRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42)
     model.fit(X_train, y_train)
     
-    return model, X_train, y_train, X_test, y_test, feature_columns
+    y_pred = model.predict(X_test)
+    metrics = {"mae": mean_absolute_error(y_test, y_pred), "rmse": np.sqrt(mean_squared_error(y_test, y_pred)),
+               "r2": r2_score(y_test, y_pred)}
+    
+    mlflow.autolog(disable=True)
+    with mlflow.start_run(run_name=get_run_name(model_name, "gradient_boosting")) as run:
+        mlflow.set_tags(get_standard_tags(model_name, "cost", "regression", "gradient_boosting", 
+                                          "job_cost_optimization", f"{catalog}.{feature_schema}.cost_features"))
+        log_training_dataset(spark, catalog, feature_schema, "cost_features")
+        mlflow.log_params({"n_estimators": 100, "max_depth": 5, "learning_rate": 0.1})
+        mlflow.log_metrics(metrics)
+        
+        signature = infer_signature(X_train.head(5), model.predict(X_train.head(5)))
+        mlflow.sklearn.log_model(model, "model", signature=signature, input_example=X_train.head(5),
+                                 registered_model_name=registered_name)
+        print(f"✓ Registered: {registered_name}, R2: {metrics['r2']:.4f}")
+        return run.info.run_id
 
 # COMMAND ----------
 
 def main():
-    """Main training pipeline."""
+    print("\n" + "=" * 60 + "\nJOB COST OPTIMIZER - TRAINING\n" + "=" * 60)
     catalog, gold_schema, feature_schema = get_parameters()
-    
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.appName("Job Cost Optimizer").getOrCreate()
-    
-    config = MLflowConfig(catalog=catalog, schema=feature_schema, model_prefix="health_monitor")
-    setup_mlflow_experiment(config, "cost", "job_cost_optimizer")
+    spark = SparkSession.builder.getOrCreate()
+    setup_mlflow_experiment("job_cost_optimizer")
     
     try:
-        df = prepare_job_cost_features(spark, catalog, gold_schema)
-        model, X_train, y_train, X_test, y_test, feature_columns = train_cost_predictor(df)
-        
-        metrics = evaluate_model(model, X_test, y_test, problem_type="regression")
-        
-        log_model_with_signature(
-            model=model, model_name="job_cost_optimizer", config=config,
-            flavor="sklearn", X_sample=X_train, y_sample=y_train,
-            metrics=metrics, params={"n_estimators": 100, "max_depth": 5},
-            custom_tags={"agent_domain": "cost", "model_type": "cost_prediction"}
-        )
-        
-        print("✓ Job Cost Optimizer Training Complete!")
-        
+        X_train, X_test, y_train, y_test, feature_cols = load_and_prepare_data(spark, catalog, feature_schema)
+        run_id = train_and_log(X_train, X_test, y_train, y_test, feature_cols, catalog, feature_schema, spark)
+        print(f"✓ COMPLETE - Run: {run_id}")
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        raise
-    finally:
-        spark.stop()
-
-# COMMAND ----------
+        import traceback
+        print(f"❌ {e}\n{traceback.format_exc()}")
+        dbutils.notebook.exit(f"FAILED: {e}")
+    
+    dbutils.notebook.exit("SUCCESS")
 
 if __name__ == "__main__":
     main()
-

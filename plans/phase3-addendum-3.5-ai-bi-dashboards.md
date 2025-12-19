@@ -64,7 +64,7 @@ Single-pane-of-glass view of Databricks platform health for executives.
 #### KPI 1: Total Cost (MTD)
 ```sql
 SELECT 
-    CONCAT('$', FORMAT_NUMBER(SUM(usage_quantity * list_price), 0)) AS metric_value,
+    CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS metric_value,
     'Month to Date' AS metric_label
 FROM ${catalog}.${gold_schema}.fact_usage
 WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())
@@ -86,7 +86,7 @@ WHERE period_start_time >= CURRENT_DATE() - INTERVAL 7 DAYS
 #### KPI 3: Active Users
 ```sql
 SELECT 
-    COUNT(DISTINCT run_as) AS metric_value,
+    COUNT(DISTINCT identity_metadata_run_as) AS metric_value,  -- Using flattened column
     'Last 30 Days' AS metric_label
 FROM ${catalog}.${gold_schema}.fact_usage
 WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
@@ -96,8 +96,8 @@ WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
 ```sql
 SELECT 
     usage_date,
-    SUM(usage_quantity * list_price) AS daily_cost,
-    SUM(SUM(usage_quantity * list_price)) OVER (
+    SUM(list_cost) AS daily_cost,
+    SUM(SUM(list_cost)) OVER (
         ORDER BY usage_date 
         ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
     ) / 7 AS rolling_7day_avg
@@ -178,7 +178,7 @@ WITH commit_config AS (
 monthly_spend AS (
     SELECT 
         DATE_TRUNC('month', usage_date) AS month_start,
-        SUM(usage_quantity * list_price) AS monthly_cost
+        SUM(list_cost) AS monthly_cost
     FROM ${catalog}.${gold_schema}.fact_usage
     WHERE YEAR(usage_date) = YEAR(CURRENT_DATE())
     GROUP BY DATE_TRUNC('month', usage_date)
@@ -310,7 +310,7 @@ Enable fine-grained cost attribution using custom tags from [system.billing.usag
 SELECT 
     COALESCE(tag_key, 'UNTAGGED') AS tag_key,
     COALESCE(tag_value, 'UNTAGGED') AS tag_value,
-    SUM(usage_quantity * list_price) AS total_cost,
+    SUM(list_cost) AS total_cost,
     COUNT(DISTINCT workspace_id) AS workspace_count,
     COUNT(DISTINCT job_id) AS job_count
 FROM ${catalog}.${gold_schema}.fact_usage
@@ -328,15 +328,15 @@ WITH tagged_analysis AS (
     SELECT 
         usage_date,
         CASE 
-            WHEN custom_tags IS NULL OR cardinality(custom_tags) = 0 THEN 'UNTAGGED'
+            WHEN is_tagged = FALSE THEN 'UNTAGGED'  -- Using pre-calculated is_tagged
             ELSE 'TAGGED'
         END AS tag_status,
-        SUM(usage_quantity * list_price) AS cost
+        SUM(list_cost) AS cost
     FROM ${catalog}.${gold_schema}.fact_usage
     WHERE usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS
     GROUP BY usage_date, 
         CASE 
-            WHEN custom_tags IS NULL OR cardinality(custom_tags) = 0 THEN 'UNTAGGED'
+            WHEN is_tagged = FALSE THEN 'UNTAGGED'  -- Using pre-calculated is_tagged
             ELSE 'TAGGED'
         END
 )
@@ -375,11 +375,11 @@ INNER JOIN recent_runs rr ON j.job_id = rr.job_id AND j.workspace_id = rr.worksp
 LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w 
     ON j.workspace_id = w.workspace_id AND w.is_current = TRUE
 LEFT JOIN (
-    SELECT job_id, SUM(usage_quantity * list_price) AS total_cost
+    SELECT usage_metadata_job_id AS job_id, SUM(list_cost) AS total_cost  -- Using flattened column
     FROM ${catalog}.${gold_schema}.fact_usage
     WHERE usage_date > CURRENT_DATE() - INTERVAL 12 MONTHS
-        AND job_id IS NOT NULL
-    GROUP BY job_id
+        AND usage_metadata_job_id IS NOT NULL
+    GROUP BY usage_metadata_job_id
 ) jc ON j.job_id = jc.job_id
 WHERE j.is_current = TRUE
     AND (j.tags IS NULL OR cardinality(j.tags) = 0)
@@ -397,7 +397,7 @@ SELECT
     s.sku_name,
     DATE_TRUNC('month', usage_date) AS month,
     SUM(usage_quantity) AS total_dbu,
-    SUM(usage_quantity * list_price) AS total_cost
+    SUM(list_cost) AS total_cost
 FROM ${catalog}.${gold_schema}.fact_usage f
 LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w 
     ON f.workspace_id = w.workspace_id AND w.is_current = TRUE
@@ -429,7 +429,7 @@ WITH list_cost_per_job AS (
         t1.workspace_id,
         t1.usage_metadata.job_id,
         COUNT(DISTINCT t1.usage_metadata.job_run_id) AS runs,
-        SUM(t1.usage_quantity * list_prices.pricing.default) AS list_cost,
+        SUM(t1.list_costs.pricing.default) AS list_cost,
         FIRST(identity_metadata.run_as, TRUE) AS run_as,
         MAX(t1.usage_end_time) AS last_seen_date
     FROM system.billing.usage t1
@@ -470,7 +470,7 @@ WITH job_run_timeline_with_cost AS (
         t1.*,
         t1.usage_metadata.job_id AS job_id,
         t1.identity_metadata.run_as AS run_as,
-        t1.usage_quantity * list_prices.pricing.default AS list_cost
+        t1.list_costs.pricing.default AS list_cost
     FROM system.billing.usage t1
     INNER JOIN system.billing.list_prices list_prices 
         ON t1.cloud = list_prices.cloud 
@@ -520,7 +520,7 @@ LIMIT 20
 WITH tagraw AS (
     SELECT 
         explode(custom_tags) AS (tag_key, tag_value),
-        (usage_quantity * list_prices.pricing.default) AS list_cost
+        (list_costs.pricing.default) AS list_cost
     FROM system.billing.usage t1
     INNER JOIN system.billing.list_prices list_prices 
         ON t1.cloud = list_prices.cloud 
@@ -537,7 +537,7 @@ tagspend AS (
     FROM tagraw GROUP BY 1
 ),
 untagged AS (
-    SELECT 'Untagged' AS tag_bucket, SUM(usage_quantity * list_prices.pricing.default) AS list_cost
+    SELECT 'Untagged' AS tag_bucket, SUM(list_costs.pricing.default) AS list_cost
     FROM system.billing.usage t1
     INNER JOIN system.billing.list_prices list_prices 
         ON t1.cloud = list_prices.cloud 
@@ -564,7 +564,7 @@ WITH list_cost_per_job_cluster AS (
         t1.workspace_id,
         t1.usage_metadata.job_id,
         t1.usage_metadata.cluster_id,
-        SUM(t1.usage_quantity * list_prices.pricing.default) AS list_cost
+        SUM(t1.list_costs.pricing.default) AS list_cost
     FROM system.billing.usage t1
     INNER JOIN system.billing.list_prices list_prices 
         ON t1.cloud = list_prices.cloud 
@@ -617,9 +617,9 @@ LIMIT 25
 ```sql
 SELECT 
     sku_name,
-    SUM(usage_quantity * list_price) AS total_cost,
-    ROUND(SUM(usage_quantity * list_price) * 100.0 / 
-          SUM(SUM(usage_quantity * list_price)) OVER (), 1) AS pct_of_total
+    SUM(list_cost) AS total_cost,
+    ROUND(SUM(list_cost) * 100.0 / 
+          SUM(SUM(list_cost)) OVER (), 1) AS pct_of_total
 FROM ${catalog}.${gold_schema}.fact_usage
 WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
 GROUP BY sku_name
@@ -826,7 +826,7 @@ WITH job_run_timeline_with_cost AS (
         t2.run_id,
         t1.identity_metadata.run_as AS run_as,
         t2.result_state,
-        t1.usage_quantity * list_prices.pricing.default AS list_cost
+        t1.list_costs.pricing.default AS list_cost
     FROM system.billing.usage t1
     INNER JOIN system.lakeflow.job_run_timeline t2
         ON t1.workspace_id = t2.workspace_id
@@ -1000,7 +1000,7 @@ job_cluster_costs AS (
         t1.workspace_id,
         t1.usage_metadata.job_id,
         t1.usage_metadata.cluster_id,
-        SUM(t1.usage_quantity * list_prices.pricing.default) AS list_cost
+        SUM(t1.list_costs.pricing.default) AS list_cost
     FROM system.billing.usage t1
     INNER JOIN system.billing.list_prices list_prices 
         ON t1.cloud = list_prices.cloud 
@@ -1084,7 +1084,7 @@ WITH stats_per_job_run AS (
         t1.workspace_id,
         t1.usage_metadata.job_id,
         t1.usage_metadata.job_run_id AS run_id,
-        SUM(t1.usage_quantity * list_prices.pricing.default) AS list_cost,
+        SUM(t1.list_costs.pricing.default) AS list_cost,
         FIRST(identity_metadata.run_as, TRUE) AS run_as,
         MIN(t1.usage_start_time) AS first_seen
     FROM system.billing.usage t1
@@ -1391,7 +1391,7 @@ FROM ${catalog}.${gold_schema}.fact_node_timeline nt
 LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c 
     ON nt.cluster_id = c.cluster_id AND c.is_current = TRUE
 LEFT JOIN (
-    SELECT cluster_id, SUM(usage_quantity * list_price) AS total_cost
+    SELECT cluster_id, SUM(list_cost) AS total_cost
     FROM ${catalog}.${gold_schema}.fact_usage
     WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
     GROUP BY cluster_id
@@ -1694,7 +1694,7 @@ WITH job_compute AS (
             WHEN sku_name LIKE '%SERVERLESS%' THEN 'Serverless'
             ELSE 'Classic'
         END AS compute_type,
-        SUM(usage_quantity * list_prices.pricing.default) AS list_cost
+        SUM(list_costs.pricing.default) AS list_cost
     FROM system.billing.usage t1
     INNER JOIN system.billing.list_prices list_prices 
         ON t1.cloud = list_prices.cloud 
@@ -1716,19 +1716,360 @@ ORDER BY job_count DESC
 
 ---
 
+## 🔒 Governance Agent: Data Governance Hub Dashboard (NEW)
+
+### Purpose
+Comprehensive data governance dashboard tracking asset usage, tag coverage, lineage, and documentation completeness. Inspired by [SYSTEM GENERATED] GOVERNANCE HUB SYSTEM DASHBOARD 1.0.5.
+
+### Agent Domain: 🔒 Security/Governance
+
+**Gold Tables Used:**
+- `${catalog}.${gold_schema}.fact_table_lineage`
+- `${catalog}.${gold_schema}.fact_column_lineage`
+- `${catalog}.information_schema.tables`
+- `${catalog}.information_schema.columns`
+
+### Key Visualizations
+
+| Visualization | Type | Description |
+|---------------|------|-------------|
+| **Entity Counts** | KPI Cards | Catalogs, Schemas, Tables, Columns |
+| **Active/Inactive Tables** | Donut | Tables with activity vs idle (30 days) |
+| **Read/Write Activity Trend** | Line | Table access patterns over time |
+| **Top Users by Table Access** | Bar | Users with most table interactions |
+| **Tag Coverage Matrix** | Heatmap | Tag compliance by schema/catalog |
+| **Tables Without Comments** | Table | Data quality gap identification |
+| **Lineage Depth** | Tree/Table | Multi-level lineage tracking |
+| **Popular Columns** | Table | Most frequently accessed columns |
+| **Inactive Tables** | Table | Tables not accessed in 30+ days |
+
+### Widget Queries
+
+#### Active vs Inactive Tables (Donut)
+```sql
+-- Pattern from Governance Hub: Active/inactive tables
+WITH table_activity AS (
+    SELECT DISTINCT
+        COALESCE(source_table_full_name, target_table_full_name) AS table_full_name
+    FROM ${catalog}.${gold_schema}.fact_table_lineage
+    WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+),
+all_tables AS (
+    SELECT CONCAT(table_catalog, '.', table_schema, '.', table_name) AS table_full_name
+    FROM ${catalog}.information_schema.tables
+    WHERE table_type = 'MANAGED'
+)
+SELECT
+    CASE WHEN ta.table_full_name IS NOT NULL THEN 'Active' ELSE 'Inactive' END AS status,
+    COUNT(*) AS table_count
+FROM all_tables at
+LEFT JOIN table_activity ta ON at.table_full_name = ta.table_full_name
+GROUP BY 1
+```
+
+#### Top Queried Tables Without Comments
+```sql
+-- Pattern from Governance Hub: Top queried tables without comments
+WITH table_usage AS (
+    SELECT
+        COALESCE(source_table_full_name, target_table_full_name) AS table_full_name,
+        COUNT(*) AS access_count
+    FROM ${catalog}.${gold_schema}.fact_table_lineage
+    WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+    GROUP BY 1
+),
+table_comments AS (
+    SELECT
+        CONCAT(table_catalog, '.', table_schema, '.', table_name) AS table_full_name,
+        COALESCE(comment, '') AS table_comment
+    FROM ${catalog}.information_schema.tables
+)
+SELECT
+    tu.table_full_name,
+    tu.access_count,
+    tc.table_comment
+FROM table_usage tu
+LEFT JOIN table_comments tc ON tu.table_full_name = tc.table_full_name
+WHERE tc.table_comment = '' OR tc.table_comment IS NULL
+ORDER BY tu.access_count DESC
+LIMIT 25
+```
+
+#### Popular Columns by Access
+```sql
+-- Pattern from Governance Hub: Popular columns
+SELECT
+    source_table_full_name AS table_name,
+    source_column_name AS column_name,
+    COUNT(*) AS access_count,
+    COUNT(DISTINCT created_by) AS unique_users
+FROM ${catalog}.${gold_schema}.fact_column_lineage
+WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+    AND source_column_name IS NOT NULL
+GROUP BY source_table_full_name, source_column_name
+ORDER BY access_count DESC
+LIMIT 50
+```
+
+#### Tag Coverage by Schema
+```sql
+-- Pattern from Governance Hub: Tag/untagged tables
+WITH table_tags AS (
+    SELECT
+        table_catalog,
+        table_schema,
+        table_name,
+        CASE WHEN t.tags IS NOT NULL AND cardinality(t.tags) > 0 THEN 1 ELSE 0 END AS is_tagged
+    FROM ${catalog}.information_schema.tables t
+    WHERE table_type = 'MANAGED'
+)
+SELECT
+    table_schema,
+    COUNT(*) AS total_tables,
+    SUM(is_tagged) AS tagged_tables,
+    ROUND(SUM(is_tagged) * 100.0 / NULLIF(COUNT(*), 0), 1) AS tag_coverage_pct
+FROM table_tags
+GROUP BY table_schema
+ORDER BY tag_coverage_pct ASC
+```
+
+---
+
+## 🔄 Reliability Agent: DLT Pipeline Monitoring Dashboard (NEW)
+
+### Purpose
+Monitor Delta Live Tables pipelines for reliability, freshness, and cost. Inspired by LakeFlow System Tables Dashboard v0.1.
+
+### Agent Domain: 🔄 Reliability
+
+**Gold Tables Used:**
+- `${catalog}.${gold_schema}.fact_pipeline_event`
+- `${catalog}.${gold_schema}.dim_pipeline`
+- `${catalog}.${gold_schema}.fact_usage`
+
+### Key Visualizations
+
+| Visualization | Type | Description |
+|---------------|------|-------------|
+| **Pipeline Status Summary** | KPI Cards | Active, Failed, Idle pipelines |
+| **Pipeline Execution Timeline** | Gantt | Pipeline runs over time |
+| **Cost by Pipeline** | Bar | DLT cost attribution |
+| **Update Frequency** | Table | Pipeline update cadence analysis |
+| **Failed Updates** | Table | Recent pipeline failures with errors |
+| **Pipeline Data Freshness** | Table | Time since last successful update |
+
+### Widget Queries
+
+#### Pipeline Execution Summary
+```sql
+-- Pattern from LakeFlow Dashboard: Pipeline execution overview
+SELECT
+    p.pipeline_name,
+    COUNT(*) AS total_updates,
+    SUM(CASE WHEN pe.state = 'COMPLETED' THEN 1 ELSE 0 END) AS successful_updates,
+    SUM(CASE WHEN pe.state = 'FAILED' THEN 1 ELSE 0 END) AS failed_updates,
+    ROUND(SUM(CASE WHEN pe.state = 'COMPLETED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate,
+    MAX(pe.event_time) AS last_update
+FROM ${catalog}.${gold_schema}.fact_pipeline_event pe
+LEFT JOIN ${catalog}.${gold_schema}.dim_pipeline p
+    ON pe.pipeline_id = p.pipeline_id AND p.is_current = TRUE
+WHERE pe.event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+GROUP BY p.pipeline_name
+ORDER BY failed_updates DESC
+```
+
+#### Pipeline Cost Attribution
+```sql
+-- Pattern from LakeFlow Dashboard: Cost per pipeline
+SELECT
+    p.pipeline_name,
+    SUM(u.list_cost) AS total_cost,
+    SUM(u.usage_quantity) AS total_dbu,
+    COUNT(DISTINCT DATE(u.usage_date)) AS active_days
+FROM ${catalog}.${gold_schema}.fact_usage u
+LEFT JOIN ${catalog}.${gold_schema}.dim_pipeline p
+    ON u.usage_metadata_dlt_pipeline_id = p.pipeline_id AND p.is_current = TRUE
+WHERE u.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+    AND u.usage_metadata_dlt_pipeline_id IS NOT NULL
+GROUP BY p.pipeline_name
+ORDER BY total_cost DESC
+LIMIT 20
+```
+
+---
+
+## 💰 Cost Agent: Period Comparison Dashboard (NEW)
+
+### Purpose
+Compare spending across periods (30 vs 60 days, WoW, MoM) for trend analysis and budget tracking. Inspired by azure-serverless-jobs-and-notebooks-cost-observability dashboard.
+
+### Agent Domain: 💰 Cost
+
+**Gold Tables Used:**
+- `${catalog}.${gold_schema}.fact_usage`
+- `${catalog}.${gold_schema}.dim_workspace`
+
+### Key Visualizations
+
+| Visualization | Type | Description |
+|---------------|------|-------------|
+| **30 vs 60 Day Spend** | Bar Comparison | Period-over-period cost comparison |
+| **WoW Growth by Entity** | Table | Week-over-week cost growth by job/user |
+| **Cost Velocity** | Line | Daily run rate vs target |
+| **Outlier Runs** | Table | Job runs exceeding P90 cost |
+| **Highest Growth Entities** | Table | 7 vs 14 day cost growth analysis |
+
+### Widget Queries
+
+#### 30 vs 60 Day Spend Comparison
+```sql
+-- Pattern from Azure Serverless Cost Dashboard: 30_60_day_spend
+SELECT
+    'Last 30 Days' AS period,
+    SUM(list_cost) AS total_cost,
+    COUNT(DISTINCT workspace_id) AS workspaces,
+    COUNT(DISTINCT usage_metadata_job_id) AS jobs
+FROM ${catalog}.${gold_schema}.fact_usage
+WHERE usage_date BETWEEN CURRENT_DATE() - INTERVAL 30 DAYS AND CURRENT_DATE()
+
+UNION ALL
+
+SELECT
+    'Prior 30 Days' AS period,
+    SUM(list_cost) AS total_cost,
+    COUNT(DISTINCT workspace_id) AS workspaces,
+    COUNT(DISTINCT usage_metadata_job_id) AS jobs
+FROM ${catalog}.${gold_schema}.fact_usage
+WHERE usage_date BETWEEN CURRENT_DATE() - INTERVAL 60 DAYS AND CURRENT_DATE() - INTERVAL 30 DAYS
+```
+
+#### Highest Growth Users (7 vs 14 Day)
+```sql
+-- Pattern from Azure Serverless Cost Dashboard: highest_change_users_7_14_days
+SELECT
+    identity_metadata_run_as AS user,
+    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS last_7_days,
+    SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS prior_7_days,
+    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) -
+    SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS growth_amount,
+    ROUND(
+        (SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) -
+         SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END)) * 100.0 /
+        NULLIF(SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END), 0), 1
+    ) AS growth_pct
+FROM ${catalog}.${gold_schema}.fact_usage
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS
+GROUP BY identity_metadata_run_as
+HAVING prior_7_days > 0
+ORDER BY growth_amount DESC
+LIMIT 20
+```
+
+#### Highest Growth Notebooks (7 vs 14 Day)
+```sql
+-- Pattern from Azure Serverless Cost Dashboard: highest_change_notebooks_7_14_days
+SELECT
+    usage_metadata_notebook_id AS notebook_id,
+    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS last_7_days,
+    SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS prior_7_days,
+    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) -
+    SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS growth_amount
+FROM ${catalog}.${gold_schema}.fact_usage
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS
+    AND usage_metadata_notebook_id IS NOT NULL
+GROUP BY usage_metadata_notebook_id
+HAVING prior_7_days > 10  -- Filter out low-cost notebooks
+ORDER BY growth_amount DESC
+LIMIT 20
+```
+
+---
+
+## ⚡ Performance Agent: Warehouse Scaling & Idle Analysis Dashboard (NEW)
+
+### Purpose
+Analyze SQL Warehouse scaling efficiency, idle time, and cost optimization opportunities. Inspired by DBSQL Warehouse Advisor v5 scaling patterns.
+
+### Agent Domain: ⚡ Performance
+
+**Gold Tables Used:**
+- `${catalog}.${gold_schema}.fact_query_history`
+- `${catalog}.${gold_schema}.fact_warehouse_events`
+- `${catalog}.${gold_schema}.dim_warehouse`
+
+### Key Visualizations
+
+| Visualization | Type | Description |
+|---------------|------|-------------|
+| **Warehouse Idle Time** | Bar | Idle percentage by warehouse |
+| **Cluster Scaling Events** | Timeline | Scale up/down events over time |
+| **Queries Per Cluster** | Line | Query distribution across clusters |
+| **Idle Cost Analysis** | Table | Cost of idle warehouse time |
+| **Scaling Efficiency** | Gauge | Actual vs optimal cluster count |
+
+### Widget Queries
+
+#### Warehouse Idle Percentage
+```sql
+-- Pattern from DBSQL Warehouse Advisor: Warehouse idle percent
+WITH warehouse_time AS (
+    SELECT
+        warehouse_id,
+        SUM(TIMESTAMPDIFF(SECOND, start_time, end_time)) AS total_runtime_sec,
+        SUM(CASE WHEN query_count = 0 THEN TIMESTAMPDIFF(SECOND, start_time, end_time) ELSE 0 END) AS idle_time_sec
+    FROM ${catalog}.${gold_schema}.fact_warehouse_events
+    WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS
+    GROUP BY warehouse_id
+)
+SELECT
+    dw.warehouse_name,
+    wt.total_runtime_sec / 3600 AS total_hours,
+    wt.idle_time_sec / 3600 AS idle_hours,
+    ROUND(wt.idle_time_sec * 100.0 / NULLIF(wt.total_runtime_sec, 0), 1) AS idle_pct
+FROM warehouse_time wt
+LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse dw
+    ON wt.warehouse_id = dw.warehouse_id AND dw.is_current = TRUE
+ORDER BY idle_pct DESC
+```
+
+#### Cluster Scaling Over Time
+```sql
+-- Pattern from DBSQL Warehouse Advisor: Cluster Scaling
+SELECT
+    DATE_TRUNC('hour', event_time) AS hour,
+    dw.warehouse_name,
+    MAX(cluster_count) AS max_clusters,
+    MIN(cluster_count) AS min_clusters,
+    AVG(cluster_count) AS avg_clusters
+FROM ${catalog}.${gold_schema}.fact_warehouse_events we
+LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse dw
+    ON we.warehouse_id = dw.warehouse_id AND dw.is_current = TRUE
+WHERE we.event_time >= CURRENT_DATE() - INTERVAL 7 DAYS
+GROUP BY DATE_TRUNC('hour', event_time), dw.warehouse_name
+ORDER BY hour, warehouse_name
+```
+
+---
+
 ## Dashboard Summary
 
 | Dashboard | Purpose | Key Widgets | Refresh |
 |-----------|---------|-------------|---------|
 | Executive Overview | Leadership view | 3 KPIs, cost trend, summary table | Daily |
 | Cost Management | FinOps analysis | Top contributors, SKU breakdown, WoW, tag costs, growth analysis | Daily |
+| Commit Tracking | Budget monitoring | Commit vs actual, ML forecast, variance alerts | Daily |
+| Tag-Based Attribution | Chargeback | Cost by tag, tag coverage, untagged resources | Daily |
 | Job Reliability | DevOps monitoring | Success rate, failures, duration, retries, failure costs | Hourly |
-| **Job Optimization (NEW)** | Cost savings | Stale datasets, autoscaling, AP clusters, outliers | Daily |
+| **Job Optimization** | Cost savings | Stale datasets, autoscaling, AP clusters, outliers | Daily |
 | Query Performance | DBA optimization | Slow queries, queue time, efficiency flags, cost allocation | Hourly |
 | Cluster Utilization | Right-sizing | CPU/Mem util, network metrics, underutilized | Daily |
 | Security & Audit | Compliance | User activity, table access, audit | Daily |
 | Table Health Advisor | Storage optimization | Table sizes, file distribution, optimization needs | Daily |
-| **DBR Migration (NEW)** | Modernization | Legacy DBR jobs, version distribution, serverless adoption | Weekly |
+| **DBR Migration** | Modernization | Legacy DBR jobs, version distribution, serverless adoption | Weekly |
+| **Data Governance Hub (NEW)** | Governance | Asset usage, tag coverage, lineage, documentation | Daily |
+| **DLT Pipeline Monitoring (NEW)** | Pipeline health | Pipeline status, failures, cost, freshness | Hourly |
+| **Period Comparison (NEW)** | Trend analysis | 30/60 day compare, WoW growth, outliers | Daily |
+| **Warehouse Scaling (NEW)** | Performance | Idle time, scaling events, cluster efficiency | Hourly |
 
 ---
 
@@ -1743,6 +2084,90 @@ ORDER BY job_count DESC
 | Load Time | < 5 seconds per dashboard |
 | Query Patterns | 30+ unique SQL patterns from system tables |
 | Optimization Insights | 5+ cost-saving analysis widgets |
+
+---
+
+## Cross-Reference: Dashboards ↔ TVFs & Metric Views
+
+This section maps each dashboard to the TVFs and Metric Views that should power its widgets.
+
+### TVF Coverage by Dashboard
+
+| Dashboard | Supporting TVFs (51 Total) |
+|-----------|----------------------------|
+| **Executive Overview** | `get_cost_mtd_summary`, `get_job_success_rate`, `get_cost_trend_by_sku` |
+| **Cost Management** | `get_top_cost_contributors`, `get_cost_trend_by_sku`, `get_cost_by_owner`, `get_cost_week_over_week`, `get_cost_growth_analysis`, `get_most_expensive_jobs` |
+| **Commit Tracking** | `get_commit_vs_actual`, `get_cost_forecast_summary`, `get_cost_mtd_summary` |
+| **Tag-Based Attribution** | `get_cost_by_tag`, `get_untagged_resources`, `get_tag_coverage`, `get_spend_by_custom_tags` |
+| **Job Reliability** | `get_failed_jobs`, `get_job_success_rate`, `get_job_duration_percentiles`, `get_job_failure_trends`, `get_job_sla_compliance`, `get_job_retry_analysis`, `get_job_failure_costs` |
+| **Job Optimization** | `get_job_repair_costs`, `get_job_spend_trend_analysis`, `get_jobs_without_autoscaling`, `get_job_run_duration_analysis` |
+| **Query Performance** | `get_slow_queries`, `get_warehouse_utilization`, `get_query_efficiency`, `get_high_spill_queries`, `get_query_volume_trends`, `get_query_latency_percentiles`, `get_failed_queries` |
+| **Cluster Utilization** | `get_cluster_utilization`, `get_cluster_resource_metrics`, `get_underutilized_clusters` |
+| **Security & Audit** | `get_user_activity_summary`, `get_sensitive_table_access`, `get_failed_actions`, `get_permission_changes`, `get_off_hours_activity`, `get_security_events_timeline`, `get_ip_address_analysis`, `get_table_access_audit` |
+| **Table Health Advisor** | `get_table_freshness`, `get_data_quality_summary`, `get_tables_failing_quality` |
+| **DBR Migration** | `get_jobs_on_legacy_dbr`, `get_jobs_without_autoscaling` |
+| **Data Governance Hub (NEW)** | `get_table_access_audit`, `get_tag_coverage`, `get_data_freshness_by_domain` |
+| **DLT Pipeline Monitoring (NEW)** | `get_job_success_rate`, `get_job_failure_trends`, `get_data_freshness_by_domain` |
+| **Period Comparison (NEW)** | `get_cost_week_over_week`, `get_cost_growth_analysis`, `get_job_spend_trend_analysis` |
+| **Warehouse Scaling (NEW)** | `get_warehouse_utilization`, `get_query_volume_trends`, `get_cluster_utilization` |
+
+### Metric View Coverage by Dashboard
+
+| Dashboard | Primary Metric View | Alternative Views |
+|-----------|---------------------|-------------------|
+| **Executive Overview** | `cost_analytics` | `job_performance`, `query_performance` |
+| **Cost Management** | `cost_analytics` | `commit_tracking` |
+| **Commit Tracking** | `commit_tracking` | `cost_analytics` |
+| **Tag-Based Attribution** | `cost_analytics` | - |
+| **Job Reliability** | `job_performance` | - |
+| **Job Optimization** | `job_performance` | `cost_analytics` |
+| **Query Performance** | `query_performance` | - |
+| **Cluster Utilization** | `cluster_utilization` | - |
+| **Security & Audit** | `security_events` | - |
+| **Table Health Advisor** | `data_quality` | - |
+| **DBR Migration** | `job_performance` | `cluster_utilization` |
+| **Data Governance Hub (NEW)** | `data_quality` | `security_events` |
+| **DLT Pipeline Monitoring (NEW)** | `job_performance` | `data_quality` |
+| **Period Comparison (NEW)** | `cost_analytics` | `job_performance` |
+| **Warehouse Scaling (NEW)** | `query_performance` | `cluster_utilization` |
+
+### ML-Enhanced Dashboard Opportunities
+
+The `ml_intelligence` metric view can enhance these dashboards with predictive insights:
+
+| Dashboard | ML Enhancement Opportunity |
+|-----------|---------------------------|
+| **Cost Management** | Cost anomaly alerts from `ml_intelligence.anomaly_count` |
+| **Commit Tracking** | ML forecast confidence from `budget_forecast_predictions` |
+| **Job Reliability** | Failure predictions from `job_failure_predictions` |
+| **Query Performance** | Query regression alerts from `query_regression_predictions` |
+| **Security & Audit** | Threat detection from `threat_detection_predictions` |
+
+### TVF Inventory Summary
+
+| Domain | TVF Count | Key Functions |
+|--------|-----------|---------------|
+| **Cost** | 13 | `get_top_cost_contributors`, `get_commit_vs_actual`, `get_cost_anomalies` |
+| **Reliability** | 12 | `get_failed_jobs`, `get_job_success_rate`, `get_job_repair_costs` |
+| **Performance** | 8 | `get_slow_queries`, `get_warehouse_utilization`, `get_query_efficiency` |
+| **Security** | 8 | `get_user_activity_summary`, `get_permission_changes`, `get_off_hours_activity` |
+| **Compute** | 5 | `get_cluster_utilization`, `get_underutilized_clusters`, `get_jobs_on_legacy_dbr` |
+| **Quality** | 5 | `get_table_freshness`, `get_data_quality_summary`, `get_tables_failing_quality` |
+| **Total** | **51** | |
+
+### Metric View Inventory Summary
+
+| Metric View | Source Table | Key Measures |
+|-------------|--------------|--------------|
+| `cost_analytics` | `fact_usage` | `total_cost`, `total_dbu`, `cost_per_dbu`, `unique_users` |
+| `commit_tracking` | `fact_usage` + `commit_configurations` | `ytd_spend`, `run_rate`, `commit_variance` |
+| `job_performance` | `fact_job_run_timeline` | `success_rate`, `avg_duration`, `failure_count` |
+| `query_performance` | `fact_query_history` | `p95_latency`, `avg_rows_returned`, `spill_rate` |
+| `cluster_utilization` | `fact_node_timeline` | `avg_cpu_utilization`, `avg_memory_utilization` |
+| `security_events` | `fact_audit_logs` | `event_count`, `unique_users`, `failed_action_rate` |
+| `data_quality` | `information_schema.tables` | `total_tables`, `freshness_rate`, `stale_tables` |
+| `ml_intelligence` | `cost_anomaly_predictions` | `anomaly_count`, `anomaly_rate`, `anomaly_cost` |
+| **Total** | **8 views** | |
 
 ---
 
