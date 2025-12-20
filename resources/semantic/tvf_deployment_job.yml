@@ -15,10 +15,17 @@ resources:
       name: "[${bundle.target}] Health Monitor - TVF Deployment"
       description: "Deploys all Table-Valued Functions for analytics and Genie queries"
 
+      # ✅ MANDATORY: Serverless environment configuration
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+
       tasks:
         - task_key: deploy_all_tvfs
+          environment_key: default
           notebook_task:
-            notebook_path: ../../src/tvfs/deploy_tvfs.py
+            notebook_path: ../../src/semantic/tvfs/deploy_tvfs.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}

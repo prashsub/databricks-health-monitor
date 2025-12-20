@@ -39,9 +39,15 @@ RETURNS TABLE(
     off_hours_events INT COMMENT 'Events outside business hours',
     risk_score INT COMMENT 'Risk score (0-100)'
 )
-COMMENT 'LLM: Returns user activity summary with risk indicators for security monitoring.
-Use for identifying suspicious activity, user behavior analysis, and access reviews.
-Example: "Show me user activity summary" or "Who are the most active users?"'
+COMMENT '
+- PURPOSE: User activity summary with risk scoring for security monitoring and anomaly detection
+- BEST FOR: "Show user activity summary" "Who are most active users?" "User risk analysis"
+- NOT FOR: Activity patterns (use get_user_activity_patterns), service accounts (use get_service_account_audit)
+- RETURNS: Users ranked by activity with event count, failures, sensitive actions, IPs, and risk score
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), top_n (default 50)
+- SYNTAX: SELECT * FROM TABLE(get_user_activity_summary("2024-01-01", "2024-12-31", 50))
+- NOTE: Risk score (0-100) based on failures, IP diversity, sensitive actions, and off-hours activity
+'
 RETURN
     WITH user_stats AS (
         SELECT
@@ -95,9 +101,14 @@ RETURNS TABLE(
     source_ips STRING COMMENT 'Source IP addresses',
     is_off_hours BOOLEAN COMMENT 'True if any access was off-hours'
 )
-COMMENT 'LLM: Returns access patterns to tables matching a pattern.
-Use for data access auditing, PII monitoring, and compliance reviews.
-Example: "Who accessed PII tables?" or "Show me access to customer data"'
+COMMENT '
+- PURPOSE: Table access pattern analysis for PII monitoring and compliance auditing
+- BEST FOR: "Who accessed PII tables?" "Show access to customer data" "Table access audit"
+- NOT FOR: Full lineage tracking (use get_table_access_audit), permission changes (use get_permission_changes)
+- RETURNS: Table access by user with date, action, count, source IPs, and off-hours flag
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), table_pattern (SQL LIKE pattern)
+- SYNTAX: SELECT * FROM TABLE(get_sensitive_table_access("2024-01-01", "2024-12-31", "%customer%"))
+'
 RETURN
     SELECT
         event_date AS access_date,
@@ -134,9 +145,14 @@ RETURNS TABLE(
     error_message STRING COMMENT 'Error message',
     source_ip STRING COMMENT 'Source IP address'
 )
-COMMENT 'LLM: Returns failed actions for security investigation and troubleshooting.
-Use for identifying unauthorized access attempts and permission issues.
-Example: "Show me failed actions" or "What actions failed today?"'
+COMMENT '
+- PURPOSE: Failed action investigation for unauthorized access attempts and permission issues
+- BEST FOR: "Show failed actions" "What actions failed today?" "Access denied events"
+- NOT FOR: User risk scoring (use get_user_activity_summary), all security events (use get_security_events_timeline)
+- RETURNS: Failed actions with user, service, action, status code, error message, and source IP
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), user_filter (email or ALL)
+- SYNTAX: SELECT * FROM TABLE(get_failed_actions("2024-01-01", "2024-12-31", "ALL"))
+'
 RETURN
     SELECT
         event_time,
@@ -172,9 +188,14 @@ RETURNS TABLE(
     source_ip STRING COMMENT 'Source IP address',
     success BOOLEAN COMMENT 'Whether change succeeded'
 )
-COMMENT 'LLM: Returns permission and access control changes for audit trail.
-Use for compliance auditing, privilege escalation detection, and access reviews.
-Example: "Show me permission changes" or "Who changed permissions this week?"'
+COMMENT '
+- PURPOSE: Permission change audit trail for compliance and privilege escalation detection
+- BEST FOR: "Show permission changes" "Who changed permissions?" "Grant/revoke audit"
+- NOT FOR: Data access audit (use get_sensitive_table_access), user activity (use get_user_activity_summary)
+- RETURNS: Permission changes with user, service, action, resource, permission, IP, and success flag
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD)
+- SYNTAX: SELECT * FROM TABLE(get_permission_changes("2024-01-01", "2024-12-31"))
+'
 RETURN
     SELECT
         event_time,
@@ -225,9 +246,14 @@ RETURNS TABLE(
     sensitive_actions INT COMMENT 'Sensitive actions performed',
     unique_ips INT COMMENT 'Unique IP addresses'
 )
-COMMENT 'LLM: Returns user activity outside business hours for anomaly detection.
-Use for identifying suspicious after-hours activity and security monitoring.
-Example: "Who is working off hours?" or "Show me late night activity"'
+COMMENT '
+- PURPOSE: Off-hours activity detection for suspicious behavior and anomaly identification
+- BEST FOR: "Who is working off hours?" "Show late night activity" "After-hours access"
+- NOT FOR: Activity patterns (use get_user_activity_patterns), risk scoring (use get_user_activity_summary)
+- RETURNS: Users with off-hours event count, services accessed, sensitive actions, and unique IPs
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), business_hours_start (default 7), business_hours_end (default 19)
+- SYNTAX: SELECT * FROM TABLE(get_off_hours_activity("2024-01-01", "2024-12-31", 7, 19))
+'
 RETURN
     SELECT
         event_date,
@@ -264,9 +290,15 @@ RETURNS TABLE(
     success BOOLEAN COMMENT 'Whether action succeeded',
     source_ip STRING COMMENT 'Source IP'
 )
-COMMENT 'LLM: Returns chronological security events for investigation and forensics.
-Use for security incident investigation and user activity tracing.
-Example: "Show me security timeline for user X" or "What did user Y do today?"'
+COMMENT '
+- PURPOSE: Chronological security event timeline for incident investigation and forensics
+- BEST FOR: "Show security timeline for user X" "What did user Y do today?" "Security forensics"
+- NOT FOR: Aggregated activity (use get_user_activity_summary), failed actions only (use get_failed_actions)
+- RETURNS: Security events in order with user, type, service, action, resource, success, and IP
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), user_filter (email or ALL)
+- SYNTAX: SELECT * FROM TABLE(get_security_events_timeline("2024-01-01", "2024-12-31", "user@example.com"))
+- NOTE: Event types: FAILED_SENSITIVE, SENSITIVE, FAILED, NORMAL
+'
 RETURN
     SELECT
         event_time,
@@ -315,9 +347,14 @@ RETURNS TABLE(
     last_seen TIMESTAMP COMMENT 'Last activity',
     is_shared_ip BOOLEAN COMMENT 'True if multiple users'
 )
-COMMENT 'LLM: Returns IP address analysis for detecting shared accounts or compromised IPs.
-Use for identifying account sharing, VPN usage patterns, or suspicious IPs.
-Example: "Show me IP address analysis" or "Which IPs are used by multiple users?"'
+COMMENT '
+- PURPOSE: IP address analysis for shared account detection and suspicious IP identification
+- BEST FOR: "Show IP address analysis" "Which IPs are used by multiple users?" "Shared accounts"
+- NOT FOR: User-centric analysis (use get_user_activity_summary), activity patterns (use get_user_activity_patterns)
+- RETURNS: IPs with unique users, user list, event count, failures, services, first/last seen, shared flag
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD)
+- SYNTAX: SELECT * FROM TABLE(get_ip_address_analysis("2024-01-01", "2024-12-31"))
+'
 RETURN
     SELECT
         source_ip_address AS source_ip,
@@ -356,12 +393,14 @@ RETURNS TABLE(
     first_access TIMESTAMP COMMENT 'First access time',
     last_access TIMESTAMP COMMENT 'Last access time'
 )
-COMMENT 'LLM: Returns table access audit trail for compliance and data lineage.
-- PURPOSE: Compliance auditing, lineage tracking, access patterns
-- BEST FOR: "Who accessed this table?" "Show table access history"
-- PARAMS: start_date, end_date, table_pattern (supports % wildcards)
-- RETURNS: Table access events grouped by user and entity
-Example: SELECT * FROM TABLE(get_table_access_audit("2024-01-01", "2024-12-31", "%customer%"))'
+COMMENT '
+- PURPOSE: Table access audit trail for compliance, lineage tracking, and access pattern analysis
+- BEST FOR: "Who accessed this table?" "Show table access history" "Data lineage audit"
+- NOT FOR: Sensitive table monitoring (use get_sensitive_table_access), permission changes (use get_permission_changes)
+- RETURNS: Table access with access type, user, entity type/ID, count, and first/last access times
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), table_pattern (SQL LIKE with % wildcards)
+- SYNTAX: SELECT * FROM TABLE(get_table_access_audit("2024-01-01", "2024-12-31", "%customer%"))
+'
 RETURN
     WITH table_access AS (
         SELECT
@@ -421,10 +460,15 @@ RETURNS TABLE(
     failed_action_rate DOUBLE COMMENT 'Percentage of failed actions',
     activity_pattern STRING COMMENT 'NORMAL, AFTER_HOURS, BURSTY, or ANOMALOUS'
 )
-COMMENT 'LLM: Returns temporal activity patterns for each user with anomaly indicators.
-Use for identifying suspicious behavior, understanding usage patterns, and capacity planning.
-Filters system accounts by default to focus on human and service principal activity.
-Example: "Show me user activity patterns" or "Who has bursty activity?"'
+COMMENT '
+- PURPOSE: Temporal activity pattern analysis with burst detection and anomaly classification
+- BEST FOR: "Show user activity patterns" "Who has bursty activity?" "Anomalous user behavior"
+- NOT FOR: Risk scoring (use get_user_activity_summary), service accounts (use get_service_account_audit)
+- RETURNS: Users with activity pattern, burst count, off-hours %, weekend %, and classification
+- PARAMS: days_back (default 7), burst_threshold (default 50 events/hour), exclude_system_accounts (default true)
+- SYNTAX: SELECT * FROM TABLE(get_user_activity_patterns(7, 50, true))
+- NOTE: Patterns: NORMAL, AFTER_HOURS, BURSTY, ANOMALOUS. Excludes system accounts by default.
+'
 RETURN
     WITH user_activity AS (
         SELECT
@@ -563,9 +607,15 @@ RETURNS TABLE(
     last_activity TIMESTAMP COMMENT 'Last event in period',
     risk_level STRING COMMENT 'HIGH, MEDIUM, or LOW'
 )
-COMMENT 'LLM: Returns audit summary for service accounts and system principals.
-Use for reviewing automated account activity, detecting compromised service accounts.
-Example: "Show me service account activity" or "Which service principals are most active?"'
+COMMENT '
+- PURPOSE: Service account audit for reviewing automated activity and detecting compromised accounts
+- BEST FOR: "Show service account activity" "Which service principals are most active?" "Automated account audit"
+- NOT FOR: Human user activity (use get_user_activity_summary), activity patterns (use get_user_activity_patterns)
+- RETURNS: Service accounts with type, events, failures, failure rate, IPs, sensitive actions, and risk level
+- PARAMS: days_back (default 7)
+- SYNTAX: SELECT * FROM TABLE(get_service_account_audit(7))
+- NOTE: Risk levels: HIGH (>20% failure or >100 sensitive), MEDIUM (>10 IPs or >10 failures), LOW
+'
 RETURN
     WITH service_accounts AS (
         SELECT

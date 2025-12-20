@@ -13,23 +13,22 @@
 
 version: "1.1"
 comment: >
-  Data quality and freshness metrics for Gold layer tables.
-  Tracks table update times, staleness, and data governance compliance.
-
-  DIMENSIONS: Filter by table name, table type (fact/dim), domain, freshness status.
-
-  MEASURES: Table count, fresh tables, stale tables, freshness rate,
-  hours since update, update frequency.
-
-  Example queries:
-  - "Which tables are stale?"
-  - "What's our table freshness rate?"
-  - "Show me tables not updated in 24 hours"
-  - "How many tables were updated today?"
-  - "What domains have freshness issues?"
-
-  NOTE: Uses information_schema for real-time table metadata.
-  Freshness threshold is 24 hours by default.
+  PURPOSE: Data quality and freshness metrics for Gold layer tables.
+  
+  BEST FOR: Stale tables analysis | Table freshness rate | Tables not updated in 24h | 
+  Domain freshness issues | Fact vs dimension table counts | Update frequency
+  
+  NOT FOR: Detailed table metadata (use information_schema directly) | Data lineage (use governance_analytics)
+  
+  DIMENSIONS: table_catalog, table_schema, table_name, table_category, domain, freshness_status, is_stale
+  
+  MEASURES: total_tables, fresh_tables, stale_tables, freshness_rate, staleness_rate, avg_hours_since_update
+  
+  SOURCE: information_schema.tables (system catalog)
+  
+  JOINS: None (uses information_schema directly)
+  
+  NOTE: Freshness threshold is 24 hours. STALE > 24h, CRITICAL > 48h. Domain inferred from table name patterns.
 
 source: ${catalog}.information_schema.tables
 

@@ -16,7 +16,7 @@ resources:
         - task_key: setup_dq_rules
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/bronze/setup_dq_rules.py
+            notebook_path: ../../../src/pipelines/bronze/setup_dq_rules.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}

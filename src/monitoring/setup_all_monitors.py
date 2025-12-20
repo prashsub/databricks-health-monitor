@@ -24,6 +24,9 @@ from job_monitor import create_job_monitor
 from query_monitor import create_query_monitor
 from cluster_monitor import create_cluster_monitor
 from security_monitor import create_security_monitor
+from quality_monitor import create_quality_monitor
+from governance_monitor import create_governance_monitor
+from inference_monitor import create_inference_monitor
 
 # COMMAND ----------
 
@@ -46,13 +49,23 @@ def setup_all_monitors(workspace_client, catalog: str, gold_schema: str, spark):
     """Create all domain monitors."""
     results = {}
 
-    # Monitor configurations
+    # Monitor configurations by Agent Domain
     monitors = [
+        # Cost Domain
         ("Cost", create_cost_monitor),
-        ("Job", create_job_monitor),
+        # Performance Domain
         ("Query", create_query_monitor),
         ("Cluster", create_cluster_monitor),
+        # Reliability Domain
+        ("Job", create_job_monitor),
+        # Security Domain
         ("Security", create_security_monitor),
+        # Quality Domain
+        ("Quality", create_quality_monitor),
+        # Governance Domain
+        ("Governance", create_governance_monitor),
+        # ML Inference Domain
+        ("Inference", create_inference_monitor),
     ]
 
     print("=" * 60)

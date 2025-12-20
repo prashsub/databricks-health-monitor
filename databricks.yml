@@ -14,6 +14,8 @@ bundle:
 sync:
   include:
     - src/**/*.py
+    - src/**/*.sql
+    - src/**/*.yaml
     - gold_layer_design/yaml/**/*.yaml
 
 variables:
@@ -63,11 +65,25 @@ targets:
       feature_schema: system_gold_features
       warehouse_id: "4b9b953939869799"
 
-# Include all resource definitions organized by medallion layer
+# Include all resource definitions organized by layer and function
 include:
-  - resources/*.yml
-  - resources/bronze/*.yml
-  - resources/silver/*.yml
-  - resources/gold/*.yml
+  # Data Pipelines (Medallion Architecture)
+  - resources/pipelines/bronze/*.yml
+  - resources/pipelines/silver/*.yml
+  - resources/pipelines/gold/*.yml
+  
+  # Orchestrators (Master Setup/Refresh)
+  - resources/orchestrators/*.yml
+  
+  # Machine Learning
   - resources/ml/*.yml
+  
+  # Semantic Layer (TVFs, Metric Views, Genie)
+  - resources/semantic/*.yml
+  
+  # Lakehouse Monitoring
+  - resources/monitoring/*.yml
+  
+  # AI/BI Dashboards
+  - resources/dashboards/*.yml
 

@@ -1,10 +1,10 @@
 # ML Training Pipeline
-# Trains all 23 ML models for Databricks Health Monitor
+# Trains all 29 ML models for Databricks Health Monitor
 #
 # Agent Domains:
-#   - Cost Agent (5 models)
+#   - Cost Agent (6 models)
 #   - Security Agent (4 models)
-#   - Performance Agent (6 models)
+#   - Performance Agent (7 models)
 #   - Reliability Agent (5 models)
 #   - Quality Agent (3 models)
 #
@@ -38,7 +38,7 @@ resources:
       
       tasks:
         # ========================================
-        # 💰 COST AGENT MODELS (5 models)
+        # 💰 COST AGENT MODELS (6 models)
         # ========================================
         - task_key: train_cost_anomaly_detector
           environment_key: ml_training
@@ -85,6 +85,15 @@ resources:
               gold_schema: ${var.gold_schema}
               feature_schema: ${var.feature_schema}
         
+        - task_key: train_tag_recommender
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/cost/train_tag_recommender.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
         # ========================================
         # 🔒 SECURITY AGENT MODELS (4 models)
         # ========================================
@@ -125,7 +134,7 @@ resources:
               feature_schema: ${var.feature_schema}
         
         # ========================================
-        # ⚡ PERFORMANCE AGENT MODELS (3 models)
+        # ⚡ PERFORMANCE AGENT MODELS (7 models)
         # ========================================
         - task_key: train_query_forecaster
           environment_key: ml_training
@@ -154,8 +163,44 @@ resources:
               gold_schema: ${var.gold_schema}
               feature_schema: ${var.feature_schema}
         
+        - task_key: train_cluster_capacity_planner
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/performance/train_cluster_capacity_planner.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_dbr_migration_risk_scorer
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/performance/train_dbr_migration_risk_scorer.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_cache_hit_predictor
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/performance/train_cache_hit_predictor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_query_optimization_recommender
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/performance/train_query_optimization_recommender.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
         # ========================================
-        # 🔄 RELIABILITY AGENT MODELS (3 models)
+        # 🔄 RELIABILITY AGENT MODELS (5 models)
         # ========================================
         - task_key: train_failure_predictor
           environment_key: ml_training
@@ -179,6 +224,24 @@ resources:
           environment_key: ml_training
           notebook_task:
             notebook_path: ../../src/ml/reliability/train_sla_breach_predictor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_retry_success_predictor
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/reliability/train_retry_success_predictor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+        
+        - task_key: train_pipeline_health_scorer
+          environment_key: ml_training
+          notebook_task:
+            notebook_path: ../../src/ml/reliability/train_pipeline_health_scorer.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
@@ -224,6 +287,7 @@ resources:
             - task_key: train_job_cost_optimizer
             - task_key: train_chargeback_attribution
             - task_key: train_commitment_recommender
+            - task_key: train_tag_recommender
             - task_key: train_security_threat_detector
             - task_key: train_exfiltration_detector
             - task_key: train_privilege_escalation_detector
@@ -231,9 +295,15 @@ resources:
             - task_key: train_query_forecaster
             - task_key: train_warehouse_optimizer
             - task_key: train_performance_regression_detector
+            - task_key: train_cluster_capacity_planner
+            - task_key: train_dbr_migration_risk_scorer
+            - task_key: train_cache_hit_predictor
+            - task_key: train_query_optimization_recommender
             - task_key: train_failure_predictor
             - task_key: train_duration_forecaster
             - task_key: train_sla_breach_predictor
+            - task_key: train_retry_success_predictor
+            - task_key: train_pipeline_health_scorer
             - task_key: train_drift_detector
             - task_key: train_schema_change_predictor
             - task_key: train_freshness_predictor

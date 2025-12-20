@@ -29,9 +29,14 @@ RETURNS TABLE(
     rows_produced BIGINT COMMENT 'Result rows',
     start_time TIMESTAMP COMMENT 'Query start time'
 )
-COMMENT 'LLM: Returns the slowest queries exceeding a duration threshold.
-Use for identifying performance bottlenecks and optimization targets.
-Example: "Show me slow queries" or "Which queries took longer than 5 minutes?"'
+COMMENT '
+- PURPOSE: Identify slowest queries exceeding duration threshold for performance optimization
+- BEST FOR: "Show slow queries" "Which queries took longer than 5 minutes?" "Performance bottlenecks"
+- NOT FOR: Query efficiency analysis (use get_query_efficiency), warehouse utilization (use get_warehouse_utilization)
+- RETURNS: Slow queries ranked by duration with warehouse, user, bytes read, and rows produced
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), duration_threshold_seconds (default 300), top_n (default 50)
+- SYNTAX: SELECT * FROM TABLE(get_slow_queries("2024-01-01", "2024-12-31", 300, 50))
+'
 RETURN
     WITH slow AS (
         SELECT
@@ -47,7 +52,7 @@ RETURN
             ROW_NUMBER() OVER (ORDER BY q.total_duration_ms DESC) AS rank
         FROM ${catalog}.${gold_schema}.fact_query_history q
         LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w
-            ON q.compute_warehouse_id = w.warehouse_id AND w.is_current = TRUE
+            ON q.compute_warehouse_id = w.warehouse_id AND w.delete_time IS NULL
         WHERE DATE(q.start_time) BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
             AND q.total_duration_ms >= duration_threshold_seconds * 1000
             AND q.execution_status = 'FINISHED'
@@ -79,14 +84,19 @@ RETURNS TABLE(
     peak_concurrency INT COMMENT 'Peak concurrent queries',
     error_rate_pct DOUBLE COMMENT 'Query error rate'
 )
-COMMENT 'LLM: Returns warehouse utilization and performance metrics.
-Use for right-sizing, capacity planning, and optimization.
-Example: "Show me warehouse utilization" or "How are our warehouses performing?"'
+COMMENT '
+- PURPOSE: SQL Warehouse utilization metrics for right-sizing and capacity planning
+- BEST FOR: "Show warehouse utilization" "How are warehouses performing?" "Warehouse metrics"
+- NOT FOR: Query-level analysis (use get_slow_queries), latency percentiles (use get_query_latency_percentiles)
+- RETURNS: Warehouses with query count, duration, queue time, concurrency, and error rate
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD)
+- SYNTAX: SELECT * FROM TABLE(get_warehouse_utilization("2024-01-01", "2024-12-31"))
+'
 RETURN
     SELECT
         q.compute_warehouse_id AS warehouse_id,
         w.warehouse_name,
-        w.cluster_size AS warehouse_size,
+        w.warehouse_size AS warehouse_size,
         COUNT(*) AS total_queries,
         SUM(q.total_duration_ms) / 3600000.0 AS total_duration_hours,
         AVG(q.total_duration_ms) / 1000.0 AS avg_duration_seconds,
@@ -96,10 +106,10 @@ RETURN
         (SUM(CASE WHEN q.execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)) AS error_rate_pct
     FROM ${catalog}.${gold_schema}.fact_query_history q
     LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w
-        ON q.compute_warehouse_id = w.warehouse_id AND w.is_current = TRUE
+        ON q.compute_warehouse_id = w.warehouse_id AND w.delete_time IS NULL
     WHERE DATE(q.start_time) BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         AND q.compute_warehouse_id IS NOT NULL
-    GROUP BY q.compute_warehouse_id, w.warehouse_name, w.cluster_size
+    GROUP BY q.compute_warehouse_id, w.warehouse_name, w.warehouse_size
     ORDER BY total_queries DESC;
 
 
@@ -127,9 +137,15 @@ RETURNS TABLE(
     efficiency_score INT COMMENT 'Efficiency score (0-100)',
     optimization_flags ARRAY<STRING> COMMENT 'Suggested optimizations'
 )
-COMMENT 'LLM: Returns query efficiency analysis with optimization suggestions.
-Use for identifying inefficient queries and optimization opportunities.
-Example: "Which queries are inefficient?" or "Show me queries that need optimization"'
+COMMENT '
+- PURPOSE: Query efficiency analysis with optimization flags and scoring
+- BEST FOR: "Which queries are inefficient?" "Show queries needing optimization" "Query efficiency"
+- NOT FOR: Slow queries only (use get_slow_queries), spill analysis (use get_high_spill_queries)
+- RETURNS: Queries ranked by efficiency with bytes/row, spill, efficiency score, and optimization flags
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), min_duration_seconds (default 60), top_n (default 100)
+- SYNTAX: SELECT * FROM TABLE(get_query_efficiency("2024-01-01", "2024-12-31", 60, 100))
+- NOTE: Flags include REDUCE_DATA_SHUFFLE, ADD_PARTITION_FILTER, OPTIMIZE_QUERY_PLAN, CONSIDER_CACHING
+'
 RETURN
     WITH efficiency_analysis AS (
         SELECT
@@ -192,9 +208,14 @@ RETURNS TABLE(
     read_gb DOUBLE COMMENT 'Data read in GB',
     spill_ratio DOUBLE COMMENT 'Spill to read ratio'
 )
-COMMENT 'LLM: Returns queries with significant disk spills indicating memory pressure.
-Use for identifying queries that need memory optimization or cluster resizing.
-Example: "Show me queries with high spill" or "Which queries are spilling to disk?"'
+COMMENT '
+- PURPOSE: Identify queries with disk spills indicating memory pressure and optimization needs
+- BEST FOR: "Show queries with high spill" "Which queries are spilling to disk?" "Memory pressure"
+- NOT FOR: General slow queries (use get_slow_queries), efficiency scoring (use get_query_efficiency)
+- RETURNS: Queries with local/remote spill amounts, read data, and spill-to-read ratio
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), min_spill_gb (default 1.0)
+- SYNTAX: SELECT * FROM TABLE(get_high_spill_queries("2024-01-01", "2024-12-31", 1.0))
+'
 RETURN
     SELECT
         statement_id,
@@ -231,9 +252,14 @@ RETURNS TABLE(
     prior_period_count INT COMMENT 'Prior period query count',
     change_pct DOUBLE COMMENT 'Change vs prior period'
 )
-COMMENT 'LLM: Returns query volume trends over time for capacity planning.
-Use for identifying usage patterns and growth trends.
-Example: "Show me query volume trends" or "How is query usage changing?"'
+COMMENT '
+- PURPOSE: Query volume trend analysis for capacity planning and usage pattern identification
+- BEST FOR: "Show query volume trends" "How is query usage changing?" "Usage patterns"
+- NOT FOR: User-level analysis (use get_user_query_summary), performance metrics (use get_warehouse_utilization)
+- RETURNS: Time periods with query count, unique users, duration, read bytes, and period-over-period change
+- PARAMS: days_back (default 30), granularity (HOUR/DAY/WEEK, default DAY)
+- SYNTAX: SELECT * FROM TABLE(get_query_volume_trends(30, "DAY"))
+'
 RETURN
     WITH periods AS (
         SELECT
@@ -284,9 +310,14 @@ RETURNS TABLE(
     error_rate_pct DOUBLE COMMENT 'Query error rate',
     most_used_warehouse STRING COMMENT 'Most frequently used warehouse'
 )
-COMMENT 'LLM: Returns query usage summary by user for chargeback and analysis.
-Use for identifying heavy users and query patterns.
-Example: "Who runs the most queries?" or "Show me user query usage"'
+COMMENT '
+- PURPOSE: User-level query usage summary for chargeback and pattern analysis
+- BEST FOR: "Who runs the most queries?" "Show user query usage" "Heavy query users"
+- NOT FOR: Cost by user (use get_cost_by_owner), query trends (use get_query_volume_trends)
+- RETURNS: Users ranked by query count with duration, data read, error rate, and most used warehouse
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), top_n (default 50)
+- SYNTAX: SELECT * FROM TABLE(get_user_query_summary("2024-01-01", "2024-12-31", 50))
+'
 RETURN
     WITH user_stats AS (
         SELECT
@@ -332,9 +363,14 @@ RETURNS TABLE(
     p99_seconds DOUBLE COMMENT '99th percentile latency',
     max_seconds DOUBLE COMMENT 'Maximum latency'
 )
-COMMENT 'LLM: Returns query latency percentiles by warehouse for SLA tracking.
-Use for setting latency targets and monitoring performance.
-Example: "What are our query latency percentiles?" or "Show me P99 latency by warehouse"'
+COMMENT '
+- PURPOSE: Query latency percentile analysis by warehouse for SLA tracking and targeting
+- BEST FOR: "What are query latency percentiles?" "Show P99 latency by warehouse" "SLA tracking"
+- NOT FOR: Individual slow queries (use get_slow_queries), efficiency analysis (use get_query_efficiency)
+- RETURNS: Warehouses with P50/P75/P90/P95/P99 and max latency percentiles
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD)
+- SYNTAX: SELECT * FROM TABLE(get_query_latency_percentiles("2024-01-01", "2024-12-31"))
+'
 RETURN
     SELECT
         q.compute_warehouse_id AS warehouse_id,
@@ -348,7 +384,7 @@ RETURN
         MAX(q.total_duration_ms / 1000.0) AS max_seconds
     FROM ${catalog}.${gold_schema}.fact_query_history q
     LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w
-        ON q.compute_warehouse_id = w.warehouse_id AND w.is_current = TRUE
+        ON q.compute_warehouse_id = w.warehouse_id AND w.delete_time IS NULL
     WHERE DATE(q.start_time) BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         AND q.execution_status = 'FINISHED'
         AND q.compute_warehouse_id IS NOT NULL
@@ -374,9 +410,14 @@ RETURNS TABLE(
     start_time TIMESTAMP COMMENT 'Query start time',
     duration_before_failure_seconds DOUBLE COMMENT 'Time until failure'
 )
-COMMENT 'LLM: Returns failed queries with error details for troubleshooting.
-Use for identifying common failure patterns and error root causes.
-Example: "Show me failed queries" or "Why are queries failing?"'
+COMMENT '
+- PURPOSE: Failed query analysis for troubleshooting and error pattern identification
+- BEST FOR: "Show failed queries" "Why are queries failing?" "Query error analysis"
+- NOT FOR: Failed jobs (use get_failed_jobs), query performance (use get_slow_queries)
+- RETURNS: Failed queries with error message, user, warehouse, and time until failure
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), top_n (default 100)
+- SYNTAX: SELECT * FROM TABLE(get_failed_queries("2024-01-01", "2024-12-31", 100))
+'
 RETURN
     WITH ranked_failures AS (
         SELECT
@@ -428,13 +469,15 @@ RETURNS TABLE(
     p99_duration_sec DOUBLE COMMENT 'P99 query duration in seconds',
     sizing_indicator STRING COMMENT 'SCALE_UP_NEEDED, OPTIMAL, or SCALE_DOWN_POSSIBLE'
 )
-COMMENT 'LLM: Analyzes query efficiency patterns by warehouse for optimization.
-- PURPOSE: Warehouse optimization and scaling decisions
-- BEST FOR: "Which warehouses need to scale up?" "Show me query efficiency by warehouse"
+COMMENT '
+- PURPOSE: Warehouse query efficiency analysis for scaling decisions and optimization
+- BEST FOR: "Which warehouses need to scale up?" "Show query efficiency by warehouse" "Warehouse scaling"
+- NOT FOR: Query-level efficiency (use get_query_efficiency), latency percentiles (use get_query_latency_percentiles)
+- RETURNS: Warehouses with efficiency rate, spill rate, queue ratio, percentiles, and sizing recommendations
 - PARAMS: hours_back (default 24), warehouse_filter (warehouse ID or ALL)
-- RETURNS: Warehouse query metrics with scaling recommendations
-Pattern source: DBSQL Warehouse Advisor Repository
-Example: SELECT * FROM TABLE(get_query_efficiency_analysis(24, "ALL"))'
+- SYNTAX: SELECT * FROM TABLE(get_query_efficiency_analysis(24, "ALL"))
+- NOTE: Sizing indicators: SCALE_UP_NEEDED, OPTIMAL, SCALE_DOWN_POSSIBLE
+'
 RETURN
     WITH query_metrics AS (
         SELECT
@@ -455,7 +498,7 @@ RETURN
             PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY qh.total_duration_ms) / 1000.0 AS p99_duration_sec
         FROM ${catalog}.${gold_schema}.fact_query_history qh
         LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse dw
-            ON qh.compute_warehouse_id = dw.warehouse_id AND dw.is_current = TRUE
+            ON qh.compute_warehouse_id = dw.warehouse_id AND dw.delete_time IS NULL
         WHERE qh.start_time >= CURRENT_TIMESTAMP() - INTERVAL hours_back HOUR
             AND qh.total_duration_ms > 1000  -- Exclude trivial queries
             AND (warehouse_filter = 'ALL' OR qh.compute_warehouse_id = warehouse_filter)
@@ -505,13 +548,15 @@ RETURNS TABLE(
     outlier_type STRING COMMENT 'SLOW_OUTLIER or FAST_OUTLIER',
     run_cost DOUBLE COMMENT 'Estimated run cost'
 )
-COMMENT 'LLM: Identifies job runs that deviate significantly from normal patterns.
-- PURPOSE: Detect anomalous job runs for investigation
-- BEST FOR: "Which job runs were outliers?" "Show me slow job runs"
-- PARAMS: days_back, deviation_threshold (default 1.5x P90), min_baseline_runs
-- RETURNS: Job runs flagged as outliers with deviation metrics
-Pattern source: Dashboard P90 outlier detection pattern
-Example: SELECT * FROM TABLE(get_job_outlier_runs(7, 1.5, 5))'
+COMMENT '
+- PURPOSE: Detect anomalous job runs that deviate significantly from P90 baseline
+- BEST FOR: "Which job runs were outliers?" "Show slow job runs" "Anomalous runs"
+- NOT FOR: Job success rates (use get_job_success_rate), duration percentiles (use get_job_duration_percentiles)
+- RETURNS: Outlier runs with duration, P90 baseline, deviation ratio, outlier type, and cost
+- PARAMS: days_back (default 7), deviation_threshold (default 1.5x P90), min_baseline_runs (default 5)
+- SYNTAX: SELECT * FROM TABLE(get_job_outlier_runs(7, 1.5, 5))
+- NOTE: Outlier types: SLOW_OUTLIER (>threshold x P90), FAST_OUTLIER (<1/threshold x P90)
+'
 RETURN
     WITH job_baselines AS (
         SELECT
@@ -535,7 +580,7 @@ RETURN
             jrt.result_state
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jrt.job_id = j.job_id AND j.is_current = TRUE
+            ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
         WHERE jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
             AND jrt.run_duration_seconds IS NOT NULL
     ),

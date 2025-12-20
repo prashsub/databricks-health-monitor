@@ -1,0 +1,61 @@
+# Semantic Layer Setup Job (Composite)
+# =====================================
+# 
+# Layer 2 job that orchestrates all semantic layer components.
+# References atomic jobs - no notebooks directly.
+#
+# Execution Flow:
+#   1. TVF Deployment (60 TVFs across 5 agent domains)
+#   2. Metric View Deployment (10 metric views)
+#
+# Pattern: run_job_task references atomic jobs
+# This allows independent testing of TVFs and Metric Views
+# while providing a single entry point for semantic layer setup.
+#
+# Usage:
+#   databricks bundle run -t dev semantic_layer_setup_job
+#
+# Dependencies: Gold Layer tables must exist
+
+resources:
+  jobs:
+    semantic_layer_setup_job:
+      name: "[${bundle.target}] Health Monitor - Semantic Layer Setup"
+      description: "Composite job: Deploys TVFs (60) and Metric Views (10) by referencing atomic jobs"
+      
+      tasks:
+        # ================================================================
+        # STEP 1: Deploy Table-Valued Functions
+        # ================================================================
+        - task_key: deploy_tvfs
+          run_job_task:
+            job_id: ${resources.jobs.tvf_deployment_job.id}
+        
+        # ================================================================
+        # STEP 2: Deploy Metric Views (depends on TVFs for consistency)
+        # ================================================================
+        - task_key: deploy_metric_views
+          depends_on:
+            - task_key: deploy_tvfs
+          run_job_task:
+            job_id: ${resources.jobs.metric_view_deployment_job.id}
+      
+      # Job-level timeout (30 minutes)
+      timeout_seconds: 1800
+      
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+        on_success:
+          - data-engineering@company.com
+      
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: semantic
+        job_type: setup
+        job_level: composite
+        compute_type: serverless
+

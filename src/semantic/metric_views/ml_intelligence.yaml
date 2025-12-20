@@ -13,34 +13,29 @@
 
 version: "1.1"
 comment: >
-  ML-powered intelligence metrics for anomaly detection and predictive insights.
-  Provides visibility into ML model predictions for proactive monitoring.
+  PURPOSE: ML-powered intelligence metrics for anomaly detection and predictive insights.
+  
+  BEST FOR: Cost anomalies detected today | Workspaces with highest anomaly scores | 
+  Anomaly rate this week | Anomaly trend over 30 days | Cost associated with anomalies
+  
+  NOT FOR: Real-time anomaly alerts (use alerting framework) | Raw cost data (use cost_analytics)
+  
+  DIMENSIONS: prediction_date, workspace_name, sku_name, is_anomaly, risk_level, model_version
+  
+  MEASURES: total_predictions, anomaly_count, anomaly_rate, avg_anomaly_score, high_risk_count, anomaly_cost
+  
+  SOURCE: cost_anomaly_predictions (ML inference output)
+  
+  JOINS: dim_workspace (workspace details), dim_sku (SKU metadata), fact_usage (cost correlation)
+  
+  NOTE: Requires ML inference pipeline to have run. Risk levels: CRITICAL >=0.9, HIGH >=0.7, MEDIUM >=0.5.
 
-  DIMENSIONS: Filter by prediction date, workspace, SKU, anomaly status, risk level.
-
-  MEASURES: Total predictions, anomaly count, anomaly rate, avg/max anomaly scores,
-  high-risk count, cost associated with anomalies.
-
-  Example queries:
-  - "How many cost anomalies were detected today?"
-  - "Which workspaces have the highest anomaly scores?"
-  - "What's our anomaly rate this week?"
-  - "Show anomaly trend over the last 30 days"
-  - "What cost is associated with detected anomalies?"
-
-  NOTE: This view requires the ML inference pipeline to have run at least once.
-  Source: cost_anomaly_predictions from batch inference pipeline.
-
-source: ${catalog}.${feature_schema}.cost_anomaly_predictions
+source: ${catalog}.${gold_schema}.cost_anomaly_predictions
 
 joins:
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
-
-  - name: dim_sku
-    source: ${catalog}.${gold_schema}.dim_sku
-    'on': source.sku_name = dim_sku.sku_name AND dim_sku.is_current = true
+    'on': source.workspace_id = dim_workspace.workspace_id
 
   - name: fact_usage
     source: ${catalog}.${gold_schema}.fact_usage
@@ -82,14 +77,6 @@ dimensions:
       - sku
       - product
       - compute type
-
-  - name: sku_description
-    expr: dim_sku.sku_description
-    comment: Human-readable SKU description
-    display_name: SKU Description
-    synonyms:
-      - product description
-      - sku desc
 
   # === Time Dimensions ===
   - name: year

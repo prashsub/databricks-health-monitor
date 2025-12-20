@@ -1,0 +1,102 @@
+# Master Refresh Orchestrator (Layer 3)
+# ======================================
+#
+# TOP-LEVEL ORCHESTRATOR: Complete data refresh pipeline
+# 
+# Architecture:
+#   Layer 3 (This job): Master Orchestrator
+#   Layer 2 (Composite): Monitoring Refresh, ML Inference jobs
+#   Layer 1 (Atomic): Individual notebook jobs
+#
+# Pattern: Each layer references the layer below via run_job_task
+# NO notebooks are called directly - only job references
+# This enables atomic testing at each layer
+#
+# Execution Flow:
+#   1. Bronze Refresh (atomic) - Ingest new data from system tables
+#   2. Gold Merge (atomic) - Transform Bronze → Gold
+#   3. Monitoring Refresh (composite) → Lakehouse Monitor Refresh job
+#   4. ML Inference (composite) → ML Inference Pipeline job
+#
+# Usage:
+#   databricks bundle run -t dev master_refresh_orchestrator
+#
+# Expected Duration: 1-2 hours
+# Schedule: Daily at 2 AM UTC (PAUSED by default)
+
+resources:
+  jobs:
+    master_refresh_orchestrator:
+      name: "[${bundle.target}] Health Monitor - Master Refresh Orchestrator"
+      description: "Complete data pipeline: Bronze → Gold → Monitor Refresh → ML Inference (references composite jobs)"
+      
+      tasks:
+        # ================================================================
+        # PHASE 1: DATA LAYER REFRESH
+        # ================================================================
+        
+        # Step 1: Bronze Refresh (atomic job)
+        - task_key: bronze_refresh
+          run_job_task:
+            job_id: ${resources.jobs.bronze_refresh_job.id}
+        
+        # Step 2: Gold Merge (atomic job)
+        - task_key: gold_merge
+          depends_on:
+            - task_key: bronze_refresh
+          run_job_task:
+            job_id: ${resources.jobs.gold_merge_job.id}
+        
+        # ================================================================
+        # PHASE 2: MONITORING REFRESH (after Gold data is updated)
+        # ================================================================
+        
+        # Step 3: Monitoring Refresh (composite job → Lakehouse Monitor Refresh)
+        - task_key: monitoring_refresh
+          depends_on:
+            - task_key: gold_merge
+          run_job_task:
+            job_id: ${resources.jobs.monitoring_layer_refresh_job.id}
+        
+        # ================================================================
+        # PHASE 3: ML INFERENCE (after Gold data is updated)
+        # ================================================================
+        
+        # Step 4: ML Inference (composite job → ML Inference Pipeline)
+        - task_key: ml_inference
+          depends_on:
+            - task_key: gold_merge
+          run_job_task:
+            job_id: ${resources.jobs.ml_layer_inference_job.id}
+      
+      # Schedule: Daily at 2 AM UTC (PAUSED by default)
+      schedule:
+        quartz_cron_expression: "0 0 2 * * ?"
+        timezone_id: "UTC"
+        pause_status: PAUSED  # Enable manually after validating setup
+      
+      # Timeout: 4 hours for complete pipeline
+      timeout_seconds: 14400
+      
+      # Email notifications
+      email_notifications:
+        on_start:
+          - data-engineering@company.com
+        on_failure:
+          - data-engineering@company.com
+        on_success:
+          - data-engineering@company.com
+        on_duration_warning_threshold_exceeded:
+          - data-engineering@company.com
+      
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: all
+        job_type: pipeline
+        job_level: orchestrator
+        orchestrator: "master"
+        compute_type: serverless
+        execution_type: "recurring"
+        schedule: "daily_2am_utc"

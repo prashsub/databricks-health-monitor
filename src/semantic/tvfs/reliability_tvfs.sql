@@ -28,9 +28,14 @@ RETURNS TABLE(
     end_time TIMESTAMP COMMENT 'Run end time',
     duration_minutes DOUBLE COMMENT 'Run duration in minutes'
 )
-COMMENT 'LLM: Returns all failed job runs with details for root cause analysis.
-Use for failure investigation, reliability tracking, and alerting.
-Example: "Show me failed jobs today" or "Which jobs failed this week?"'
+COMMENT '
+- PURPOSE: Failed job run analysis for root cause investigation and reliability tracking
+- BEST FOR: "Show failed jobs today" "Which jobs failed this week?" "Job failure details"
+- NOT FOR: Success rates (use get_job_success_rate), trends (use get_job_failure_trends)
+- RETURNS: Failed runs with job name, result state, termination code, owner, and duration
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), workspace_filter (default ALL)
+- SYNTAX: SELECT * FROM TABLE(get_failed_jobs("2024-01-01", "2024-12-31", "ALL"))
+'
 RETURN
     SELECT
         jrt.workspace_id,
@@ -39,13 +44,13 @@ RETURN
         jrt.run_id,
         jrt.result_state,
         jrt.termination_code,
-        jrt.run_as,
+        j.run_as,
         jrt.period_start_time AS start_time,
         jrt.period_end_time AS end_time,
         jrt.run_duration_minutes AS duration_minutes
     FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
     LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-        ON jrt.job_id = j.job_id AND j.is_current = TRUE
+        ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
     WHERE jrt.result_state IN ('FAILED', 'ERROR', 'TIMED_OUT', 'CANCELED')
         AND jrt.run_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         AND (workspace_filter = 'ALL' OR jrt.workspace_id = workspace_filter)
@@ -72,15 +77,20 @@ RETURNS TABLE(
     avg_duration_min DOUBLE COMMENT 'Average run duration in minutes',
     p95_duration_min DOUBLE COMMENT '95th percentile duration'
 )
-COMMENT 'LLM: Returns job success rates and reliability metrics.
-Use for identifying unreliable jobs and SLA compliance tracking.
-Example: "What is our job success rate?" or "Which jobs have the lowest success rate?"'
+COMMENT '
+- PURPOSE: Job success rate analysis for identifying unreliable jobs and SLA compliance
+- BEST FOR: "What is our job success rate?" "Which jobs have lowest success rate?" "Job reliability"
+- NOT FOR: Individual run details (use get_job_run_details), failure lists (use get_failed_jobs)
+- RETURNS: Jobs with total runs, successful/failed counts, success rate %, and duration stats
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), min_runs (default 5)
+- SYNTAX: SELECT * FROM TABLE(get_job_success_rate("2024-01-01", "2024-12-31", 5))
+'
 RETURN
     WITH job_stats AS (
         SELECT
             jrt.job_id,
             j.name AS job_name,
-            FIRST(jrt.run_as, TRUE) AS run_as,
+            FIRST(j.run_as, TRUE) AS run_as,
             COUNT(*) AS total_runs,
             SUM(CASE WHEN jrt.is_success THEN 1 ELSE 0 END) AS successful_runs,
             SUM(CASE WHEN jrt.result_state IN ('FAILED', 'ERROR', 'TIMED_OUT') THEN 1 ELSE 0 END) AS failed_runs,
@@ -88,7 +98,7 @@ RETURN
             PERCENTILE_APPROX(jrt.run_duration_minutes, 0.95) AS p95_duration_min
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jrt.job_id = j.job_id AND j.is_current = TRUE
+            ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
         WHERE jrt.result_state IS NOT NULL
             AND jrt.run_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         GROUP BY jrt.job_id, j.name
@@ -128,9 +138,15 @@ RETURNS TABLE(
     max_duration_min DOUBLE COMMENT 'Maximum duration',
     duration_cv DOUBLE COMMENT 'Coefficient of variation (stability measure)'
 )
-COMMENT 'LLM: Returns job duration percentiles for SLA planning and capacity.
-Use for identifying outliers, setting SLA targets, and performance tracking.
-Example: "What are the P99 job durations?" or "Show me job duration percentiles"'
+COMMENT '
+- PURPOSE: Job duration percentile analysis for SLA planning and capacity management
+- BEST FOR: "What are P99 job durations?" "Show job duration percentiles" "Identify slow jobs"
+- NOT FOR: Specific job run history (use get_job_run_details)
+- RETURNS: Jobs with P50/P75/P90/P99 duration percentiles, max duration, and coefficient of variation
+- PARAMS: job_name_filter (default ALL), days_back (default 30)
+- SYNTAX: SELECT * FROM TABLE(get_job_duration_percentiles("ALL", 30))
+- NOTE: Only includes successful runs with 5+ executions for statistical significance
+'
 RETURN
     SELECT
         jrt.job_id,
@@ -145,7 +161,7 @@ RETURN
         STDDEV(jrt.run_duration_minutes) / NULLIF(AVG(jrt.run_duration_minutes), 0) AS duration_cv
     FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
     LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-        ON jrt.job_id = j.job_id AND j.is_current = TRUE
+        ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
     WHERE jrt.is_success = TRUE
         AND jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
         AND (job_name_filter = 'ALL' OR j.name LIKE CONCAT('%', job_name_filter, '%'))
@@ -169,9 +185,14 @@ RETURNS TABLE(
     failure_rate_7d_avg DOUBLE COMMENT '7-day moving average failure rate',
     unique_failing_jobs INT COMMENT 'Number of unique failing jobs'
 )
-COMMENT 'LLM: Returns daily job failure trends for reliability monitoring.
-Use for tracking reliability over time and identifying degradation.
-Example: "What is the failure trend?" or "Is reliability improving?"'
+COMMENT '
+- PURPOSE: Daily failure trend tracking for reliability monitoring and degradation detection
+- BEST FOR: "What is the failure trend?" "Is reliability improving?" "Daily failure rate"
+- NOT FOR: Individual failed jobs (use get_failed_jobs), job-level rates (use get_job_success_rate)
+- RETURNS: Daily breakdown with total runs, failures, rate %, 7-day average, and unique failing jobs
+- PARAMS: days_back (default 30)
+- SYNTAX: SELECT * FROM TABLE(get_job_failure_trends(30))
+'
 RETURN
     WITH daily_stats AS (
         SELECT
@@ -216,9 +237,14 @@ RETURNS TABLE(
     sla_compliance_pct DOUBLE COMMENT 'SLA compliance percentage',
     avg_breach_minutes DOUBLE COMMENT 'Average minutes over SLA when breached'
 )
-COMMENT 'LLM: Returns SLA compliance metrics for each job.
-Use for SLA tracking, identifying problematic jobs, and capacity planning.
-Example: "Which jobs are breaching SLA?" or "What is our SLA compliance?"'
+COMMENT '
+- PURPOSE: SLA compliance tracking to identify jobs breaching duration thresholds
+- BEST FOR: "Which jobs are breaching SLA?" "What is our SLA compliance?" "Jobs over threshold"
+- NOT FOR: Duration percentiles (use get_job_duration_percentiles)
+- RETURNS: Jobs with SLA compliance %, runs within/breaching SLA, and average breach amount
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), sla_duration_minutes (default 60)
+- SYNTAX: SELECT * FROM TABLE(get_job_sla_compliance("2024-01-01", "2024-12-31", 60))
+'
 RETURN
     WITH sla_stats AS (
         SELECT
@@ -232,7 +258,7 @@ RETURN
                      ELSE NULL END) AS avg_breach_minutes
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jrt.job_id = j.job_id AND j.is_current = TRUE
+            ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
         WHERE jrt.is_success = TRUE
             AND jrt.run_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         GROUP BY jrt.job_id, j.name
@@ -267,28 +293,33 @@ RETURNS TABLE(
     result_state STRING COMMENT 'Result state',
     termination_code STRING COMMENT 'Termination code',
     run_as STRING COMMENT 'User who ran the job',
-    trigger_type STRING COMMENT 'How the job was triggered',
-    run_page_url STRING COMMENT 'URL to job run page'
+    trigger_type STRING COMMENT 'How the job was triggered'
 )
-COMMENT 'LLM: Returns detailed run history for a specific job.
-Use for investigating job behavior and troubleshooting.
-Example: "Show me runs for job X" or "What happened with job Y?"'
+COMMENT '
+- PURPOSE: Detailed run history for a specific job for investigation and troubleshooting
+- BEST FOR: "Show me runs for job X" "What happened with job Y?" "Job run history"
+- NOT FOR: Aggregate job stats (use get_job_success_rate), all failed jobs (use get_failed_jobs)
+- RETURNS: Individual runs with start/end time, duration, result, termination code
+- PARAMS: job_id_filter (required), days_back (default 7)
+- SYNTAX: SELECT * FROM TABLE(get_job_run_details("12345", 7))
+'
 RETURN
     SELECT
-        run_id,
-        run_date,
-        period_start_time AS start_time,
-        period_end_time AS end_time,
-        run_duration_minutes AS duration_minutes,
-        result_state,
-        termination_code,
-        run_as,
-        trigger_type,
-        run_page_url
-    FROM ${catalog}.${gold_schema}.fact_job_run_timeline
-    WHERE job_id = job_id_filter
-        AND run_date >= CURRENT_DATE() - INTERVAL days_back DAY
-    ORDER BY period_start_time DESC;
+        jrt.run_id,
+        jrt.run_date,
+        jrt.period_start_time AS start_time,
+        jrt.period_end_time AS end_time,
+        jrt.run_duration_minutes AS duration_minutes,
+        jrt.result_state,
+        jrt.termination_code,
+        j.run_as,
+        jrt.trigger_type
+    FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
+    LEFT JOIN ${catalog}.${gold_schema}.dim_job j
+        ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
+    WHERE jrt.job_id = job_id_filter
+        AND jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
+    ORDER BY jrt.period_start_time DESC;
 
 
 -- -----------------------------------------------------------------------------
@@ -310,9 +341,14 @@ RETURNS TABLE(
     avg_cost_per_run DOUBLE COMMENT 'Average cost per run',
     success_rate_pct DOUBLE COMMENT 'Success rate'
 )
-COMMENT 'LLM: Returns the most expensive jobs by total compute cost.
-Use for cost optimization and identifying expensive workloads.
-Example: "What are our most expensive jobs?" or "Which jobs cost the most?"'
+COMMENT '
+- PURPOSE: Identify most expensive jobs by compute cost for optimization and chargeback
+- BEST FOR: "What are our most expensive jobs?" "Which jobs cost the most?" "Job cost ranking"
+- NOT FOR: Daily cost trends (use get_cost_trend_by_sku), owner costs (use get_cost_by_owner)
+- RETURNS: Jobs ranked by cost with run count, avg cost per run, and success rate
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), top_n (default 25)
+- SYNTAX: SELECT * FROM TABLE(get_most_expensive_jobs("2024-01-01", "2024-12-31", 25))
+'
 RETURN
     WITH job_costs AS (
         SELECT
@@ -323,7 +359,7 @@ RETURN
             SUM(u.list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage u
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON u.usage_metadata_job_id = j.job_id AND j.is_current = TRUE
+            ON u.usage_metadata_job_id = j.job_id AND j.delete_time IS NULL
         WHERE u.usage_metadata_job_id IS NOT NULL
             AND u.usage_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         GROUP BY u.usage_metadata_job_id, j.name
@@ -374,9 +410,14 @@ RETURNS TABLE(
     retry_rate_pct DOUBLE COMMENT 'Percentage requiring retry',
     eventual_success_pct DOUBLE COMMENT 'Percentage eventually succeeding'
 )
-COMMENT 'LLM: Analyzes job retry patterns to identify flaky jobs.
-Use for identifying jobs that frequently need retries.
-Example: "Which jobs are flaky?" or "Show me retry patterns"'
+COMMENT '
+- PURPOSE: Identify flaky jobs that frequently require retries for reliability improvement
+- BEST FOR: "Which jobs are flaky?" "Show retry patterns" "Jobs needing retries"
+- NOT FOR: Retry costs (use get_job_repair_costs), one-time failures (use get_failed_jobs)
+- RETURNS: Jobs with retry count, retry rate %, and eventual success rate
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD)
+- SYNTAX: SELECT * FROM TABLE(get_job_retry_analysis("2024-01-01", "2024-12-31"))
+'
 RETURN
     WITH run_attempts AS (
         SELECT
@@ -400,7 +441,7 @@ RETURN
             COUNT(DISTINCT r.run_date) AS total_days
         FROM run_attempts r
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON r.job_id = j.job_id AND j.is_current = TRUE
+            ON r.job_id = j.job_id AND j.delete_time IS NULL
         GROUP BY r.job_id, j.name
     )
     SELECT
@@ -437,12 +478,14 @@ RETURNS TABLE(
     repair_cost DOUBLE COMMENT 'Total cost of repair runs in USD',
     repair_pct DOUBLE COMMENT 'Percentage of runs that were repairs'
 )
-COMMENT 'LLM: Returns jobs with highest repair (retry) costs.
-- PURPOSE: Identify jobs with reliability issues causing wasted spend
-- BEST FOR: "Which jobs have highest repair costs?" "Show job retry costs"
-- PARAMS: start_date, end_date, top_n
-- RETURNS: Jobs ranked by repair cost
-Example: SELECT * FROM TABLE(get_job_repair_costs("2024-01-01", "2024-12-31", 20))'
+COMMENT '
+- PURPOSE: Identify jobs with reliability issues causing wasted spend on repairs/retries
+- BEST FOR: "Which jobs have highest repair costs?" "Show job retry costs" "Wasted spend on failures"
+- NOT FOR: Flaky job patterns (use get_job_retry_analysis)
+- RETURNS: Jobs ranked by repair cost with repair count, cost, and percentage of runs
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), top_n (default 20)
+- SYNTAX: SELECT * FROM TABLE(get_job_repair_costs("2024-01-01", "2024-12-31", 20))
+'
 RETURN
     WITH job_runs AS (
         SELECT
@@ -454,7 +497,7 @@ RETURN
             j.run_as
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jrt.job_id = j.job_id AND j.is_current = TRUE
+            ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
         WHERE jrt.run_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
             AND jrt.result_state IS NOT NULL
     ),
@@ -513,18 +556,20 @@ RETURNS TABLE(
     spend_growth DOUBLE COMMENT 'Absolute growth in spend',
     spend_growth_pct DOUBLE COMMENT 'Percentage growth in spend'
 )
-COMMENT 'LLM: Identifies jobs with highest increase in cost spend week-over-week.
-- PURPOSE: Cost anomaly detection and spend trend analysis for jobs
-- BEST FOR: "Which jobs have highest cost growth?" "Show job spending trends"
-- PARAMS: days_back (default 14), top_n
-- RETURNS: Jobs ranked by cost growth
-Example: SELECT * FROM TABLE(get_job_spend_trend_analysis(14, 25))'
+COMMENT '
+- PURPOSE: Cost anomaly detection by identifying jobs with highest week-over-week spend growth
+- BEST FOR: "Which jobs have highest cost growth?" "Show job spending trends" "Job cost increase"
+- NOT FOR: Workspace-level cost trends (use get_cost_growth_analysis)
+- RETURNS: Jobs ranked by spend growth with last 7d vs prior 7d cost and percentage change
+- PARAMS: days_back (default 14), top_n (default 50)
+- SYNTAX: SELECT * FROM TABLE(get_job_spend_trend_analysis(14, 25))
+'
 RETURN
     WITH job_costs AS (
         SELECT
             workspace_id,
             usage_metadata_job_id AS job_id,
-            COALESCE(identity_metadata_run_as, owned_by) AS run_as,
+            COALESCE(identity_metadata_run_as, identity_metadata_owned_by) AS run_as,
             SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 7 DAY AND CURRENT_DATE() - INTERVAL 1 DAY
                      THEN list_cost ELSE 0 END) AS last_7_day_spend,
             SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAY AND CURRENT_DATE() - INTERVAL 8 DAY
@@ -532,7 +577,7 @@ RETURN
         FROM ${catalog}.${gold_schema}.fact_usage
         WHERE usage_date >= CURRENT_DATE() - INTERVAL days_back DAY
             AND usage_metadata_job_id IS NOT NULL
-        GROUP BY workspace_id, usage_metadata_job_id, COALESCE(identity_metadata_run_as, owned_by)
+        GROUP BY workspace_id, usage_metadata_job_id, COALESCE(identity_metadata_run_as, identity_metadata_owned_by)
     ),
     with_growth AS (
         SELECT
@@ -546,7 +591,7 @@ RETURN
             (jc.last_7_day_spend - jc.prior_7_day_spend) / NULLIF(jc.prior_7_day_spend, 0) * 100 AS spend_growth_pct
         FROM job_costs jc
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jc.job_id = j.job_id AND j.is_current = TRUE
+            ON jc.workspace_id = j.workspace_id AND jc.job_id = j.job_id AND j.delete_time IS NULL
     ),
     ranked AS (
         SELECT *, ROW_NUMBER() OVER (ORDER BY spend_growth DESC) AS rank
@@ -583,12 +628,14 @@ RETURNS TABLE(
     failure_cost DOUBLE COMMENT 'Cost of failed runs in USD',
     last_failure_date DATE COMMENT 'Date of last failure'
 )
-COMMENT 'LLM: Returns jobs with high failure counts and their associated costs.
-- PURPOSE: Identify unreliable jobs that waste spend
-- BEST FOR: "Which failing jobs cost the most?" "Show job failure costs"
-- PARAMS: start_date, end_date, top_n
-- RETURNS: Jobs ranked by failure count
-Example: SELECT * FROM TABLE(get_job_failure_costs("2024-01-01", "2024-12-31", 30))'
+COMMENT '
+- PURPOSE: Identify unreliable jobs by failure count and their associated wasted costs
+- BEST FOR: "Which failing jobs cost the most?" "Show job failure costs" "Unreliable expensive jobs"
+- NOT FOR: Individual failure details (use get_failed_jobs)
+- RETURNS: Jobs ranked by failures with total runs, failure cost, success rate, and last failure date
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), top_n (default 50)
+- SYNTAX: SELECT * FROM TABLE(get_job_failure_costs("2024-01-01", "2024-12-31", 30))
+'
 RETURN
     WITH job_runs AS (
         SELECT
@@ -624,7 +671,7 @@ RETURN
             MAX(CASE WHEN jr.is_success = FALSE THEN jr.run_date END) AS last_failure_date
         FROM job_runs jr
         LEFT JOIN job_costs jc ON jr.job_id = jc.job_id AND jr.run_id = jc.run_id
-        LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON jr.job_id = j.job_id AND j.is_current = TRUE
+        LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON jr.job_id = j.job_id AND j.delete_time IS NULL
         GROUP BY jr.workspace_id, jr.job_id, j.name, j.run_as
     ),
     ranked AS (
@@ -661,12 +708,15 @@ RETURNS TABLE(
     p95_duration_min DOUBLE COMMENT 'P95 duration in minutes',
     max_duration_min DOUBLE COMMENT 'Maximum duration in minutes'
 )
-COMMENT 'LLM: Returns job run duration statistics with percentiles.
-- PURPOSE: SLA analysis and identifying slow jobs
-- BEST FOR: "What are the P95 job durations?" "Which jobs take the longest?"
-- PARAMS: days_back, min_runs, top_n
-- RETURNS: Jobs with duration statistics
-Example: SELECT * FROM TABLE(get_job_run_duration_analysis(7, 5, 50))'
+COMMENT '
+- PURPOSE: Job run duration analysis with percentiles for SLA planning and slow job identification
+- BEST FOR: "What are P95 job durations?" "Which jobs take longest?" "Job duration statistics"
+- NOT FOR: Successful runs only (use get_job_duration_percentiles)
+- RETURNS: Jobs with avg, median, P90, P95, and max durations
+- PARAMS: days_back (default 7), min_runs (default 5), top_n (default 100)
+- SYNTAX: SELECT * FROM TABLE(get_job_run_duration_analysis(7, 5, 50))
+- NOTE: Uses PERCENTILE_CONT for exact percentile calculation
+'
 RETURN
     WITH job_durations AS (
         SELECT
@@ -675,7 +725,7 @@ RETURN
             jrt.run_duration_minutes
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jrt.job_id = j.job_id AND j.is_current = TRUE
+            ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
         WHERE jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
             AND jrt.result_state IS NOT NULL
             AND jrt.run_duration_minutes IS NOT NULL

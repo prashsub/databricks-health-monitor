@@ -1,25 +1,42 @@
-# Lakehouse Monitoring Setup Job
-# Creates and configures all Lakehouse Monitors for Gold layer tables
+# Lakehouse Monitoring Jobs
+# ========================
 #
-# Monitors created:
-#   - Cost Monitor: fact_usage
-#   - Job Monitor: fact_job_run_timeline
-#   - Query Monitor: fact_query_history
-#   - Cluster Monitor: fact_node_timeline
-#   - Security Monitor: fact_audit_logs
+# Two separate jobs for monitor lifecycle management:
+#   1. Setup Job - Creates monitors (run once after Gold layer setup)
+#   2. Refresh Job - Triggers manual refresh (scheduled or on-demand)
 #
-# Run after Gold layer setup
+# Monitors by Agent Domain:
+#   - 💰 Cost: fact_usage (usage tracking, tag coverage, serverless analysis)
+#   - ⚡ Performance: fact_query_history, fact_node_timeline (query/cluster metrics)
+#   - 🔄 Reliability: fact_job_run_timeline (success rates, duration)
+#   - 🔒 Security: fact_audit_logs (access patterns, sensitive actions)
+#   - ✅ Quality: fact_information_schema_table_storage (table quality)
+#   - 📊 Governance: fact_table_lineage (data lineage tracking)
+#   - 🤖 ML: cost_anomaly_predictions (inference monitoring)
+#
 # Reference: https://docs.databricks.com/lakehouse-monitoring
 
 resources:
   jobs:
+    # ================================================================
+    # SETUP JOB - Creates all Lakehouse Monitors (One-time)
+    # ================================================================
     lakehouse_monitoring_setup_job:
       name: "[${bundle.target}] Health Monitor - Lakehouse Monitoring Setup"
-      description: "Creates all Lakehouse Monitors for Gold layer tables"
+      description: "Creates all Lakehouse Monitors for Gold layer tables. Run once after Gold layer setup."
+
+      # ✅ MANDATORY: Serverless environment configuration
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "databricks-sdk>=0.28.0"
 
       tasks:
         # Cost Agent Monitor
         - task_key: create_cost_monitor
+          environment_key: default
           notebook_task:
             notebook_path: ../../src/monitoring/cost_monitor.py
             base_parameters:
@@ -28,6 +45,7 @@ resources:
 
         # Job Reliability Monitor
         - task_key: create_job_monitor
+          environment_key: default
           depends_on:
             - task_key: create_cost_monitor
           notebook_task:
@@ -38,6 +56,7 @@ resources:
 
         # Query Performance Monitor
         - task_key: create_query_monitor
+          environment_key: default
           depends_on:
             - task_key: create_job_monitor
           notebook_task:
@@ -48,6 +67,7 @@ resources:
 
         # Cluster Utilization Monitor
         - task_key: create_cluster_monitor
+          environment_key: default
           depends_on:
             - task_key: create_query_monitor
           notebook_task:
@@ -58,6 +78,7 @@ resources:
 
         # Security Access Monitor
         - task_key: create_security_monitor
+          environment_key: default
           depends_on:
             - task_key: create_cluster_monitor
           notebook_task:
@@ -66,13 +87,43 @@ resources:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
 
-      # No schedule - run on demand after Gold setup
-      # Monitors have their own refresh schedules
+        # Quality Monitor (Table Storage/Quality)
+        - task_key: create_quality_monitor
+          environment_key: default
+          depends_on:
+            - task_key: create_security_monitor
+          notebook_task:
+            notebook_path: ../../src/monitoring/quality_monitor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
 
+        # Governance Monitor (Table Lineage)
+        - task_key: create_governance_monitor
+          environment_key: default
+          depends_on:
+            - task_key: create_quality_monitor
+          notebook_task:
+            notebook_path: ../../src/monitoring/governance_monitor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+        # ML Inference Monitor (Predictions)
+        - task_key: create_inference_monitor
+          environment_key: default
+          depends_on:
+            - task_key: create_governance_monitor
+          notebook_task:
+            notebook_path: ../../src/monitoring/inference_monitor.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+      # No schedule - run on demand after Gold setup
       # Timeout: 60 minutes (monitor creation can take time)
       timeout_seconds: 3600
 
-      # Email notifications
       email_notifications:
         on_failure:
           - data-engineering@company.com
@@ -82,4 +133,48 @@ resources:
         project: health_monitor
         layer: monitoring
         job_type: setup
+        compute_type: serverless
+
+    # ================================================================
+    # REFRESH JOB - Triggers manual refresh of all monitors (Scheduled)
+    # ================================================================
+    lakehouse_monitoring_refresh_job:
+      name: "[${bundle.target}] Health Monitor - Lakehouse Monitoring Refresh"
+      description: "Triggers manual refresh for all Lakehouse Monitors. Can be scheduled or run on-demand."
+
+      # ✅ MANDATORY: Serverless environment configuration
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "databricks-sdk>=0.28.0"
+
+      tasks:
+        - task_key: refresh_all_monitors
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/monitoring/refresh_monitors.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+
+      # Schedule: Daily at 6 AM (after typical Gold layer refresh)
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: "America/Los_Angeles"
+        pause_status: PAUSED  # Enable manually in prod
+
+      # Timeout: 30 minutes
+      timeout_seconds: 1800
+
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: monitoring
+        job_type: refresh
         compute_type: serverless

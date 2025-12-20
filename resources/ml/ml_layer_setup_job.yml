@@ -1,0 +1,61 @@
+# ML Layer Setup Job (Composite)
+# ================================
+# 
+# Layer 2 job that orchestrates all ML components setup.
+# References atomic jobs - no notebooks directly.
+#
+# Execution Flow:
+#   1. Feature Table Creation (creates feature tables from Gold data)
+#   2. ML Model Training (trains 25 models across 5 agent domains)
+#
+# Pattern: run_job_task references atomic jobs
+# This allows independent testing of features and training
+# while providing a single entry point for ML layer setup.
+#
+# Usage:
+#   databricks bundle run -t dev ml_layer_setup_job
+#
+# Dependencies: Gold Layer tables must exist with data
+
+resources:
+  jobs:
+    ml_layer_setup_job:
+      name: "[${bundle.target}] Health Monitor - ML Layer Setup"
+      description: "Composite job: Creates feature tables and trains ML models by referencing atomic jobs"
+      
+      tasks:
+        # ================================================================
+        # STEP 1: Create Feature Tables
+        # ================================================================
+        - task_key: create_feature_tables
+          run_job_task:
+            job_id: ${resources.jobs.ml_feature_pipeline.id}
+        
+        # ================================================================
+        # STEP 2: Train ML Models (depends on feature tables)
+        # ================================================================
+        - task_key: train_ml_models
+          depends_on:
+            - task_key: create_feature_tables
+          run_job_task:
+            job_id: ${resources.jobs.ml_training_pipeline.id}
+      
+      # Job-level timeout (3 hours - training takes time)
+      timeout_seconds: 10800
+      
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+        on_success:
+          - data-engineering@company.com
+      
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: ml
+        job_type: setup
+        job_level: composite
+        compute_type: serverless
+

@@ -29,11 +29,14 @@ RETURNS TABLE(
     total_cost DOUBLE COMMENT 'Estimated cost in USD',
     pct_of_total DOUBLE COMMENT 'Percentage of total account cost'
 )
-COMMENT 'LLM: Returns the top N cost contributors by workspace and SKU for a date range.
-Use this for cost optimization, chargeback analysis, and identifying spending hotspots.
-Parameters: start_date, end_date (YYYY-MM-DD format), optional top_n (default 10).
-Example questions: "What are the top 10 cost drivers this month?" or
-"Which workspace spent the most last week?" or "Show me our biggest cost contributors"'
+COMMENT '
+- PURPOSE: Identify top cost contributors by workspace and SKU for FinOps analysis
+- BEST FOR: "What are the top cost drivers?" "Which workspace spent the most?" "Show biggest cost contributors"
+- NOT FOR: Daily trend analysis (use get_cost_trend_by_sku instead)
+- RETURNS: Ranked list with workspace, SKU, DBU usage, cost, and percentage of total
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), top_n (default 10)
+- SYNTAX: SELECT * FROM TABLE(get_top_cost_contributors("2024-01-01", "2024-12-31", 10))
+'
 RETURN
     WITH cost_summary AS (
         SELECT
@@ -44,7 +47,7 @@ RETURN
             SUM(f.list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage f
         LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w
-            ON f.workspace_id = w.workspace_id AND w.is_current = TRUE
+            ON f.workspace_id = w.workspace_id
         WHERE f.usage_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         GROUP BY f.workspace_id, w.workspace_name, f.sku_name
     ),
@@ -82,10 +85,14 @@ RETURNS TABLE(
     cumulative_cost DOUBLE COMMENT 'Running total cost',
     pct_change_vs_prior DOUBLE COMMENT 'Percentage change vs prior day'
 )
-COMMENT 'LLM: Returns daily cost trends broken down by SKU.
-Use for tracking spending patterns, identifying cost spikes, and budget monitoring.
-Parameters: start_date, end_date, optional sku_filter (e.g., "JOBS_COMPUTE" or "ALL").
-Example: "Show me daily cost trend for Jobs Compute" or "What is our spending pattern this month?"'
+COMMENT '
+- PURPOSE: Track daily cost trends by SKU for budget monitoring and spike detection
+- BEST FOR: "Show daily cost trend" "What is our spending pattern?" "Cost trend for Jobs Compute"
+- NOT FOR: Top contributors ranking (use get_top_cost_contributors instead)
+- RETURNS: Daily breakdown with DBU, cost, cumulative cost, and day-over-day percentage change
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), sku_filter (default ALL)
+- SYNTAX: SELECT * FROM TABLE(get_cost_trend_by_sku("2024-01-01", "2024-12-31", "JOBS_COMPUTE"))
+'
 RETURN
     WITH daily_costs AS (
         SELECT
@@ -133,15 +140,20 @@ RETURNS TABLE(
     interactive_cost DOUBLE COMMENT 'Cost from interactive clusters',
     run_count INT COMMENT 'Number of job runs'
 )
-COMMENT 'LLM: Returns cost breakdown by resource owner (user or service principal).
-Use for chargeback, accountability, and identifying high-spending users.
-Example: "Who spent the most on Databricks last month?" or "Show me cost by owner"'
+COMMENT '
+- PURPOSE: Chargeback analysis by resource owner for accountability and cost allocation
+- BEST FOR: "Who spent the most?" "Show cost by owner" "Which users have highest spend?"
+- NOT FOR: Tag-based chargeback (use get_cost_by_tag instead)
+- RETURNS: Ranked owners with total cost, job cost, interactive cost, and run count
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), top_n (default 20)
+- SYNTAX: SELECT * FROM TABLE(get_cost_by_owner("2024-01-01", "2024-12-31", 20))
+'
 RETURN
     WITH owner_costs AS (
         SELECT
-            COALESCE(identity_metadata_run_as, owned_by, 'UNKNOWN') AS owner,
+            COALESCE(identity_metadata_run_as, identity_metadata_owned_by, 'UNKNOWN') AS owner,
             CASE
-                WHEN COALESCE(identity_metadata_run_as, owned_by) LIKE '%@%' THEN 'USER'
+                WHEN COALESCE(identity_metadata_run_as, identity_metadata_owned_by) LIKE '%@%' THEN 'USER'
                 ELSE 'SERVICE_PRINCIPAL'
             END AS owner_type,
             SUM(list_cost) AS total_cost,
@@ -179,9 +191,14 @@ RETURNS TABLE(
     resource_count INT COMMENT 'Number of resources with this tag',
     pct_of_total DOUBLE COMMENT 'Percentage of total cost'
 )
-COMMENT 'LLM: Returns cost grouped by custom tag values for chargeback and cost allocation.
-Supports standard tags: team, project, cost_center, env.
-Example: "Show me cost by team tag" or "What is the cost breakdown by project?"'
+COMMENT '
+- PURPOSE: Tag-based cost allocation for chargeback and governance
+- BEST FOR: "Show cost by team tag" "Cost breakdown by project" "Which cost centers spend most?"
+- NOT FOR: Owner-based chargeback (use get_cost_by_owner instead)
+- RETURNS: Tag values with cost, DBU, resource count, and percentage of total
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), tag_key (default "team")
+- SYNTAX: SELECT * FROM TABLE(get_cost_by_tag("2024-01-01", "2024-12-31", "project"))
+'
 RETURN
     WITH tag_costs AS (
         SELECT
@@ -220,9 +237,14 @@ RETURNS TABLE(
     total_cost DOUBLE COMMENT 'Total cost of untagged resource',
     last_used DATE COMMENT 'Last usage date'
 )
-COMMENT 'LLM: Returns resources that are missing required tags for chargeback.
-Helps identify tag governance gaps and improve cost attribution.
-Example: "Show me untagged jobs" or "Which resources are missing tags?"'
+COMMENT '
+- PURPOSE: Tag governance enforcement by identifying resources missing required tags
+- BEST FOR: "Show untagged jobs" "Which resources are missing tags?" "Tag compliance report"
+- NOT FOR: Cost analysis of tagged resources (use get_cost_by_tag instead)
+- RETURNS: Untagged resources with type, ID, name, owner, cost, and last used date
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), resource_type (JOB/CLUSTER/WAREHOUSE/ALL)
+- SYNTAX: SELECT * FROM TABLE(get_untagged_resources("2024-01-01", "2024-12-31", "JOB"))
+'
 RETURN
     WITH untagged AS (
         SELECT
@@ -233,7 +255,7 @@ RETURN
                 ELSE 'OTHER'
             END AS resource_type,
             COALESCE(usage_metadata_job_id, usage_metadata_warehouse_id, usage_metadata_cluster_id) AS resource_id,
-            COALESCE(identity_metadata_run_as, owned_by) AS owner,
+            COALESCE(f.identity_metadata_run_as, f.identity_metadata_owned_by) AS owner,
             SUM(list_cost) AS total_cost,
             MAX(usage_date) AS last_used
         FROM ${catalog}.${gold_schema}.fact_usage
@@ -250,11 +272,11 @@ RETURN
         u.last_used
     FROM untagged u
     LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-        ON u.resource_type = 'JOB' AND u.resource_id = j.job_id AND j.is_current = TRUE
+        ON u.resource_type = 'JOB' AND u.resource_id = j.job_id AND j.delete_time IS NULL
     LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w
-        ON u.resource_type = 'WAREHOUSE' AND u.resource_id = w.warehouse_id AND w.is_current = TRUE
+        ON u.resource_type = 'WAREHOUSE' AND u.resource_id = w.warehouse_id AND w.delete_time IS NULL
     LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c
-        ON u.resource_type = 'CLUSTER' AND u.resource_id = c.cluster_id AND c.is_current = TRUE
+        ON u.resource_type = 'CLUSTER' AND u.resource_id = c.cluster_id AND c.delete_time IS NULL
     WHERE resource_type = 'ALL' OR u.resource_type = resource_type
     ORDER BY u.total_cost DESC;
 
@@ -272,9 +294,14 @@ RETURNS TABLE(
     value DOUBLE COMMENT 'Metric value',
     description STRING COMMENT 'Metric description'
 )
-COMMENT 'LLM: Returns tag coverage metrics for governance reporting.
-Shows percentage of resources with tags and cost attribution coverage.
-Example: "What is our tag coverage?" or "How much cost is untagged?"'
+COMMENT '
+- PURPOSE: Tag coverage metrics for governance reporting and compliance tracking
+- BEST FOR: "What is our tag coverage?" "How much cost is untagged?" "Tag compliance summary"
+- NOT FOR: Identifying specific untagged resources (use get_untagged_resources instead)
+- RETURNS: Coverage metrics for records, cost, and resources with descriptions
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD)
+- SYNTAX: SELECT * FROM TABLE(get_tag_coverage("2024-01-01", "2024-12-31"))
+'
 RETURN
     WITH summary AS (
         SELECT
@@ -323,9 +350,14 @@ RETURNS TABLE(
     wow_growth_pct DOUBLE COMMENT 'Week-over-week growth percentage',
     four_week_avg DOUBLE COMMENT '4-week moving average cost'
 )
-COMMENT 'LLM: Returns week-over-week cost trends for trend analysis.
-Use for identifying cost growth patterns and seasonality.
-Example: "Show me weekly cost growth" or "How did costs change week over week?"'
+COMMENT '
+- PURPOSE: Week-over-week cost trend analysis for growth tracking and seasonality detection
+- BEST FOR: "Show weekly cost growth" "How did costs change WoW?" "Cost growth trend"
+- NOT FOR: Daily granularity (use get_cost_trend_by_sku instead)
+- RETURNS: Weekly breakdown with cost, DBU, prior week comparison, growth %, and 4-week average
+- PARAMS: weeks_back (default 12)
+- SYNTAX: SELECT * FROM TABLE(get_cost_week_over_week(12))
+'
 RETURN
     WITH weekly_costs AS (
         SELECT
@@ -367,9 +399,15 @@ RETURNS TABLE(
     z_score DOUBLE COMMENT 'Z-score (deviation from mean)',
     anomaly_type STRING COMMENT 'SPIKE or DIP'
 )
-COMMENT 'LLM: Returns cost anomalies detected using statistical analysis.
-Identifies days with unusual spending that deviate from historical patterns.
-Example: "Show me cost anomalies" or "Were there any cost spikes this month?"'
+COMMENT '
+- PURPOSE: Statistical anomaly detection for cost spikes and unusual spending patterns
+- BEST FOR: "Show cost anomalies" "Were there cost spikes?" "Unusual spending days"
+- NOT FOR: Expected cost trends (use get_cost_trend_by_sku instead)
+- RETURNS: Anomaly dates with actual cost, 7-day average, standard deviation, z-score, and type
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), z_score_threshold (default 2.0)
+- SYNTAX: SELECT * FROM TABLE(get_cost_anomalies("2024-01-01", "2024-12-31", 2.0))
+- NOTE: Z-score > 2 indicates values outside ~95% of normal distribution
+'
 RETURN
     WITH daily_costs AS (
         SELECT
@@ -429,9 +467,15 @@ RETURNS TABLE(
     mtd_actual DOUBLE COMMENT 'Month-to-date actual if available',
     variance_vs_actual DOUBLE COMMENT 'Variance from actual (if available)'
 )
-COMMENT 'LLM: Returns cost forecast for upcoming months based on ML predictions.
-Use for budget planning and commit tracking.
-Example: "What is our cost forecast?" or "How much will we spend next month?"'
+COMMENT '
+- PURPOSE: Cost forecasting for budget planning and commit tracking
+- BEST FOR: "What is our cost forecast?" "How much will we spend next month?" "Budget projection"
+- NOT FOR: Historical cost analysis (use get_cost_trend_by_sku instead)
+- RETURNS: Monthly forecast with P10/P50/P90 predictions and variance from actual
+- PARAMS: forecast_months (default 3)
+- SYNTAX: SELECT * FROM TABLE(get_cost_forecast_summary(3))
+- NOTE: Uses historical average until ML inference table is deployed
+'
 RETURN
     -- Note: This TVF requires the ML inference table to be populated
     -- Placeholder implementation - will be enhanced when ML pipeline is deployed
@@ -472,9 +516,14 @@ RETURNS TABLE(
     mom_change_pct DOUBLE COMMENT 'Month-over-month change %',
     projected_month_end DOUBLE COMMENT 'Projected end-of-month'
 )
-COMMENT 'LLM: Returns month-to-date cost summary with comparisons.
-Use for monthly cost tracking and budget monitoring.
-Example: "What is our MTD cost?" or "How do we compare to last month?"'
+COMMENT '
+- PURPOSE: Month-to-date cost tracking with month-over-month comparison
+- BEST FOR: "What is our MTD cost?" "How do we compare to last month?" "Monthly progress"
+- NOT FOR: Full month historical analysis (use get_cost_trend_by_sku instead)
+- RETURNS: Current MTD, prior MTD, MoM change %, and projected month-end
+- PARAMS: None
+- SYNTAX: SELECT * FROM TABLE(get_cost_mtd_summary())
+'
 RETURN
     WITH current_month AS (
         SELECT
@@ -532,12 +581,15 @@ RETURNS TABLE(
     variance_pct DOUBLE COMMENT 'Variance as percentage',
     commit_status STRING COMMENT 'ON_TRACK, UNDERSHOOT_RISK, or OVERSHOOT_RISK'
 )
-COMMENT 'LLM: Compares actual spend vs required run rate to meet annual Databricks commit.
-- PURPOSE: FinOps planning, commit tracking, forecasting under/overshoot
-- BEST FOR: "Are we on track to meet our commit?" "What is our required run rate?"
-- PARAMS: commit_year (2025), annual_commit_amount (USD), optional as_of_date
-- RETURNS: Monthly breakdown with status indicators
-Example: SELECT * FROM TABLE(get_commit_vs_actual(2025, 1000000))'
+COMMENT '
+- PURPOSE: Commit tracking to compare actual spend vs required run rate for annual commit
+- BEST FOR: "Are we on track for commit?" "What is our required run rate?" "Commit variance"
+- NOT FOR: Historical cost analysis (use get_cost_trend_by_sku instead)
+- RETURNS: Monthly breakdown with actual, target, run rates, projections, and status
+- PARAMS: commit_year (e.g., 2025), annual_commit_amount (USD), as_of_date (optional)
+- SYNTAX: SELECT * FROM TABLE(get_commit_vs_actual(2025, 1000000, "2025-06-30"))
+- NOTE: Status values: ON_TRACK, UNDERSHOOT_RISK, OVERSHOOT_RISK
+'
 RETURN
     WITH monthly_spend AS (
         SELECT
@@ -601,12 +653,14 @@ RETURNS TABLE(
     workspace_count INT COMMENT 'Number of workspaces',
     job_count INT COMMENT 'Number of jobs'
 )
-COMMENT 'LLM: Returns spend breakdown by custom tag keys for chargeback and attribution.
-- PURPOSE: Multi-tag cost analysis, flexible chargeback reporting
-- BEST FOR: "Show cost by team and project tags" "What tags are driving cost?"
-- PARAMS: start_date, end_date, tag_keys (comma-separated)
-- RETURNS: Cost breakdown per tag key/value combination
-Example: SELECT * FROM TABLE(get_spend_by_custom_tags("2024-01-01", "2024-12-31", "team,project"))'
+COMMENT '
+- PURPOSE: Multi-tag cost analysis for flexible chargeback and attribution reporting
+- BEST FOR: "Show cost by team and project tags" "What tags are driving cost?" "Tag breakdown"
+- NOT FOR: Single tag analysis (use get_cost_by_tag instead)
+- RETURNS: Tag key/value combinations with DBU, cost, percentage, and resource counts
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), tag_keys (comma-separated)
+- SYNTAX: SELECT * FROM TABLE(get_spend_by_custom_tags("2024-01-01", "2024-12-31", "team,project,env"))
+'
 RETURN
     WITH tag_list AS (
         SELECT explode(split(tag_keys, ',')) AS tag_key
@@ -656,12 +710,14 @@ RETURNS TABLE(
     growth_amount DOUBLE COMMENT 'Absolute growth in spend',
     growth_pct DOUBLE COMMENT 'Percentage growth'
 )
-COMMENT 'LLM: Identifies entities with highest cost growth week-over-week.
-- PURPOSE: Cost anomaly detection, spend trend analysis
-- BEST FOR: "Which workspaces have highest cost growth?" "Show spending trends"
-- PARAMS: days_back (default 14), entity_type (WORKSPACE/JOB/SKU), top_n
-- RETURNS: Entities ranked by cost growth
-Example: SELECT * FROM TABLE(get_cost_growth_analysis(14, "WORKSPACE", 10))'
+COMMENT '
+- PURPOSE: Identify entities with highest week-over-week cost growth for anomaly detection
+- BEST FOR: "Which workspaces have highest cost growth?" "Show spending trends" "Cost increase analysis"
+- NOT FOR: Comparing custom periods (use get_cost_growth_by_period instead)
+- RETURNS: Entities ranked by growth with last 7d vs prior 7d spend and percentage change
+- PARAMS: days_back (default 14), entity_type (WORKSPACE/JOB/SKU), top_n (default 20)
+- SYNTAX: SELECT * FROM TABLE(get_cost_growth_analysis(14, "JOB", 10))
+'
 RETURN
     WITH aggregated AS (
         SELECT
@@ -688,9 +744,9 @@ RETURN
             (a.last_7_day_spend - a.prior_7_day_spend) / NULLIF(a.prior_7_day_spend, 0) * 100 AS growth_pct
         FROM aggregated a
         LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w
-            ON entity_type = 'WORKSPACE' AND a.entity_id = w.workspace_id AND w.is_current = TRUE
+            ON entity_type = 'WORKSPACE' AND a.entity_id = w.workspace_id
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON entity_type = 'JOB' AND a.entity_id = j.job_id AND j.is_current = TRUE
+            ON entity_type = 'JOB' AND a.entity_id = j.job_id AND j.delete_time IS NULL
         WHERE a.entity_id IS NOT NULL
     ),
     ranked AS (
@@ -733,13 +789,15 @@ RETURNS TABLE(
     pct_change DOUBLE COMMENT 'Percentage change',
     change_category STRING COMMENT 'SPIKE/GROWTH/STABLE/DECLINE/DROP'
 )
-COMMENT 'LLM: Compares spending between two periods to identify cost growth or decline.
-- PURPOSE: Period-over-period cost analysis with flexible comparison windows
-- BEST FOR: "Compare last 7 days vs prior 7 days" "Which workspaces grew most?"
-- PARAMS: entity_type (WORKSPACE/JOB/SKU), recent_days, comparison_days, top_n
-- RETURNS: Entities ranked by cost change with growth categorization
-Pattern source: Dashboard 7 vs 14 day comparison
-Example: SELECT * FROM TABLE(get_cost_growth_by_period("WORKSPACE", 7, 7, 10))'
+COMMENT '
+- PURPOSE: Flexible period-over-period cost comparison with customizable windows
+- BEST FOR: "Compare last 7 days vs prior 7 days" "Which workspaces grew most?" "Cost change analysis"
+- NOT FOR: Fixed week-over-week analysis (use get_cost_growth_analysis instead)
+- RETURNS: Entities ranked by change with both periods, absolute change, %, and category
+- PARAMS: entity_type (WORKSPACE/JOB/SKU), recent_days (default 7), comparison_days (default 7), top_n (default 20)
+- SYNTAX: SELECT * FROM TABLE(get_cost_growth_by_period("JOB", 14, 14, 10))
+- NOTE: Categories: SPIKE (>50%), GROWTH (>10%), STABLE (-10% to 10%), DECLINE (<-10%), DROP (<-50%)
+'
 RETURN
     WITH period_costs AS (
         SELECT
@@ -773,9 +831,9 @@ RETURN
             (p.recent_period_spend - p.prior_period_spend) / NULLIF(p.prior_period_spend, 0) * 100 AS pct_change
         FROM period_costs p
         LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w
-            ON entity_type = 'WORKSPACE' AND p.entity_id = w.workspace_id AND w.is_current = TRUE
+            ON entity_type = 'WORKSPACE' AND p.entity_id = w.workspace_id
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON entity_type = 'JOB' AND p.entity_id = j.job_id AND j.is_current = TRUE
+            ON entity_type = 'JOB' AND p.entity_id = j.job_id AND j.delete_time IS NULL
     ),
     categorized AS (
         SELECT *,
@@ -823,13 +881,15 @@ RETURNS TABLE(
     cost_per_hour DOUBLE COMMENT 'Cost per hour',
     recommendation STRING COMMENT 'Migration recommendation'
 )
-COMMENT 'LLM: Identifies All-Purpose cluster costs - these are less cost-efficient than Job clusters.
-- PURPOSE: Identify migration candidates from All-Purpose to Job clusters
-- BEST FOR: "Show all-purpose cluster costs" "Which interactive clusters cost most?"
-- PARAMS: start_date, end_date, top_n
-- RETURNS: All-Purpose clusters ranked by cost with migration recommendations
-Pattern source: Workflow Advisor Blog - "ALL PURPOSE CLUSTERS warrant scrutiny due to cost inefficiency"
-Example: SELECT * FROM TABLE(get_all_purpose_cluster_cost("2024-01-01", "2024-12-31", 10))'
+COMMENT '
+- PURPOSE: Identify All-Purpose cluster costs for migration to more efficient Job clusters
+- BEST FOR: "Show all-purpose cluster costs" "Which interactive clusters cost most?" "All-purpose migration"
+- NOT FOR: Job cluster analysis (use get_cluster_utilization instead)
+- RETURNS: All-Purpose clusters ranked by cost with runtime hours and migration recommendations
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), top_n (default 20)
+- SYNTAX: SELECT * FROM TABLE(get_all_purpose_cluster_cost("2024-01-01", "2024-12-31", 10))
+- NOTE: All-Purpose clusters are less cost-efficient than Job clusters for scheduled workloads
+'
 RETURN
     WITH all_purpose_usage AS (
         SELECT
@@ -861,7 +921,7 @@ RETURN
             ROW_NUMBER() OVER (ORDER BY u.total_cost DESC) AS rank
         FROM all_purpose_usage u
         LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c
-            ON u.cluster_id = c.cluster_id AND c.is_current = TRUE
+            ON u.cluster_id = c.cluster_id AND c.delete_time IS NULL
         LEFT JOIN cluster_hours h ON u.cluster_id = h.cluster_id
     )
     SELECT

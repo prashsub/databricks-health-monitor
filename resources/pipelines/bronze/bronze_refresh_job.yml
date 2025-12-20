@@ -32,7 +32,7 @@ resources:
             - task_key: run_streaming_pipeline
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/bronze/nonstreaming/merge.py
+            notebook_path: ../../../src/pipelines/bronze/nonstreaming/merge.py
             base_parameters:
               catalog: ${var.catalog}
               system_bronze_schema: ${var.system_bronze_schema}

@@ -873,14 +873,16 @@ resources:
 
 ## Alert Summary by Agent Domain
 
-| Agent | Alert Count | Critical | Warning | Info |
-|-------|-------------|----------|---------|------|
-| 💰 **Cost** | **14** | 4 | 7 | 3 |
-| 🔒 **Security** | 6 | 3 | 3 | 0 |
-| ⚡ **Performance** | 8 | 0 | 4 | 4 |
-| 🔄 **Reliability** | 8 | 5 | 3 | 0 |
+| Agent Domain | Alert Count | Critical | Warning | Info |
+|--------------|-------------|----------|---------|------|
+| 💰 **Cost** | **18** | 5 | 10 | 3 |
+| 🔒 **Security** | 8 | 4 | 4 | 0 |
+| ⚡ **Performance** | 12 | 2 | 6 | 4 |
+| 🔄 **Reliability** | 9 | 5 | 4 | 0 |
 | ✅ **Quality** | 5 | 2 | 2 | 1 |
-| **Total** | **41** | **14** | **19** | **8** |
+| **Total** | **52** | **18** | **26** | **8** |
+
+**Note:** Alert counts include enhancements from dashboard patterns, GitHub repositories, and blog post best practices.
 
 ### Cost Agent Alert Breakdown
 

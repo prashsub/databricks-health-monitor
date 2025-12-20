@@ -3,8 +3,18 @@
 Deploy Table-Valued Functions (TVFs)
 =====================================
 
-This script deploys all TVFs to the specified catalog and schema.
-TVFs are read from SQL files and variable-substituted before execution.
+Deploys all TVFs to the specified catalog and schema organized by Agent Domain.
+
+Agent Domain Organization:
+--------------------------
+| Domain      | File                    | TVFs | Primary Use Cases                    |
+|-------------|-------------------------|------|--------------------------------------|
+| 💰 Cost     | cost_tvfs.sql           | 15   | FinOps, chargeback, tag governance   |
+| 🔄 Reliability | reliability_tvfs.sql  | 12   | Job failures, SLA, retries, costs    |
+| ⚡ Performance | performance_tvfs.sql  | 10   | Query analysis, warehouse sizing     |
+| ⚡ Performance | compute_tvfs.sql      | 6    | Cluster utilization, right-sizing    |
+| 🔒 Security | security_tvfs.sql       | 10   | Audit, access patterns, compliance   |
+| ✅ Quality  | quality_tvfs.sql        | 7    | Freshness, lineage, data governance  |
 
 Usage:
     Run this notebook with parameters:
@@ -16,6 +26,8 @@ The script will:
 2. Substitute ${catalog} and ${gold_schema} variables
 3. Execute each CREATE OR REPLACE FUNCTION statement
 4. Report success/failure for each TVF
+
+Total TVFs: 60 (aligned with 5 Agent Domains)
 """
 
 # COMMAND ----------
@@ -99,6 +111,48 @@ def extract_function_name(statement: str) -> str:
 
 # COMMAND ----------
 
+def read_workspace_file(file_path: str) -> str:
+    """
+    Read file from Databricks workspace or local filesystem.
+    
+    In serverless notebooks, /Workspace paths are accessible via standard file I/O.
+    
+    Args:
+        file_path: Path to file (e.g., /Workspace/... or local path)
+        
+    Returns:
+        File content as string
+    """
+    # Method 1: Direct file read (works for /Workspace paths in serverless)
+    try:
+        with open(file_path, 'r') as f:
+            return f.read()
+    except Exception as e1:
+        print(f"  Direct file read failed: {e1}")
+    
+    # Method 2: Try with dbutils.fs (DBFS paths)
+    try:
+        # For DBFS paths (dbfs:/ or /dbfs/)
+        if 'dbfs' in file_path.lower():
+            content = dbutils.fs.head(file_path, 1024 * 1024)  # Max 1MB
+            return content
+    except Exception as e2:
+        print(f"  DBFS read failed: {e2}")
+    
+    # Method 3: Try Workspace API as last resort
+    try:
+        import base64
+        from databricks.sdk import WorkspaceClient
+        w = WorkspaceClient()
+        response = w.workspace.export(file_path, format="SOURCE")
+        content = base64.b64decode(response.content).decode('utf-8')
+        return content
+    except Exception as e3:
+        print(f"  Workspace API failed: {e3}")
+    
+    raise Exception(f"Cannot read file from any method: {file_path}")
+
+
 def deploy_tvf_file(
     spark: SparkSession,
     file_path: str,
@@ -119,10 +173,9 @@ def deploy_tvf_file(
     print(f"Processing: {file_path}")
     print(f"{'='*60}")
 
-    # Read file content
+    # Read file content from workspace
     try:
-        with open(file_path, 'r') as f:
-            sql_content = f.read()
+        sql_content = read_workspace_file(file_path)
     except Exception as e:
         return 0, 1, [f"Failed to read file: {e}"]
 
@@ -171,14 +224,31 @@ def list_tvf_files(base_path: str) -> List[str]:
                 tvf_files.append(os.path.join(base_path, f))
     except Exception:
         # Fall back to hardcoded list for Databricks
-        # Order matters: dependencies should be deployed first
+        # Organized by Agent Domain for clear ownership
         tvf_files = [
-            f"{base_path}/cost_tvfs.sql",           # 15 TVFs
-            f"{base_path}/compute_tvfs.sql",        # 6 TVFs
-            f"{base_path}/reliability_tvfs.sql",    # 8 TVFs
-            f"{base_path}/performance_tvfs.sql",    # 10 TVFs
-            f"{base_path}/security_tvfs.sql",       # 10 TVFs
-            f"{base_path}/quality_tvfs.sql",        # 7 TVFs
+            # 💰 COST AGENT (15 TVFs)
+            # FinOps, chargeback, tag governance, commit tracking
+            f"{base_path}/cost_tvfs.sql",
+            
+            # 🔄 RELIABILITY AGENT (12 TVFs)
+            # Job failures, success rates, SLA compliance, retry costs
+            f"{base_path}/reliability_tvfs.sql",
+            
+            # ⚡ PERFORMANCE AGENT - Queries (10 TVFs)
+            # Query analysis, warehouse utilization, latency percentiles
+            f"{base_path}/performance_tvfs.sql",
+            
+            # ⚡ PERFORMANCE AGENT - Compute (6 TVFs)
+            # Cluster utilization, right-sizing, autoscaling, DBR versions
+            f"{base_path}/compute_tvfs.sql",
+            
+            # 🔒 SECURITY AGENT (10 TVFs)
+            # Audit trails, access patterns, compliance, anomaly detection
+            f"{base_path}/security_tvfs.sql",
+            
+            # ✅ QUALITY AGENT (7 TVFs)
+            # Data freshness, lineage, governance, orphaned tables
+            f"{base_path}/quality_tvfs.sql",
         ]
 
     return tvf_files
@@ -242,16 +312,15 @@ def main():
     spark = SparkSession.builder.getOrCreate()
 
     # Determine base path (same directory as this script)
-    # In Databricks, this would be the workspace path
-    base_path = "/Workspace/Repos/databricks-health-monitor/src/tvfs"
-
-    # For local development, use relative path
+    # In Databricks serverless, workspace files are accessible at /Workspace/...
     try:
-        # Get current notebook path
+        # Get current notebook path and add /Workspace prefix
         notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
-        base_path = "/".join(notebook_path.split("/")[:-1])
-    except Exception:
+        base_path = "/Workspace" + "/".join(notebook_path.split("/")[:-1])
+        print(f"Notebook path: {notebook_path}")
+    except Exception as e:
         # Fall back to relative path for local testing
+        print(f"Could not get notebook path: {e}")
         base_path = os.path.dirname(os.path.abspath(__file__))
 
     print(f"\nBase path: {base_path}")

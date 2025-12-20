@@ -21,7 +21,7 @@ resources:
       tasks:
         - task_key: deploy_all_genie_spaces
           notebook_task:
-            notebook_path: ../../src/genie/deploy_genie_spaces.py
+            notebook_path: ../../src/semantic/genie/deploy_genie_spaces.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}

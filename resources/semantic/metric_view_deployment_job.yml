@@ -15,10 +15,19 @@ resources:
       name: "[${bundle.target}] Health Monitor - Metric View Deployment"
       description: "Deploys all Metric Views for Genie natural language queries"
 
+      # ✅ MANDATORY: Serverless environment configuration
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "PyYAML>=6.0"
+
       tasks:
         - task_key: deploy_all_metric_views
+          environment_key: default
           notebook_task:
-            notebook_path: ../../src/metric_views/deploy_metric_views.py
+            notebook_path: ../../src/semantic/metric_views/deploy_metric_views.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}

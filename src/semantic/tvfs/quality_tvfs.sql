@@ -28,9 +28,14 @@ RETURNS TABLE(
     is_stale BOOLEAN COMMENT 'True if exceeds threshold',
     row_count BIGINT COMMENT 'Approximate row count'
 )
-COMMENT 'LLM: Returns freshness status of tables to identify stale data.
-Use for data quality monitoring and SLA compliance.
-Example: "Which tables are stale?" or "Show me table freshness status"'
+COMMENT '
+- PURPOSE: Table freshness monitoring to identify stale data and SLA violations
+- BEST FOR: "Which tables are stale?" "Show table freshness status" "Data freshness report"
+- NOT FOR: Domain-level summary (use get_data_freshness_by_domain), quality scores (use get_job_data_quality_status)
+- RETURNS: Tables with last modified time, hours since update, staleness flag, and row count
+- PARAMS: freshness_threshold_hours (default 24)
+- SYNTAX: SELECT * FROM TABLE(get_table_freshness(24))
+'
 RETURN
     SELECT
         table_catalog,
@@ -64,9 +69,15 @@ RETURNS TABLE(
     last_success TIMESTAMP COMMENT 'Last successful run',
     status STRING COMMENT 'HEALTHY, WARNING, or CRITICAL'
 )
-COMMENT 'LLM: Returns data quality status inferred from job execution patterns.
-Use for identifying data pipeline issues and quality degradation.
-Example: "What is the data quality status?" or "Which pipelines are unhealthy?"'
+COMMENT '
+- PURPOSE: Data quality status inference from job execution patterns for pipeline health
+- BEST FOR: "What is the data quality status?" "Which pipelines are unhealthy?" "Job health scores"
+- NOT FOR: Table freshness (use get_table_freshness), detailed failures (use get_failed_jobs)
+- RETURNS: Jobs with success rate, quality score (0-100), last success, and health status
+- PARAMS: days_back (default 7)
+- SYNTAX: SELECT * FROM TABLE(get_job_data_quality_status(7))
+- NOTE: Status levels: HEALTHY (>=95%), WARNING (>=80%), CRITICAL (<80%)
+'
 RETURN
     WITH job_stats AS (
         SELECT
@@ -77,7 +88,7 @@ RETURN
             MAX(CASE WHEN jrt.is_success THEN jrt.period_end_time END) AS last_success
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jrt.job_id = j.job_id AND j.is_current = TRUE
+            ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
         WHERE jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
         GROUP BY j.name
     )
@@ -114,9 +125,14 @@ RETURNS TABLE(
     freshness_pct DOUBLE COMMENT 'Percentage of fresh tables',
     oldest_table_hours DOUBLE COMMENT 'Hours since oldest table update'
 )
-COMMENT 'LLM: Returns data freshness summary by domain for governance reporting.
-Use for identifying which data domains have freshness issues.
-Example: "How fresh is our data by domain?" or "Which domains have stale data?"'
+COMMENT '
+- PURPOSE: Domain-level data freshness summary for governance reporting and SLA tracking
+- BEST FOR: "How fresh is data by domain?" "Which domains have stale data?" "Domain freshness summary"
+- NOT FOR: Individual table freshness (use get_table_freshness), quality scores (use get_data_quality_summary)
+- RETURNS: Domains with table count, fresh/stale counts, freshness percentage, and oldest table age
+- PARAMS: freshness_threshold_hours (default 24)
+- SYNTAX: SELECT * FROM TABLE(get_data_freshness_by_domain(24))
+'
 RETURN
     WITH table_freshness AS (
         SELECT
@@ -160,12 +176,15 @@ RETURNS TABLE(
     status STRING COMMENT 'PASS, WARNING, or FAIL',
     details STRING COMMENT 'Additional details'
 )
-COMMENT 'LLM: Returns overall data quality summary across Gold layer tables.
-- PURPOSE: Executive quality dashboard, SLA monitoring
-- BEST FOR: "What is our data quality score?" "Show quality summary"
+COMMENT '
+- PURPOSE: Overall data quality summary across all dimensions for executive dashboard
+- BEST FOR: "What is our data quality score?" "Show quality summary" "Executive data quality"
+- NOT FOR: Individual table issues (use get_tables_failing_quality), domain breakdown (use get_data_freshness_by_domain)
+- RETURNS: Quality metrics by dimension (freshness, volume, consistency) with status and targets
 - PARAMS: None
-- RETURNS: Quality metrics across all dimensions
-Example: SELECT * FROM TABLE(get_data_quality_summary())'
+- SYNTAX: SELECT * FROM TABLE(get_data_quality_summary())
+- NOTE: Status levels: PASS (meets target), WARNING (close to target), FAIL (below target)
+'
 RETURN
     -- Freshness metrics
     SELECT
@@ -258,12 +277,15 @@ RETURNS TABLE(
     severity STRING COMMENT 'HIGH, MEDIUM, or LOW',
     recommendation STRING COMMENT 'Suggested action'
 )
-COMMENT 'LLM: Returns tables that are failing quality checks.
-- PURPOSE: Identify data quality issues requiring attention
-- BEST FOR: "Which tables have quality issues?" "Show failing tables"
+COMMENT '
+- PURPOSE: Identify tables failing quality checks for targeted remediation
+- BEST FOR: "Which tables have quality issues?" "Show failing tables" "Data quality alerts"
+- NOT FOR: Overall summary (use get_data_quality_summary), domain breakdown (use get_data_freshness_by_domain)
+- RETURNS: Failing tables with issue type, current value, threshold, severity, and recommendation
 - PARAMS: freshness_threshold_hours (default 24)
-- RETURNS: Tables with quality issues and recommendations
-Example: SELECT * FROM TABLE(get_tables_failing_quality(24))'
+- SYNTAX: SELECT * FROM TABLE(get_tables_failing_quality(24))
+- NOTE: Severity levels: HIGH (3x threshold), MEDIUM (2x threshold), LOW (1x threshold)
+'
 RETURN
     WITH table_info AS (
         SELECT
@@ -317,9 +339,15 @@ RETURNS TABLE(
     activity_status STRING COMMENT 'ACTIVE, INACTIVE, or ORPHANED',
     recommendation STRING COMMENT 'Suggested action'
 )
-COMMENT 'LLM: Returns table activity status based on lineage data to identify orphaned tables.
-Use for data governance, cost optimization, and identifying unused tables for cleanup.
-Example: "Which tables are inactive?" or "Show me orphaned tables"'
+COMMENT '
+- PURPOSE: Table activity analysis from lineage to identify orphaned/inactive tables for cleanup
+- BEST FOR: "Which tables are inactive?" "Show orphaned tables" "Unused table analysis"
+- NOT FOR: Data lineage tracking (use get_pipeline_data_lineage), table freshness (use get_table_freshness)
+- RETURNS: Tables with read/write counts, activity status, days since last access, and recommendation
+- PARAMS: days_back (default 30), inactive_threshold_days (default 14)
+- SYNTAX: SELECT * FROM TABLE(get_table_activity_status(30, 14))
+- NOTE: Status levels: ACTIVE, INACTIVE, ORPHANED (no activity detected)
+'
 RETURN
     WITH table_reads AS (
         SELECT
@@ -422,9 +450,14 @@ RETURNS TABLE(
     last_run_date DATE COMMENT 'Date of last lineage event',
     complexity_score INT COMMENT 'Complexity score based on tables touched'
 )
-COMMENT 'LLM: Returns data lineage by pipeline/job showing upstream and downstream dependencies.
-Use for impact analysis, data governance, and understanding data flow.
-Example: "Show me pipeline lineage" or "What tables does this job read from?"'
+COMMENT '
+- PURPOSE: Pipeline data lineage showing upstream/downstream table dependencies for impact analysis
+- BEST FOR: "Show pipeline lineage" "What tables does this job read from?" "Data flow analysis"
+- NOT FOR: Table activity status (use get_table_activity_status), table access audit (use get_table_access_audit)
+- RETURNS: Entities with source tables, target tables, counts, and complexity score
+- PARAMS: days_back (default 7), entity_filter (JOB/NOTEBOOK/PIPELINE/ALL)
+- SYNTAX: SELECT * FROM TABLE(get_pipeline_data_lineage(7, "JOB"))
+'
 RETURN
     WITH lineage_summary AS (
         SELECT
@@ -455,5 +488,5 @@ RETURN
         SIZE(ls.sources) + SIZE(ls.targets) * 2 AS complexity_score
     FROM lineage_summary ls
     LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-        ON ls.entity_type = 'JOB' AND ls.entity_id = j.job_id AND j.is_current = TRUE
+        ON ls.entity_type = 'JOB' AND ls.entity_id = j.job_id AND j.delete_time IS NULL
     ORDER BY complexity_score DESC, total_events DESC;

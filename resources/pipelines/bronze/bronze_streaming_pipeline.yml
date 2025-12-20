@@ -22,7 +22,7 @@ resources:
       name: "[${bundle.target}] Health Monitor - Bronze Streaming Pipeline (All Domains)"
       
       # Pipeline root folder (Lakeflow Pipelines Editor best practice)
-      root_path: ../../src/bronze/streaming
+      root_path: ../../../src/pipelines/bronze/streaming
       
       # DLT Direct Publishing Mode (Modern Pattern)
       catalog: ${var.catalog}
@@ -31,19 +31,19 @@ resources:
       # DLT Libraries - 7 domain notebooks (excluding sharing due to incompatibility)
       libraries:
         - notebook:
-            path: ../../src/bronze/streaming/access_tables.py
+            path: ../../../src/pipelines/bronze/streaming/access_tables.py
         - notebook:
-            path: ../../src/bronze/streaming/billing_tables.py
+            path: ../../../src/pipelines/bronze/streaming/billing_tables.py
         - notebook:
-            path: ../../src/bronze/streaming/compute_tables.py
+            path: ../../../src/pipelines/bronze/streaming/compute_tables.py
         - notebook:
-            path: ../../src/bronze/streaming/lakeflow_tables.py
+            path: ../../../src/pipelines/bronze/streaming/lakeflow_tables.py
         - notebook:
-            path: ../../src/bronze/streaming/marketplace_tables.py
+            path: ../../../src/pipelines/bronze/streaming/marketplace_tables.py
         - notebook:
-            path: ../../src/bronze/streaming/mlflow_tables.py
+            path: ../../../src/pipelines/bronze/streaming/mlflow_tables.py
         - notebook:
-            path: ../../src/bronze/streaming/serving_tables.py
+            path: ../../../src/pipelines/bronze/streaming/serving_tables.py
         # NOTE: sharing_tables.py removed - materialization_history table doesn't exist
       
       # Pipeline Configuration (passed to notebooks)

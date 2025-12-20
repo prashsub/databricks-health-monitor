@@ -1,0 +1,146 @@
+{
+  "displayName": "Job Optimization Dashboard",
+  "warehouse_id": "${warehouse_id}",
+  "pages": [
+    {
+      "name": "page_optimization",
+      "displayName": "Optimization Opportunities",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_jobs_no_autoscale",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_no_autoscale_count", "fields": [{"name": "count", "expression": "`count`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "count"}},
+              "frame": {"showTitle": true, "title": "Jobs Without Autoscaling", "description": "Jobs with fixed worker counts"}
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_stale_datasets",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_stale_count", "fields": [{"name": "count", "expression": "`count`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "count"}},
+              "frame": {"showTitle": true, "title": "Stale Dataset Jobs", "description": "Jobs producing unused outputs"}
+            }
+          },
+          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_ap_cluster_jobs",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_ap_count", "fields": [{"name": "count", "expression": "`count`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "count"}},
+              "frame": {"showTitle": true, "title": "Jobs on All-Purpose", "description": "Jobs running on interactive clusters"}
+            }
+          },
+          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "table_no_autoscale",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_no_autoscale", "fields": [{"name": "job_name", "expression": "`job_name`"}, {"name": "workspace_name", "expression": "`workspace_name`"}, {"name": "worker_count", "expression": "`worker_count`"}, {"name": "cost_30d", "expression": "`cost_30d`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {"showTitle": true, "title": "Jobs Without Autoscaling", "description": "Jobs with static worker counts - consider enabling autoscaling"},
+              "encodings": {
+                "columns": [
+                  {"fieldName": "job_name", "title": "Job Name"},
+                  {"fieldName": "workspace_name", "title": "Workspace"},
+                  {"fieldName": "worker_count", "title": "Workers"},
+                  {"fieldName": "cost_30d", "title": "Cost (30d)"}
+                ]
+              },
+              "itemsPerPage": 15
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_stale_datasets",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_stale_datasets", "fields": [{"name": "job_name", "expression": "`job_name`"}, {"name": "unused_tables", "expression": "`unused_tables`"}, {"name": "runs_30d", "expression": "`runs_30d`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {"showTitle": true, "title": "Jobs Producing Stale Datasets", "description": "Jobs producing tables that are never read downstream"},
+              "encodings": {
+                "columns": [
+                  {"fieldName": "job_name", "title": "Job Name"},
+                  {"fieldName": "unused_tables", "title": "Unused Tables"},
+                  {"fieldName": "runs_30d", "title": "Runs (30d)"}
+                ]
+              },
+              "itemsPerPage": 15
+            }
+          },
+          "position": {"x": 3, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_ap_clusters",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_ap_jobs", "fields": [{"name": "job_name", "expression": "`job_name`"}, {"name": "workspace_name", "expression": "`workspace_name`"}, {"name": "cluster_name", "expression": "`cluster_name`"}, {"name": "task_runs", "expression": "`task_runs`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {"showTitle": true, "title": "Jobs Using All-Purpose Clusters", "description": "Jobs incorrectly running on interactive clusters"},
+              "encodings": {
+                "columns": [
+                  {"fieldName": "job_name", "title": "Job Name"},
+                  {"fieldName": "workspace_name", "title": "Workspace"},
+                  {"fieldName": "cluster_name", "title": "Cluster"},
+                  {"fieldName": "task_runs", "title": "Task Runs"}
+                ]
+              },
+              "itemsPerPage": 15
+            }
+          },
+          "position": {"x": 0, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_outlier_runs",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_outliers", "fields": [{"name": "job_name", "expression": "`job_name`"}, {"name": "runs", "expression": "`runs`"}, {"name": "avg_cost", "expression": "`avg_cost`"}, {"name": "p90_cost", "expression": "`p90_cost`"}, {"name": "max_cost", "expression": "`max_cost`"}, {"name": "deviation", "expression": "`deviation`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {"showTitle": true, "title": "Jobs with Cost Outliers", "description": "Jobs with runs significantly exceeding P90 cost"},
+              "encodings": {
+                "columns": [
+                  {"fieldName": "job_name", "title": "Job Name"},
+                  {"fieldName": "runs", "title": "Runs"},
+                  {"fieldName": "avg_cost", "title": "Avg Cost ($)"},
+                  {"fieldName": "p90_cost", "title": "P90 Cost ($)"},
+                  {"fieldName": "max_cost", "title": "Max Cost ($)"},
+                  {"fieldName": "deviation", "title": "Deviation ($)"}
+                ]
+              },
+              "itemsPerPage": 15
+            }
+          },
+          "position": {"x": 3, "y": 8, "width": 3, "height": 6}
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {"name": "ds_no_autoscale_count", "query": "SELECT COUNT(DISTINCT j.job_id) AS count FROM ${catalog}.${gold_schema}.dim_job j WHERE j.is_current = TRUE AND j.cluster_spec IS NOT NULL"},
+    {"name": "ds_stale_count", "query": "SELECT COUNT(DISTINCT job_id) AS count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND target_table_full_name IS NOT NULL AND entity_type = 'JOB'"},
+    {"name": "ds_ap_count", "query": "SELECT COUNT(DISTINCT j.job_id) AS count FROM ${catalog}.${gold_schema}.dim_job j WHERE j.is_current = TRUE"},
+    {"name": "ds_no_autoscale", "query": "SELECT j.name AS job_name, w.workspace_name, COALESCE(j.max_concurrent_runs, 1) AS worker_count, ROUND(COALESCE(u.total_cost, 0), 2) AS cost_30d FROM ${catalog}.${gold_schema}.dim_job j LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON j.workspace_id = w.workspace_id AND w.is_current = TRUE LEFT JOIN (SELECT usage_metadata_job_id AS job_id, SUM(list_cost) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND usage_metadata_job_id IS NOT NULL GROUP BY usage_metadata_job_id) u ON j.job_id = u.job_id WHERE j.is_current = TRUE ORDER BY cost_30d DESC LIMIT 20"},
+    {"name": "ds_stale_datasets", "query": "SELECT COALESCE(j.name, CONCAT('Job ', l.job_id)) AS job_name, COUNT(DISTINCT l.target_table_full_name) AS unused_tables, COUNT(DISTINCT l.event_date) AS runs_30d FROM ${catalog}.${gold_schema}.fact_table_lineage l LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON l.job_id = j.job_id AND l.workspace_id = j.workspace_id AND j.is_current = TRUE WHERE l.event_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND l.target_table_full_name IS NOT NULL AND l.entity_type = 'JOB' GROUP BY COALESCE(j.name, CONCAT('Job ', l.job_id)) ORDER BY runs_30d DESC LIMIT 20"},
+    {"name": "ds_ap_jobs", "query": "SELECT j.name AS job_name, w.workspace_name, 'Interactive Cluster' AS cluster_name, COUNT(*) AS task_runs FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id AND f.workspace_id = j.workspace_id AND j.is_current = TRUE LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id AND w.is_current = TRUE WHERE f.period_start_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY j.name, w.workspace_name ORDER BY task_runs DESC LIMIT 20"},
+    {"name": "ds_outliers", "query": "WITH job_stats AS (SELECT j.name AS job_name, f.job_id, COUNT(*) AS runs, AVG(TIMESTAMPDIFF(SECOND, f.period_start_time, f.period_end_time)) AS avg_duration, PERCENTILE(TIMESTAMPDIFF(SECOND, f.period_start_time, f.period_end_time), 0.9) AS p90_duration, MAX(TIMESTAMPDIFF(SECOND, f.period_start_time, f.period_end_time)) AS max_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id AND f.workspace_id = j.workspace_id AND j.is_current = TRUE WHERE f.period_start_time >= CURRENT_DATE() - INTERVAL 30 DAYS AND f.result_state IS NOT NULL GROUP BY j.name, f.job_id HAVING COUNT(*) > 5) SELECT job_name, runs, ROUND(avg_duration / 60, 1) AS avg_cost, ROUND(p90_duration / 60, 1) AS p90_cost, ROUND(max_duration / 60, 1) AS max_cost, ROUND((max_duration - p90_duration) / 60, 1) AS deviation FROM job_stats ORDER BY deviation DESC LIMIT 20"}
+  ]
+}
+

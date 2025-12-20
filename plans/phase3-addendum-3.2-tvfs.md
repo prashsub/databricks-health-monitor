@@ -95,11 +95,13 @@ FROM ${catalog}.${gold_schema}.fact_usage
 
 | Agent Domain | TVF Count | Key Functions |
 |--------------|-----------|---------------|
-| **💰 Cost** | 15 | get_top_cost_contributors, get_cost_growth_analysis, get_job_cost_savings, **get_commit_vs_actual**, **get_cost_by_tag**, **get_untagged_resources**, **get_tag_coverage** |
-| **🔒 Security** | 4 | get_user_activity_summary, get_sensitive_table_access |
-| **⚡ Performance** | 8 | get_slow_queries, get_warehouse_utilization, get_cluster_utilization |
-| **🔄 Reliability** | 8 | get_failed_jobs, get_job_success_rate, get_job_repair_costs |
-| **✅ Quality** | 3 | get_data_quality_summary, get_tables_failing_quality |
+| **💰 Cost** | 15 | get_top_cost_contributors, get_cost_trend_by_sku, get_cost_by_owner, get_cost_week_over_week, get_commit_vs_actual, get_commit_forecast, get_cost_by_tag, get_untagged_resources, get_tag_coverage, get_spend_by_custom_tags, get_cost_growth_by_period, get_cost_weekly_trend |
+| **⚡ Performance** | 14 | get_slow_queries, get_warehouse_utilization, get_cluster_utilization, get_cluster_resource_metrics, get_underutilized_clusters, get_jobs_on_legacy_dbr, get_query_efficiency_analysis, get_cluster_right_sizing_recommendations, get_job_outlier_runs |
+| **🔄 Reliability** | 11 | get_failed_jobs, get_job_success_rate, get_most_expensive_jobs, get_job_duration_percentiles, get_job_repair_costs, get_job_spend_trend_analysis, get_job_failure_costs, get_job_run_duration_analysis, get_jobs_stale_datasets, get_job_cost_savings_opportunities, get_jobs_without_autoscaling |
+| **✅ Quality** | 3 | get_data_quality_summary, get_tables_failing_quality, get_table_activity_status |
+| **🔒 Security** | 7 | get_table_access_audit, get_user_activity_summary, get_sensitive_table_access, get_user_activity_patterns |
+
+**Total: 50+ TVFs organized across 5 agent domains**
 
 ---
 
@@ -298,7 +300,7 @@ RETURN
 
 ---
 
-### Domain 2: Job Performance (8 TVFs)
+## 🔄 Reliability Agent TVFs (Job Performance - 11 TVFs)
 
 #### TVF 2.1: get_failed_jobs
 
@@ -828,7 +830,7 @@ RETURN
 
 ---
 
-### Domain 3: Query Performance (6 TVFs)
+## ⚡ Performance Agent TVFs (Query Performance - 6 TVFs)
 
 #### TVF 3.1: get_slow_queries
 
@@ -942,7 +944,7 @@ RETURN
 
 ---
 
-### Domain 4: Security & Audit (7 TVFs)
+## 🔒 Security Agent TVFs (Security & Audit - 7 TVFs)
 
 #### TVF 4.0: get_table_access_audit
 
@@ -1054,7 +1056,7 @@ RETURN
 
 ---
 
-### Domain 5: Compute & Clusters (4 TVFs)
+## ⚡ Performance Agent TVFs (Compute & Clusters - 4 TVFs)
 
 #### TVF 5.1: get_cluster_utilization
 
@@ -1123,7 +1125,7 @@ RETURN
 
 ---
 
-### Domain 6: Compute & Clusters (Additional TVFs)
+## ⚡ Performance Agent TVFs (Compute Resources - Additional)
 
 #### TVF 6.1: get_cluster_resource_metrics
 
@@ -1244,7 +1246,7 @@ RETURN
 
 ---
 
-### Domain 7: Job Optimization (Advanced TVFs)
+## 💰 Cost Agent TVFs (Job Optimization - Advanced)
 
 **Source:** Jobs System Tables Dashboard, Serverless Cost Observability Dashboard
 
@@ -1537,7 +1539,7 @@ RETURN
 
 ---
 
-### Domain 8: DBR Version & Migration (TVFs)
+## ⚡ Performance Agent TVFs (DBR Version & Migration)
 
 **Source:** DBR Upgrade Managed Migration Dashboard
 
@@ -1943,20 +1945,16 @@ RETURN
 
 ---
 
-## TVF Inventory Summary
+## TVF Inventory Summary by Agent Domain
 
-| Domain | TVF Count | Key Functions |
-|--------|-----------|---------------|
-| **Cost & Billing** | 4 | top_cost_contributors, cost_trend, cost_by_owner, week_over_week |
-| **Commit Tracking** | 2 | get_commit_vs_actual, get_commit_forecast (NEW) |
-| **Tag Analysis** | 3 | get_cost_by_tag, get_untagged_resources, get_tag_coverage (NEW) |
-| **Job Performance** | 11 | failed_jobs, success_rate, expensive_jobs, duration_percentiles, repair_costs, spend_trend, failure_costs, duration_analysis |
-| **Query Performance** | 6 | slow_queries, warehouse_utilization, query_efficiency |
-| **Security & Audit** | 7 | table_access_audit, user_activity, sensitive_table_access |
-| **Compute & Clusters** | 6 | cluster_utilization, cluster_resource_metrics, underutilized_clusters |
-| **Job Optimization** | 4 | stale_datasets, cost_savings, autoscaling, spend_by_tags |
-| **DBR Migration** | 1 | legacy_dbr_jobs |
-| **Total** | **39+** | |
+| Agent Domain | TVF Count | Key Functions |
+|--------------|-----------|---------------|
+| **💰 Cost** | 15 | top_cost_contributors, cost_trend, cost_by_owner, week_over_week, commit_vs_actual, commit_forecast, cost_by_tag, untagged_resources, tag_coverage, spend_by_custom_tags, cost_growth_by_period, cost_weekly_trend, job_cost_savings_opportunities, stale_datasets, autoscaling |
+| **⚡ Performance** | 14 | slow_queries, warehouse_utilization, cluster_utilization, cluster_resource_metrics, underutilized_clusters, jobs_on_legacy_dbr, query_efficiency_analysis, cluster_right_sizing_recommendations, job_outlier_runs |
+| **🔄 Reliability** | 11 | failed_jobs, success_rate, expensive_jobs, duration_percentiles, repair_costs, spend_trend, failure_costs, duration_analysis |
+| **✅ Quality** | 3 | data_quality_summary, tables_failing_quality, table_activity_status |
+| **🔒 Security** | 7 | table_access_audit, user_activity, sensitive_table_access, user_activity_patterns |
+| **Total** | **50+** | |
 
 ---
 

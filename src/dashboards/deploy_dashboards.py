@@ -131,14 +131,28 @@ def deploy_dashboard(dashboard_name: str, json_file: str, catalog: str, gold_sch
 # Find all dashboard JSON files
 dashboards_dir = Path(__file__).parent if '__file__' in dir() else Path(".")
 
-# List of dashboards to deploy
+# List of dashboards to deploy by Agent Domain
 DASHBOARDS = [
+    # 💰 Cost Agent Dashboards
     ("executive_overview", "executive_overview.lvdash.json"),
     ("cost_management", "cost_management.lvdash.json"),
+    ("commit_tracking", "commit_tracking.lvdash.json"),
+    
+    # 🔄 Reliability Agent Dashboards
     ("job_reliability", "job_reliability.lvdash.json"),
+    ("job_optimization", "job_optimization.lvdash.json"),
+    
+    # ⚡ Performance Agent Dashboards
     ("query_performance", "query_performance.lvdash.json"),
     ("cluster_utilization", "cluster_utilization.lvdash.json"),
+    ("dbr_migration", "dbr_migration.lvdash.json"),
+    
+    # 🔒 Security Agent Dashboards
     ("security_audit", "security_audit.lvdash.json"),
+    ("governance_hub", "governance_hub.lvdash.json"),
+    
+    # ✅ Quality Agent Dashboards
+    ("table_health", "table_health.lvdash.json"),
 ]
 
 # COMMAND ----------

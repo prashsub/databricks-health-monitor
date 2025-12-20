@@ -1,0 +1,493 @@
+# Metric View: cluster_efficiency
+# Advanced cluster efficiency and optimization analytics
+#
+# Agent Domain: Performance (Cost sub-domain)
+# Source: fact_node_timeline (compute domain)
+# Schema validation done against: gold_layer_design/yaml/compute/fact_node_timeline.yaml
+#
+# Key Business Questions Answered:
+#   - Which clusters have ALL_PURPOSE workloads on interactive clusters?
+#   - Show clusters that could be migrated to jobs clusters
+#   - What's the right-sizing opportunity?
+#   - Which clusters are overprovisioned?
+#   - Show node utilization efficiency by cluster type
+#   - What would we save with serverless?
+
+version: "1.1"
+comment: >
+  PURPOSE: Advanced cluster efficiency and optimization analytics for cost reduction.
+  
+  BEST FOR: Right-sizing opportunities | ALL_PURPOSE to jobs cluster migration | 
+  Underutilized clusters | Idle node hours | Overprovisioned clusters | Potential cost savings
+  
+  NOT FOR: Basic utilization metrics (use cluster_utilization) | Cluster cost (use cost_analytics)
+  
+  DIMENSIONS: cluster_name, workspace_name, node_type, cluster_type, cpu_utilization_tier, is_underutilized, is_overprovisioned
+  
+  MEASURES: efficiency_score, idle_percentage, underutilized_percentage, idle_node_hours, underutilized_cluster_count
+  
+  SOURCE: fact_node_timeline (compute domain)
+  
+  JOINS: dim_workspace (workspace details), dim_cluster (cluster metadata)
+  
+  NOTE: Underutilized = CPU and memory both below 30%. Overprovisioned = both below 50%.
+
+source: ${catalog}.${gold_schema}.fact_node_timeline
+
+joins:
+  - name: dim_workspace
+    source: ${catalog}.${gold_schema}.dim_workspace
+    'on': source.workspace_id = dim_workspace.workspace_id
+  - name: dim_cluster
+    source: ${catalog}.${gold_schema}.dim_cluster
+    'on': source.workspace_id = dim_cluster.workspace_id AND source.cluster_id = dim_cluster.cluster_id AND dim_cluster.delete_time IS NULL
+
+dimensions:
+  # === Cluster Dimensions ===
+  - name: cluster_id
+    expr: source.cluster_id
+    comment: Unique cluster identifier
+    display_name: Cluster ID
+    synonyms:
+      - cluster
+      - cluster identifier
+  
+  - name: cluster_name
+    expr: dim_cluster.cluster_name
+    comment: Human-readable cluster name
+    display_name: Cluster Name
+    synonyms:
+      - cluster
+      - name
+  
+  - name: cluster_type
+    expr: dim_cluster.cluster_source
+    comment: Type of cluster (UI, JOB, API, SQL, etc.)
+    display_name: Cluster Type
+    synonyms:
+      - type
+      - source
+  
+  - name: node_type
+    expr: source.node_type
+    comment: Instance type (e.g., m5d.xlarge, i3.xlarge)
+    display_name: Node Type
+    synonyms:
+      - instance type
+      - instance
+      - machine type
+
+  # === Role Dimensions ===
+  - name: is_driver
+    expr: source.is_driver
+    comment: Whether this is a driver node (true) or worker node (false)
+    display_name: Is Driver
+    synonyms:
+      - driver node
+      - driver
+  
+  - name: node_role
+    expr: CASE WHEN source.is_driver THEN 'DRIVER' ELSE 'WORKER' END
+    comment: Node role (DRIVER or WORKER)
+    display_name: Node Role
+    synonyms:
+      - role
+      - type
+
+  # === Workspace Dimensions ===
+  - name: workspace_id
+    expr: source.workspace_id
+    comment: Workspace identifier
+    display_name: Workspace ID
+    synonyms:
+      - workspace
+  
+  - name: workspace_name
+    expr: dim_workspace.workspace_name
+    comment: Human-readable workspace name
+    display_name: Workspace
+    synonyms:
+      - workspace
+      - environment
+
+  # === State Dimensions ===
+  - name: state
+    expr: source.state
+    comment: Node state (RUNNING, PENDING, TERMINATING)
+    display_name: State
+    synonyms:
+      - node state
+      - status
+
+  # === Utilization Tier Dimensions ===
+  - name: cpu_utilization_tier
+    expr: >
+      CASE
+        WHEN source.avg_cpu_utilization_percent < 10 THEN 'IDLE'
+        WHEN source.avg_cpu_utilization_percent < 30 THEN 'LOW'
+        WHEN source.avg_cpu_utilization_percent < 70 THEN 'MODERATE'
+        WHEN source.avg_cpu_utilization_percent < 90 THEN 'HIGH'
+        ELSE 'CRITICAL'
+      END
+    comment: CPU utilization tier (IDLE <10%, LOW <30%, MODERATE <70%, HIGH <90%, CRITICAL >=90%)
+    display_name: CPU Utilization Tier
+    synonyms:
+      - cpu tier
+      - utilization tier
+  
+  - name: memory_utilization_tier
+    expr: >
+      CASE
+        WHEN source.avg_memory_utilization_percent < 10 THEN 'IDLE'
+        WHEN source.avg_memory_utilization_percent < 30 THEN 'LOW'
+        WHEN source.avg_memory_utilization_percent < 70 THEN 'MODERATE'
+        WHEN source.avg_memory_utilization_percent < 90 THEN 'HIGH'
+        ELSE 'CRITICAL'
+      END
+    comment: Memory utilization tier (IDLE <10%, LOW <30%, MODERATE <70%, HIGH <90%, CRITICAL >=90%)
+    display_name: Memory Utilization Tier
+    synonyms:
+      - memory tier
+      - mem tier
+
+  # === Inefficiency Flags ===
+  - name: is_underutilized
+    expr: source.avg_cpu_utilization_percent < 30 AND source.avg_memory_utilization_percent < 30
+    comment: Flag indicating cluster is underutilized (both CPU and memory below 30%)
+    display_name: Is Underutilized
+    synonyms:
+      - underutilized
+      - inefficient
+  
+  - name: is_overprovisioned
+    expr: source.avg_cpu_utilization_percent < 50 AND source.avg_memory_utilization_percent < 50
+    comment: Flag indicating cluster may be overprovisioned (both CPU and memory below 50%)
+    display_name: Is Overprovisioned
+    synonyms:
+      - overprovisioned
+      - oversized
+
+  # === Time Dimensions ===
+  - name: date
+    expr: CAST(source.start_time AS DATE)
+    comment: Date of node activity
+    display_name: Date
+    synonyms:
+      - day
+  
+  - name: year
+    expr: YEAR(source.start_time)
+    comment: Year of activity
+    display_name: Year
+    synonyms:
+      - year
+  
+  - name: month
+    expr: MONTH(source.start_time)
+    comment: Month number (1-12)
+    display_name: Month
+    synonyms:
+      - month
+  
+  - name: week_of_year
+    expr: WEEKOFYEAR(source.start_time)
+    comment: Week number in year
+    display_name: Week
+    synonyms:
+      - week
+
+measures:
+  # === Core Utilization Measures ===
+  - name: avg_cpu_utilization
+    expr: AVG(source.avg_cpu_utilization_percent)
+    comment: Average CPU utilization percentage across all nodes
+    display_name: Avg CPU %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - cpu usage
+      - cpu utilization
+      - average cpu
+
+  - name: avg_memory_utilization
+    expr: AVG(source.avg_memory_utilization_percent)
+    comment: Average memory utilization percentage across all nodes
+    display_name: Avg Memory %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - memory usage
+      - memory utilization
+      - average memory
+
+  - name: max_cpu_utilization
+    expr: MAX(source.max_cpu_utilization_percent)
+    comment: Maximum CPU utilization percentage
+    display_name: Max CPU %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - peak cpu
+      - max cpu
+
+  - name: max_memory_utilization
+    expr: MAX(source.max_memory_utilization_percent)
+    comment: Maximum memory utilization percentage
+    display_name: Max Memory %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - peak memory
+      - max memory
+
+  # === Time-Based Measures ===
+  - name: total_node_hours
+    expr: SUM(source.duration_hours)
+    comment: Total node hours consumed
+    display_name: Node Hours
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+      abbreviation: compact
+    synonyms:
+      - hours
+      - runtime
+      - compute hours
+
+  - name: running_hours
+    expr: SUM(CASE WHEN source.state = 'RUNNING' THEN source.duration_hours ELSE 0 END)
+    comment: Total hours nodes were in running state
+    display_name: Running Hours
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - active hours
+      - run time
+
+  - name: idle_hours
+    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 10 THEN source.duration_hours ELSE 0 END)
+    comment: Node hours with CPU utilization below 10% (considered idle)
+    display_name: Idle Hours
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - wasted hours
+      - inactive hours
+
+  # === Node Counts ===
+  - name: total_nodes
+    expr: COUNT(*)
+    comment: Total number of node records
+    display_name: Total Nodes
+    format:
+      type: number
+    synonyms:
+      - nodes
+      - node count
+
+  - name: unique_clusters
+    expr: COUNT(DISTINCT source.cluster_id)
+    comment: Number of unique clusters
+    display_name: Clusters
+    format:
+      type: number
+    synonyms:
+      - cluster count
+
+  - name: driver_nodes
+    expr: SUM(CASE WHEN source.is_driver THEN 1 ELSE 0 END)
+    comment: Number of driver node records
+    display_name: Driver Nodes
+    format:
+      type: number
+    synonyms:
+      - drivers
+
+  - name: worker_nodes
+    expr: SUM(CASE WHEN NOT source.is_driver THEN 1 ELSE 0 END)
+    comment: Number of worker node records
+    display_name: Worker Nodes
+    format:
+      type: number
+    synonyms:
+      - workers
+
+  # === Efficiency Scores ===
+  - name: efficiency_score
+    expr: >
+      AVG(
+        (COALESCE(source.avg_cpu_utilization_percent, 0) + COALESCE(source.avg_memory_utilization_percent, 0)) / 2
+      )
+    comment: Combined CPU and memory utilization efficiency score (0-100)
+    display_name: Efficiency Score
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - efficiency
+      - utilization score
+
+  - name: idle_percentage
+    expr: >
+      SUM(CASE WHEN source.avg_cpu_utilization_percent < 10 THEN source.duration_hours ELSE 0 END) * 100.0 /
+      NULLIF(SUM(source.duration_hours), 0)
+    comment: Percentage of total hours that nodes were idle (CPU < 10%)
+    display_name: Idle %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - idle rate
+      - waste percentage
+
+  - name: underutilized_percentage
+    expr: >
+      SUM(CASE WHEN source.avg_cpu_utilization_percent < 30 AND source.avg_memory_utilization_percent < 30 THEN source.duration_hours ELSE 0 END) * 100.0 /
+      NULLIF(SUM(source.duration_hours), 0)
+    comment: Percentage of node hours where cluster was underutilized (CPU and memory both < 30%)
+    display_name: Underutilized %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - underutilization rate
+      - inefficiency rate
+
+  # === Inefficiency Counts ===
+  - name: underutilized_node_count
+    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 30 AND source.avg_memory_utilization_percent < 30 THEN 1 ELSE 0 END)
+    comment: Number of node records that were underutilized
+    display_name: Underutilized Nodes
+    format:
+      type: number
+    synonyms:
+      - inefficient nodes
+      - low utilization nodes
+
+  - name: overprovisioned_node_count
+    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 50 AND source.avg_memory_utilization_percent < 50 THEN 1 ELSE 0 END)
+    comment: Number of node records that may be overprovisioned
+    display_name: Overprovisioned Nodes
+    format:
+      type: number
+    synonyms:
+      - oversized nodes
+
+  - name: underutilized_cluster_count
+    expr: >
+      COUNT(DISTINCT CASE 
+        WHEN source.avg_cpu_utilization_percent < 30 AND source.avg_memory_utilization_percent < 30 
+        THEN source.cluster_id 
+      END)
+    comment: Number of distinct clusters with underutilization
+    display_name: Underutilized Clusters
+    format:
+      type: number
+    synonyms:
+      - inefficient clusters
+
+  # === Right-Sizing Opportunities ===
+  - name: idle_node_hours
+    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 10 THEN source.duration_hours ELSE 0 END)
+    comment: Total node hours spent idle (potential waste)
+    display_name: Idle Node Hours
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - wasted node hours
+      - idle compute
+
+  - name: low_utilization_node_hours
+    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 30 THEN source.duration_hours ELSE 0 END)
+    comment: Total node hours with low CPU utilization (right-sizing opportunity)
+    display_name: Low Utilization Hours
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - underused hours
+
+  # === Network/Disk I/O (if available) ===
+  - name: avg_network_sent_mbps
+    expr: AVG(source.avg_network_sent_bytes_per_second) / 1048576
+    comment: Average network send rate in MB/s
+    display_name: Avg Network Send (MB/s)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - network out
+      - send rate
+
+  - name: avg_network_received_mbps
+    expr: AVG(source.avg_network_received_bytes_per_second) / 1048576
+    comment: Average network receive rate in MB/s
+    display_name: Avg Network Recv (MB/s)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - network in
+      - receive rate
+
+  - name: avg_disk_read_mbps
+    expr: AVG(source.avg_disk_read_bytes_per_second) / 1048576
+    comment: Average disk read rate in MB/s
+    display_name: Avg Disk Read (MB/s)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - disk read
+      - read rate
+
+  - name: avg_disk_write_mbps
+    expr: AVG(source.avg_disk_write_bytes_per_second) / 1048576
+    comment: Average disk write rate in MB/s
+    display_name: Avg Disk Write (MB/s)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - disk write
+      - write rate
+

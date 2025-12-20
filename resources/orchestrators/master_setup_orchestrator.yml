@@ -1,0 +1,112 @@
+# Master Setup Orchestrator (Layer 3)
+# ====================================
+#
+# TOP-LEVEL ORCHESTRATOR: Complete infrastructure initialization
+# 
+# Architecture:
+#   Layer 3 (This job): Master Orchestrator
+#   Layer 2 (Composite): Semantic, Monitoring, ML Layer jobs
+#   Layer 1 (Atomic): Individual notebook jobs (TVF, Metric View, etc.)
+#
+# Pattern: Each layer references the layer below via run_job_task
+# NO notebooks are called directly - only job references
+# This enables atomic testing at each layer
+#
+# Execution Flow:
+#   1. Bronze Setup (atomic) - Non-streaming tables + DQ rules
+#   2. Gold Setup (atomic) - 39 tables + constraints
+#   3. Semantic Layer Setup (composite) → TVF + Metric View jobs
+#   4. Monitoring Layer Setup (composite) → Lakehouse Monitoring job
+#   5. ML Layer Setup (composite) → Feature + Training jobs
+#
+# Total Infrastructure:
+#   - Bronze: 8 non-streaming tables + DQ rules
+#   - Gold: 39 domain tables + constraints
+#   - Semantic: 60 TVFs + 10 Metric Views
+#   - Monitoring: 8 Lakehouse Monitors
+#   - ML: Feature tables + 25 trained models
+#
+# Usage:
+#   databricks bundle run -t dev master_setup_orchestrator
+#
+# Expected Duration: 2-3 hours
+# Run Once: Initial deployment only
+
+resources:
+  jobs:
+    master_setup_orchestrator:
+      name: "[${bundle.target}] Health Monitor - Master Setup Orchestrator"
+      description: "Complete setup: Bronze → Gold → Semantic → Monitoring → ML (references composite jobs, no direct notebooks)"
+      
+      tasks:
+        # ================================================================
+        # PHASE 1: DATA LAYER SETUP
+        # ================================================================
+        
+        # Step 1: Bronze Setup (atomic job)
+        - task_key: bronze_setup
+          run_job_task:
+            job_id: ${resources.jobs.bronze_setup_job.id}
+        
+        # Step 2: Gold Setup (atomic job)
+        - task_key: gold_setup
+          depends_on:
+            - task_key: bronze_setup
+          run_job_task:
+            job_id: ${resources.jobs.gold_setup_job.id}
+        
+        # ================================================================
+        # PHASE 2: SEMANTIC LAYER SETUP (requires Gold tables)
+        # ================================================================
+        
+        # Step 3: Semantic Layer (composite job → TVF + Metric View jobs)
+        - task_key: semantic_layer_setup
+          depends_on:
+            - task_key: gold_setup
+          run_job_task:
+            job_id: ${resources.jobs.semantic_layer_setup_job.id}
+        
+        # ================================================================
+        # PHASE 3: MONITORING LAYER SETUP (requires Gold tables)
+        # ================================================================
+        
+        # Step 4: Monitoring Layer (composite job → Lakehouse Monitoring job)
+        - task_key: monitoring_layer_setup
+          depends_on:
+            - task_key: gold_setup
+          run_job_task:
+            job_id: ${resources.jobs.monitoring_layer_setup_job.id}
+        
+        # ================================================================
+        # PHASE 4: ML LAYER SETUP (requires Gold data)
+        # ================================================================
+        
+        # Step 5: ML Layer (composite job → Feature + Training jobs)
+        - task_key: ml_layer_setup
+          depends_on:
+            - task_key: gold_setup
+          run_job_task:
+            job_id: ${resources.jobs.ml_layer_setup_job.id}
+      
+      # Timeout: 4 hours for complete setup
+      timeout_seconds: 14400
+      
+      # Email notifications
+      email_notifications:
+        on_start:
+          - data-engineering@company.com
+        on_failure:
+          - data-engineering@company.com
+        on_success:
+          - data-engineering@company.com
+      
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: all
+        job_type: setup
+        job_level: orchestrator
+        orchestrator: "master"
+        compute_type: serverless
+        execution_type: "one_time"

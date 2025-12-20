@@ -1,479 +1,334 @@
 # Metric View: cluster_utilization
-# Cluster resource utilization metrics for capacity planning
+# Cluster resource utilization metrics for capacity planning and optimization
 #
+# Agent Domain: Performance
 # Source: fact_node_timeline (compute domain)
 # Schema validation done against: gold_layer_design/yaml/compute/fact_node_timeline.yaml
 #
 # Key Business Questions Answered:
-#   - Which clusters are underutilized?
-#   - What's our average CPU and memory usage?
-#   - What node types are we using the most?
-#   - How much compute waste do we have?
-#   - Which clusters have memory pressure (high swap)?
+#   - Cluster CPU utilization
+#   - Underutilized clusters
+#   - Memory usage by cluster
+#   - Most expensive clusters
+#   - Which clusters are overprovisioned?
+#   - Show potential cost savings
 
 version: "1.1"
 comment: >
-  Cluster resource utilization analytics for capacity planning and cost optimization.
-  Optimized for Genie natural language queries about CPU, memory, and cluster efficiency.
-
-  DIMENSIONS: Filter and group by cluster, workspace, node type, time hierarchy,
-  driver vs worker nodes.
-
-  MEASURES: CPU usage (user/system/wait), memory usage, swap, network I/O,
-  underutilization rate, node-hours.
-
-  Example queries:
-  - "Which clusters are underutilized?"
-  - "What's our average CPU usage by cluster?"
-  - "Show memory usage by node type"
-  - "How many node-hours were wasted?"
-  - "Which clusters have high swap usage?"
+  PURPOSE: Cluster resource utilization metrics for capacity planning and optimization.
+  
+  BEST FOR: Cluster CPU utilization | Memory usage by cluster | Underutilized clusters | 
+  Overprovisioned clusters | Efficiency scores | Potential cost savings
+  
+  NOT FOR: Right-sizing recommendations (use cluster_efficiency) | Cluster cost (use cost_analytics)
+  
+  DIMENSIONS: cluster_name, workspace_name, node_type, cluster_type, utilization_tier, savings_opportunity
+  
+  MEASURES: avg_cpu_utilization, avg_memory_utilization, total_node_hours, efficiency_score, wasted_capacity_hours
+  
+  SOURCE: fact_node_timeline (compute domain)
+  
+  JOINS: dim_cluster (cluster metadata), dim_workspace (workspace details)
+  
+  NOTE: Uses hourly resource utilization metrics. For detailed right-sizing analysis, use cluster_efficiency.
 
 source: ${catalog}.${gold_schema}.fact_node_timeline
 
 joins:
-  - name: dim_workspace
-    source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
-
   - name: dim_cluster
     source: ${catalog}.${gold_schema}.dim_cluster
-    'on': source.workspace_id = dim_cluster.workspace_id AND source.cluster_id = dim_cluster.cluster_id AND dim_cluster.is_current = true
+    'on': source.workspace_id = dim_cluster.workspace_id AND source.cluster_id = dim_cluster.cluster_id AND dim_cluster.delete_time IS NULL
+  
+  - name: dim_workspace
+    source: ${catalog}.${gold_schema}.dim_workspace
+    'on': source.workspace_id = dim_workspace.workspace_id
 
 dimensions:
   # === Primary Dimensions ===
-  - name: utilization_date
-    expr: DATE(source.start_time)
-    comment: Calendar date of the utilization measurement
-    display_name: Date
-    synonyms:
-      - date
-      - day
-      - measurement date
-
-  - name: workspace_id
-    expr: source.workspace_id
-    comment: Workspace identifier for workspace-level filtering
-    display_name: Workspace ID
-    synonyms:
-      - workspace
-      - ws id
-      - environment id
-
-  - name: workspace_name
-    expr: dim_workspace.workspace_name
-    comment: Human-readable workspace name for reporting
-    display_name: Workspace Name
-    synonyms:
-      - workspace
-      - environment
-
   - name: cluster_id
     expr: source.cluster_id
     comment: Cluster identifier for cluster-level analysis
     display_name: Cluster ID
     synonyms:
       - cluster
-      - compute
-
+  
   - name: cluster_name
     expr: dim_cluster.cluster_name
-    comment: Human-readable cluster name for reporting
+    comment: Human-readable cluster name
     display_name: Cluster Name
     synonyms:
       - cluster
-      - compute name
-      - cluster label
-
+      - compute
+  
   - name: cluster_source
     expr: dim_cluster.cluster_source
-    comment: How the cluster was created (UI, API, JOB)
-    display_name: Cluster Source
+    comment: Cluster type (JOB, ALL_PURPOSE, SQL, etc.)
+    display_name: Cluster Type
     synonyms:
-      - source
-      - creation method
-
-  # === Time Dimensions ===
-  - name: year
-    expr: YEAR(source.start_time)
-    comment: Calendar year for annual analysis
-    display_name: Year
+      - type
+      - cluster type
+      - compute type
+  
+  - name: workspace_id
+    expr: source.workspace_id
+    comment: Workspace identifier
+    display_name: Workspace ID
     synonyms:
-      - calendar year
-
-  - name: quarter
-    expr: QUARTER(source.start_time)
-    comment: Calendar quarter (1-4)
-    display_name: Quarter
+      - workspace
+  
+  - name: workspace_name
+    expr: dim_workspace.workspace_name
+    comment: Human-readable workspace name
+    display_name: Workspace
     synonyms:
-      - q
-      - qtr
-
-  - name: month
-    expr: MONTH(source.start_time)
-    comment: Month number (1-12)
-    display_name: Month
-    synonyms:
-      - calendar month
-
-  - name: week_of_year
-    expr: WEEKOFYEAR(source.start_time)
-    comment: Week number for weekly analysis
-    display_name: Week
-    synonyms:
-      - week
-
-  - name: day_of_week
-    expr: DAYOFWEEK(source.start_time)
-    comment: Day of week (1=Sunday) for weekday patterns
-    display_name: Day of Week
-    synonyms:
-      - weekday
-
-  - name: hour_of_day
-    expr: HOUR(source.start_time)
-    comment: Hour of day (0-23) for time-of-day patterns
-    display_name: Hour
-    synonyms:
-      - hour
-
-  # === Node Dimensions ===
+      - workspace
+      - environment
+  
   - name: node_type
     expr: source.node_type
-    comment: Cloud instance type (e.g., i3.xlarge, Standard_DS3_v2)
+    comment: Cloud instance type of the node (e.g., m5.xlarge)
     display_name: Node Type
     synonyms:
       - instance type
       - vm type
-      - machine type
-      - instance size
-
+  
   - name: is_driver
     expr: source.driver
-    comment: Whether the node is a driver (true) or worker (false)
+    comment: Whether this is a driver node (true) or worker node (false)
     display_name: Is Driver
     synonyms:
       - driver
       - driver node
 
-  - name: node_role
-    expr: CASE WHEN source.driver THEN 'Driver' ELSE 'Worker' END
-    comment: Node role for grouping (Driver or Worker)
-    display_name: Node Role
-    synonyms:
-      - role
-      - driver or worker
-
-  # === Blog-Derived Dimensions (Workflow Advisor) ===
+  # === Provisioning Status Dimensions (Workflow Advisor Pattern) ===
   - name: provisioning_status
     expr: >
       CASE
         WHEN source.cpu_user_percent + source.cpu_system_percent > 90
           OR source.mem_used_percent > 85 THEN 'UNDERPROVISIONED'
         WHEN source.cpu_user_percent + source.cpu_system_percent < 20
-          AND source.mem_used_percent < 30 THEN 'OVERPROVISIONED'
+         AND source.mem_used_percent < 30 THEN 'OVERPROVISIONED'
         WHEN source.cpu_user_percent + source.cpu_system_percent < 50
-          AND source.mem_used_percent < 50 THEN 'UNDERUTILIZED'
+         AND source.mem_used_percent < 50 THEN 'UNDERUTILIZED'
         ELSE 'OPTIMAL'
       END
-    comment: Cluster provisioning status based on CPU/memory utilization (from Workflow Advisor repo)
+    comment: Cluster provisioning status based on CPU and memory utilization (OPTIMAL, UNDERUTILIZED, OVERPROVISIONED, UNDERPROVISIONED)
     display_name: Provisioning Status
     synonyms:
       - sizing status
       - utilization status
       - right-sizing status
-
+  
   - name: savings_opportunity
     expr: >
       CASE
-        WHEN source.cpu_user_percent + source.cpu_system_percent < 20
-          AND source.mem_used_percent < 30 THEN 'HIGH'
-        WHEN source.cpu_user_percent + source.cpu_system_percent < 40
-          AND source.mem_used_percent < 50 THEN 'MEDIUM'
-        WHEN source.cpu_user_percent + source.cpu_system_percent < 60
-          AND source.mem_used_percent < 60 THEN 'LOW'
-        ELSE 'NONE'
+        WHEN source.cpu_user_percent + source.cpu_system_percent < 30
+         AND source.mem_used_percent < 40 THEN 'HIGH'
+        WHEN source.cpu_user_percent + source.cpu_system_percent < 50
+         AND source.mem_used_percent < 60 THEN 'MEDIUM'
+        ELSE 'LOW'
       END
-    comment: Cost savings opportunity level based on underutilization (from Workflow Advisor repo)
+    comment: Cost savings opportunity level based on underutilization (HIGH, MEDIUM, LOW)
     display_name: Savings Opportunity
     synonyms:
       - cost opportunity
       - right-sizing potential
+      - optimization opportunity
+
+  # === Time Dimensions ===
+  - name: utilization_date
+    expr: DATE(source.start_time)
+    comment: Date of utilization measurement
+    display_name: Date
+    synonyms:
+      - date
+      - measurement date
+  
+  - name: year
+    expr: YEAR(source.start_time)
+    comment: Year of measurement
+    display_name: Year
+    synonyms:
+      - year
+  
+  - name: month
+    expr: MONTH(source.start_time)
+    comment: Month number (1-12) of measurement
+    display_name: Month
+    synonyms:
+      - month
+  
+  - name: week_of_year
+    expr: WEEKOFYEAR(source.start_time)
+    comment: Week number in year
+    display_name: Week
+    synonyms:
+      - week
+  
+  - name: hour_of_day
+    expr: HOUR(source.start_time)
+    comment: Hour of day (0-23) for usage patterns
+    display_name: Hour of Day
+    synonyms:
+      - hour
 
 measures:
-  - name: total_node_hours
-    expr: COUNT(source.instance_id)
-    comment: Total node-hours of compute time (one row per hour per node)
-    display_name: Total Node Hours
-    format:
-      type: number
-      abbreviation: compact
-    synonyms:
-      - node hours
-      - compute hours
-
-  - name: unique_nodes
-    expr: COUNT(DISTINCT source.instance_id)
-    comment: Number of distinct compute nodes used
-    display_name: Unique Nodes
-    format:
-      type: number
-      abbreviation: compact
-    synonyms:
-      - nodes
-      - instances
-
-  - name: unique_clusters
-    expr: COUNT(DISTINCT source.cluster_id)
-    comment: Number of distinct clusters with utilization data
-    display_name: Unique Clusters
-    format:
-      type: number
-    synonyms:
-      - clusters
-      - compute clusters
-
-  - name: avg_cpu_user_pct
-    expr: AVG(source.cpu_user_percent)
-    comment: Average CPU time in user mode (application workload)
-    display_name: Avg CPU User %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - cpu usage
-      - user cpu
-      - application cpu
-
-  - name: avg_cpu_system_pct
-    expr: AVG(source.cpu_system_percent)
-    comment: Average CPU time in kernel mode (system overhead)
-    display_name: Avg CPU System %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - system cpu
-      - kernel cpu
-
-  - name: avg_cpu_wait_pct
-    expr: AVG(source.cpu_wait_percent)
-    comment: Average CPU time waiting for I/O (disk/network bottleneck indicator)
-    display_name: Avg CPU Wait %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - io wait
-      - cpu wait
-      - disk wait
-
-  - name: avg_cpu_total_pct
+  # === CPU Utilization Measures ===
+  - name: avg_cpu_utilization
     expr: AVG(source.cpu_user_percent + source.cpu_system_percent)
-    comment: Average total CPU utilization (user + system)
-    display_name: Avg Total CPU %
+    comment: Average total CPU utilization percentage (user + system)
+    display_name: Avg CPU Utilization
     format:
       type: percentage
       decimal_places:
         type: exact
         places: 1
     synonyms:
-      - cpu utilization
-      - total cpu
+      - cpu
       - cpu usage
+      - cpu percent
+  
+  - name: avg_cpu_user
+    expr: AVG(source.cpu_user_percent)
+    comment: Average CPU user time percentage (application workload)
+    display_name: Avg CPU User
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - cpu user
+      - user cpu
+  
+  - name: avg_cpu_system
+    expr: AVG(source.cpu_system_percent)
+    comment: Average CPU system time percentage (kernel operations)
+    display_name: Avg CPU System
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - cpu system
+      - kernel cpu
+  
+  - name: peak_cpu_utilization
+    expr: MAX(source.cpu_user_percent + source.cpu_system_percent)
+    comment: Peak CPU utilization observed
+    display_name: Peak CPU
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - max cpu
+      - highest cpu
+  
+  - name: avg_cpu_wait
+    expr: AVG(source.cpu_wait_percent)
+    comment: Average CPU wait percentage (I/O bound indicator)
+    display_name: Avg CPU Wait
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - cpu wait
+      - io wait
+      - cpu io
 
-  - name: avg_memory_used_pct
+  # === Memory Utilization Measures ===
+  - name: avg_memory_utilization
     expr: AVG(source.mem_used_percent)
     comment: Average memory utilization percentage
-    display_name: Avg Memory %
+    display_name: Avg Memory Utilization
     format:
       type: percentage
       decimal_places:
         type: exact
         places: 1
     synonyms:
-      - memory usage
+      - memory
+      - mem
       - ram usage
-      - memory utilization
-
-  - name: avg_memory_swap_pct
-    expr: AVG(source.mem_swap_percent)
-    comment: Average swap usage (high values indicate memory pressure)
-    display_name: Avg Swap %
+  
+  - name: peak_memory_utilization
+    expr: MAX(source.mem_used_percent)
+    comment: Peak memory utilization observed
+    display_name: Peak Memory
     format:
       type: percentage
       decimal_places:
         type: exact
         places: 1
     synonyms:
-      - swap usage
+      - max memory
+      - highest memory
+  
+  - name: avg_swap_usage
+    expr: AVG(source.mem_swap_percent)
+    comment: Average memory swap percentage (indicates memory pressure)
+    display_name: Avg Swap Usage
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - swap
       - memory swap
+      - swap usage
 
+  # === Network Measures ===
   - name: total_network_sent_gb
-    expr: SUM(source.network_sent_bytes) / 1073741824.0
-    comment: Total network data sent in gigabytes
+    expr: SUM(source.network_sent_bytes) / (1024.0*1024.0*1024.0)
+    comment: Total data sent over network in gigabytes
     display_name: Network Sent (GB)
     format:
       type: number
       decimal_places:
         type: exact
         places: 2
-      abbreviation: compact
     synonyms:
-      - data sent
       - network out
-      - egress
-
+      - data sent
+  
   - name: total_network_received_gb
-    expr: SUM(source.network_received_bytes) / 1073741824.0
-    comment: Total network data received in gigabytes
+    expr: SUM(source.network_received_bytes) / (1024.0*1024.0*1024.0)
+    comment: Total data received over network in gigabytes
     display_name: Network Received (GB)
     format:
       type: number
       decimal_places:
         type: exact
         places: 2
-      abbreviation: compact
     synonyms:
-      - data received
       - network in
-      - ingress
+      - data received
 
-  - name: max_cpu_user_pct
-    expr: MAX(source.cpu_user_percent)
-    comment: Peak CPU user percentage (for capacity planning)
-    display_name: Max CPU User %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - peak cpu
-      - max cpu
-
-  - name: max_memory_used_pct
-    expr: MAX(source.mem_used_percent)
-    comment: Peak memory utilization percentage
-    display_name: Max Memory %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - peak memory
-      - max memory
-
-  - name: underutilized_node_hours
-    expr: SUM(CASE WHEN source.cpu_user_percent < 20 AND source.mem_used_percent < 30 THEN 1 ELSE 0 END)
-    comment: Node-hours where both CPU and memory were low (potential right-sizing candidates)
-    display_name: Underutilized Hours
+  # === Time Measures ===
+  - name: total_node_hours
+    expr: SUM(TIMESTAMPDIFF(MINUTE, source.start_time, source.end_time) / 60.0)
+    comment: Total node runtime hours
+    display_name: Node Hours
     format:
       type: number
-      abbreviation: compact
-    synonyms:
-      - idle hours
-      - wasted hours
-
-  - name: underutilization_rate
-    expr: (SUM(CASE WHEN source.cpu_user_percent < 20 AND source.mem_used_percent < 30 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.instance_id), 0)
-    comment: Percentage of node-hours that were underutilized
-    display_name: Underutilization Rate
-    format:
-      type: percentage
       decimal_places:
         type: exact
         places: 1
     synonyms:
-      - idle rate
-      - waste rate
+      - hours
+      - runtime
+      - compute hours
 
-  - name: high_swap_node_hours
-    expr: SUM(CASE WHEN source.mem_swap_percent > 10 THEN 1 ELSE 0 END)
-    comment: Node-hours with significant swap usage (memory pressure indicator)
-    display_name: High Swap Hours
-    format:
-      type: number
-      abbreviation: compact
-    synonyms:
-      - memory pressure hours
-
-  # === Blog-Derived Measures (Workflow Advisor) ===
-  - name: p95_cpu_total_pct
-    expr: PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY source.cpu_user_percent + source.cpu_system_percent)
-    comment: 95th percentile total CPU utilization for capacity planning (from Workflow Advisor)
-    display_name: P95 CPU %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - peak cpu
-      - p95 cpu utilization
-
-  - name: p95_memory_used_pct
-    expr: PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY source.mem_used_percent)
-    comment: 95th percentile memory utilization for capacity planning (from Workflow Advisor)
-    display_name: P95 Memory %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - peak memory
-      - p95 memory utilization
-
-  - name: cpu_saturation_rate
-    expr: (SUM(CASE WHEN source.cpu_user_percent + source.cpu_system_percent > 90 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.instance_id), 0)
-    comment: Percentage of time CPU is saturated (>90%) - high values indicate under-provisioning (from Workflow Advisor)
-    display_name: CPU Saturation Rate %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - saturation percentage
-      - cpu overload rate
-
-  - name: memory_pressure_rate
-    expr: (SUM(CASE WHEN source.mem_used_percent > 85 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.instance_id), 0)
-    comment: Percentage of time memory under pressure (>85%) - from Workflow Advisor
-    display_name: Memory Pressure Rate %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - memory saturation
-      - oom risk rate
-
-  - name: cpu_idle_rate
-    expr: (SUM(CASE WHEN source.cpu_user_percent + source.cpu_system_percent < 20 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.instance_id), 0)
-    comment: Percentage of time CPU is idle (<20%) - high values indicate over-provisioning (from Workflow Advisor)
-    display_name: CPU Idle Rate %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - idle percentage
-      - waste rate
-
+  # === Efficiency Measures (Workflow Advisor Pattern) ===
   - name: wasted_capacity_pct
-    expr: (100 - AVG(source.cpu_user_percent + source.cpu_system_percent)) * (100 - AVG(source.mem_used_percent)) / 10000
-    comment: Combined CPU and memory waste indicator - higher values mean more waste (from Workflow Advisor)
+    expr: (100 - AVG(source.cpu_user_percent + source.cpu_system_percent)) * (100 - AVG(source.mem_used_percent)) / 10000.0
+    comment: Combined CPU and memory waste percentage - lower is better
     display_name: Wasted Capacity %
     format:
       type: percentage
@@ -483,10 +338,11 @@ measures:
     synonyms:
       - waste percentage
       - unused capacity
-
-  - name: efficiency_score
-    expr: AVG(source.cpu_user_percent + source.cpu_system_percent) * AVG(source.mem_used_percent) / 100
-    comment: Combined efficiency score (0-100) - higher is better utilization (from Workflow Advisor)
+      - idle capacity
+  
+  - name: resource_efficiency_score
+    expr: AVG(source.cpu_user_percent + source.cpu_system_percent) * AVG(source.mem_used_percent) / 100.0
+    comment: Combined efficiency score (0-100) - higher means better utilization
     display_name: Efficiency Score
     format:
       type: number
@@ -496,26 +352,110 @@ measures:
     synonyms:
       - utilization score
       - efficiency rating
+  
+  - name: potential_savings_pct
+    expr: >
+      CASE
+        WHEN AVG(source.cpu_user_percent + source.cpu_system_percent) < 30 THEN 50
+        WHEN AVG(source.cpu_user_percent + source.cpu_system_percent) < 50 THEN 30
+        WHEN AVG(source.cpu_user_percent + source.cpu_system_percent) < 70 THEN 15
+        ELSE 0
+      END
+    comment: Estimated potential cost savings percentage from right-sizing
+    display_name: Potential Savings %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 0
+    synonyms:
+      - savings estimate
+      - cost reduction opportunity
 
-  - name: overprovisioned_node_hours
+  - name: underprovisioned_hours
+    expr: SUM(CASE WHEN source.cpu_user_percent + source.cpu_system_percent > 90 THEN TIMESTAMPDIFF(MINUTE, source.start_time, source.end_time) / 60.0 ELSE 0 END)
+    comment: Hours of CPU saturation (>90% utilization)
+    display_name: Saturated Hours
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - overloaded time
+      - high utilization hours
+  
+  - name: wasted_hours
+    expr: SUM(CASE WHEN source.cpu_user_percent + source.cpu_system_percent < 20 THEN TIMESTAMPDIFF(MINUTE, source.start_time, source.end_time) / 60.0 ELSE 0 END)
+    comment: Hours of significant underutilization (<20% CPU)
+    display_name: Wasted Hours
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - idle time
+      - unused capacity hours
+
+  # === Entity Count Measures ===
+  - name: unique_nodes
+    expr: COUNT(DISTINCT source.instance_id)
+    comment: Number of unique node instances
+    display_name: Node Count
+    format:
+      type: number
+    synonyms:
+      - nodes
+      - instances
+  
+  - name: unique_clusters
+    expr: COUNT(DISTINCT source.cluster_id)
+    comment: Number of unique clusters with utilization data
+    display_name: Clusters
+    format:
+      type: number
+    synonyms:
+      - cluster count
+
+  - name: measurement_count
+    expr: COUNT(*)
+    comment: Number of utilization measurements/samples
+    display_name: Measurements
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - samples
+      - data points
+
+  # === Overprovisioned/Underprovisioned Counts ===
+  - name: overprovisioned_samples
     expr: SUM(CASE WHEN source.cpu_user_percent + source.cpu_system_percent < 20 AND source.mem_used_percent < 30 THEN 1 ELSE 0 END)
-    comment: Node-hours where cluster is significantly overprovisioned (from Workflow Advisor)
-    display_name: Overprovisioned Hours
+    comment: Number of samples indicating overprovisioning
+    display_name: Overprovisioned Samples
     format:
       type: number
-      abbreviation: compact
     synonyms:
-      - oversized hours
-      - wasted capacity hours
+      - idle samples
+      - overprovisioned count
 
-  - name: underprovisioned_node_hours
+  - name: underprovisioned_samples
     expr: SUM(CASE WHEN source.cpu_user_percent + source.cpu_system_percent > 90 OR source.mem_used_percent > 85 THEN 1 ELSE 0 END)
-    comment: Node-hours where cluster is underprovisioned/saturated (from Workflow Advisor)
-    display_name: Underprovisioned Hours
+    comment: Number of samples indicating underprovisioning
+    display_name: Underprovisioned Samples
     format:
       type: number
-      abbreviation: compact
     synonyms:
-      - saturated hours
-      - constrained hours
+      - saturated samples
+      - underprovisioned count
 
+  - name: optimal_samples
+    expr: SUM(CASE WHEN source.cpu_user_percent + source.cpu_system_percent BETWEEN 50 AND 80 AND source.mem_used_percent BETWEEN 50 AND 80 THEN 1 ELSE 0 END)
+    comment: Number of samples indicating optimal utilization
+    display_name: Optimal Samples
+    format:
+      type: number
+    synonyms:
+      - healthy samples
+      - optimal count

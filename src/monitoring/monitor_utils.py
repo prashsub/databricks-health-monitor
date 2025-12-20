@@ -1,9 +1,11 @@
-# Databricks notebook source
 """
 Lakehouse Monitoring Utilities
 ==============================
 
 Shared utilities for creating and managing Lakehouse Monitors.
+
+NOTE: This is a pure Python module (NOT a Databricks notebook).
+Do NOT add '# Databricks notebook source' header - notebooks cannot be imported.
 """
 
 import time

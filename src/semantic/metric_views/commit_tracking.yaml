@@ -6,20 +6,29 @@
 
 version: "1.1"
 comment: >
-  Budget and commitment tracking analytics for FinOps and finance teams.
-  Optimized for Genie natural language queries about spend vs budget, burn rate, and forecasting.
-  Use for questions like "How much have we spent this month?" or "What's our burn rate?"
+  PURPOSE: Budget and commitment tracking analytics for FinOps and finance teams.
+  
+  BEST FOR: MTD spend vs budget | Burn rate analysis | Projected monthly cost | 
+  Cost per DBU | Serverless adoption ratio | YTD spend tracking
+  
+  NOT FOR: Detailed SKU breakdown (use cost_analytics) | Historical trend analysis (use cost_analytics)
+  
+  DIMENSIONS: usage_date, usage_month, workspace_name, sku_name, billing_origin_product, is_serverless, owner
+  
+  MEASURES: total_cost, mtd_cost, ytd_cost, daily_avg_cost, projected_monthly_cost, serverless_ratio, cost_per_dbu
+  
+  SOURCE: fact_usage (billing domain)
+  
+  JOINS: dim_workspace (workspace details), dim_sku (SKU metadata)
+  
+  NOTE: Projected monthly cost based on current MTD burn rate extrapolated to month end.
 
 source: ${catalog}.${gold_schema}.fact_usage
 
 joins:
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
-
-  - name: dim_sku
-    source: ${catalog}.${gold_schema}.dim_sku
-    'on': source.sku_name = dim_sku.sku_name AND dim_sku.is_current = true
+    'on': source.workspace_id = dim_workspace.workspace_id
 
 dimensions:
   - name: usage_date

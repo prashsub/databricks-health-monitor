@@ -1,0 +1,54 @@
+# Genie Spaces Setup Job
+# Documents configuration for all Genie Spaces
+#
+# Note: Genie Spaces are created via UI, not programmatically
+# This job generates configuration documentation for manual setup
+#
+# Genie Spaces by Agent Domain:
+#   - 💰 Cost: Cost Intelligence Space
+#   - 🔄 Reliability: Job Health Monitor Space
+#   - ⚡ Performance: Query Performance Space, Cluster Optimizer Space
+#   - 🔒 Security: Security Auditor Space
+#   - ✅ Quality: Data Quality Monitor Space
+#   - 🌐 Unified: Databricks Health Monitor Space
+#
+# Reference: Phase 3 Addendum 3.6 - Genie Spaces
+
+resources:
+  jobs:
+    genie_spaces_setup_job:
+      name: "[${bundle.target}] Health Monitor - Genie Spaces Configuration"
+      description: "Generates Genie Space configuration documentation for manual UI setup"
+      
+      # Serverless environment
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+      
+      tasks:
+        # Generate Genie Space configurations
+        - task_key: generate_genie_configs
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/genie/deploy_genie_spaces.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              warehouse_id: ${var.warehouse_id}
+      
+      # No schedule - run on demand for documentation
+      
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+      
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: gold
+        artifact_type: genie_space
+        job_type: documentation
+

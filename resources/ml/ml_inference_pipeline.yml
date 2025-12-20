@@ -6,11 +6,11 @@
 #   - Predictions: ${catalog}.${feature_schema}.{model}_predictions
 #   - Models: Unity Catalog ${catalog}.${feature_schema}.{model_name}
 #
-# Models Scored (18 total):
-#   - Cost (5): anomaly, budget, job_cost, chargeback, commitment
+# Models Scored (25 total):
+#   - Cost (6): anomaly, budget, job_cost, chargeback, commitment, tag_recommender
 #   - Security (4): threat, exfiltration, privilege, user_behavior
-#   - Performance (3): query, warehouse, regression
-#   - Reliability (3): failure, duration, sla_breach
+#   - Performance (7): query, warehouse, regression, cluster_capacity, dbr_risk, cache_hit, query_optimization
+#   - Reliability (5): failure, duration, sla_breach, retry_success, pipeline_health
 #   - Quality (3): drift, schema_change, freshness
 #
 # Reference: https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-inference/
@@ -19,7 +19,7 @@ resources:
   jobs:
     ml_inference_pipeline:
       name: "[${bundle.target}] Health Monitor - ML Batch Inference (All Models)"
-      description: "Runs batch inference for all 18 ML models across Cost, Security, Performance, Reliability, and Quality domains"
+      description: "Runs batch inference for all 25 ML models across Cost, Security, Performance, Reliability, and Quality domains"
       
       # Serverless environment with ML dependencies
       environments:
@@ -64,4 +64,4 @@ resources:
         layer: ml
         job_type: inference
         compute_type: serverless
-        models_count: "18"
+        models_count: "25"

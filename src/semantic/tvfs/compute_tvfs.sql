@@ -34,12 +34,14 @@ RETURNS TABLE(
     peak_memory DOUBLE COMMENT 'Peak memory utilization %',
     total_cost DOUBLE COMMENT 'Total cost in USD'
 )
-COMMENT 'LLM: Returns cluster utilization metrics for optimization.
-- PURPOSE: Identify underutilized clusters and cost optimization
-- BEST FOR: "Show cluster utilization" "Which clusters are underutilized?"
-- PARAMS: start_date, end_date, min_hours
-- RETURNS: Clusters with CPU/memory utilization and cost
-Example: SELECT * FROM TABLE(get_cluster_utilization("2024-01-01", "2024-12-31", 5))'
+COMMENT '
+- PURPOSE: Cluster utilization metrics for optimization and cost analysis
+- BEST FOR: "Show cluster utilization" "Which clusters are underutilized?" "Cluster performance"
+- NOT FOR: Right-sizing recommendations (use get_cluster_right_sizing_recommendations), resource details (use get_cluster_resource_metrics)
+- RETURNS: Clusters with CPU/memory utilization, peak values, and cost
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), min_hours (default 1)
+- SYNTAX: SELECT * FROM TABLE(get_cluster_utilization("2024-01-01", "2024-12-31", 5))
+'
 RETURN
     WITH cluster_metrics AS (
         SELECT
@@ -103,12 +105,15 @@ RETURNS TABLE(
     avg_network_mb_received DOUBLE COMMENT 'Avg network MB received per minute',
     avg_network_mb_sent DOUBLE COMMENT 'Avg network MB sent per minute'
 )
-COMMENT 'LLM: Returns detailed cluster resource utilization metrics.
-- PURPOSE: Right-sizing clusters, identifying bottlenecks, capacity planning
-- BEST FOR: "Show cluster CPU and memory utilization" "Which clusters have high CPU wait?"
-- PARAMS: days_back, top_n
-- RETURNS: Detailed resource metrics per cluster/node
-Example: SELECT * FROM TABLE(get_cluster_resource_metrics(7, 25))'
+COMMENT '
+- PURPOSE: Detailed cluster resource metrics for right-sizing and bottleneck identification
+- BEST FOR: "Show cluster CPU and memory utilization" "Which clusters have high CPU wait?" "Resource bottlenecks"
+- NOT FOR: Simple utilization overview (use get_cluster_utilization), savings recommendations (use get_underutilized_clusters)
+- RETURNS: Clusters with CPU/memory utilization, CPU wait, and network metrics by node
+- PARAMS: days_back (default 1), top_n (default 50)
+- SYNTAX: SELECT * FROM TABLE(get_cluster_resource_metrics(7, 25))
+- NOTE: High CPU wait indicates I/O bound workload
+'
 RETURN
     WITH ranked AS (
         SELECT
@@ -165,12 +170,15 @@ RETURNS TABLE(
     potential_savings DOUBLE COMMENT 'Potential cost savings if right-sized',
     recommendation STRING COMMENT 'Right-sizing recommendation'
 )
-COMMENT 'LLM: Returns underutilized clusters with cost savings potential.
-- PURPOSE: Cost optimization and right-sizing recommendations
-- BEST FOR: "Which clusters are underutilized?" "Show potential cost savings"
-- PARAMS: days_back, cpu_threshold (default 30%), min_hours
-- RETURNS: Underutilized clusters with savings estimate
-Example: SELECT * FROM TABLE(get_underutilized_clusters(7, 30, 10))'
+COMMENT '
+- PURPOSE: Identify underutilized clusters with cost savings estimates and recommendations
+- BEST FOR: "Which clusters are underutilized?" "Show potential cost savings" "Cluster optimization"
+- NOT FOR: Comprehensive right-sizing (use get_cluster_right_sizing_recommendations), utilization details (use get_cluster_resource_metrics)
+- RETURNS: Underutilized clusters with utilization, cost, savings estimate, and recommendation
+- PARAMS: days_back (default 7), cpu_threshold (default 30%), min_hours (default 10)
+- SYNTAX: SELECT * FROM TABLE(get_underutilized_clusters(7, 30, 10))
+- NOTE: Savings estimates based on utilization: <15%=60%, <20%=50%, <30%=30%
+'
 RETURN
     WITH cluster_metrics AS (
         SELECT
@@ -242,12 +250,15 @@ RETURNS TABLE(
     cpu_variance DOUBLE COMMENT 'CPU utilization variance (high = autoscaling candidate)',
     recommendation STRING COMMENT 'Autoscaling recommendation'
 )
-COMMENT 'LLM: Identifies job clusters that could benefit from autoscaling.
-- PURPOSE: Cost optimization through autoscaling recommendations
-- BEST FOR: "Which jobs should enable autoscaling?" "Show autoscaling opportunities"
-- PARAMS: days_back, min_runs, min_cost
-- RETURNS: Jobs with autoscaling recommendations
-Example: SELECT * FROM TABLE(get_jobs_without_autoscaling(30, 5, 500))'
+COMMENT '
+- PURPOSE: Identify job clusters that could benefit from autoscaling for cost optimization
+- BEST FOR: "Which jobs should enable autoscaling?" "Show autoscaling opportunities" "Variable workload jobs"
+- NOT FOR: Underutilized clusters (use get_underutilized_clusters), job costs (use get_most_expensive_jobs)
+- RETURNS: Jobs with CPU utilization, variance, cost, and autoscaling recommendation
+- PARAMS: days_back (default 30), min_runs (default 5), min_cost (default 100)
+- SYNTAX: SELECT * FROM TABLE(get_jobs_without_autoscaling(30, 5, 500))
+- NOTE: High CPU variance with low average indicates autoscaling candidate
+'
 RETURN
     WITH job_cluster_metrics AS (
         SELECT
@@ -316,12 +327,15 @@ RETURNS TABLE(
     total_cost DOUBLE COMMENT 'Total cost in USD',
     recommendation STRING COMMENT 'Upgrade recommendation'
 )
-COMMENT 'LLM: Returns jobs running on legacy Databricks Runtime versions.
-- PURPOSE: Identify migration candidates for DBR upgrades
-- BEST FOR: "Which jobs use old DBR?" "Show legacy runtime jobs"
-- PARAMS: days_back, legacy_threshold (DBR major version)
-- RETURNS: Jobs with legacy DBR and upgrade recommendations
-Example: SELECT * FROM TABLE(get_jobs_on_legacy_dbr(30, 13))'
+COMMENT '
+- PURPOSE: Identify jobs running on legacy Databricks Runtime for upgrade planning
+- BEST FOR: "Which jobs use old DBR?" "Show legacy runtime jobs" "DBR upgrade candidates"
+- NOT FOR: Job performance analysis (use get_job_duration_percentiles), job costs (use get_most_expensive_jobs)
+- RETURNS: Jobs with DBR version, major version, run count, cost, and upgrade recommendation
+- PARAMS: days_back (default 30), legacy_threshold (default DBR 13)
+- SYNTAX: SELECT * FROM TABLE(get_jobs_on_legacy_dbr(30, 13))
+- NOTE: Recommendations: URGENT (<10), Recommended (<12), Consider (<14)
+'
 RETURN
     WITH job_dbr AS (
         SELECT
@@ -401,13 +415,15 @@ RETURNS TABLE(
     potential_savings DOUBLE COMMENT 'Estimated potential savings in USD',
     recommendation STRING COMMENT 'Action recommendation'
 )
-COMMENT 'LLM: Analyzes cluster utilization to provide right-sizing recommendations.
-- PURPOSE: Cost optimization through cluster right-sizing
-- BEST FOR: "Which clusters are overprovisioned?" "Show me clusters with cost savings opportunities"
+COMMENT '
+- PURPOSE: Comprehensive cluster right-sizing analysis with savings estimates and recommendations
+- BEST FOR: "Which clusters are overprovisioned?" "Show cost savings opportunities" "Cluster right-sizing"
+- NOT FOR: Simple utilization overview (use get_cluster_utilization), autoscaling candidates (use get_jobs_without_autoscaling)
+- RETURNS: Clusters with utilization percentiles, sizing status, savings opportunity, and recommendation
 - PARAMS: days_back (default 7), min_observation_hours (default 10)
-- RETURNS: Clusters with sizing status, savings opportunity, and specific recommendations
-Pattern source: Workflow Advisor Repository
-Example: SELECT * FROM TABLE(get_cluster_right_sizing_recommendations(7, 10))'
+- SYNTAX: SELECT * FROM TABLE(get_cluster_right_sizing_recommendations(7, 10))
+- NOTE: Sizing status: UNDERPROVISIONED, OVERPROVISIONED, UNDERUTILIZED, OPTIMAL. Savings: HIGH/MEDIUM/LOW/NONE
+'
 RETURN
     WITH cluster_metrics AS (
         SELECT

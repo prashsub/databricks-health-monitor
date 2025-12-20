@@ -47,7 +47,7 @@ resources:
         - task_key: merge_shared
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_shared.py
+            notebook_path: ../../../src/pipelines/gold/merge_shared.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -56,7 +56,7 @@ resources:
         - task_key: merge_compute_reference
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_compute.py
+            notebook_path: ../../../src/pipelines/gold/merge_compute.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -71,7 +71,7 @@ resources:
         - task_key: merge_billing
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_billing.py
+            notebook_path: ../../../src/pipelines/gold/merge_billing.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -82,7 +82,7 @@ resources:
         - task_key: merge_lakeflow
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_lakeflow.py
+            notebook_path: ../../../src/pipelines/gold/merge_lakeflow.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -93,7 +93,7 @@ resources:
         - task_key: merge_query_performance
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_query_performance.py
+            notebook_path: ../../../src/pipelines/gold/merge_query_performance.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -109,7 +109,7 @@ resources:
         - task_key: merge_security
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_security.py
+            notebook_path: ../../../src/pipelines/gold/merge_security.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -124,7 +124,7 @@ resources:
         - task_key: merge_mlflow
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_mlflow.py
+            notebook_path: ../../../src/pipelines/gold/merge_mlflow.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -135,7 +135,7 @@ resources:
         - task_key: merge_model_serving
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_model_serving.py
+            notebook_path: ../../../src/pipelines/gold/merge_model_serving.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -146,7 +146,7 @@ resources:
         - task_key: merge_marketplace
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_marketplace.py
+            notebook_path: ../../../src/pipelines/gold/merge_marketplace.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -161,7 +161,7 @@ resources:
         - task_key: merge_governance
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_governance.py
+            notebook_path: ../../../src/pipelines/gold/merge_governance.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
@@ -172,7 +172,7 @@ resources:
         - task_key: merge_storage
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/merge_storage.py
+            notebook_path: ../../../src/pipelines/gold/merge_storage.py
             base_parameters:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}

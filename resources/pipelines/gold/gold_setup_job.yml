@@ -36,7 +36,7 @@ resources:
         - task_key: setup_all_tables
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/setup_tables.py
+            notebook_path: ../../../src/pipelines/gold/setup_tables.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
@@ -51,7 +51,7 @@ resources:
             - task_key: setup_all_tables
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/add_all_fk_constraints.py
+            notebook_path: ../../../src/pipelines/gold/add_all_fk_constraints.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}

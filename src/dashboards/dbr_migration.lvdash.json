@@ -1,0 +1,114 @@
+{
+  "displayName": "DBR Migration & Compute Modernization Dashboard",
+  "warehouse_id": "${warehouse_id}",
+  "pages": [
+    {
+      "name": "page_dbr_overview",
+      "displayName": "DBR Version Status",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_legacy_jobs",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_legacy_count", "fields": [{"name": "count", "expression": "`count`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "count"}},
+              "frame": {"showTitle": true, "title": "Jobs on Legacy DBR", "description": "Jobs running DBR < 15"}
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_serverless_pct",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_serverless_adoption", "fields": [{"name": "serverless_pct", "expression": "`serverless_pct`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "serverless_pct"}},
+              "frame": {"showTitle": true, "title": "Serverless Adoption", "description": "% of jobs using serverless"}
+            }
+          },
+          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_current_dbr_pct",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_current_dbr", "fields": [{"name": "current_pct", "expression": "`current_pct`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "current_pct"}},
+              "frame": {"showTitle": true, "title": "Current DBR Usage", "description": "% on DBR 15+"}
+            }
+          },
+          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "chart_dbr_distribution",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_dbr_dist", "fields": [{"name": "dbr_version", "expression": "`dbr_version`"}, {"name": "job_count", "expression": "`job_count`"}, {"name": "version_status", "expression": "`version_status`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "dbr_version", "displayName": "DBR Version", "scale": {"type": "categorical"}},
+                "y": {"fieldName": "job_count", "displayName": "Job Count", "scale": {"type": "quantitative"}},
+                "color": {"fieldName": "version_status", "displayName": "Status", "scale": {"type": "categorical"}}
+              },
+              "frame": {"showTitle": true, "title": "DBR Version Distribution", "description": "Job distribution across DBR versions"}
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_compute_type",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_compute_type", "fields": [{"name": "compute_type", "expression": "`compute_type`"}, {"name": "job_count", "expression": "`job_count`"}, {"name": "total_cost", "expression": "`total_cost`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {"fieldName": "job_count", "displayName": "Jobs", "scale": {"type": "quantitative"}},
+                "color": {"fieldName": "compute_type", "displayName": "Compute Type", "scale": {"type": "categorical"}}
+              },
+              "frame": {"showTitle": true, "title": "Serverless vs Classic", "description": "Job distribution by compute type"}
+            }
+          },
+          "position": {"x": 3, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_legacy_jobs",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_legacy_jobs", "fields": [{"name": "job_name", "expression": "`job_name`"}, {"name": "workspace_name", "expression": "`workspace_name`"}, {"name": "dbr_version", "expression": "`dbr_version`"}, {"name": "last_run", "expression": "`last_run`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {"showTitle": true, "title": "Jobs on Legacy Runtime", "description": "Jobs running on DBR < 15 that should be migrated"},
+              "encodings": {
+                "columns": [
+                  {"fieldName": "job_name", "title": "Job Name"},
+                  {"fieldName": "workspace_name", "title": "Workspace"},
+                  {"fieldName": "dbr_version", "title": "DBR Version"},
+                  {"fieldName": "last_run", "title": "Last Run", "type": "datetime", "dateTimeFormat": "yyyy-MM-dd"}
+                ]
+              },
+              "itemsPerPage": 20
+            }
+          },
+          "position": {"x": 0, "y": 8, "width": 6, "height": 6}
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {"name": "ds_legacy_count", "query": "SELECT COUNT(DISTINCT j.job_id) AS count FROM ${catalog}.${gold_schema}.dim_job j LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON j.cluster_id = c.cluster_id AND c.is_current = TRUE WHERE j.is_current = TRUE AND CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15"},
+    {"name": "ds_serverless_adoption", "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN product_features_is_serverless THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS serverless_pct FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS"},
+    {"name": "ds_current_dbr", "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) >= 15 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS current_pct FROM ${catalog}.${gold_schema}.dim_cluster c WHERE c.is_current = TRUE"},
+    {"name": "ds_dbr_dist", "query": "SELECT REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)') AS dbr_version, COUNT(DISTINCT j.job_id) AS job_count, CASE WHEN CAST(SPLIT(REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)'), '\\\\.')[0] AS INT) >= 15 THEN 'Current' WHEN CAST(SPLIT(REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)'), '\\\\.')[0] AS INT) >= 13 THEN 'LTS' ELSE 'Legacy' END AS version_status FROM ${catalog}.${gold_schema}.dim_job j LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON j.cluster_id = c.cluster_id AND c.is_current = TRUE WHERE j.is_current = TRUE AND c.dbr_version IS NOT NULL GROUP BY REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)') ORDER BY dbr_version DESC"},
+    {"name": "ds_compute_type", "query": "SELECT CASE WHEN product_features_is_serverless THEN 'Serverless' ELSE 'Classic' END AS compute_type, COUNT(DISTINCT usage_metadata_job_id) AS job_count, ROUND(SUM(list_cost), 2) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND usage_metadata_job_id IS NOT NULL GROUP BY CASE WHEN product_features_is_serverless THEN 'Serverless' ELSE 'Classic' END"},
+    {"name": "ds_legacy_jobs", "query": "SELECT j.name AS job_name, w.workspace_name, c.dbr_version, MAX(f.period_end_time) AS last_run FROM ${catalog}.${gold_schema}.dim_job j LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON j.workspace_id = w.workspace_id AND w.is_current = TRUE LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON j.cluster_id = c.cluster_id AND c.is_current = TRUE LEFT JOIN ${catalog}.${gold_schema}.fact_job_run_timeline f ON j.job_id = f.job_id AND j.workspace_id = f.workspace_id WHERE j.is_current = TRUE AND CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15 AND f.period_start_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY j.name, w.workspace_name, c.dbr_version ORDER BY last_run DESC LIMIT 30"}
+  ]
+}
+

@@ -1,203 +1,81 @@
 # Metric View: query_performance
-# Query latency and efficiency metrics for SQL analytics
+# SQL Warehouse query performance and efficiency metrics
 #
+# Agent Domain: Performance
 # Source: fact_query_history (query_performance domain)
 # Schema validation done against: gold_layer_design/yaml/query_performance/fact_query_history.yaml
 #
 # Key Business Questions Answered:
-#   - What are our slowest queries (P95 latency)?
-#   - Which warehouse is most utilized?
-#   - What's our cache hit rate?
-#   - Which users run the most queries?
-#   - How much data are we scanning?
+#   - Average query duration
+#   - Slowest queries today
+#   - Warehouse query count
+#   - Query efficiency by user
+#   - P95/P99 latency metrics
+#   - Queries with high spill
 
 version: "1.1"
 comment: >
-  Query performance analytics for SQL workload optimization.
-  Optimized for Genie natural language queries about slow queries, warehouse usage, and query patterns.
-
-  DIMENSIONS: Filter and group by warehouse, user, date, time of day, statement type,
-  execution status, client application, and warehouse size.
-
-  MEASURES: Query count, latency percentiles (p50/p95/p99), cache hit rate, bytes read,
-  rows scanned, spill analysis, queue time.
-
-  Example queries:
-  - "What are our slowest queries today?"
-  - "Show P95 latency by warehouse"
-  - "What's our cache hit rate?"
-  - "Which users run the most queries?"
-  - "How much data did we scan this week?"
+  PURPOSE: SQL Warehouse query performance and efficiency metrics for optimization.
+  
+  BEST FOR: Average query duration | P95/P99 latency by warehouse | Query throughput (QPS/QPM) | 
+  Queries with high spill | Slowest queries today | Query efficiency by user
+  
+  NOT FOR: Real-time query monitoring (use get_slow_queries TVF) | Cost per query (use cost_analytics)
+  
+  DIMENSIONS: execution_date, warehouse_name, user_name, statement_type, execution_status, efficiency_tier, spill_tier
+  
+  MEASURES: total_queries, avg_duration_ms, p95_duration_ms, p99_duration_ms, success_rate, queries_per_minute, bytes_spilled
+  
+  SOURCE: fact_query_history (query_performance domain)
+  
+  JOINS: dim_warehouse (warehouse details), dim_workspace (workspace details)
+  
+  NOTE: Duration metrics exclude queue time. For queue analysis, use queue_duration_ms measures.
 
 source: ${catalog}.${gold_schema}.fact_query_history
 
 joins:
-  - name: dim_workspace
-    source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
-
   - name: dim_warehouse
     source: ${catalog}.${gold_schema}.dim_warehouse
-    'on': source.workspace_id = dim_warehouse.workspace_id AND source.compute_warehouse_id = dim_warehouse.warehouse_id AND dim_warehouse.is_current = true
+    'on': source.workspace_id = dim_warehouse.workspace_id AND source.compute_warehouse_id = dim_warehouse.warehouse_id AND dim_warehouse.delete_time IS NULL
+  
+  - name: dim_workspace
+    source: ${catalog}.${gold_schema}.dim_workspace
+    'on': source.workspace_id = dim_workspace.workspace_id
 
 dimensions:
   # === Primary Dimensions ===
-  - name: query_date
-    expr: DATE(source.start_time)
-    comment: Calendar date when the query started for daily aggregations
-    display_name: Query Date
+  - name: statement_id
+    expr: source.statement_id
+    comment: Unique identifier for this query execution
+    display_name: Statement ID
     synonyms:
-      - date
-      - day
-      - execution date
-
-  - name: workspace_id
-    expr: source.workspace_id
-    comment: Workspace identifier for workspace-level filtering
-    display_name: Workspace ID
-    synonyms:
-      - workspace
-      - ws id
-      - environment id
-
-  - name: workspace_name
-    expr: dim_workspace.workspace_name
-    comment: Human-readable workspace name for reporting
-    display_name: Workspace Name
-    synonyms:
-      - workspace
-      - environment
-
+      - query id
+      - execution id
+  
   - name: warehouse_id
     expr: source.compute_warehouse_id
-    comment: SQL warehouse identifier for warehouse-level analysis
+    comment: SQL Warehouse identifier (flattened from compute struct)
     display_name: Warehouse ID
     synonyms:
       - warehouse
-      - sql warehouse
-      - endpoint
-
+  
   - name: warehouse_name
     expr: dim_warehouse.warehouse_name
-    comment: Human-readable warehouse name for reporting
+    comment: Human-readable SQL Warehouse name
     display_name: Warehouse Name
     synonyms:
       - warehouse
-      - sql endpoint
-      - endpoint name
-
+      - sql warehouse
+  
   - name: warehouse_size
     expr: dim_warehouse.warehouse_size
-    comment: Warehouse t-shirt size (2X-Small to 4X-Large) for capacity analysis
+    comment: Warehouse T-shirt size (2X-Small to 4X-Large)
     display_name: Warehouse Size
     synonyms:
       - size
       - t-shirt size
-      - capacity
 
-  # === Time Dimensions ===
-  - name: year
-    expr: YEAR(source.start_time)
-    comment: Calendar year for annual analysis
-    display_name: Year
-    synonyms:
-      - calendar year
-
-  - name: quarter
-    expr: QUARTER(source.start_time)
-    comment: Calendar quarter (1-4)
-    display_name: Quarter
-    synonyms:
-      - q
-      - qtr
-
-  - name: month
-    expr: MONTH(source.start_time)
-    comment: Month number (1-12)
-    display_name: Month
-    synonyms:
-      - calendar month
-
-  - name: week_of_year
-    expr: WEEKOFYEAR(source.start_time)
-    comment: Week number for weekly analysis
-    display_name: Week
-    synonyms:
-      - week
-
-  - name: day_of_week
-    expr: DAYOFWEEK(source.start_time)
-    comment: Day of week (1=Sunday) for weekday patterns
-    display_name: Day of Week
-    synonyms:
-      - weekday
-
-  - name: hour_of_day
-    expr: HOUR(source.start_time)
-    comment: Hour of day (0-23) for time-of-day analysis
-    display_name: Hour
-    synonyms:
-      - hour
-      - time of day
-
-  # === Query Execution Dimensions ===
-  - name: executed_by
-    expr: source.executed_by
-    comment: User or service principal who ran the query
-    display_name: Executed By
-    synonyms:
-      - user
-      - query author
-      - run by
-      - analyst
-
-  - name: execution_status
-    expr: source.execution_status
-    comment: Query outcome (FINISHED, FAILED, CANCELED)
-    display_name: Status
-    synonyms:
-      - status
-      - result
-      - outcome
-
-  - name: statement_type
-    expr: source.statement_type
-    comment: SQL statement type (SELECT, INSERT, ALTER, MERGE, etc.)
-    display_name: Statement Type
-    synonyms:
-      - query type
-      - sql type
-      - operation
-      - command type
-
-  - name: client_application
-    expr: source.client_application
-    comment: Application that ran the query (Databricks SQL, Tableau, Power BI, etc.)
-    display_name: Client Application
-    synonyms:
-      - application
-      - client
-      - tool
-      - bi tool
-
-  - name: client_driver
-    expr: source.client_driver
-    comment: JDBC/ODBC driver used to connect
-    display_name: Client Driver
-    synonyms:
-      - driver
-      - connector
-
-  - name: from_result_cache
-    expr: source.from_result_cache
-    comment: Whether result was served from cache (true = cache hit)
-    display_name: From Cache
-    synonyms:
-      - cached
-      - cache hit
-      - from cache
-
-  # === Blog-Derived Dimensions (DBSQL Warehouse Advisor v5) ===
   - name: warehouse_tier
     expr: >
       CASE
@@ -206,221 +84,335 @@ dimensions:
         WHEN dim_warehouse.warehouse_size IN ('X-Large', '2X-Large', '3X-Large', '4X-Large') THEN 'LARGE'
         ELSE 'UNKNOWN'
       END
-    comment: Warehouse size tier for comparative SLA analysis across warehouse fleet (from Warehouse Advisor v5 blog)
+    comment: Warehouse size tier for comparative SLA analysis (SMALL, MEDIUM, LARGE)
     display_name: Warehouse Tier
     synonyms:
       - size category
       - warehouse class
-      - size tier
+  
+  - name: workspace_name
+    expr: dim_workspace.workspace_name
+    comment: Workspace where query was executed
+    display_name: Workspace
+    synonyms:
+      - workspace
+      - environment
 
+  # === Query Type Dimensions ===
+  - name: statement_type
+    expr: source.statement_type
+    comment: Query type (SELECT, INSERT, MERGE, CREATE, ALTER, etc.)
+    display_name: Statement Type
+    synonyms:
+      - query type
+      - statement
+      - sql type
+  
+  - name: execution_status
+    expr: source.execution_status
+    comment: Execution result status (FINISHED, FAILED, CANCELED)
+    display_name: Execution Status
+    synonyms:
+      - status
+      - result
+  
+  - name: client_application
+    expr: source.client_application
+    comment: Client application that ran the query (Databricks SQL, Tableau, Power BI, etc.)
+    display_name: Client Application
+    synonyms:
+      - application
+      - client
+      - tool
+
+  # === Query Efficiency Dimensions (DBSQL Warehouse Advisor Pattern) ===
   - name: query_efficiency_status
     expr: >
       CASE
-        WHEN COALESCE(source.spilled_local_bytes, 0) + COALESCE(source.spilled_remote_bytes, 0) > 100000000 THEN 'HIGH_SPILL'
+        WHEN COALESCE(source.spilled_local_bytes, 0) > 100000000 THEN 'HIGH_SPILL'
         WHEN source.waiting_at_capacity_duration_ms > source.total_duration_ms * 0.1 THEN 'HIGH_QUEUE'
         WHEN source.total_duration_ms > 300000 THEN 'SLOW'
         ELSE 'EFFICIENT'
       END
-    comment: Query efficiency classification for performance analysis (from DBSQL Warehouse Advisor repo)
+    comment: Query efficiency classification (EFFICIENT, SLOW, HIGH_QUEUE, HIGH_SPILL)
     display_name: Efficiency Status
     synonyms:
       - query status
       - performance status
-      - efficiency flag
-
-  - name: query_complexity
-    expr: >
-      CASE
-        WHEN LENGTH(source.statement_text) > 10000 THEN 'VERY_COMPLEX'
-        WHEN LENGTH(source.statement_text) > 5000 THEN 'COMPLEX'
-        WHEN LENGTH(source.statement_text) > 1000 THEN 'MODERATE'
-        ELSE 'SIMPLE'
-      END
-    comment: Query complexity based on statement length (from DBSQL Warehouse Advisor repo)
-    display_name: Query Complexity
+      - health
+  
+  - name: is_from_cache
+    expr: source.from_result_cache
+    comment: Whether query result was served from cache
+    display_name: From Cache
     synonyms:
-      - complexity level
-      - query size
+      - cached
+      - cache hit
+
+  # === User Dimensions ===
+  - name: executed_by
+    expr: source.executed_by
+    comment: User who executed the query
+    display_name: Executed By
+    synonyms:
+      - user
+      - query user
+      - run by
+  
+  - name: executed_as
+    expr: source.executed_as
+    comment: Identity used for query authorization
+    display_name: Executed As
+    synonyms:
+      - run as
+      - authorization identity
+
+  # === Time Dimensions ===
+  - name: query_date
+    expr: DATE(source.start_time)
+    comment: Date query was executed
+    display_name: Query Date
+    synonyms:
+      - date
+      - execution date
+  
+  - name: year
+    expr: YEAR(source.start_time)
+    comment: Year of query execution
+    display_name: Year
+    synonyms:
+      - year
+  
+  - name: month
+    expr: MONTH(source.start_time)
+    comment: Month number (1-12) of query execution
+    display_name: Month
+    synonyms:
+      - month
+  
+  - name: week_of_year
+    expr: WEEKOFYEAR(source.start_time)
+    comment: Week number in year
+    display_name: Week
+    synonyms:
+      - week
+  
+  - name: hour_of_day
+    expr: HOUR(source.start_time)
+    comment: Hour query was executed (0-23) for usage patterns
+    display_name: Hour of Day
+    synonyms:
+      - hour
+      - start hour
 
 measures:
-  # === Volume Measures ===
+  # === Primary Count Measures ===
   - name: total_queries
-    expr: COUNT(source.statement_id)
-    comment: Total number of SQL queries executed
+    expr: COUNT(*)
+    comment: Total number of queries executed
     display_name: Total Queries
     format:
       type: number
       abbreviation: compact
     synonyms:
       - query count
-      - executions
-      - statements
       - queries
-
-  - name: unique_users
-    expr: COUNT(DISTINCT source.executed_by)
-    comment: Number of distinct users who ran queries
-    display_name: Unique Users
-    format:
-      type: number
-    synonyms:
-      - user count
-      - analysts
-      - active users
-
-  - name: unique_warehouses
-    expr: COUNT(DISTINCT source.compute_warehouse_id)
-    comment: Number of distinct warehouses used
-    display_name: Unique Warehouses
-    format:
-      type: number
-    synonyms:
-      - warehouse count
-      - endpoints used
-
-  # === Success/Failure Measures ===
+      - executions
+  
   - name: successful_queries
     expr: SUM(CASE WHEN source.execution_status = 'FINISHED' THEN 1 ELSE 0 END)
-    comment: Count of successfully completed queries
+    comment: Number of successfully completed queries
     display_name: Successful Queries
     format:
       type: number
       abbreviation: compact
     synonyms:
-      - completed queries
-      - finished queries
+      - successful
+      - completed
 
   - name: failed_queries
     expr: SUM(CASE WHEN source.execution_status = 'FAILED' THEN 1 ELSE 0 END)
-    comment: Count of failed queries
+    comment: Number of failed queries
     display_name: Failed Queries
     format:
       type: number
       abbreviation: compact
     synonyms:
-      - errors
       - failures
+      - errors
 
-  - name: canceled_queries
-    expr: SUM(CASE WHEN source.execution_status = 'CANCELED' THEN 1 ELSE 0 END)
-    comment: Count of canceled queries
-    display_name: Canceled Queries
+  - name: cached_queries
+    expr: SUM(CASE WHEN source.from_result_cache = TRUE THEN 1 ELSE 0 END)
+    comment: Number of queries served from result cache
+    display_name: Cached Queries
     format:
       type: number
       abbreviation: compact
     synonyms:
-      - cancellations
+      - cache hits
 
-  - name: query_success_rate
-    expr: (SUM(CASE WHEN source.execution_status = 'FINISHED' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.statement_id), 0)
-    comment: Percentage of successfully completed queries
-    display_name: Success Rate
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - success percentage
-      - completion rate
-
-  - name: error_rate
-    expr: (SUM(CASE WHEN source.execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.statement_id), 0)
-    comment: Percentage of queries that failed
-    display_name: Error Rate
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - failure rate
-
-  - name: total_duration_seconds
-    expr: SUM(source.total_duration_ms / 1000.0)
-    comment: Total execution time across all queries in seconds
-    display_name: Total Duration (sec)
+  # === Duration Measures ===
+  - name: avg_duration_seconds
+    expr: AVG(source.total_duration_ms / 1000.0)
+    comment: Average query duration in seconds
+    display_name: Avg Duration (sec)
     format:
       type: number
       decimal_places:
         type: exact
-        places: 0
-      abbreviation: compact
+        places: 2
     synonyms:
-      - total time
-      - execution time
-
-  - name: avg_duration_ms
-    expr: AVG(source.total_duration_ms)
-    comment: Average query execution time in milliseconds
-    display_name: Avg Duration (ms)
+      - average duration
+      - avg runtime
+      - typical query time
+  
+  - name: p50_duration_seconds
+    expr: PERCENTILE(source.total_duration_ms / 1000.0, 0.5)
+    comment: Median (50th percentile) query duration in seconds
+    display_name: Median Duration (sec)
     format:
       type: number
       decimal_places:
         type: exact
-        places: 0
+        places: 2
     synonyms:
-      - average latency
-      - mean duration
-
-  - name: p50_duration_ms
-    expr: PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY source.total_duration_ms)
-    comment: Median query duration in milliseconds
-    display_name: P50 Duration (ms)
+      - median
+      - p50
+  
+  - name: p95_duration_seconds
+    expr: PERCENTILE(source.total_duration_ms / 1000.0, 0.95)
+    comment: 95th percentile query duration in seconds
+    display_name: P95 Duration (sec)
     format:
       type: number
       decimal_places:
         type: exact
-        places: 0
+        places: 2
     synonyms:
-      - median latency
-      - typical duration
-
-  - name: p95_duration_ms
-    expr: PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY source.total_duration_ms)
-    comment: 95th percentile query duration for SLA monitoring
-    display_name: P95 Duration (ms)
+      - p95
+      - 95th percentile
+  
+  - name: p99_duration_seconds
+    expr: PERCENTILE(source.total_duration_ms / 1000.0, 0.99)
+    comment: 99th percentile query duration in seconds for strict SLA tracking
+    display_name: P99 Duration (sec)
     format:
       type: number
       decimal_places:
         type: exact
-        places: 0
+        places: 2
     synonyms:
-      - sla latency
-      - worst case duration
+      - p99
+      - 99th percentile
+      - p99 latency
 
-  - name: p99_duration_ms
-    expr: PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY source.total_duration_ms)
-    comment: 99th percentile query duration for outlier analysis
-    display_name: P99 Duration (ms)
+  - name: max_duration_seconds
+    expr: MAX(source.total_duration_ms / 1000.0)
+    comment: Maximum query duration in seconds
+    display_name: Max Duration (sec)
     format:
       type: number
       decimal_places:
         type: exact
-        places: 0
+        places: 2
     synonyms:
-      - tail latency
+      - slowest query
+      - max runtime
 
-  - name: total_bytes_read
-    expr: SUM(source.read_bytes)
-    comment: Total bytes read across all queries
-    display_name: Total Bytes Read
+  - name: total_duration_hours
+    expr: SUM(source.total_duration_ms / 1000.0 / 3600.0)
+    comment: Total cumulative query duration in hours
+    display_name: Total Duration (hrs)
     format:
       type: number
-      abbreviation: compact
+      decimal_places:
+        type: exact
+        places: 2
     synonyms:
+      - total runtime
+      - aggregate duration
+
+  # === Queue Time Measures ===
+  - name: avg_queue_time_seconds
+    expr: AVG(source.waiting_at_capacity_duration_ms / 1000.0)
+    comment: Average time queries waited in queue (waiting_at_capacity)
+    display_name: Avg Queue Time (sec)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - queue time
+      - wait time
+      - avg wait
+
+  - name: p95_queue_time_seconds
+    expr: PERCENTILE(source.waiting_at_capacity_duration_ms / 1000.0, 0.95)
+    comment: 95th percentile queue time in seconds
+    display_name: P95 Queue Time (sec)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - p95 wait
+      - 95th percentile queue
+
+  - name: p99_queue_time_seconds
+    expr: PERCENTILE(source.waiting_at_capacity_duration_ms / 1000.0, 0.99)
+    comment: 99th percentile queue time - identifies worst-case waits
+    display_name: P99 Queue Time (sec)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - p99 wait time
+      - worst case queue
+
+  - name: avg_compile_time_seconds
+    expr: AVG(source.compilation_duration_ms / 1000.0)
+    comment: Average time spent compiling queries
+    display_name: Avg Compile Time (sec)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - compile time
+      - compilation time
+
+  # === Data Scan Measures ===
+  - name: total_bytes_read_tb
+    expr: SUM(source.read_bytes) / (1024.0*1024.0*1024.0*1024.0)
+    comment: Total data read in terabytes
+    display_name: Data Read (TB)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - bytes read
       - data scanned
-      - bytes scanned
+      - tb read
 
-  - name: avg_bytes_read
-    expr: AVG(source.read_bytes)
-    comment: Average bytes read per query
-    display_name: Avg Bytes Read
+  - name: avg_bytes_read_gb
+    expr: AVG(source.read_bytes) / (1024.0*1024.0*1024.0)
+    comment: Average data read per query in gigabytes
+    display_name: Avg Data Read (GB)
     format:
       type: number
-      abbreviation: compact
+      decimal_places:
+        type: exact
+        places: 2
     synonyms:
-      - average scan size
+      - avg scan size
+      - average bytes
 
   - name: total_rows_read
     expr: SUM(source.read_rows)
@@ -431,41 +423,83 @@ measures:
       abbreviation: compact
     synonyms:
       - rows scanned
+      - rows read
 
-  - name: total_rows_produced
-    expr: SUM(source.produced_rows)
-    comment: Total rows returned by queries
-    display_name: Total Rows Produced
+  # === Spill Measures ===
+  - name: avg_bytes_spilled_gb
+    expr: AVG(COALESCE(source.spilled_local_bytes, 0) / (1024.0*1024.0*1024.0))
+    comment: Average data spilled to local disk in GB
+    display_name: Avg Spill (GB)
     format:
       type: number
-      abbreviation: compact
+      decimal_places:
+        type: exact
+        places: 2
     synonyms:
-      - rows returned
-      - output rows
-
-  - name: total_spilled_bytes
-    expr: SUM(source.spilled_local_bytes)
-    comment: Total bytes spilled to disk (memory pressure indicator)
-    display_name: Total Spilled Bytes
-    format:
-      type: number
-      abbreviation: compact
-    synonyms:
+      - spill
       - disk spill
-      - spillage
+      - local spill
 
   - name: queries_with_spill
-    expr: SUM(CASE WHEN source.spilled_local_bytes > 0 THEN 1 ELSE 0 END)
-    comment: Count of queries that spilled to disk
+    expr: SUM(CASE WHEN COALESCE(source.spilled_local_bytes, 0) > 0 THEN 1 ELSE 0 END)
+    comment: Number of queries that spilled to disk
     display_name: Queries with Spill
     format:
       type: number
-      abbreviation: compact
     synonyms:
+      - spill count
       - spilled queries
 
+  - name: spill_rate
+    expr: (SUM(CASE WHEN COALESCE(source.spilled_local_bytes, 0) > 0 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(*), 0)
+    comment: Percentage of queries that spilled to disk
+    display_name: Spill Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - spill percentage
+
+  # === Efficiency Measures (DBSQL Warehouse Advisor Pattern) ===
+  - name: inefficient_query_count
+    expr: >
+      COUNT(CASE
+        WHEN COALESCE(source.spilled_local_bytes, 0) > 100000000
+          OR source.waiting_at_capacity_duration_ms > 30000
+          OR source.total_duration_ms > 300000
+        THEN 1
+      END)
+    comment: Count of queries with efficiency issues (high spill, high queue, or slow)
+    display_name: Inefficient Queries
+    format:
+      type: number
+    synonyms:
+      - problem queries
+      - queries needing optimization
+  
+  - name: efficiency_rate
+    expr: >
+      (1 - COUNT(CASE
+        WHEN COALESCE(source.spilled_local_bytes, 0) > 100000000
+          OR source.waiting_at_capacity_duration_ms > 30000
+          OR source.total_duration_ms > 300000
+        THEN 1
+      END) * 1.0 / NULLIF(COUNT(*), 0)) * 100
+    comment: Percentage of queries without efficiency issues
+    display_name: Efficiency Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - query health rate
+      - performance rate
+
   - name: cache_hit_rate
-    expr: (SUM(CASE WHEN source.from_result_cache THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.statement_id), 0)
+    expr: (SUM(CASE WHEN source.from_result_cache = TRUE THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(*), 0)
     comment: Percentage of queries served from result cache
     display_name: Cache Hit Rate
     format:
@@ -474,53 +508,13 @@ measures:
         type: exact
         places: 1
     synonyms:
-      - cache utilization
+      - cache rate
       - cache efficiency
 
-  - name: avg_queue_time_ms
-    expr: AVG(source.waiting_at_capacity_duration_ms)
-    comment: Average time queries spent waiting in queue
-    display_name: Avg Queue Time (ms)
-    format:
-      type: number
-      decimal_places:
-        type: exact
-        places: 0
-    synonyms:
-      - wait time
-      - queue delay
-
-  - name: avg_compilation_time_ms
-    expr: AVG(source.compilation_duration_ms)
-    comment: Average query compilation/optimization time
-    display_name: Avg Compilation (ms)
-    format:
-      type: number
-      decimal_places:
-        type: exact
-        places: 0
-    synonyms:
-      - optimization time
-      - planning time
-
-  # === Blog-Derived Measures (DBSQL Warehouse Advisor v5) ===
-  - name: spill_rate
-    expr: (SUM(CASE WHEN COALESCE(source.spilled_local_bytes, 0) + COALESCE(source.spilled_remote_bytes, 0) > 0 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.statement_id), 0)
-    comment: Percentage of queries with disk spill - high values indicate warehouse undersizing (from Warehouse Advisor v5 blog)
-    display_name: Spill Rate %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - spillage rate
-      - disk spill percentage
-
-  - name: high_queue_rate
-    expr: (SUM(CASE WHEN source.waiting_at_capacity_duration_ms > source.total_duration_ms * 0.1 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.statement_id), 0)
-    comment: Percentage of queries where queue time exceeds 10% of total duration (from Warehouse Advisor v5 blog)
-    display_name: High Queue Rate %
+  - name: avg_queue_to_execution_ratio
+    expr: AVG(source.waiting_at_capacity_duration_ms * 100.0 / NULLIF(source.total_duration_ms, 0))
+    comment: Average ratio of queue time to total execution time - lower is better
+    display_name: Queue/Execution Ratio
     format:
       type: percentage
       decimal_places:
@@ -528,50 +522,44 @@ measures:
         places: 1
     synonyms:
       - queue ratio
-      - waiting rate
+      - wait percentage
 
-  - name: efficiency_rate
-    expr: >
-      (SUM(CASE
-        WHEN (COALESCE(source.spilled_local_bytes, 0) + COALESCE(source.spilled_remote_bytes, 0)) = 0
-         AND source.waiting_at_capacity_duration_ms <= source.total_duration_ms * 0.1
-         AND source.total_duration_ms <= 300000
-        THEN 1 ELSE 0
-      END) * 100.0) / NULLIF(COUNT(source.statement_id), 0)
-    comment: Percentage of queries without efficiency issues (no spill, low queue, fast) - from DBSQL Warehouse Advisor repo
-    display_name: Efficiency Rate %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - health rate
-      - query success rate
-
-  - name: p95_queue_time_ms
-    expr: PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY source.waiting_at_capacity_duration_ms)
-    comment: 95th percentile queue time for SLA monitoring (from Warehouse Advisor v5 blog)
-    display_name: P95 Queue Time (ms)
+  # === Entity Count Measures ===
+  - name: unique_users
+    expr: COUNT(DISTINCT source.executed_by)
+    comment: Number of unique users executing queries
+    display_name: Unique Users
     format:
       type: number
-      decimal_places:
-        type: exact
-        places: 0
     synonyms:
-      - p95 wait time
-      - sla queue time
-
-  - name: p99_queue_time_ms
-    expr: PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY source.waiting_at_capacity_duration_ms)
-    comment: 99th percentile queue time for strict SLA monitoring (from Warehouse Advisor v5 blog)
-    display_name: P99 Queue Time (ms)
+      - user count
+      - users
+  
+  - name: unique_warehouses
+    expr: COUNT(DISTINCT source.compute_warehouse_id)
+    comment: Number of unique warehouses with query activity
+    display_name: Warehouses
     format:
       type: number
-      decimal_places:
-        type: exact
-        places: 0
     synonyms:
-      - p99 wait time
-      - worst case queue
+      - warehouse count
 
+  # === Time-Windowed Measures ===
+  - name: queries_today
+    expr: COUNT(CASE WHEN DATE(source.start_time) = CURRENT_DATE() THEN 1 END)
+    comment: Number of queries executed today
+    display_name: Queries Today
+    format:
+      type: number
+    synonyms:
+      - today's queries
+
+  - name: queries_last_7_days
+    expr: COUNT(CASE WHEN source.start_time >= DATE_ADD(CURRENT_DATE(), -7) THEN 1 END)
+    comment: Number of queries in last 7 days
+    display_name: Queries (7d)
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - weekly queries

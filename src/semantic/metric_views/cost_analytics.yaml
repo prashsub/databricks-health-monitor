@@ -1,299 +1,253 @@
 # Metric View: cost_analytics
-# Comprehensive FinOps metrics for cost analysis, chargeback, and budget tracking
+# Comprehensive cost analytics metrics for Databricks billing and usage analysis
 #
+# Agent Domain: Cost
 # Source: fact_usage (billing domain)
 # Schema validation done against: gold_layer_design/yaml/billing/fact_usage.yaml
 #
 # Key Business Questions Answered:
-#   - What are our top workspaces/SKUs by cost?
-#   - Show me costs by custom tags for chargeback
-#   - What's our serverless vs classic compute cost split?
-#   - Which teams/projects are driving the most cost?
-#   - What percentage of costs are properly tagged?
+#   - What is our total spend this month?
+#   - Show cost by workspace
+#   - Which SKU costs the most?
+#   - Daily cost trend for last 30 days
+#   - What percentage of our spend is tagged?
+#   - Show cost by team/project tag
 
 version: "1.1"
 comment: >
-  Comprehensive cost analytics for FinOps, chargeback, and budget tracking.
-  Optimized for Genie natural language queries about Databricks costs.
-
-  DIMENSIONS: Filter and group by workspace, SKU, cloud, region, time (year/quarter/month),
-  custom tags (team, project, cost_center, environment), owner, and compute type.
-
-  MEASURES: Total cost, total DBU, serverless vs classic cost, tagged vs untagged cost,
-  tag coverage percentage, cost per DBU, active workspaces/users.
-
-  Example queries:
-  - "What are our costs by workspace this month?"
-  - "Show cost by team tag for chargeback"
-  - "What's our serverless cost percentage?"
-  - "Which projects have the highest cost?"
-  - "What's our tag coverage rate?"
+  PURPOSE: Comprehensive cost analytics for Databricks billing and usage analysis.
+  
+  BEST FOR: Total spend by workspace | Cost trend over time | SKU cost breakdown | 
+  Tagged vs untagged spend | Serverless vs classic cost | Week-over-week growth
+  
+  NOT FOR: Commit/contract tracking (use commit_tracking) | Real-time cost alerts (use get_daily_cost_summary TVF)
+  
+  DIMENSIONS: usage_date, workspace_name, sku_name, owner, tag_team, tag_project, is_serverless, billing_origin_product
+  
+  MEASURES: total_cost, total_dbu, cost_7d, cost_30d, tag_coverage_pct, serverless_pct, wow_growth, mom_growth
+  
+  SOURCE: fact_usage (billing domain)
+  
+  JOINS: dim_workspace (workspace details)
+  
+  NOTE: Cost values are list prices. Custom tags accessed via custom_tags MAP column.
 
 source: ${catalog}.${gold_schema}.fact_usage
 
 joins:
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
-
-  - name: dim_sku
-    source: ${catalog}.${gold_schema}.dim_sku
-    'on': source.sku_name = dim_sku.sku_name AND dim_sku.is_current = true
+    'on': source.workspace_id = dim_workspace.workspace_id
 
 dimensions:
   # === Primary Dimensions ===
   - name: usage_date
     expr: source.usage_date
-    comment: Date of DBU consumption for time-based cost analysis and trending
+    comment: Date of usage record for time-based filtering and trending
     display_name: Usage Date
     synonyms:
       - date
-      - cost date
-      - billing date
       - day
+      - billing date
 
+  - name: usage_month
+    expr: DATE_TRUNC('month', source.usage_date)
+    comment: First day of the usage month for monthly analysis
+    display_name: Usage Month
+    synonyms:
+      - month
+      - billing month
+  
   - name: workspace_id
     expr: source.workspace_id
-    comment: Workspace identifier for workspace-level cost allocation and filtering
+    comment: Databricks workspace identifier for workspace-level cost analysis
     display_name: Workspace ID
     synonyms:
       - workspace
-      - ws id
       - environment id
-
+      - ws id
+  
   - name: workspace_name
     expr: dim_workspace.workspace_name
-    comment: Human-readable workspace name for reporting and cost attribution
+    comment: Human-readable workspace name for reporting
     display_name: Workspace Name
     synonyms:
       - workspace
-      - environment name
-      - ws name
       - environment
-
+      - env name
+  
+  - name: cloud
+    expr: source.cloud
+    comment: Cloud provider (AWS, Azure, GCP) for multi-cloud analysis
+    display_name: Cloud
+    synonyms:
+      - cloud provider
+      - provider
+  
   - name: sku_name
     expr: source.sku_name
-    comment: SKU name indicating product category (JOBS_COMPUTE, SQL_COMPUTE, SERVERLESS, etc.)
-    display_name: SKU
+    comment: Product SKU category (JOBS_COMPUTE, SQL, etc.) for product-level analysis
+    display_name: SKU Name
     synonyms:
       - sku
       - product
-      - compute type
-      - service type
+      - service
       - product type
-
-  # === Cloud & Region Dimensions ===
-  - name: cloud_provider
-    expr: source.cloud
-    comment: Cloud provider (AWS, AZURE, GCP) for cloud-specific cost analysis
-    display_name: Cloud
+  
+  - name: billing_origin_product
+    expr: source.billing_origin_product
+    comment: Product that originated the usage (JOBS, SQL, DLT, etc.)
+    display_name: Product
     synonyms:
-      - cloud
-      - provider
-      - cloud platform
-      - csp
+      - product
+      - origin product
+      - billing product
 
-  - name: region
-    expr: dim_workspace.region
-    comment: Cloud region where compute ran for regional cost analysis
-    display_name: Region
+  # === Entity Type Classification (Dashboard Pattern) ===
+  - name: entity_type
+    expr: >
+      CONCAT_WS(' ',
+        CASE WHEN source.product_features_is_serverless THEN 'SERVERLESS' ELSE 'CLASSIC' END,
+        CASE
+          WHEN source.billing_origin_product = 'JOBS' THEN 'JOB'
+          WHEN source.billing_origin_product IN ('DLT', 'LAKEFLOW_CONNECT') THEN 'PIPELINE'
+          WHEN source.billing_origin_product = 'SQL' AND source.usage_metadata_dlt_pipeline_id IS NOT NULL THEN 'PIPELINE'
+          WHEN source.billing_origin_product = 'SQL' THEN 'WAREHOUSE'
+          ELSE source.billing_origin_product
+        END)
+    comment: Classification of workload by serverless status and product type (e.g., SERVERLESS JOB, CLASSIC WAREHOUSE)
+    display_name: Entity Type
     synonyms:
-      - location
-      - cloud region
-      - data center
-      - zone
-
-  # === Time Dimensions (derived from usage_date) ===
-  - name: year
-    expr: YEAR(source.usage_date)
-    comment: Calendar year for annual cost analysis and year-over-year comparisons
-    display_name: Year
+      - workload type
+      - compute type
+      - serverless status
+  
+  - name: is_serverless
+    expr: source.product_features_is_serverless
+    comment: Whether usage is from serverless compute (true/false)
+    display_name: Is Serverless
     synonyms:
-      - calendar year
-      - fiscal year
+      - serverless
+      - serverless compute
 
-  - name: quarter
-    expr: QUARTER(source.usage_date)
-    comment: Calendar quarter (1-4) for quarterly cost reporting
-    display_name: Quarter
-    synonyms:
-      - q
-      - fiscal quarter
-      - qtr
-
-  - name: month
-    expr: MONTH(source.usage_date)
-    comment: Month number (1-12) for monthly cost trending
-    display_name: Month
-    synonyms:
-      - calendar month
-      - month number
-
-  - name: week_of_year
-    expr: WEEKOFYEAR(source.usage_date)
-    comment: Week number (1-52) for weekly cost analysis
-    display_name: Week
-    synonyms:
-      - week
-      - week number
-
-  - name: day_of_week
-    expr: DAYOFWEEK(source.usage_date)
-    comment: Day of week (1=Sunday, 7=Saturday) for weekday vs weekend analysis
-    display_name: Day of Week
-    synonyms:
-      - weekday
-      - day number
-
-  # === Tag-Based Dimensions for Chargeback ===
-  - name: tag_status
-    expr: CASE WHEN source.is_tagged = TRUE THEN 'Tagged' ELSE 'Untagged' END
-    comment: Whether the usage record has custom tags for cost attribution
-    display_name: Tag Status
-    synonyms:
-      - tagged
-      - has tags
-      - tagging status
-
-  - name: team_tag
-    expr: COALESCE(source.custom_tags['team'], 'Unassigned')
-    comment: Team tag value for chargeback reporting - extracts 'team' key from custom_tags
-    display_name: Team
-    synonyms:
-      - team
-      - department
-      - business unit
-      - team tag
-      - bu
-
-  - name: project_tag
-    expr: COALESCE(source.custom_tags['project'], 'Unassigned')
-    comment: Project tag value for cost allocation - extracts 'project' key from custom_tags
-    display_name: Project
-    synonyms:
-      - project
-      - initiative
-      - project tag
-      - workstream
-
-  - name: cost_center_tag
-    expr: COALESCE(source.custom_tags['cost_center'], source.custom_tags['costcenter'], 'Unassigned')
-    comment: Cost center tag for financial reporting - extracts 'cost_center' or 'costcenter' key
-    display_name: Cost Center
-    synonyms:
-      - cost center
-      - cc
-      - cost_center
-      - costcenter
-
-  - name: env_tag
-    expr: COALESCE(source.custom_tags['env'], source.custom_tags['environment'], 'Unknown')
-    comment: Environment tag (dev, staging, prod) - extracts 'env' or 'environment' key
-    display_name: Environment
-    synonyms:
-      - environment
-      - env
-      - stage
-      - tier
-
-  # === Owner/Attribution Dimensions ===
+  # === Owner Dimensions ===
   - name: run_as
     expr: source.identity_metadata_run_as
-    comment: User or service principal who ran the workload (for cost attribution)
+    comment: User or service principal who ran the workload (flattened from identity_metadata)
     display_name: Run As User
     synonyms:
       - owner
       - user
       - run by
       - executed by
-      - principal
-
-  - name: created_by
-    expr: source.identity_metadata_created_by
-    comment: User who created the resource generating this cost
-    display_name: Created By
-    synonyms:
-      - creator
-      - resource creator
-      - owner
-
+  
   - name: owned_by
     expr: source.identity_metadata_owned_by
-    comment: User who owns the resource generating this cost
-    display_name: Owned By
+    comment: Resource owner for chargeback attribution (flattened from identity_metadata)
+    display_name: Owner
     synonyms:
-      - owner
       - resource owner
-
-  # === Compute Type Dimensions ===
-  - name: is_serverless
-    expr: source.product_features_is_serverless
-    comment: Whether usage is from serverless compute (true) or classic (false)
-    display_name: Is Serverless
-    synonyms:
-      - serverless
-      - serverless compute
-
-  - name: is_photon
-    expr: source.product_features_is_photon
-    comment: Whether Photon acceleration was enabled
-    display_name: Is Photon
-    synonyms:
-      - photon
-      - photon enabled
-      - accelerated
-
-  - name: billing_origin_product
-    expr: source.billing_origin_product
-    comment: Product that originated the usage (Jobs, SQL, Model Serving, etc.)
-    display_name: Billing Product
-    synonyms:
-      - product
-      - origin product
-      - source product
-
-  - name: usage_type
-    expr: source.usage_type
-    comment: Type of usage (COMPUTE_TIME, STORAGE_SPACE, NETWORK_BYTES, etc.)
-    display_name: Usage Type
-    synonyms:
-      - type
-      - consumption type
-      - resource type
-
-  # === Usage Metadata Dimensions (for drill-down) ===
+      - owned by
+  
   - name: job_name
     expr: source.usage_metadata_job_name
-    comment: Name of the job generating this cost (if applicable)
+    comment: Job name for job-level cost attribution (flattened from usage_metadata)
     display_name: Job Name
     synonyms:
       - job
       - workflow
-      - pipeline
 
-  - name: cluster_id
-    expr: source.usage_metadata_cluster_id
-    comment: Cluster ID generating this cost (for cluster-level attribution)
-    display_name: Cluster ID
+  # === Tag Dimensions for Cost Attribution ===
+  - name: tag_status
+    expr: CASE WHEN source.is_tagged = TRUE THEN 'Tagged' ELSE 'Untagged' END
+    comment: Whether the usage record has custom tags for cost attribution (uses pre-calculated is_tagged flag)
+    display_name: Tag Status
     synonyms:
-      - cluster
-      - compute cluster
+      - tagged
+      - has tags
+      - tag coverage
+  
+  - name: team_tag
+    expr: COALESCE(source.custom_tags['team'], 'Unassigned')
+    comment: Team tag value for chargeback reporting
+    display_name: Team
+    synonyms:
+      - team
+      - department
+      - business unit
+      - team tag
+  
+  - name: project_tag
+    expr: COALESCE(source.custom_tags['project'], 'Unassigned')
+    comment: Project tag value for cost allocation
+    display_name: Project
+    synonyms:
+      - project
+      - initiative
+      - project tag
+  
+  - name: cost_center_tag
+    expr: COALESCE(source.custom_tags['cost_center'], 'Unassigned')
+    comment: Cost center tag for financial reporting
+    display_name: Cost Center
+    synonyms:
+      - cost center
+      - cc
+      - cost_center
+  
+  - name: env_tag
+    expr: COALESCE(source.custom_tags['env'], source.custom_tags['environment'], 'Unknown')
+    comment: Environment tag (dev, staging, prod) for environment-level analysis
+    display_name: Environment Tag
+    synonyms:
+      - environment
+      - env
+      - stage
 
-  - name: warehouse_id
-    expr: source.usage_metadata_warehouse_id
-    comment: SQL Warehouse ID generating this cost (for warehouse-level attribution)
-    display_name: Warehouse ID
+  # === Time Dimensions ===
+  - name: year
+    expr: YEAR(source.usage_date)
+    comment: Calendar year for annual analysis
+    display_name: Year
     synonyms:
-      - warehouse
-      - sql warehouse
-      - endpoint
+      - calendar year
+  
+  - name: quarter
+    expr: QUARTER(source.usage_date)
+    comment: Calendar quarter (1-4) for quarterly analysis
+    display_name: Quarter
+    synonyms:
+      - q
+      - qtr
+  
+  - name: month
+    expr: MONTH(source.usage_date)
+    comment: Month number (1-12) for monthly analysis
+    display_name: Month
+    synonyms:
+      - month number
+  
+  - name: week_of_year
+    expr: WEEKOFYEAR(source.usage_date)
+    comment: Week number in year for weekly analysis
+    display_name: Week
+    synonyms:
+      - week
+      - week number
+  
+  - name: day_of_week
+    expr: DAYOFWEEK(source.usage_date)
+    comment: Day of week number (1=Sunday) for day-of-week analysis
+    display_name: Day of Week
+    synonyms:
+      - weekday
 
 measures:
-  # === Primary Cost & Volume Measures ===
+  # === Primary Measures ===
   - name: total_dbu
     expr: SUM(source.usage_quantity)
-    comment: Total DBU consumption. Primary volume metric for capacity analysis.
-    display_name: Total DBU
+    comment: Total Databricks Units (DBUs) consumed
+    display_name: Total DBUs
     format:
       type: number
       decimal_places:
@@ -302,14 +256,14 @@ measures:
       abbreviation: compact
     synonyms:
       - dbu
-      - dbu consumption
-      - databricks units
-      - compute units
+      - dbus
+      - units
       - usage
-
+      - databricks units
+  
   - name: total_cost
     expr: SUM(source.list_cost)
-    comment: Total estimated cost in USD based on list prices. Primary financial metric.
+    comment: Total estimated cost in USD (pre-calculated from list_price * usage_quantity)
     display_name: Total Cost
     format:
       type: currency
@@ -321,14 +275,13 @@ measures:
     synonyms:
       - cost
       - spend
-      - expense
+      - spending
       - dollars
       - amount
-      - spending
-
+  
   - name: avg_daily_cost
-    expr: AVG(source.list_cost)
-    comment: Average cost per usage record for typical consumption analysis
+    expr: SUM(source.list_cost) / NULLIF(COUNT(DISTINCT source.usage_date), 0)
+    comment: Average daily cost (total cost / distinct days)
     display_name: Avg Daily Cost
     format:
       type: currency
@@ -340,11 +293,12 @@ measures:
       - daily average
       - average cost
       - avg cost
+      - daily burn rate
 
-  - name: avg_cost_per_dbu
+  - name: cost_per_dbu
     expr: SUM(source.list_cost) / NULLIF(SUM(source.usage_quantity), 0)
-    comment: Average cost per DBU. Useful for pricing analysis and efficiency tracking.
-    display_name: Avg Cost per DBU
+    comment: Average cost per DBU (effective blended rate)
+    display_name: Cost per DBU
     format:
       type: currency
       currency_code: USD
@@ -352,59 +306,69 @@ measures:
         type: exact
         places: 4
     synonyms:
+      - dbu rate
       - unit cost
-      - cost per dbu
-      - dbu price
       - effective rate
 
-  # === Serverless vs Classic Cost Analysis ===
-  - name: serverless_cost
-    expr: SUM(CASE WHEN source.product_features_is_serverless = TRUE THEN source.list_cost ELSE 0 END)
-    comment: Total cost from serverless compute (SQL Serverless, Jobs Serverless)
-    display_name: Serverless Cost
+  # === Entity Count Measures ===
+  - name: active_workspaces
+    expr: COUNT(DISTINCT source.workspace_id)
+    comment: Number of workspaces with usage
+    display_name: Active Workspaces
     format:
-      type: currency
-      currency_code: USD
-      decimal_places:
-        type: exact
-        places: 2
+      type: number
+    synonyms:
+      - workspace count
+      - workspaces
+  
+  - name: active_users
+    expr: COUNT(DISTINCT source.identity_metadata_run_as)
+    comment: Number of unique users/principals with usage
+    display_name: Active Users
+    format:
+      type: number
+    synonyms:
+      - user count
+      - users
+      - principals
+  
+  - name: active_jobs
+    expr: COUNT(DISTINCT source.usage_metadata_job_id)
+    comment: Number of unique jobs with usage
+    display_name: Active Jobs
+    format:
+      type: number
       abbreviation: compact
     synonyms:
-      - serverless spend
-      - serverless expense
-
-  - name: classic_cost
-    expr: SUM(CASE WHEN source.product_features_is_serverless = FALSE OR source.product_features_is_serverless IS NULL THEN source.list_cost ELSE 0 END)
-    comment: Total cost from classic (non-serverless) compute
-    display_name: Classic Cost
+      - job count
+      - jobs
+      - workflows
+  
+  - name: usage_days
+    expr: COUNT(DISTINCT source.usage_date)
+    comment: Number of days with usage
+    display_name: Usage Days
     format:
-      type: currency
-      currency_code: USD
-      decimal_places:
-        type: exact
-        places: 2
+      type: number
+    synonyms:
+      - days
+      - active days
+
+  - name: usage_records
+    expr: COUNT(source.record_id)
+    comment: Number of billing records
+    display_name: Records
+    format:
+      type: number
       abbreviation: compact
     synonyms:
-      - traditional cost
-      - non-serverless cost
+      - record count
+      - billing records
 
-  - name: serverless_cost_pct
-    expr: (SUM(CASE WHEN source.product_features_is_serverless = TRUE THEN source.list_cost ELSE 0 END) * 100.0) / NULLIF(SUM(source.list_cost), 0)
-    comment: Percentage of total cost from serverless compute
-    display_name: Serverless %
-    format:
-      type: percentage
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - serverless percentage
-      - serverless ratio
-
-  # === Tag-Based Cost Attribution (Critical for Chargeback) ===
+  # === Tag Coverage Measures ===
   - name: tagged_cost
     expr: SUM(CASE WHEN source.is_tagged = TRUE THEN source.list_cost ELSE 0 END)
-    comment: Cost from resources with custom tags. Use for chargeback attribution.
+    comment: Cost from resources that have custom tags assigned
     display_name: Tagged Cost
     format:
       type: currency
@@ -416,11 +380,10 @@ measures:
     synonyms:
       - tagged spend
       - attributed cost
-      - allocated cost
-
+  
   - name: untagged_cost
-    expr: SUM(CASE WHEN source.is_tagged = FALSE THEN source.list_cost ELSE 0 END)
-    comment: Cost from resources without custom tags. Needs tagging for proper attribution.
+    expr: SUM(CASE WHEN source.is_tagged = FALSE OR source.is_tagged IS NULL THEN source.list_cost ELSE 0 END)
+    comment: Cost from resources without custom tags - needs tagging for proper attribution
     display_name: Untagged Cost
     format:
       type: currency
@@ -432,11 +395,10 @@ measures:
     synonyms:
       - unattributed cost
       - cost needing tags
-      - missing tags cost
-
+  
   - name: tag_coverage_pct
     expr: (SUM(CASE WHEN source.is_tagged = TRUE THEN source.list_cost ELSE 0 END) * 100.0) / NULLIF(SUM(source.list_cost), 0)
-    comment: Percentage of cost that has custom tags for attribution. Goal is 100%.
+    comment: Percentage of cost that has custom tags for attribution
     display_name: Tag Coverage %
     format:
       type: percentage
@@ -447,78 +409,12 @@ measures:
       - tag coverage
       - tagging rate
       - attribution rate
-      - tag compliance
 
-  # === Activity & Volume Measures ===
-  - name: record_count
-    expr: COUNT(source.record_id)
-    comment: Number of usage records for volume analysis
-    display_name: Records
-    format:
-      type: number
-      abbreviation: compact
-    synonyms:
-      - count
-      - row count
-      - usage records
-
-  - name: active_workspaces
-    expr: COUNT(DISTINCT source.workspace_id)
-    comment: Number of workspaces with usage in this period
-    display_name: Active Workspaces
-    format:
-      type: number
-    synonyms:
-      - workspace count
-      - workspaces
-      - environments
-
-  - name: active_users
-    expr: COUNT(DISTINCT source.identity_metadata_run_as)
-    comment: Number of unique users/principals with usage
-    display_name: Active Users
-    format:
-      type: number
-    synonyms:
-      - user count
-      - users
-      - principals
-
-  - name: usage_days
-    expr: COUNT(DISTINCT source.usage_date)
-    comment: Number of days with usage activity
-    display_name: Usage Days
-    format:
-      type: number
-    synonyms:
-      - days
-      - active days
-
-  - name: unique_skus
-    expr: COUNT(DISTINCT source.sku_name)
-    comment: Number of different SKUs/products used
-    display_name: Unique SKUs
-    format:
-      type: number
-    synonyms:
-      - sku count
-      - product count
-
-  - name: unique_jobs
-    expr: COUNT(DISTINCT source.usage_metadata_job_id)
-    comment: Number of unique jobs with usage
-    display_name: Unique Jobs
-    format:
-      type: number
-    synonyms:
-      - job count
-      - workflows
-
-  # === Blog-Derived Measures (Workflow Advisor) ===
-  - name: all_purpose_cost
-    expr: SUM(CASE WHEN source.sku_name LIKE '%ALL_PURPOSE%' OR source.sku_name LIKE '%INTERACTIVE%' THEN source.list_cost ELSE 0 END)
-    comment: Cost from All-Purpose clusters - these are less cost-efficient than Job clusters (from Workflow Advisor blog)
-    display_name: All-Purpose Cost
+  # === Serverless vs Classic Cost ===
+  - name: serverless_cost
+    expr: SUM(CASE WHEN source.product_features_is_serverless THEN source.list_cost ELSE 0 END)
+    comment: Total serverless compute cost
+    display_name: Serverless Cost
     format:
       type: currency
       currency_code: USD
@@ -527,14 +423,12 @@ measures:
         places: 2
       abbreviation: compact
     synonyms:
-      - interactive cost
-      - all purpose spend
-      - ad hoc cost
-
-  - name: jobs_cost
-    expr: SUM(CASE WHEN source.sku_name LIKE '%JOBS%' AND source.sku_name NOT LIKE '%ALL_PURPOSE%' THEN source.list_cost ELSE 0 END)
-    comment: Cost from dedicated Job clusters - more cost-efficient than All-Purpose (from Workflow Advisor blog)
-    display_name: Jobs Compute Cost
+      - serverless spend
+  
+  - name: classic_compute_cost
+    expr: SUM(CASE WHEN NOT source.product_features_is_serverless OR source.product_features_is_serverless IS NULL THEN source.list_cost ELSE 0 END)
+    comment: Total classic (non-serverless) compute cost
+    display_name: Classic Compute Cost
     format:
       type: currency
       currency_code: USD
@@ -543,27 +437,27 @@ measures:
         places: 2
       abbreviation: compact
     synonyms:
-      - job cluster cost
-      - automation cost
-      - jobs spend
-
-  - name: all_purpose_cost_pct
-    expr: (SUM(CASE WHEN source.sku_name LIKE '%ALL_PURPOSE%' OR source.sku_name LIKE '%INTERACTIVE%' THEN source.list_cost ELSE 0 END) * 100.0) / NULLIF(SUM(source.list_cost), 0)
-    comment: Percentage of cost from All-Purpose clusters - target is to minimize this (from Workflow Advisor blog)
-    display_name: All-Purpose %
+      - classic spend
+      - cluster cost
+  
+  - name: serverless_ratio
+    expr: (SUM(CASE WHEN source.product_features_is_serverless THEN source.list_cost ELSE 0 END) * 100.0) / NULLIF(SUM(source.list_cost), 0)
+    comment: Percentage of spend on serverless compute
+    display_name: Serverless Ratio
     format:
       type: percentage
       decimal_places:
         type: exact
         places: 1
     synonyms:
-      - interactive percentage
-      - all purpose ratio
+      - serverless percentage
+      - serverless adoption
 
-  - name: sql_warehouse_cost
-    expr: SUM(CASE WHEN source.sku_name LIKE '%SQL%' OR source.sku_name LIKE '%DBSQL%' THEN source.list_cost ELSE 0 END)
-    comment: Cost from SQL Warehouses
-    display_name: SQL Warehouse Cost
+  # === Period Comparison Measures (Dashboard Pattern) ===
+  - name: last_7_day_cost
+    expr: SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -7) THEN source.list_cost ELSE 0 END)
+    comment: Total cost in the last 7 days
+    display_name: Last 7 Day Cost
     format:
       type: currency
       currency_code: USD
@@ -572,14 +466,13 @@ measures:
         places: 2
       abbreviation: compact
     synonyms:
-      - dbsql cost
-      - sql cost
-      - analytics cost
-
-  - name: model_serving_cost
-    expr: SUM(CASE WHEN source.sku_name LIKE '%MODEL_SERVING%' OR source.sku_name LIKE '%INFERENCE%' THEN source.list_cost ELSE 0 END)
-    comment: Cost from Model Serving endpoints
-    display_name: Model Serving Cost
+      - this week cost
+      - recent week spend
+  
+  - name: prior_7_day_cost
+    expr: SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -14) AND source.usage_date < DATE_ADD(CURRENT_DATE(), -7) THEN source.list_cost ELSE 0 END)
+    comment: Total cost in the 7 days prior to last week
+    display_name: Prior 7 Day Cost
     format:
       type: currency
       currency_code: USD
@@ -588,33 +481,131 @@ measures:
         places: 2
       abbreviation: compact
     synonyms:
-      - inference cost
-      - ml serving cost
-
-  - name: photon_cost
-    expr: SUM(CASE WHEN source.product_features_is_photon = TRUE THEN source.list_cost ELSE 0 END)
-    comment: Cost from Photon-accelerated workloads
-    display_name: Photon Cost
-    format:
-      type: currency
-      currency_code: USD
-      decimal_places:
-        type: exact
-        places: 2
-      abbreviation: compact
-    synonyms:
-      - accelerated cost
-      - photon spend
-
-  - name: photon_cost_pct
-    expr: (SUM(CASE WHEN source.product_features_is_photon = TRUE THEN source.list_cost ELSE 0 END) * 100.0) / NULLIF(SUM(source.list_cost), 0)
-    comment: Percentage of cost using Photon acceleration
-    display_name: Photon %
+      - last week cost
+      - previous week spend
+  
+  - name: week_over_week_growth_pct
+    expr: >
+      (SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -7) THEN source.list_cost ELSE 0 END) -
+       SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -14) AND source.usage_date < DATE_ADD(CURRENT_DATE(), -7) THEN source.list_cost ELSE 0 END)) * 100.0 /
+      NULLIF(SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -14) AND source.usage_date < DATE_ADD(CURRENT_DATE(), -7) THEN source.list_cost ELSE 0 END), 0)
+    comment: Week-over-week cost growth percentage
+    display_name: WoW Growth %
     format:
       type: percentage
       decimal_places:
         type: exact
         places: 1
     synonyms:
-      - photon percentage
-      - accelerated ratio
+      - weekly growth
+      - wow change
+      - week over week
+  
+  - name: last_30_day_cost
+    expr: SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30) THEN source.list_cost ELSE 0 END)
+    comment: Total cost in the last 30 days
+    display_name: Last 30 Day Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - this month cost
+      - recent month spend
+  
+  - name: prior_30_day_cost
+    expr: SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -60) AND source.usage_date < DATE_ADD(CURRENT_DATE(), -30) THEN source.list_cost ELSE 0 END)
+    comment: Total cost in the 30 days prior to last month
+    display_name: Prior 30 Day Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - last month cost
+      - previous month spend
+  
+  - name: month_over_month_growth_pct
+    expr: >
+      (SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30) THEN source.list_cost ELSE 0 END) -
+       SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -60) AND source.usage_date < DATE_ADD(CURRENT_DATE(), -30) THEN source.list_cost ELSE 0 END)) * 100.0 /
+      NULLIF(SUM(CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -60) AND source.usage_date < DATE_ADD(CURRENT_DATE(), -30) THEN source.list_cost ELSE 0 END), 0)
+    comment: Month-over-month cost growth percentage (30 vs prior 30 days)
+    display_name: MoM Growth %
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - monthly growth
+      - mom change
+      - month over month
+
+  # === MTD/YTD Measures ===
+  - name: mtd_cost
+    expr: SUM(CASE WHEN source.usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN source.list_cost ELSE 0 END)
+    comment: Month-to-date cost (current month only)
+    display_name: MTD Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - month to date
+      - current month spend
+  
+  - name: ytd_cost
+    expr: SUM(CASE WHEN source.usage_date >= DATE_TRUNC('year', CURRENT_DATE()) THEN source.list_cost ELSE 0 END)
+    comment: Year-to-date cost (current year only)
+    display_name: YTD Cost
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+      abbreviation: compact
+    synonyms:
+      - year to date
+      - annual spend
+
+  # === 30-Day Entity Counts (KPI Pattern) ===
+  - name: unique_jobs_30d
+    expr: COUNT(DISTINCT CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30) THEN source.usage_metadata_job_id END)
+    comment: Count of unique jobs that incurred cost in last 30 days
+    display_name: Active Jobs (30d)
+    format:
+      type: number
+    synonyms:
+      - job count 30d
+      - recent jobs
+  
+  - name: unique_users_30d
+    expr: COUNT(DISTINCT CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30) THEN source.identity_metadata_run_as END)
+    comment: Count of unique users who ran workloads in last 30 days
+    display_name: Active Users (30d)
+    format:
+      type: number
+    synonyms:
+      - user count 30d
+      - recent users
+  
+  - name: unique_workspaces_30d
+    expr: COUNT(DISTINCT CASE WHEN source.usage_date >= DATE_ADD(CURRENT_DATE(), -30) THEN source.workspace_id END)
+    comment: Count of unique workspaces with activity in last 30 days
+    display_name: Active Workspaces (30d)
+    format:
+      type: number
+    synonyms:
+      - workspace count 30d
+      - recent workspaces

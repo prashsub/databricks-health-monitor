@@ -1,0 +1,434 @@
+# Metric View: governance_analytics
+# Data lineage and governance analytics for compliance and impact analysis
+#
+# Agent Domain: Security (Governance sub-domain)
+# Source: fact_table_lineage (governance domain)
+# Schema validation done against: gold_layer_design/yaml/governance/fact_table_lineage.yaml
+#
+# Key Business Questions Answered:
+#   - Who accessed this table?
+#   - What tables are most frequently accessed?
+#   - Which jobs read from this table?
+#   - Show me the data lineage for table X
+#   - What tables haven't been accessed in 30 days?
+#   - Show read/write activity by user
+
+version: "1.1"
+comment: >
+  PURPOSE: Data lineage and governance analytics for compliance and impact analysis.
+  
+  BEST FOR: Who accessed this table | Most frequently accessed tables | Jobs reading from table | 
+  Tables not accessed in 30 days | Read vs write operations | Data consumers analysis
+  
+  NOT FOR: Security audit events (use security_events) | Real-time lineage (use get_table_lineage TVF)
+  
+  DIMENSIONS: source_table_full_name, target_table_full_name, entity_type, created_by, workspace_name, activity_status
+  
+  MEASURES: total_events, read_events, write_events, read_write_ratio, active_table_count, inactive_table_count, unique_users
+  
+  SOURCE: fact_table_lineage (governance domain)
+  
+  JOINS: dim_workspace (workspace details)
+  
+  NOTE: Activity status based on recency (ACTIVE if accessed in 30 days). Uses entity_metadata for job/pipeline details.
+
+source: ${catalog}.${gold_schema}.fact_table_lineage
+
+joins:
+  - name: dim_workspace
+    source: ${catalog}.${gold_schema}.dim_workspace
+    'on': source.workspace_id = dim_workspace.workspace_id
+
+dimensions:
+  # === Source Table Dimensions ===
+  - name: source_table_full_name
+    expr: source.source_table_full_name
+    comment: Fully qualified name of the source (read) table (catalog.schema.table)
+    display_name: Source Table
+    synonyms:
+      - read table
+      - input table
+      - source
+  
+  - name: source_catalog
+    expr: source.source_table_catalog
+    comment: Catalog containing the source table
+    display_name: Source Catalog
+    synonyms:
+      - source catalog
+      - read catalog
+  
+  - name: source_schema
+    expr: source.source_table_schema
+    comment: Schema containing the source table
+    display_name: Source Schema
+    synonyms:
+      - source schema
+      - read schema
+  
+  - name: source_table_name
+    expr: source.source_table_name
+    comment: Name of the source table (without catalog/schema prefix)
+    display_name: Source Table Name
+    synonyms:
+      - read table name
+  
+  - name: source_type
+    expr: source.source_type
+    comment: Type of source (TABLE, VIEW, STREAMING_TABLE, PATH, etc.)
+    display_name: Source Type
+    synonyms:
+      - input type
+
+  # === Target Table Dimensions ===
+  - name: target_table_full_name
+    expr: source.target_table_full_name
+    comment: Fully qualified name of the target (write) table (catalog.schema.table)
+    display_name: Target Table
+    synonyms:
+      - write table
+      - output table
+      - destination
+  
+  - name: target_catalog
+    expr: source.target_table_catalog
+    comment: Catalog containing the target table
+    display_name: Target Catalog
+    synonyms:
+      - target catalog
+      - write catalog
+  
+  - name: target_schema
+    expr: source.target_table_schema
+    comment: Schema containing the target table
+    display_name: Target Schema
+    synonyms:
+      - target schema
+      - write schema
+  
+  - name: target_table_name
+    expr: source.target_table_name
+    comment: Name of the target table (without catalog/schema prefix)
+    display_name: Target Table Name
+    synonyms:
+      - write table name
+  
+  - name: target_type
+    expr: source.target_type
+    comment: Type of target (TABLE, VIEW, STREAMING_TABLE, PATH, etc.)
+    display_name: Target Type
+    synonyms:
+      - output type
+
+  # === Entity Dimensions ===
+  - name: entity_type
+    expr: source.entity_type
+    comment: Type of entity that caused the lineage event (NOTEBOOK, JOB, PIPELINE, DASHBOARD_V3, etc.)
+    display_name: Entity Type
+    synonyms:
+      - source type
+      - trigger type
+  
+  - name: entity_id
+    expr: source.entity_id
+    comment: ID of the entity (job ID, notebook ID, etc.)
+    display_name: Entity ID
+    synonyms:
+      - source id
+  
+  - name: created_by
+    expr: source.created_by
+    comment: User or service principal who generated the lineage event
+    display_name: User
+    synonyms:
+      - user
+      - accessed by
+      - performed by
+
+  # === Workspace Dimensions ===
+  - name: workspace_id
+    expr: source.workspace_id
+    comment: Workspace identifier
+    display_name: Workspace ID
+    synonyms:
+      - workspace
+  
+  - name: workspace_name
+    expr: dim_workspace.workspace_name
+    comment: Human-readable workspace name
+    display_name: Workspace
+    synonyms:
+      - workspace
+      - environment
+
+  # === Operation Type Dimension ===
+  - name: operation_type
+    expr: >
+      CASE
+        WHEN source.source_table_full_name IS NOT NULL AND source.target_table_full_name IS NOT NULL THEN 'READ_WRITE'
+        WHEN source.source_table_full_name IS NOT NULL THEN 'READ'
+        WHEN source.target_table_full_name IS NOT NULL THEN 'WRITE'
+        ELSE 'UNKNOWN'
+      END
+    comment: Type of operation (READ, WRITE, READ_WRITE)
+    display_name: Operation Type
+    synonyms:
+      - operation
+      - access type
+
+  # === Activity Status Dimension ===
+  - name: activity_status
+    expr: >
+      CASE
+        WHEN source.event_date >= DATE_ADD(CURRENT_DATE(), -30) THEN 'ACTIVE'
+        WHEN source.event_date >= DATE_ADD(CURRENT_DATE(), -90) THEN 'MODERATE'
+        ELSE 'INACTIVE'
+      END
+    comment: Activity status based on recency (ACTIVE if accessed in 30 days, MODERATE if 30-90 days, INACTIVE otherwise)
+    display_name: Activity Status
+    synonyms:
+      - status
+      - recency
+
+  # === Time Dimensions ===
+  - name: event_date
+    expr: source.event_date
+    comment: Date of lineage event
+    display_name: Event Date
+    synonyms:
+      - date
+  
+  - name: year
+    expr: YEAR(source.event_time)
+    comment: Year of event
+    display_name: Year
+    synonyms:
+      - year
+  
+  - name: month
+    expr: MONTH(source.event_time)
+    comment: Month number (1-12) of event
+    display_name: Month
+    synonyms:
+      - month
+  
+  - name: week_of_year
+    expr: WEEKOFYEAR(source.event_time)
+    comment: Week number in year
+    display_name: Week
+    synonyms:
+      - week
+
+measures:
+  # === Primary Event Counts ===
+  - name: total_events
+    expr: COUNT(*)
+    comment: Total number of lineage events
+    display_name: Total Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - events
+      - lineage events
+      - operations
+  
+  - name: read_events
+    expr: SUM(CASE WHEN source.source_table_full_name IS NOT NULL THEN 1 ELSE 0 END)
+    comment: Number of table read operations
+    display_name: Read Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - reads
+      - read operations
+      - table reads
+  
+  - name: write_events
+    expr: SUM(CASE WHEN source.target_table_full_name IS NOT NULL THEN 1 ELSE 0 END)
+    comment: Number of table write operations
+    display_name: Write Events
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - writes
+      - write operations
+      - table writes
+  
+  - name: read_write_ratio
+    expr: SUM(CASE WHEN source.source_table_full_name IS NOT NULL THEN 1 ELSE 0 END) * 1.0 / NULLIF(SUM(CASE WHEN source.target_table_full_name IS NOT NULL THEN 1 ELSE 0 END), 0)
+    comment: Ratio of read to write operations (higher = more read-heavy workload)
+    display_name: Read/Write Ratio
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+    synonyms:
+      - read write ratio
+      - io ratio
+
+  # === Table Activity Measures ===
+  - name: active_table_count
+    expr: COUNT(DISTINCT CASE WHEN source.event_date >= DATE_ADD(CURRENT_DATE(), -30) THEN COALESCE(source.source_table_full_name, source.target_table_full_name) END)
+    comment: Tables with read or write activity in last 30 days
+    display_name: Active Tables
+    format:
+      type: number
+    synonyms:
+      - tables with activity
+      - used tables
+      - active tables 30d
+
+  - name: inactive_table_count
+    expr: COUNT(DISTINCT CASE WHEN source.event_date < DATE_ADD(CURRENT_DATE(), -30) THEN COALESCE(source.source_table_full_name, source.target_table_full_name) END)
+    comment: Tables without activity in last 30 days
+    display_name: Inactive Tables
+    format:
+      type: number
+    synonyms:
+      - unused tables
+      - stale tables
+
+  - name: unique_source_tables
+    expr: COUNT(DISTINCT source.source_table_full_name)
+    comment: Number of unique source (read) tables
+    display_name: Source Tables
+    format:
+      type: number
+    synonyms:
+      - read tables
+      - input tables
+
+  - name: unique_target_tables
+    expr: COUNT(DISTINCT source.target_table_full_name)
+    comment: Number of unique target (write) tables
+    display_name: Target Tables
+    format:
+      type: number
+    synonyms:
+      - write tables
+      - output tables
+
+  - name: unique_tables
+    expr: COUNT(DISTINCT COALESCE(source.source_table_full_name, source.target_table_full_name))
+    comment: Number of unique tables accessed (read or write)
+    display_name: Tables Accessed
+    format:
+      type: number
+    synonyms:
+      - tables
+      - table count
+
+  # === User/Entity Measures ===
+  - name: unique_users
+    expr: COUNT(DISTINCT source.created_by)
+    comment: Number of unique users accessing data
+    display_name: Unique Users
+    format:
+      type: number
+    synonyms:
+      - users
+      - user count
+      - data consumers
+
+  - name: unique_jobs
+    expr: COUNT(DISTINCT source.entity_metadata_job_id)
+    comment: Number of unique jobs accessing data
+    display_name: Jobs
+    format:
+      type: number
+    synonyms:
+      - job count
+
+  - name: unique_pipelines
+    expr: COUNT(DISTINCT source.entity_metadata_pipeline_id)
+    comment: Number of unique pipelines accessing data
+    display_name: Pipelines
+    format:
+      type: number
+    synonyms:
+      - pipeline count
+      - dlt pipelines
+
+  - name: unique_notebooks
+    expr: COUNT(DISTINCT source.entity_metadata_notebook_id)
+    comment: Number of unique notebooks accessing data
+    display_name: Notebooks
+    format:
+      type: number
+    synonyms:
+      - notebook count
+
+  # === Time-Windowed Measures ===
+  - name: events_today
+    expr: COUNT(CASE WHEN source.event_date = CURRENT_DATE() THEN 1 END)
+    comment: Number of lineage events today
+    display_name: Events Today
+    format:
+      type: number
+    synonyms:
+      - today's events
+
+  - name: events_7d
+    expr: COUNT(CASE WHEN source.event_date >= DATE_ADD(CURRENT_DATE(), -7) THEN 1 END)
+    comment: Number of lineage events in last 7 days
+    display_name: Events (7d)
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - weekly events
+      - last week events
+
+  - name: events_30d
+    expr: COUNT(CASE WHEN source.event_date >= DATE_ADD(CURRENT_DATE(), -30) THEN 1 END)
+    comment: Number of lineage events in last 30 days
+    display_name: Events (30d)
+    format:
+      type: number
+      abbreviation: compact
+    synonyms:
+      - monthly events
+      - last month events
+
+  # === Entity Type Counts ===
+  - name: job_events
+    expr: SUM(CASE WHEN source.entity_type = 'JOB' THEN 1 ELSE 0 END)
+    comment: Events triggered by jobs
+    display_name: Job Events
+    format:
+      type: number
+    synonyms:
+      - job lineage
+
+  - name: notebook_events
+    expr: SUM(CASE WHEN source.entity_type = 'NOTEBOOK' THEN 1 ELSE 0 END)
+    comment: Events triggered by notebooks
+    display_name: Notebook Events
+    format:
+      type: number
+    synonyms:
+      - notebook lineage
+
+  - name: pipeline_events
+    expr: SUM(CASE WHEN source.entity_type = 'PIPELINE' THEN 1 ELSE 0 END)
+    comment: Events triggered by DLT pipelines
+    display_name: Pipeline Events
+    format:
+      type: number
+    synonyms:
+      - pipeline lineage
+      - dlt events
+
+  - name: dashboard_events
+    expr: SUM(CASE WHEN source.entity_type IN ('DASHBOARD_V3', 'DBSQL_DASHBOARD') THEN 1 ELSE 0 END)
+    comment: Events triggered by dashboards
+    display_name: Dashboard Events
+    format:
+      type: number
+    synonyms:
+      - dashboard lineage
+

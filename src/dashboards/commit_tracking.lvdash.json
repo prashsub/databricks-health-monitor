@@ -1,0 +1,152 @@
+{
+  "displayName": "Commit Tracking & Budget Forecast Dashboard",
+  "warehouse_id": "${warehouse_id}",
+  "pages": [
+    {
+      "name": "page_commit_overview",
+      "displayName": "Commit vs Actual",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_annual_commit",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_commit_summary", "fields": [{"name": "annual_commit", "expression": "`annual_commit`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "annual_commit"}},
+              "frame": {"showTitle": true, "title": "Annual Commit", "description": "Total annual commit amount"}
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_ytd_spend",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_commit_summary", "fields": [{"name": "ytd_spend", "expression": "`ytd_spend`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "ytd_spend"}},
+              "frame": {"showTitle": true, "title": "YTD Spend", "description": "Year-to-date actual spend"}
+            }
+          },
+          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_commit_status",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_commit_summary", "fields": [{"name": "commit_status", "expression": "`commit_status`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "commit_status"}},
+              "frame": {"showTitle": true, "title": "Commit Status", "description": "On Track / Behind / Ahead"}
+            }
+          },
+          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "chart_commit_vs_actual",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_monthly_spend", "fields": [{"name": "month_start", "expression": "`month_start`"}, {"name": "monthly_cost", "expression": "`monthly_cost`"}, {"name": "monthly_target", "expression": "`monthly_target`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {"fieldName": "month_start", "displayName": "Month", "scale": {"type": "temporal"}},
+                "y": {"fieldName": "monthly_cost", "displayName": "Actual Spend ($)", "scale": {"type": "quantitative"}}
+              },
+              "frame": {"showTitle": true, "title": "Monthly Spend vs Target", "description": "Actual spend against monthly commit target"}
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_cumulative_spend",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_cumulative", "fields": [{"name": "month_start", "expression": "`month_start`"}, {"name": "ytd_spend", "expression": "`ytd_spend`"}, {"name": "required_run_rate", "expression": "`required_run_rate`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {"fieldName": "month_start", "displayName": "Month", "scale": {"type": "temporal"}},
+                "y": {"fieldName": "ytd_spend", "displayName": "Cumulative Spend ($)", "scale": {"type": "quantitative"}}
+              },
+              "frame": {"showTitle": true, "title": "YTD Cumulative Spend", "description": "Cumulative spend tracking toward annual commit"}
+            }
+          },
+          "position": {"x": 3, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "kpi_projected_variance",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_projection", "fields": [{"name": "projected_variance", "expression": "`projected_variance`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "projected_variance"}},
+              "frame": {"showTitle": true, "title": "Projected Variance", "description": "Expected overshoot/undershoot"}
+            }
+          },
+          "position": {"x": 0, "y": 8, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_run_rate",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_projection", "fields": [{"name": "actual_run_rate", "expression": "`actual_run_rate`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "actual_run_rate"}},
+              "frame": {"showTitle": true, "title": "Actual Run Rate", "description": "Current monthly burn rate"}
+            }
+          },
+          "position": {"x": 2, "y": 8, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_required_rate",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_projection", "fields": [{"name": "required_monthly_rate", "expression": "`required_monthly_rate`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "required_monthly_rate"}},
+              "frame": {"showTitle": true, "title": "Required Run Rate", "description": "Monthly rate to meet commit"}
+            }
+          },
+          "position": {"x": 4, "y": 8, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "table_monthly_detail",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_monthly_detail", "fields": [{"name": "month_name", "expression": "`month_name`"}, {"name": "monthly_cost", "expression": "`monthly_cost`"}, {"name": "monthly_target", "expression": "`monthly_target`"}, {"name": "variance", "expression": "`variance`"}, {"name": "variance_pct", "expression": "`variance_pct`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {"showTitle": true, "title": "Monthly Spend Detail"},
+              "encodings": {
+                "columns": [
+                  {"fieldName": "month_name", "title": "Month"},
+                  {"fieldName": "monthly_cost", "title": "Actual ($)"},
+                  {"fieldName": "monthly_target", "title": "Target ($)"},
+                  {"fieldName": "variance", "title": "Variance ($)"},
+                  {"fieldName": "variance_pct", "title": "Variance %"}
+                ]
+              },
+              "itemsPerPage": 12
+            }
+          },
+          "position": {"x": 0, "y": 10, "width": 6, "height": 6}
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {"name": "ds_commit_summary", "query": "WITH commit_config AS (SELECT annual_commit_amount FROM ${catalog}.${gold_schema}.commit_configurations WHERE commit_year = YEAR(CURRENT_DATE()) LIMIT 1), ytd AS (SELECT SUM(list_cost) AS total FROM ${catalog}.${gold_schema}.fact_usage WHERE YEAR(usage_date) = YEAR(CURRENT_DATE())) SELECT CONCAT('$', FORMAT_NUMBER(COALESCE(c.annual_commit_amount, 0), 0)) AS annual_commit, CONCAT('$', FORMAT_NUMBER(COALESCE(y.total, 0), 0)) AS ytd_spend, CASE WHEN y.total / NULLIF(c.annual_commit_amount * (DAYOFYEAR(CURRENT_DATE()) / 365.0), 0) > 1.05 THEN 'OVERSPENDING' WHEN y.total / NULLIF(c.annual_commit_amount * (DAYOFYEAR(CURRENT_DATE()) / 365.0), 0) < 0.95 THEN 'UNDERSPENDING' ELSE 'ON TRACK' END AS commit_status FROM commit_config c CROSS JOIN ytd y"},
+    {"name": "ds_monthly_spend", "query": "WITH monthly AS (SELECT DATE_TRUNC('month', usage_date) AS month_start, SUM(list_cost) AS monthly_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE YEAR(usage_date) = YEAR(CURRENT_DATE()) GROUP BY DATE_TRUNC('month', usage_date)), target AS (SELECT annual_commit_amount / 12 AS monthly_target FROM ${catalog}.${gold_schema}.commit_configurations WHERE commit_year = YEAR(CURRENT_DATE()) LIMIT 1) SELECT m.month_start, ROUND(m.monthly_cost, 2) AS monthly_cost, ROUND(COALESCE(t.monthly_target, 0), 2) AS monthly_target FROM monthly m CROSS JOIN target t ORDER BY m.month_start"},
+    {"name": "ds_cumulative", "query": "WITH monthly AS (SELECT DATE_TRUNC('month', usage_date) AS month_start, SUM(list_cost) AS monthly_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE YEAR(usage_date) = YEAR(CURRENT_DATE()) GROUP BY DATE_TRUNC('month', usage_date)), target AS (SELECT annual_commit_amount FROM ${catalog}.${gold_schema}.commit_configurations WHERE commit_year = YEAR(CURRENT_DATE()) LIMIT 1) SELECT m.month_start, SUM(m.monthly_cost) OVER (ORDER BY m.month_start) AS ytd_spend, (t.annual_commit_amount - SUM(m.monthly_cost) OVER (ORDER BY m.month_start)) / NULLIF(12 - MONTH(m.month_start), 0) AS required_run_rate FROM monthly m CROSS JOIN target t ORDER BY m.month_start"},
+    {"name": "ds_projection", "query": "WITH monthly AS (SELECT SUM(list_cost) AS total, COUNT(DISTINCT DATE_TRUNC('month', usage_date)) AS months FROM ${catalog}.${gold_schema}.fact_usage WHERE YEAR(usage_date) = YEAR(CURRENT_DATE())), target AS (SELECT annual_commit_amount FROM ${catalog}.${gold_schema}.commit_configurations WHERE commit_year = YEAR(CURRENT_DATE()) LIMIT 1) SELECT CONCAT('$', FORMAT_NUMBER(ROUND((m.total / NULLIF(m.months, 0) * 12) - t.annual_commit_amount, 0), 0)) AS projected_variance, CONCAT('$', FORMAT_NUMBER(ROUND(m.total / NULLIF(m.months, 0), 0), 0)) AS actual_run_rate, CONCAT('$', FORMAT_NUMBER(ROUND((t.annual_commit_amount - m.total) / NULLIF(12 - m.months, 0), 0), 0)) AS required_monthly_rate FROM monthly m CROSS JOIN target t"},
+    {"name": "ds_monthly_detail", "query": "WITH monthly AS (SELECT DATE_TRUNC('month', usage_date) AS month_start, DATE_FORMAT(DATE_TRUNC('month', usage_date), 'MMM yyyy') AS month_name, SUM(list_cost) AS monthly_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE YEAR(usage_date) = YEAR(CURRENT_DATE()) GROUP BY DATE_TRUNC('month', usage_date), DATE_FORMAT(DATE_TRUNC('month', usage_date), 'MMM yyyy')), target AS (SELECT annual_commit_amount / 12 AS monthly_target FROM ${catalog}.${gold_schema}.commit_configurations WHERE commit_year = YEAR(CURRENT_DATE()) LIMIT 1) SELECT m.month_name, ROUND(m.monthly_cost, 2) AS monthly_cost, ROUND(t.monthly_target, 2) AS monthly_target, ROUND(m.monthly_cost - t.monthly_target, 2) AS variance, CONCAT(ROUND((m.monthly_cost - t.monthly_target) * 100 / NULLIF(t.monthly_target, 0), 1), '%') AS variance_pct FROM monthly m CROSS JOIN target t ORDER BY m.month_start"}
+  ]
+}
+

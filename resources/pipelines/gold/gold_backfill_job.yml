@@ -1,5 +1,5 @@
 # Gold Layer Historical Backfill Job
-# Processes historical data in monthly chunks for large tables
+# Processes historical data in 2-week chunks for large tables (reduced from monthly to prevent timeouts)
 # Works alongside incremental job - backfills data BEFORE current Gold min date
 #
 # Usage:
@@ -12,7 +12,7 @@ resources:
     gold_backfill_job:
       name: "[${bundle.target}] Health Monitor - Gold Historical Backfill"
       description: >
-        Processes historical data in monthly chunks for large Gold tables.
+        Processes historical data in 2-week chunks for large Gold tables (reduced from monthly to prevent timeouts).
         Runs 3 parallel tasks: fact_audit_logs, fact_usage, fact_query_history.
         Backfills data BEFORE the current Gold table's minimum date.
         Run alongside incremental job - they don't overlap.
@@ -42,7 +42,7 @@ resources:
         - task_key: backfill_fact_audit_logs
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/backfill_large_tables.py
+            notebook_path: ../../../src/pipelines/gold/backfill_large_tables.py
             base_parameters:
               catalog: "{{job.parameters.catalog}}"
               bronze_schema: "{{job.parameters.bronze_schema}}"
@@ -54,7 +54,7 @@ resources:
         - task_key: backfill_fact_usage
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/backfill_large_tables.py
+            notebook_path: ../../../src/pipelines/gold/backfill_large_tables.py
             base_parameters:
               catalog: "{{job.parameters.catalog}}"
               bronze_schema: "{{job.parameters.bronze_schema}}"
@@ -66,7 +66,7 @@ resources:
         - task_key: backfill_fact_query_history
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/gold/backfill_large_tables.py
+            notebook_path: ../../../src/pipelines/gold/backfill_large_tables.py
             base_parameters:
               catalog: "{{job.parameters.catalog}}"
               bronze_schema: "{{job.parameters.bronze_schema}}"

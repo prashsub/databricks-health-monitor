@@ -1,0 +1,157 @@
+{
+  "displayName": "Data Governance Hub Dashboard",
+  "warehouse_id": "${warehouse_id}",
+  "pages": [
+    {
+      "name": "page_governance_overview",
+      "displayName": "Governance Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_tables",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_entity_counts", "fields": [{"name": "table_count", "expression": "`table_count`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "table_count"}},
+              "frame": {"showTitle": true, "title": "Total Tables", "description": "Managed tables in catalog"}
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_active_tables",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_active_tables", "fields": [{"name": "active_count", "expression": "`active_count`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "active_count"}},
+              "frame": {"showTitle": true, "title": "Active Tables", "description": "Tables accessed in 30 days"}
+            }
+          },
+          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_tag_coverage",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_tag_coverage", "fields": [{"name": "coverage_pct", "expression": "`coverage_pct`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "coverage_pct"}},
+              "frame": {"showTitle": true, "title": "Tag Coverage", "description": "% tables with tags"}
+            }
+          },
+          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "chart_active_inactive",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_activity_status", "fields": [{"name": "status", "expression": "`status`"}, {"name": "table_count", "expression": "`table_count`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {"fieldName": "table_count", "displayName": "Tables", "scale": {"type": "quantitative"}},
+                "color": {"fieldName": "status", "displayName": "Status", "scale": {"type": "categorical"}}
+              },
+              "frame": {"showTitle": true, "title": "Active vs Inactive Tables", "description": "Table activity in last 30 days"}
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart_lineage_trend",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_lineage_trend", "fields": [{"name": "event_date", "expression": "`event_date`"}, {"name": "read_count", "expression": "`read_count`"}, {"name": "write_count", "expression": "`write_count`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {"fieldName": "event_date", "displayName": "Date", "scale": {"type": "temporal"}},
+                "y": {"fieldName": "read_count", "displayName": "Events", "scale": {"type": "quantitative"}}
+              },
+              "frame": {"showTitle": true, "title": "Read/Write Activity Trend", "description": "Table access patterns over time"}
+            }
+          },
+          "position": {"x": 3, "y": 2, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_top_users",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_top_users", "fields": [{"name": "user_name", "expression": "`user_name`"}, {"name": "tables_accessed", "expression": "`tables_accessed`"}, {"name": "read_ops", "expression": "`read_ops`"}, {"name": "write_ops", "expression": "`write_ops`"}, {"name": "last_activity", "expression": "`last_activity`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {"showTitle": true, "title": "Top Users by Table Access", "description": "Users with most table interactions"},
+              "encodings": {
+                "columns": [
+                  {"fieldName": "user_name", "title": "User"},
+                  {"fieldName": "tables_accessed", "title": "Tables"},
+                  {"fieldName": "read_ops", "title": "Reads"},
+                  {"fieldName": "write_ops", "title": "Writes"},
+                  {"fieldName": "last_activity", "title": "Last Activity", "type": "datetime", "dateTimeFormat": "yyyy-MM-dd HH:mm"}
+                ]
+              },
+              "itemsPerPage": 15
+            }
+          },
+          "position": {"x": 0, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_no_comments",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_no_comments", "fields": [{"name": "table_name", "expression": "`table_name`"}, {"name": "schema_name", "expression": "`schema_name`"}, {"name": "access_count", "expression": "`access_count`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {"showTitle": true, "title": "Tables Without Comments", "description": "Popular tables missing documentation"},
+              "encodings": {
+                "columns": [
+                  {"fieldName": "table_name", "title": "Table"},
+                  {"fieldName": "schema_name", "title": "Schema"},
+                  {"fieldName": "access_count", "title": "Access Count"}
+                ]
+              },
+              "itemsPerPage": 15
+            }
+          },
+          "position": {"x": 3, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "table_inactive",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_inactive_tables", "fields": [{"name": "table_name", "expression": "`table_name`"}, {"name": "schema_name", "expression": "`schema_name`"}, {"name": "last_accessed", "expression": "`last_accessed`"}, {"name": "days_inactive", "expression": "`days_inactive`"}], "disaggregated": false}}],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "frame": {"showTitle": true, "title": "Inactive Tables", "description": "Tables not accessed in 30+ days"},
+              "encodings": {
+                "columns": [
+                  {"fieldName": "table_name", "title": "Table"},
+                  {"fieldName": "schema_name", "title": "Schema"},
+                  {"fieldName": "last_accessed", "title": "Last Accessed", "type": "datetime", "dateTimeFormat": "yyyy-MM-dd"},
+                  {"fieldName": "days_inactive", "title": "Days Inactive"}
+                ]
+              },
+              "itemsPerPage": 15
+            }
+          },
+          "position": {"x": 0, "y": 14, "width": 6, "height": 6}
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {"name": "ds_entity_counts", "query": "SELECT COUNT(DISTINCT table_name) AS table_count FROM ${catalog}.information_schema.tables WHERE table_schema = '${gold_schema}'"},
+    {"name": "ds_active_tables", "query": "SELECT COUNT(DISTINCT COALESCE(source_table_full_name, target_table_full_name)) AS active_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS"},
+    {"name": "ds_tag_coverage", "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN is_tagged THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS coverage_pct FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS"},
+    {"name": "ds_activity_status", "query": "WITH active AS (SELECT DISTINCT COALESCE(source_table_full_name, target_table_full_name) AS table_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS), all_tables AS (SELECT table_name FROM ${catalog}.information_schema.tables WHERE table_schema = '${gold_schema}') SELECT CASE WHEN a.table_name IS NOT NULL THEN 'Active' ELSE 'Inactive' END AS status, COUNT(*) AS table_count FROM all_tables t LEFT JOIN active a ON t.table_name = a.table_name GROUP BY CASE WHEN a.table_name IS NOT NULL THEN 'Active' ELSE 'Inactive' END"},
+    {"name": "ds_lineage_trend", "query": "SELECT event_date, SUM(CASE WHEN source_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS read_count, SUM(CASE WHEN target_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS write_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY event_date ORDER BY event_date"},
+    {"name": "ds_top_users", "query": "SELECT created_by AS user_name, COUNT(DISTINCT COALESCE(source_table_full_name, target_table_full_name)) AS tables_accessed, SUM(CASE WHEN source_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS read_ops, SUM(CASE WHEN target_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS write_ops, MAX(event_time) AS last_activity FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY created_by ORDER BY tables_accessed DESC LIMIT 20"},
+    {"name": "ds_no_comments", "query": "WITH usage AS (SELECT COALESCE(source_table_full_name, target_table_full_name) AS table_full_name, COUNT(*) AS access_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY COALESCE(source_table_full_name, target_table_full_name)) SELECT SPLIT(u.table_full_name, '.')[2] AS table_name, SPLIT(u.table_full_name, '.')[1] AS schema_name, u.access_count FROM usage u WHERE u.table_full_name IS NOT NULL ORDER BY u.access_count DESC LIMIT 25"},
+    {"name": "ds_inactive_tables", "query": "WITH last_access AS (SELECT COALESCE(source_table_full_name, target_table_full_name) AS table_full_name, MAX(event_date) AS last_accessed FROM ${catalog}.${gold_schema}.fact_table_lineage GROUP BY COALESCE(source_table_full_name, target_table_full_name)) SELECT SPLIT(l.table_full_name, '.')[2] AS table_name, SPLIT(l.table_full_name, '.')[1] AS schema_name, l.last_accessed, DATEDIFF(CURRENT_DATE(), l.last_accessed) AS days_inactive FROM last_access l WHERE l.last_accessed < CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY days_inactive DESC LIMIT 30"}
+  ]
+}
+
