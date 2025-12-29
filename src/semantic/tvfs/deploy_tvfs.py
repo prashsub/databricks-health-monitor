@@ -157,7 +157,7 @@ def deploy_tvf_file(
     spark: SparkSession,
     file_path: str,
     variables: Dict[str, str]
-) -> Tuple[int, int, List[str]]:
+) -> Tuple[int, int, List[Dict[str, str]]]:
     """
     Deploy all TVFs from a single SQL file.
 
@@ -167,44 +167,103 @@ def deploy_tvf_file(
         variables: Variable substitutions
 
     Returns:
-        Tuple of (success_count, error_count, error_messages)
+        Tuple of (success_count, error_count, error_details_list)
     """
-    print(f"\n{'='*60}")
-    print(f"Processing: {file_path}")
-    print(f"{'='*60}")
+    file_name = os.path.basename(file_path)
+    
+    print(f"\n{'='*80}")
+    print(f"📁 Processing File: {file_name}")
+    print(f"   Full Path: {file_path}")
+    print(f"{'='*80}")
 
     # Read file content from workspace
     try:
         sql_content = read_workspace_file(file_path)
+        print(f"✓ Successfully read file ({len(sql_content)} bytes)")
     except Exception as e:
-        return 0, 1, [f"Failed to read file: {e}"]
+        error_detail = {
+            'file': file_name,
+            'tvf_name': 'FILE_READ_ERROR',
+            'error': str(e),
+            'category': 'FILE_ACCESS'
+        }
+        print(f"✗ CRITICAL: Failed to read file!")
+        print(f"   Error: {str(e)}")
+        return 0, 1, [error_detail]
 
     # Substitute variables
     sql_content = substitute_variables(sql_content, variables)
+    print(f"✓ Variables substituted: catalog={variables['catalog']}, schema={variables['gold_schema']}")
 
     # Extract individual statements
     statements = extract_tvf_statements(sql_content)
-    print(f"Found {len(statements)} TVF statements")
+    print(f"✓ Found {len(statements)} TVF CREATE statements in {file_name}")
 
     success_count = 0
     error_count = 0
-    errors = []
+    error_details = []
 
-    for stmt in statements:
+    print(f"\n{'─'*80}")
+    print(f"Deploying TVFs from {file_name}...")
+    print(f"{'─'*80}")
+
+    for idx, stmt in enumerate(statements, 1):
         func_name = extract_function_name(stmt)
-        print(f"\n  Creating: {func_name}")
+        print(f"\n[{idx}/{len(statements)}] Creating TVF: {func_name}")
 
         try:
+            # Execute the CREATE statement
             spark.sql(stmt)
-            print(f"  ✓ Success: {func_name}")
+            print(f"      ✓ SUCCESS: {func_name} deployed")
             success_count += 1
+            
         except Exception as e:
-            error_msg = f"{func_name}: {str(e)[:200]}"
-            print(f"  ✗ Error: {error_msg}")
-            errors.append(error_msg)
+            error_str = str(e)
             error_count += 1
+            
+            # Categorize error
+            if "already exists" in error_str.lower():
+                error_category = "ALREADY_EXISTS"
+            elif "syntax" in error_str.lower() or "parse" in error_str.lower():
+                error_category = "SQL_SYNTAX"
+            elif "table" in error_str.lower() or "column" in error_str.lower():
+                error_category = "SCHEMA_MISMATCH"
+            elif "permission" in error_str.lower() or "denied" in error_str.lower():
+                error_category = "PERMISSION"
+            else:
+                error_category = "EXECUTION_ERROR"
+            
+            error_details.append({
+                'file': file_name,
+                'tvf_name': func_name,
+                'error': error_str,
+                'category': error_category
+            })
+            
+            # Print detailed error
+            print(f"      ✗ FAILED: {func_name}")
+            print(f"         Category: {error_category}")
+            print(f"         Error: {error_str[:500]}")  # Show first 500 chars
+            
+            # For schema mismatch, show the likely problematic line
+            if error_category == "SCHEMA_MISMATCH":
+                print(f"         Tip: Check if referenced table/column exists in Gold layer")
+                # Extract table references from error
+                table_match = re.search(r'(fact_|dim_)\w+', error_str)
+                if table_match:
+                    print(f"         Referenced table: {table_match.group()}")
+            
+            # For syntax errors, show snippet of problematic SQL
+            if error_category == "SQL_SYNTAX":
+                print(f"         SQL Preview: {stmt[:300]}...")
 
-    return success_count, error_count, errors
+    print(f"\n{'─'*80}")
+    print(f"File Summary: {file_name}")
+    print(f"   ✓ Success: {success_count}")
+    print(f"   ✗ Failed: {error_count}")
+    print(f"{'─'*80}")
+
+    return success_count, error_count, error_details
 
 # COMMAND ----------
 
@@ -261,9 +320,9 @@ def verify_tvfs(spark: SparkSession, catalog: str, schema: str) -> List[Dict]:
 
     Returns list of TVF details.
     """
-    print(f"\n{'='*60}")
-    print("Verifying Deployed TVFs")
-    print(f"{'='*60}")
+    print(f"\n{'='*80}")
+    print("🔍 Verifying Deployed TVFs")
+    print(f"{'='*80}")
 
     try:
         # Query information_schema.routines for functions
@@ -281,14 +340,41 @@ def verify_tvfs(spark: SparkSession, catalog: str, schema: str) -> List[Dict]:
 
         tvfs = result.collect()
 
-        print(f"\nFound {len(tvfs)} functions in {catalog}.{schema}:")
-        for row in tvfs:
-            print(f"  - {row['routine_name']}")
+        if tvfs:
+            print(f"✓ Found {len(tvfs)} functions in {catalog}.{schema}")
+            print(f"\n{'Function Name':<50} {'Created':<25} {'Last Modified':<25}")
+            print("─" * 100)
+            
+            # Group by prefix for better organization
+            tvf_by_prefix = {}
+            for row in tvfs:
+                name = row['routine_name']
+                prefix = name.split('_')[0] if '_' in name else 'other'
+                if prefix not in tvf_by_prefix:
+                    tvf_by_prefix[prefix] = []
+                tvf_by_prefix[prefix].append(row)
+            
+            # Print by prefix group
+            for prefix in sorted(tvf_by_prefix.keys()):
+                print(f"\n📁 {prefix.upper()} functions:")
+                for row in tvf_by_prefix[prefix]:
+                    created = str(row['created'])[:19] if row['created'] else 'N/A'
+                    modified = str(row['last_altered'])[:19] if row['last_altered'] else 'N/A'
+                    print(f"   {row['routine_name']:<47} {created:<25} {modified:<25}")
+        else:
+            print(f"⚠ No functions found in {catalog}.{schema}")
+            print(f"   This could indicate:")
+            print(f"   1. All TVF creations failed")
+            print(f"   2. Schema doesn't exist")
+            print(f"   3. Permission issues")
 
         return [row.asDict() for row in tvfs]
 
     except Exception as e:
-        print(f"Warning: Could not verify TVFs: {e}")
+        print(f"⚠ Warning: Could not verify TVFs")
+        print(f"   Error: {str(e)}")
+        print(f"   This is not critical, but manual verification recommended:")
+        print(f"   SHOW FUNCTIONS IN {catalog}.{schema};")
         return []
 
 # COMMAND ----------
@@ -296,7 +382,7 @@ def verify_tvfs(spark: SparkSession, catalog: str, schema: str) -> List[Dict]:
 def main():
     """Main entry point for TVF deployment."""
     print("\n" + "=" * 80)
-    print("DEPLOYING TABLE-VALUED FUNCTIONS (TVFs)")
+    print("🚀 DEPLOYING TABLE-VALUED FUNCTIONS (TVFs)")
     print("=" * 80)
 
     # Get parameters
@@ -317,52 +403,128 @@ def main():
         # Get current notebook path and add /Workspace prefix
         notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
         base_path = "/Workspace" + "/".join(notebook_path.split("/")[:-1])
-        print(f"Notebook path: {notebook_path}")
+        print(f"📍 Notebook path: {notebook_path}")
     except Exception as e:
         # Fall back to relative path for local testing
-        print(f"Could not get notebook path: {e}")
+        print(f"⚠ Could not get notebook path: {e}")
         base_path = os.path.dirname(os.path.abspath(__file__))
 
-    print(f"\nBase path: {base_path}")
+    print(f"📁 Base path: {base_path}")
+    print(f"🎯 Target: {catalog}.{gold_schema}")
 
     # List TVF files
     tvf_files = list_tvf_files(base_path)
-    print(f"Found {len(tvf_files)} TVF files to process")
+    print(f"\n📋 Found {len(tvf_files)} TVF files to process:")
+    for f in tvf_files:
+        print(f"   - {os.path.basename(f)}")
 
     # Deploy each file
     total_success = 0
     total_errors = 0
-    all_errors = []
+    all_error_details = []
+    file_results = []
 
     for file_path in tvf_files:
-        success, errors, error_msgs = deploy_tvf_file(spark, file_path, variables)
+        success, errors, error_details = deploy_tvf_file(spark, file_path, variables)
         total_success += success
         total_errors += errors
-        all_errors.extend(error_msgs)
+        all_error_details.extend(error_details)
+        
+        file_results.append({
+            'file': os.path.basename(file_path),
+            'success': success,
+            'errors': errors,
+            'total': success + errors
+        })
 
-    # Summary
+    # ========================================================================
+    # DETAILED SUMMARY
+    # ========================================================================
+    
     print("\n" + "=" * 80)
-    print("DEPLOYMENT SUMMARY")
+    print("📊 DEPLOYMENT SUMMARY")
     print("=" * 80)
-    print(f"✓ Successful: {total_success}")
-    print(f"✗ Failed: {total_errors}")
+    
+    # Per-file summary table
+    print("\n📁 Results by File:")
+    print(f"{'File':<30} {'Success':>10} {'Failed':>10} {'Total':>10} {'Status':>15}")
+    print("─" * 80)
+    
+    for result in file_results:
+        status = "✓ OK" if result['errors'] == 0 else f"✗ {result['errors']} ERRORS"
+        print(f"{result['file']:<30} {result['success']:>10} {result['errors']:>10} {result['total']:>10} {status:>15}")
+    
+    print("─" * 80)
+    print(f"{'TOTAL':<30} {total_success:>10} {total_errors:>10} {total_success + total_errors:>10}")
+    print("=" * 80)
 
-    if all_errors:
-        print("\nErrors:")
-        for err in all_errors:
-            print(f"  - {err}")
+    # Error categorization
+    if all_error_details:
+        print("\n" + "=" * 80)
+        print("❌ ERROR DETAILS")
+        print("=" * 80)
+        
+        # Group by category
+        errors_by_category = {}
+        for err in all_error_details:
+            category = err['category']
+            if category not in errors_by_category:
+                errors_by_category[category] = []
+            errors_by_category[category].append(err)
+        
+        # Print by category
+        for category, errors in sorted(errors_by_category.items()):
+            print(f"\n📌 {category} ({len(errors)} errors):")
+            print("─" * 80)
+            for err in errors:
+                print(f"   File: {err['file']}")
+                print(f"   TVF:  {err['tvf_name']}")
+                print(f"   Error: {err['error'][:500]}")
+                print("   " + "─" * 76)
+        
+        # Failed TVF list
+        print("\n" + "=" * 80)
+        print("📝 FAILED TVF LIST")
+        print("=" * 80)
+        failed_tvfs = [err['tvf_name'] for err in all_error_details if err['tvf_name'] != 'FILE_READ_ERROR']
+        for i, tvf in enumerate(failed_tvfs, 1):
+            print(f"  {i:2d}. {tvf}")
+        print("=" * 80)
 
     # Verify deployment
-    verified = verify_tvfs(spark, catalog, gold_schema)
-
+    verified_tvfs = verify_tvfs(spark, catalog, gold_schema)
+    
+    # Comparison: Expected vs Deployed
+    expected_count = total_success + total_errors
+    actual_count = len(verified_tvfs)
+    
+    print("\n" + "=" * 80)
+    print("🔍 VERIFICATION")
+    print("=" * 80)
+    print(f"Expected TVFs:  {expected_count}")
+    print(f"Deployed TVFs:  {actual_count}")
+    print(f"Success Rate:   {(total_success / expected_count * 100):.1f}%" if expected_count > 0 else "N/A")
+    
+    # Final status
     print("\n" + "=" * 80)
     if total_errors == 0:
-        print("✓ TVF DEPLOYMENT COMPLETE - ALL SUCCESSFUL")
+        print("✅ TVF DEPLOYMENT COMPLETE - ALL SUCCESSFUL")
+        print("=" * 80)
         dbutils.notebook.exit("SUCCESS")
     else:
-        print(f"⚠ TVF DEPLOYMENT COMPLETE WITH {total_errors} ERRORS")
-        dbutils.notebook.exit(f"PARTIAL: {total_success} success, {total_errors} errors")
-    print("=" * 80)
+        print(f"⚠️  TVF DEPLOYMENT COMPLETED WITH ERRORS")
+        print(f"   ✓ Successful: {total_success}")
+        print(f"   ✗ Failed: {total_errors}")
+        print(f"   Success Rate: {(total_success / (total_success + total_errors) * 100):.1f}%")
+        print("=" * 80)
+        print("\n⚠️  JOB WILL FAIL - Review errors above and fix the TVF SQL files")
+        print("=" * 80)
+        
+        # Exit with error to fail the job
+        raise Exception(
+            f"TVF deployment failed: {total_errors} errors out of {total_success + total_errors} TVFs. "
+            f"See detailed error log above. Failed TVFs: {', '.join(failed_tvfs[:10])}..."
+        )
 
 # COMMAND ----------
 

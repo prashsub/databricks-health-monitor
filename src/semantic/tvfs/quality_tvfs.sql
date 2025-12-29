@@ -57,7 +57,7 @@ RETURN
 -- Returns data quality status based on job success patterns
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_job_data_quality_status(
-    days_back INT DEFAULT 7 COMMENT 'Number of days to analyze'
+    days_back INT COMMENT 'Number of days to analyze (required)'
 )
 RETURNS TABLE(
     job_name STRING COMMENT 'Job name',
@@ -89,7 +89,7 @@ RETURN
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
             ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
-        WHERE jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
         GROUP BY j.name
     )
     SELECT
@@ -113,54 +113,57 @@ RETURN
 -- -----------------------------------------------------------------------------
 -- TVF 3: get_data_freshness_by_domain
 -- Returns freshness summary by domain
+-- NOTE: Simplified to avoid parameter in aggregate expressions (unsupported in SQL TVFs)
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_data_freshness_by_domain(
-    freshness_threshold_hours INT DEFAULT 24 COMMENT 'Maximum acceptable hours since last update'
+    freshness_threshold_hours INT COMMENT 'Maximum acceptable hours since last update (required)'
 )
 RETURNS TABLE(
     domain STRING COMMENT 'Data domain (billing, compute, etc.)',
     table_count INT COMMENT 'Number of tables',
-    fresh_tables INT COMMENT 'Tables within freshness SLA',
-    stale_tables INT COMMENT 'Tables exceeding freshness SLA',
-    freshness_pct DOUBLE COMMENT 'Percentage of fresh tables',
-    oldest_table_hours DOUBLE COMMENT 'Hours since oldest table update'
+    avg_hours_since_update DOUBLE COMMENT 'Average hours since last update',
+    max_hours_since_update DOUBLE COMMENT 'Maximum hours since last update (oldest table)',
+    min_hours_since_update DOUBLE COMMENT 'Minimum hours since last update (freshest table)',
+    freshness_threshold INT COMMENT 'The threshold used for freshness evaluation'
 )
 COMMENT '
 - PURPOSE: Domain-level data freshness summary for governance reporting and SLA tracking
 - BEST FOR: "How fresh is data by domain?" "Which domains have stale data?" "Domain freshness summary"
 - NOT FOR: Individual table freshness (use get_table_freshness), quality scores (use get_data_quality_summary)
-- RETURNS: Domains with table count, fresh/stale counts, freshness percentage, and oldest table age
-- PARAMS: freshness_threshold_hours (default 24)
+- RETURNS: Domains with table count, avg/max/min hours since update, and the threshold for reference
+- PARAMS: freshness_threshold_hours (required) - for reference in output
 - SYNTAX: SELECT * FROM TABLE(get_data_freshness_by_domain(24))
+- NOTE: Compare max_hours_since_update to freshness_threshold to identify stale domains
 '
 RETURN
-    WITH table_freshness AS (
-        SELECT
-            CASE
-                WHEN table_name LIKE '%usage%' OR table_name LIKE '%price%' THEN 'billing'
-                WHEN table_name LIKE '%job%' OR table_name LIKE '%pipeline%' THEN 'lakeflow'
-                WHEN table_name LIKE '%query%' OR table_name LIKE '%warehouse%' THEN 'query_performance'
-                WHEN table_name LIKE '%cluster%' OR table_name LIKE '%node%' THEN 'compute'
-                WHEN table_name LIKE '%audit%' OR table_name LIKE '%lineage%' THEN 'security'
-                ELSE 'other'
-            END AS domain,
-            table_name,
-            TIMESTAMPDIFF(HOUR, last_altered, CURRENT_TIMESTAMP()) AS hours_since_update
-        FROM ${catalog}.information_schema.tables
-        WHERE table_catalog = '${catalog}'
-            AND table_schema = '${gold_schema}'
-            AND table_type = 'MANAGED'
-    )
     SELECT
-        domain,
-        COUNT(*) AS table_count,
-        SUM(CASE WHEN hours_since_update <= freshness_threshold_hours THEN 1 ELSE 0 END) AS fresh_tables,
-        SUM(CASE WHEN hours_since_update > freshness_threshold_hours THEN 1 ELSE 0 END) AS stale_tables,
-        (SUM(CASE WHEN hours_since_update <= freshness_threshold_hours THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)) AS freshness_pct,
-        MAX(hours_since_update) AS oldest_table_hours
-    FROM table_freshness
-    GROUP BY domain
-    ORDER BY freshness_pct ASC;
+        CASE
+            WHEN table_name LIKE '%usage%' OR table_name LIKE '%price%' THEN 'billing'
+            WHEN table_name LIKE '%job%' OR table_name LIKE '%pipeline%' THEN 'lakeflow'
+            WHEN table_name LIKE '%query%' OR table_name LIKE '%warehouse%' THEN 'query_performance'
+            WHEN table_name LIKE '%cluster%' OR table_name LIKE '%node%' THEN 'compute'
+            WHEN table_name LIKE '%audit%' OR table_name LIKE '%lineage%' THEN 'security'
+            ELSE 'other'
+        END AS domain,
+        CAST(COUNT(*) AS INT) AS table_count,
+        ROUND(AVG(TIMESTAMPDIFF(HOUR, last_altered, CURRENT_TIMESTAMP())), 2) AS avg_hours_since_update,
+        ROUND(MAX(TIMESTAMPDIFF(HOUR, last_altered, CURRENT_TIMESTAMP())), 2) AS max_hours_since_update,
+        ROUND(MIN(TIMESTAMPDIFF(HOUR, last_altered, CURRENT_TIMESTAMP())), 2) AS min_hours_since_update,
+        freshness_threshold_hours AS freshness_threshold
+    FROM ${catalog}.information_schema.tables
+    WHERE table_catalog = '${catalog}'
+        AND table_schema = '${gold_schema}'
+        AND table_type = 'MANAGED'
+    GROUP BY 
+        CASE
+            WHEN table_name LIKE '%usage%' OR table_name LIKE '%price%' THEN 'billing'
+            WHEN table_name LIKE '%job%' OR table_name LIKE '%pipeline%' THEN 'lakeflow'
+            WHEN table_name LIKE '%query%' OR table_name LIKE '%warehouse%' THEN 'query_performance'
+            WHEN table_name LIKE '%cluster%' OR table_name LIKE '%node%' THEN 'compute'
+            WHEN table_name LIKE '%audit%' OR table_name LIKE '%lineage%' THEN 'security'
+            ELSE 'other'
+        END
+    ORDER BY max_hours_since_update DESC;
 
 
 -- -----------------------------------------------------------------------------
@@ -320,7 +323,7 @@ RETURN
 -- Source: Dashboard lineage pattern analysis
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_table_activity_status(
-    days_back INT DEFAULT 30 COMMENT 'Number of days to analyze for activity',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     inactive_threshold_days INT DEFAULT 14 COMMENT 'Days without activity to flag as inactive'
 )
 RETURNS TABLE(
@@ -355,7 +358,7 @@ RETURN
             event_date,
             created_by
         FROM ${catalog}.${gold_schema}.fact_table_lineage
-        WHERE event_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE event_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND source_table_full_name IS NOT NULL
     ),
     table_writes AS (
@@ -364,7 +367,7 @@ RETURN
             event_date,
             created_by
         FROM ${catalog}.${gold_schema}.fact_table_lineage
-        WHERE event_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE event_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND target_table_full_name IS NOT NULL
     ),
     table_activity AS (
@@ -434,7 +437,7 @@ RETURN
 -- Source: Dashboard lineage tracking pattern
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_pipeline_data_lineage(
-    days_back INT DEFAULT 7 COMMENT 'Number of days to analyze',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     entity_filter STRING DEFAULT 'ALL' COMMENT 'Entity type filter: JOB, NOTEBOOK, PIPELINE, or ALL'
 )
 RETURNS TABLE(
@@ -469,7 +472,7 @@ RETURN
             COUNT(*) AS total_events,
             MAX(event_date) AS last_run_date
         FROM ${catalog}.${gold_schema}.fact_table_lineage
-        WHERE event_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE event_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND (entity_filter = 'ALL' OR entity_type = entity_filter)
         GROUP BY entity_type, entity_id
     )

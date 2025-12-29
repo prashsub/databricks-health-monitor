@@ -144,3 +144,5 @@ gold_layer_design/yaml/
 3. Run integration tests against live Gold layer tables
 4. Monitor for any remaining schema-related errors in deployment logs
 
+
+

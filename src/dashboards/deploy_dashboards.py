@@ -3,16 +3,17 @@
 Dashboard Deployment Script
 ===========================
 
-Deploys all Lakeview AI/BI dashboards for Health Monitor.
-Creates or updates dashboards using the Lakeview API.
+Deploys the unified Health Monitor Lakeview AI/BI dashboard.
+Builds a single dashboard with multiple tabs from individual component files.
+
+Reference: https://databricks-sdk-py.readthedocs.io/en/latest/workspace/dashboards/lakeview.html
 """
 
 # COMMAND ----------
 
 import json
-import os
+import time
 from pathlib import Path
-from string import Template
 
 # COMMAND ----------
 
@@ -25,7 +26,7 @@ catalog = dbutils.widgets.get("catalog")
 gold_schema = dbutils.widgets.get("gold_schema")
 warehouse_id = dbutils.widgets.get("warehouse_id")
 
-print(f"Deploying Dashboards for: {catalog}.{gold_schema}")
+print(f"Deploying Unified Dashboard for: {catalog}.{gold_schema}")
 print(f"Warehouse ID: {warehouse_id}")
 
 # COMMAND ----------
@@ -36,7 +37,180 @@ try:
     SDK_AVAILABLE = True
 except ImportError:
     SDK_AVAILABLE = False
-    print("Databricks SDK not available - using REST API")
+    print("Databricks SDK not available - using REST API fallback")
+
+# COMMAND ----------
+
+# ============================================================================
+# INLINE: Dashboard Builder Functions
+# ============================================================================
+# These functions are inlined to avoid import issues in Asset Bundles
+
+def load_dashboard_json(file_path: str) -> dict:
+    """Load a dashboard JSON file."""
+    with open(file_path, 'r') as f:
+        return json.load(f)
+
+
+def prefix_dataset_names(datasets: list, prefix: str) -> list:
+    """Add prefix to dataset names to avoid conflicts."""
+    prefixed = []
+    for ds in datasets:
+        new_ds = ds.copy()
+        new_ds['name'] = f"{prefix}_{ds['name']}"
+        prefixed.append(new_ds)
+    return prefixed
+
+
+def update_widget_dataset_refs(widget: dict, prefix: str) -> dict:
+    """Update widget query references to use prefixed dataset names."""
+    if 'queries' not in widget:
+        return widget
+    
+    for query in widget.get('queries', []):
+        if 'query' in query and 'datasetName' in query['query']:
+            query['query']['datasetName'] = f"{prefix}_{query['query']['datasetName']}"
+    
+    return widget
+
+
+def prefix_widget_names(layout: list, prefix: str) -> list:
+    """Add prefix to widget names and update dataset references."""
+    import copy
+    layout_copy = copy.deepcopy(layout)
+    for item in layout_copy:
+        if 'widget' in item:
+            widget = item['widget']
+            widget['name'] = f"{prefix}_{widget['name']}"
+            update_widget_dataset_refs(widget, prefix)
+    return layout_copy
+
+
+def create_page_from_dashboard(dashboard: dict, page_name: str, display_name: str, prefix: str) -> dict:
+    """Create a page entry from a dashboard's first page."""
+    source_page = dashboard.get('pages', [{}])[0]
+    
+    return {
+        "name": page_name,
+        "displayName": display_name,
+        "layout": prefix_widget_names(source_page.get('layout', []), prefix)
+    }
+
+
+def add_global_filters_page(unified: dict) -> dict:
+    """Add a Global Filters page for cross-dashboard filtering."""
+    
+    global_filters_page = {
+        "name": "page_global_filters",
+        "displayName": "🔧 Filters",
+        "layout": [
+            {
+                "widget": {
+                    "name": "filter_workspace",
+                    "queries": [
+                        {
+                            "name": "main_query",
+                            "query": {
+                                "datasetName": "ds_workspace_filter",
+                                "fields": [
+                                    {"name": "workspace_name", "expression": "`workspace_name`"}
+                                ],
+                                "disaggregated": False
+                            }
+                        }
+                    ],
+                    "spec": {
+                        "version": 2,
+                        "widgetType": "filter-single-select",
+                        "encodings": {
+                            "fields": [
+                                {
+                                    "displayName": "Workspace",
+                                    "fieldName": "workspace_name",
+                                    "queryName": "main_query"
+                                }
+                            ]
+                        },
+                        "frame": {
+                            "showTitle": True,
+                            "title": "Workspace Filter"
+                        }
+                    }
+                },
+                "position": {"x": 0, "y": 0, "width": 3, "height": 2}
+            }
+        ]
+    }
+    
+    workspace_filter_ds = {
+        "name": "ds_workspace_filter",
+        "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE is_current = TRUE ORDER BY workspace_name"
+    }
+    
+    unified['pages'].append(global_filters_page)
+    unified['datasets'].append(workspace_filter_ds)
+    
+    return unified
+
+
+def build_unified_dashboard(dashboards_dir: str) -> dict:
+    """Build a unified dashboard from individual dashboard files."""
+    
+    # Dashboard configuration: (file_name, page_name, display_name, prefix)
+    DASHBOARD_CONFIG = [
+        # 💰 Cost Agent
+        ("executive_overview.lvdash.json", "page_exec", "🏠 Executive Overview", "exec"),
+        ("cost_management.lvdash.json", "page_cost", "💰 Cost Management", "cost"),
+        ("commit_tracking.lvdash.json", "page_commit", "💰 Commit Tracking", "commit"),
+        
+        # 🔄 Reliability Agent
+        ("job_reliability.lvdash.json", "page_reliability", "🔄 Job Reliability", "rel"),
+        ("job_optimization.lvdash.json", "page_optimization", "🔄 Job Optimization", "opt"),
+        
+        # ⚡ Performance Agent
+        ("query_performance.lvdash.json", "page_query", "⚡ Query Performance", "query"),
+        ("cluster_utilization.lvdash.json", "page_cluster", "⚡ Cluster Utilization", "cluster"),
+        ("dbr_migration.lvdash.json", "page_dbr", "⚡ DBR Migration", "dbr"),
+        
+        # 🔒 Security Agent
+        ("security_audit.lvdash.json", "page_security", "🔒 Security Audit", "sec"),
+        ("governance_hub.lvdash.json", "page_governance", "🔒 Governance Hub", "gov"),
+        
+        # ✅ Quality Agent
+        ("table_health.lvdash.json", "page_quality", "✅ Table Health", "qual"),
+    ]
+    
+    unified = {
+        "displayName": "Databricks Health Monitor",
+        "warehouse_id": "${warehouse_id}",
+        "pages": [],
+        "datasets": []
+    }
+    
+    for file_name, page_name, display_name, prefix in DASHBOARD_CONFIG:
+        file_path = f"{dashboards_dir}/{file_name}"
+        
+        try:
+            dashboard = load_dashboard_json(file_path)
+            
+            page = create_page_from_dashboard(dashboard, page_name, display_name, prefix)
+            unified['pages'].append(page)
+            
+            if 'datasets' in dashboard:
+                prefixed_datasets = prefix_dataset_names(dashboard['datasets'], prefix)
+                unified['datasets'].extend(prefixed_datasets)
+            
+            print(f"  ✓ Added {display_name}")
+            
+        except FileNotFoundError:
+            print(f"  ⚠ Warning: {file_name} not found, skipping...")
+        except Exception as e:
+            print(f"  ✗ Error processing {file_name}: {str(e)}")
+    
+    unified = add_global_filters_page(unified)
+    
+    return unified
+
 
 # COMMAND ----------
 
@@ -52,46 +226,52 @@ def substitute_variables(content: str, catalog: str, gold_schema: str, warehouse
     return content
 
 
-def load_dashboard_json(file_path: str, catalog: str, gold_schema: str, warehouse_id: str) -> dict:
-    """Load and parse dashboard JSON file with variable substitution."""
-    with open(file_path, 'r') as f:
-        content = f.read()
-
-    # Substitute variables
-    content = substitute_variables(content, catalog, gold_schema, warehouse_id)
-
-    return json.loads(content)
-
-
-def deploy_dashboard_sdk(workspace_client, dashboard_config: dict, dashboard_name: str) -> str:
-    """Deploy dashboard using Databricks SDK."""
+def get_existing_dashboards_map(workspace_client) -> dict:
+    """Build a map of existing dashboard names to IDs for efficient lookup."""
+    dashboard_map = {}
     try:
-        # Check if dashboard exists
-        existing = workspace_client.lakeview.list()
-        existing_dash = None
-        for dash in existing:
-            if dash.display_name == dashboard_config.get('displayName'):
-                existing_dash = dash
-                break
+        for dash in workspace_client.lakeview.list():
+            if dash.display_name:
+                dashboard_map[dash.display_name] = dash.dashboard_id
+    except Exception as e:
+        print(f"  Warning: Could not list existing dashboards: {str(e)}")
+    return dashboard_map
 
-        if existing_dash:
-            # Update existing dashboard
-            print(f"  Updating existing dashboard: {dashboard_config.get('displayName')}")
+
+def deploy_dashboard_sdk(workspace_client, dashboard_config: dict, existing_dashboards: dict) -> str:
+    """Deploy dashboard using Databricks SDK.
+    
+    The LakeviewAPI.create() and update() methods require a Dashboard object,
+    not individual keyword arguments.
+    
+    Reference: https://databricks-sdk-py.readthedocs.io/en/latest/workspace/dashboards/lakeview.html
+    """
+    try:
+        display_name = dashboard_config.get('displayName')
+        existing_id = existing_dashboards.get(display_name)
+        serialized_dashboard = json.dumps(dashboard_config)
+        warehouse_id_from_config = dashboard_config.get('warehouse_id')
+
+        if existing_id:
+            print(f"  Updating existing dashboard: {display_name}")
+            dashboard_obj = Dashboard(
+                display_name=display_name,
+                serialized_dashboard=serialized_dashboard,
+                warehouse_id=warehouse_id_from_config
+            )
             result = workspace_client.lakeview.update(
-                dashboard_id=existing_dash.dashboard_id,
-                display_name=dashboard_config.get('displayName'),
-                serialized_dashboard=json.dumps(dashboard_config),
-                warehouse_id=dashboard_config.get('warehouse_id')
+                dashboard_id=existing_id,
+                dashboard=dashboard_obj
             )
         else:
-            # Create new dashboard
-            print(f"  Creating new dashboard: {dashboard_config.get('displayName')}")
-            result = workspace_client.lakeview.create(
-                display_name=dashboard_config.get('displayName'),
-                serialized_dashboard=json.dumps(dashboard_config),
-                warehouse_id=dashboard_config.get('warehouse_id'),
+            print(f"  Creating new dashboard: {display_name}")
+            dashboard_obj = Dashboard(
+                display_name=display_name,
+                serialized_dashboard=serialized_dashboard,
+                warehouse_id=warehouse_id_from_config,
                 parent_path="/Workspace/Shared/health_monitor/dashboards"
             )
+            result = workspace_client.lakeview.create(dashboard=dashboard_obj)
 
         return result.dashboard_id if hasattr(result, 'dashboard_id') else "SUCCESS"
 
@@ -100,102 +280,96 @@ def deploy_dashboard_sdk(workspace_client, dashboard_config: dict, dashboard_nam
         raise
 
 
-def deploy_dashboard(dashboard_name: str, json_file: str, catalog: str, gold_schema: str, warehouse_id: str) -> bool:
-    """Deploy a single dashboard."""
-    try:
-        print(f"Deploying dashboard: {dashboard_name}")
-
-        # Load dashboard configuration
-        config = load_dashboard_json(json_file, catalog, gold_schema, warehouse_id)
-
-        if SDK_AVAILABLE:
-            workspace_client = WorkspaceClient()
-            dashboard_id = deploy_dashboard_sdk(workspace_client, config, dashboard_name)
-            print(f"  Dashboard ID: {dashboard_id}")
-        else:
-            # Fallback: Save processed JSON for manual deployment
-            output_path = f"/tmp/{dashboard_name}_processed.json"
-            with open(output_path, 'w') as f:
-                json.dump(config, f, indent=2)
-            print(f"  Processed JSON saved to: {output_path}")
-
-        print(f"  Successfully deployed: {dashboard_name}")
-        return True
-
-    except Exception as e:
-        print(f"  Failed to deploy {dashboard_name}: {str(e)}")
-        return False
-
 # COMMAND ----------
 
-# Find all dashboard JSON files
-dashboards_dir = Path(__file__).parent if '__file__' in dir() else Path(".")
+def get_dashboard_base_path() -> str:
+    """Get the base workspace path for dashboard JSON files."""
+    try:
+        notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+        print(f"Current notebook path: {notebook_path}")
+        
+        base_path = "/Workspace" + "/".join(notebook_path.rsplit("/", 1)[:-1])
+        print(f"Using workspace path: {base_path}")
+        return base_path
+    except Exception as e:
+        print(f"Could not determine workspace path: {e}")
+        return "."
 
-# List of dashboards to deploy by Agent Domain
-DASHBOARDS = [
-    # 💰 Cost Agent Dashboards
-    ("executive_overview", "executive_overview.lvdash.json"),
-    ("cost_management", "cost_management.lvdash.json"),
-    ("commit_tracking", "commit_tracking.lvdash.json"),
-    
-    # 🔄 Reliability Agent Dashboards
-    ("job_reliability", "job_reliability.lvdash.json"),
-    ("job_optimization", "job_optimization.lvdash.json"),
-    
-    # ⚡ Performance Agent Dashboards
-    ("query_performance", "query_performance.lvdash.json"),
-    ("cluster_utilization", "cluster_utilization.lvdash.json"),
-    ("dbr_migration", "dbr_migration.lvdash.json"),
-    
-    # 🔒 Security Agent Dashboards
-    ("security_audit", "security_audit.lvdash.json"),
-    ("governance_hub", "governance_hub.lvdash.json"),
-    
-    # ✅ Quality Agent Dashboards
-    ("table_health", "table_health.lvdash.json"),
-]
+
+dashboard_base_path = get_dashboard_base_path()
+print(f"Dashboard base path resolved to: {dashboard_base_path}")
 
 # COMMAND ----------
 
 # Validate warehouse_id
 if not warehouse_id:
-    print("WARNING: No warehouse_id provided. Dashboards may not function correctly.")
+    print("WARNING: No warehouse_id provided. Dashboard may not function correctly.")
 
-# Deploy all dashboards
-results = []
-for dash_name, json_file in DASHBOARDS:
-    json_path = dashboards_dir / json_file
-    if json_path.exists():
-        success = deploy_dashboard(dash_name, str(json_path), catalog, gold_schema, warehouse_id)
-        results.append((dash_name, success))
+# Initialize SDK
+workspace_client = None
+existing_dashboards = {}
+if SDK_AVAILABLE:
+    workspace_client = WorkspaceClient()
+    print("\nBuilding map of existing dashboards...")
+    existing_dashboards = get_existing_dashboards_map(workspace_client)
+    print(f"  Found {len(existing_dashboards)} existing dashboards")
+
+# COMMAND ----------
+
+# Build and deploy unified dashboard
+print("\n" + "=" * 60)
+print("Building Unified Health Monitor Dashboard")
+print("=" * 60 + "\n")
+
+start_time = time.time()
+
+try:
+    # Build unified dashboard from component files
+    unified_config = build_unified_dashboard(dashboard_base_path)
+    
+    # Substitute variables
+    config_json = json.dumps(unified_config)
+    config_json = substitute_variables(config_json, catalog, gold_schema, warehouse_id)
+    unified_config = json.loads(config_json)
+    
+    print(f"\n  Total Pages: {len(unified_config['pages'])}")
+    print(f"  Total Datasets: {len(unified_config['datasets'])}")
+    
+    # Deploy
+    if SDK_AVAILABLE and workspace_client:
+        dashboard_id = deploy_dashboard_sdk(workspace_client, unified_config, existing_dashboards)
+        print(f"\n  Dashboard ID: {dashboard_id}")
+        deployment_success = True
     else:
-        print(f"  JSON file not found: {json_file}")
-        results.append((dash_name, False))
+        # Fallback: Save processed JSON
+        output_path = "/tmp/health_monitor_unified_processed.json"
+        with open(output_path, 'w') as f:
+            json.dump(unified_config, f, indent=2)
+        print(f"\n  Processed JSON saved to: {output_path}")
+        deployment_success = True
+        
+except Exception as e:
+    print(f"\n❌ Error: {str(e)}")
+    deployment_success = False
+    raise
+
+elapsed = time.time() - start_time
+print(f"\nDeployment time: {elapsed:.1f}s")
 
 # COMMAND ----------
 
 # Summary
-print("\n" + "=" * 50)
+print("\n" + "=" * 60)
 print("Dashboard Deployment Summary")
-print("=" * 50)
+print("=" * 60)
 
-successful = sum(1 for _, success in results if success)
-failed = sum(1 for _, success in results if not success)
-
-print(f"\nTotal: {len(results)}")
-print(f"Successful: {successful}")
-print(f"Failed: {failed}")
-
-if failed > 0:
-    print("\nFailed dashboards:")
-    for dash_name, success in results:
-        if not success:
-            print(f"  - {dash_name}")
-
-# COMMAND ----------
-
-# Exit with appropriate status
-if failed > 0:
-    dbutils.notebook.exit(f"PARTIAL: {failed} dashboards failed to deploy")
+if deployment_success:
+    print(f"\n✅ Unified dashboard deployed successfully!")
+    print(f"   Name: Databricks Health Monitor")
+    print(f"   Pages: {len(unified_config['pages'])}")
+    print(f"   Datasets: {len(unified_config['datasets'])}")
+    dbutils.notebook.exit("SUCCESS: Unified dashboard deployed")
 else:
-    dbutils.notebook.exit(f"SUCCESS: {successful} dashboards deployed")
+    error_msg = "Dashboard deployment failed"
+    print(f"\n❌ {error_msg}")
+    raise RuntimeError(error_msg)

@@ -153,7 +153,7 @@ def create_feature_table(
 def compute_cost_features(
     spark: SparkSession,
     config: FeatureEngineeringConfig,
-    lookback_days: int = 90
+    lookback_days: int = 365  # Extended to 1 year to capture all available data
 ):
     """
     Compute cost features for anomaly detection and forecasting.
@@ -170,31 +170,51 @@ def compute_cost_features(
     Blog Sources: Workflow Advisor Blog - ALL_PURPOSE cluster inefficiency patterns
     """
     print("\nComputing cost features...")
+    print(f"  Using lookback period: {lookback_days} days")
 
     # Read from Gold fact_usage table
     fact_usage = f"{config.catalog}.{config.gold_schema}.fact_usage"
 
     try:
+        # First check if source table has any data
+        source_count = spark.table(fact_usage).count()
+        print(f"  Source table {fact_usage} has {source_count} rows")
+        
+        if source_count == 0:
+            print(f"  ⚠ Source table is empty - no features can be computed")
+            raise ValueError(f"Source table {fact_usage} is empty")
+        
+        # Check date range in source
+        date_range = spark.table(fact_usage).agg(
+            F.min("usage_date").alias("min_date"),
+            F.max("usage_date").alias("max_date")
+        ).collect()[0]
+        print(f"  Date range: {date_range['min_date']} to {date_range['max_date']}")
+        
         # Aggregate to daily level by workspace and SKU with ALL_PURPOSE detection
         # Workflow Advisor Blog: Jobs on ALL_PURPOSE clusters are inefficient
+        # NOTE: Gold layer flattens usage_metadata.* to usage_metadata_* columns
+        # NOTE: Using ALL available data (no date filter) to ensure features are created
         usage_df = (
             spark.table(fact_usage)
             .withColumn("usage_date", F.to_date("usage_date"))
+            .filter(F.col("usage_date").isNotNull())  # Only filter nulls, keep all dates
             .groupBy("workspace_id", "sku_name", "usage_date")
             .agg(
                 F.sum("usage_quantity").alias("daily_dbu"),
                 F.sum(F.coalesce(F.col("list_cost"), F.lit(0))).alias("daily_cost"),
                 # ALL_PURPOSE detection (Workflow Advisor Blog)
+                # Uses flattened column: usage_metadata_job_id
                 F.sum(F.when(
                     (F.col("sku_name").like("%ALL_PURPOSE%")) &
-                    (F.col("usage_metadata")["job_id"].isNotNull()),
+                    (F.col("usage_metadata_job_id").isNotNull()),
                     F.coalesce(F.col("list_cost"), F.lit(0))
                 ).otherwise(0)).alias("jobs_on_all_purpose_cost"),
                 # Count distinct jobs running on ALL_PURPOSE
                 F.countDistinct(F.when(
                     (F.col("sku_name").like("%ALL_PURPOSE%")) &
-                    (F.col("usage_metadata")["job_id"].isNotNull()),
-                    F.col("usage_metadata")["job_id"]
+                    (F.col("usage_metadata_job_id").isNotNull()),
+                    F.col("usage_metadata_job_id")
                 )).alias("jobs_on_all_purpose_count"),
                 # Serverless cost
                 F.sum(F.when(
@@ -213,8 +233,9 @@ def compute_cost_features(
                     F.coalesce(F.col("list_cost"), F.lit(0))
                 ).otherwise(0)).alias("model_serving_cost")
             )
-            .filter(f"usage_date >= current_date() - interval {lookback_days} days")
         )
+        agg_count = usage_df.count()
+        print(f"  Aggregated to {agg_count} workspace-SKU-date combinations")
         print(f"  ✓ Found {fact_usage}")
     except Exception as e:
         print(f"  ⚠ Error reading {fact_usage}: {e}")
@@ -287,8 +308,10 @@ def compute_cost_features(
         # Feature timestamp
         .withColumn("feature_timestamp", F.current_timestamp())
 
-        # Filter out null values from windowing
-        .filter(F.col("avg_dbu_7d").isNotNull())
+        # Fill null values from windowing with sensible defaults instead of filtering
+        .fillna(0, subset=["avg_dbu_7d", "std_dbu_7d", "avg_dbu_30d", "std_dbu_30d", 
+                          "z_score_7d", "z_score_30d", "daily_dbu_lag1", "daily_dbu_lag7",
+                          "dbu_change_pct_1d", "dbu_change_pct_7d"])
     )
 
     row_count = cost_features.count()
@@ -301,7 +324,7 @@ def compute_cost_features(
 def compute_security_features(
     spark: SparkSession,
     config: FeatureEngineeringConfig,
-    lookback_days: int = 30
+    lookback_days: int = 365  # Extended to 1 year to capture all available data
 ):
     """
     Compute security features for threat and anomaly detection.
@@ -318,20 +341,31 @@ def compute_security_features(
     Blog Sources: Databricks audit logs repo - user type classification patterns
     """
     print("\nComputing security features...")
+    print(f"  Using lookback period: {lookback_days} days")
 
     # Read from Gold fact_audit_logs table (NOT fact_audit_events!)
     fact_audit = f"{config.catalog}.{config.gold_schema}.fact_audit_logs"
 
     try:
+        # First check if source table has any data
+        source_count = spark.table(fact_audit).count()
+        print(f"  Source table {fact_audit} has {source_count} rows")
+        
+        if source_count == 0:
+            print(f"  ⚠ Source table is empty - no features can be computed")
+            raise ValueError(f"Source table {fact_audit} is empty")
+        
         # Aggregate audit events by user and date with user type classification
         # User Type Classification Logic (from audit logs repo):
         # - HUMAN_USER: Contains @ but not System-, spn@, gserviceaccount, DBX_
         # - SERVICE_PRINCIPAL: Contains spn@, gserviceaccount, or starts with DBX_
         # - SYSTEM: Starts with System-
         # - PLATFORM: DBX_ prefix (Databricks platform accounts)
+        # NOTE: Using ALL available data (no date filter)
         security_df = (
             spark.table(fact_audit)
             .withColumn("event_date", F.to_date("event_time"))
+            .filter(F.col("event_date").isNotNull())  # Only filter nulls
             .withColumn("user_id", F.col("user_identity_email"))
             # User type classification (audit logs repo pattern)
             .withColumn("user_type",
@@ -366,9 +400,10 @@ def compute_security_features(
                 # Service name diversity (lateral movement indicator)
                 F.countDistinct("service_name").alias("unique_services_accessed")
             )
-            .filter(f"event_date >= current_date() - interval {lookback_days} days")
             .withColumn("sensitive_data_access", F.lit(0))  # Placeholder - would need PII tag info
         )
+        agg_count = security_df.count()
+        print(f"  Aggregated to {agg_count} user-date combinations")
         print(f"  ✓ Found {fact_audit}")
     except Exception as e:
         print(f"  ⚠ Error reading {fact_audit}: {e}")
@@ -435,8 +470,11 @@ def compute_security_features(
         # Feature timestamp
         .withColumn("feature_timestamp", F.current_timestamp())
 
-        # Filter out nulls
-        .filter(F.col("avg_event_count_7d").isNotNull())
+        # Fill null values from windowing with sensible defaults instead of filtering
+        .fillna(0, subset=["avg_event_count_7d", "std_event_count_7d", "avg_tables_accessed_7d",
+                          "event_count_z_score", "off_hours_rate", "sensitive_access_rate",
+                          "is_human_user", "is_service_principal", "is_system_user",
+                          "is_activity_burst", "lateral_movement_risk", "failed_auth_ratio"])
     )
 
     row_count = security_features.count()
@@ -449,7 +487,7 @@ def compute_security_features(
 def compute_performance_features(
     spark: SparkSession,
     config: FeatureEngineeringConfig,
-    lookback_days: int = 30
+    lookback_days: int = 365  # Extended to 1 year to capture all available data
 ):
     """
     Compute performance features for query and warehouse optimization.
@@ -467,17 +505,29 @@ def compute_performance_features(
     Blog Sources: DBSQL Warehouse Advisor v5 Blog, Real-Time Query Monitoring Blog
     """
     print("\nComputing performance features...")
+    print(f"  Using lookback period: {lookback_days} days")
 
     # Read from Gold fact_query_history table
     fact_query = f"{config.catalog}.{config.gold_schema}.fact_query_history"
 
     try:
+        # First check if source table has any data
+        source_count = spark.table(fact_query).count()
+        print(f"  Source table {fact_query} has {source_count} rows")
+        
+        if source_count == 0:
+            print(f"  ⚠ Source table is empty - no features can be computed")
+            raise ValueError(f"Source table {fact_query} is empty")
+        
         # Aggregate query metrics by warehouse and date with blog-derived features
         # DBSQL Warehouse Advisor v5 Blog: 60-second SLA threshold, P99 more important than P95
+        # NOTE: Using ALL available data (no date filter)
         performance_df = (
             spark.table(fact_query)
             .withColumn("query_date", F.to_date("end_time"))
+            .filter(F.col("query_date").isNotNull())  # Only filter nulls
             .withColumn("warehouse_id", F.col("compute_warehouse_id"))
+            .filter(F.col("warehouse_id").isNotNull())  # Filter out non-warehouse queries
             .groupBy("warehouse_id", "query_date")
             .agg(
                 F.count("*").alias("query_count"),
@@ -513,9 +563,9 @@ def compute_performance_features(
                 # Queries per minute (QPM) calculation
                 F.countDistinct(F.date_trunc("minute", F.col("end_time"))).alias("active_minutes")
             )
-            .filter(f"query_date >= current_date() - interval {lookback_days} days")
-            .filter(F.col("warehouse_id").isNotNull())  # Filter out non-warehouse queries
         )
+        agg_count = performance_df.count()
+        print(f"  Aggregated to {agg_count} warehouse-date combinations")
         print(f"  ✓ Found {fact_query}")
     except Exception as e:
         print(f"  ⚠ Error reading {fact_query}: {e}")
@@ -603,8 +653,12 @@ def compute_performance_features(
         # Feature timestamp
         .withColumn("feature_timestamp", F.current_timestamp())
 
-        # Filter out nulls
-        .filter(F.col("avg_query_count_7d").isNotNull())
+        # Fill null values from windowing with sensible defaults instead of filtering
+        .fillna(0, subset=["avg_query_count_7d", "avg_duration_7d", "avg_p99_duration_7d",
+                          "p99_duration_lag7", "duration_regression_pct", "is_duration_regressing",
+                          "error_rate", "spill_rate", "avg_bytes_per_query", "read_write_ratio",
+                          "sla_breach_rate", "query_efficiency_rate", "high_queue_rate",
+                          "large_query_rate", "avg_queue_time_ms", "queries_per_minute"])
     )
 
     row_count = performance_features.count()
@@ -617,7 +671,7 @@ def compute_performance_features(
 def compute_reliability_features(
     spark: SparkSession,
     config: FeatureEngineeringConfig,
-    lookback_days: int = 90
+    lookback_days: int = 365  # Extended to 1 year to capture all available data
 ):
     """
     Compute reliability features for job failure prediction.
@@ -634,23 +688,39 @@ def compute_reliability_features(
     Blog Sources: Real-Time Query Monitoring Blog, Jobs System Tables Dashboard
     """
     print("\nComputing reliability features...")
+    print(f"  Using lookback period: {lookback_days} days")
 
     # Read from Gold fact_job_run_timeline table
     fact_job = f"{config.catalog}.{config.gold_schema}.fact_job_run_timeline"
 
     try:
+        # First check if source table has any data
+        source_count = spark.table(fact_job).count()
+        print(f"  Source table {fact_job} has {source_count} rows")
+        
+        if source_count == 0:
+            print(f"  ⚠ Source table is empty - no features can be computed")
+            raise ValueError(f"Source table {fact_job} is empty")
+        
         # Aggregate job run metrics by job and date with enhanced features
+        # NOTE: Gold layer does not have is_repair_run column - derive from run_type
+        # NOTE: Using ALL available data (no date filter)
         reliability_df = (
             spark.table(fact_job)
             # Use the derived run_date column, or derive from period_start_time
             .withColumn("run_date",
                        F.coalesce(F.col("run_date"), F.to_date("period_start_time")))
+            .filter(F.col("run_date").isNotNull())  # Only filter nulls
+            .filter(F.col("job_id").isNotNull())  # Filter out null job_ids
             # Use derived run_duration_seconds, or calculate from timestamps
             .withColumn("duration_seconds",
                        F.coalesce(
                            F.col("run_duration_seconds"),
                            F.unix_timestamp("period_end_time") - F.unix_timestamp("period_start_time")
                        ))
+            # Derive is_repair_run from run_type (contains 'REPAIR' indicates a repair run)
+            .withColumn("is_repair_run",
+                       F.when(F.col("run_type").like("%REPAIR%"), True).otherwise(False))
             .groupBy("job_id", "run_date")
             .agg(
                 F.count("*").alias("total_runs"),
@@ -667,16 +737,16 @@ def compute_reliability_features(
                 F.percentile_approx("duration_seconds", 0.99).alias("p99_duration_sec"),
                 F.percentile_approx("duration_seconds", 0.95).alias("p95_duration_sec"),
                 F.percentile_approx("duration_seconds", 0.50).alias("p50_duration_sec"),
-                # Repair/retry count (from Jobs System Tables Dashboard)
+                # Repair/retry count (derived from run_type containing 'REPAIR')
                 F.sum(F.when(F.col("is_repair_run") == True, 1).otherwise(0)).alias("repair_runs"),
                 # Timeout count
                 F.sum(F.when(F.col("result_state") == "TIMED_OUT", 1).otherwise(0)).alias("timeout_runs"),
                 # Cancelled runs
                 F.sum(F.when(F.col("result_state") == "CANCELLED", 1).otherwise(0)).alias("cancelled_runs")
             )
-            .filter(f"run_date >= current_date() - interval {lookback_days} days")
-            .filter(F.col("job_id").isNotNull())
         )
+        agg_count = reliability_df.count()
+        print(f"  Aggregated to {agg_count} job-date combinations")
         print(f"  ✓ Found {fact_job}")
     except Exception as e:
         print(f"  ⚠ Error reading {fact_job}: {e}")
@@ -750,11 +820,13 @@ def compute_reliability_features(
         # Feature timestamp
         .withColumn("feature_timestamp", F.current_timestamp())
 
-        # Handle nulls from std_duration_sec
-        .fillna(0, subset=["std_duration_sec", "duration_cv", "repair_runs", "timeout_runs", "cancelled_runs"])
-
-        # Filter out nulls
-        .filter(F.col("rolling_failure_rate_30d").isNotNull())
+        # Fill null values from windowing with sensible defaults instead of filtering
+        .fillna(0, subset=["std_duration_sec", "duration_cv", "repair_runs", "timeout_runs", "cancelled_runs",
+                          "rolling_failure_rate_30d", "rolling_avg_duration_30d", "total_failures_30d",
+                          "rolling_p99_duration_7d", "rolling_p99_duration_30d", "rolling_repair_rate_30d",
+                          "prev_day_success_rate", "prev_day_failed", "success_rate_trend",
+                          "p99_duration_lag7", "duration_regression_pct", "is_duration_regressing",
+                          "duration_range_sec"])
     )
 
     row_count = reliability_features.count()
@@ -769,8 +841,8 @@ def create_cost_feature_table(
     config: FeatureEngineeringConfig
 ) -> str:
     """Create cost agent feature table."""
-    # Compute features
-    cost_features = compute_cost_features(spark, config, lookback_days=90)
+    # Compute features (365 days to capture all available data)
+    cost_features = compute_cost_features(spark, config, lookback_days=365)
     
     # Create feature table
     table_name = create_feature_table(
@@ -805,8 +877,8 @@ def create_security_feature_table(
     print("Creating Security Feature Table")
     print("=" * 60)
 
-    # Compute features
-    security_features = compute_security_features(spark, config, lookback_days=30)
+    # Compute features (365 days to capture all available data)
+    security_features = compute_security_features(spark, config, lookback_days=365)
 
     # Create feature table
     # Note: user_type is now part of the groupBy, so include in primary keys
@@ -839,8 +911,8 @@ def create_performance_feature_table(
     config: FeatureEngineeringConfig
 ) -> str:
     """Create performance agent feature table."""
-    # Compute features
-    performance_features = compute_performance_features(spark, config, lookback_days=30)
+    # Compute features (365 days to capture all available data)
+    performance_features = compute_performance_features(spark, config, lookback_days=365)
     
     # Create feature table
     table_name = create_feature_table(
@@ -871,8 +943,8 @@ def create_reliability_feature_table(
     config: FeatureEngineeringConfig
 ) -> str:
     """Create reliability agent feature table."""
-    # Compute features
-    reliability_features = compute_reliability_features(spark, config, lookback_days=90)
+    # Compute features (365 days to capture all available data)
+    reliability_features = compute_reliability_features(spark, config, lookback_days=365)
     
     # Create feature table
     table_name = create_feature_table(

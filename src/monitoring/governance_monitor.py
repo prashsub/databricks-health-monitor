@@ -280,7 +280,7 @@ def create_governance_monitor(workspace_client, catalog: str, gold_schema: str, 
     delete_monitor_if_exists(workspace_client, table_name, spark)
 
     try:
-        # Create monitor
+        # Create monitor (pass spark to create monitoring schema if needed)
         monitor = create_time_series_monitor(
             workspace_client=workspace_client,
             table_name=table_name,
@@ -289,6 +289,7 @@ def create_governance_monitor(workspace_client, catalog: str, gold_schema: str, 
             custom_metrics=get_governance_custom_metrics(),
             slicing_exprs=["workspace_id", "entity_type"],
             schedule_cron="0 0 6 * * ?",  # Daily at 6 AM UTC
+            spark=spark,  # Pass spark to create monitoring schema
         )
         return monitor
     except Exception as e:
@@ -303,9 +304,19 @@ def create_governance_monitor(workspace_client, catalog: str, gold_schema: str, 
 
 def main():
     """Main entry point."""
+    table_name = f"{catalog}.{gold_schema}.fact_table_lineage"
+    
+    print("=" * 70)
+    print("GOVERNANCE & LINEAGE MONITOR SETUP")
+    print("=" * 70)
+    print(f"  Target Table: {table_name}")
+    print(f"  Catalog: {catalog}")
+    print(f"  Schema: {gold_schema}")
+    print("-" * 70)
+    
     if not check_monitoring_available():
-        print("Lakehouse Monitoring not available - skipping")
-        dbutils.notebook.exit("SKIPPED: SDK not available")
+        print("[⊘ SKIPPED] Lakehouse Monitoring SDK not available")
+        dbutils.notebook.exit("[SKIP] SDK not available")
         return
 
     workspace_client = WorkspaceClient()
@@ -313,14 +324,28 @@ def main():
     try:
         monitor = create_governance_monitor(workspace_client, catalog, gold_schema, spark)
         if monitor:
-            dbutils.notebook.exit("SUCCESS: Governance monitor created")
+            print("-" * 70)
+            print("[✓ SUCCESS] Governance & lineage monitor created successfully!")
+            dbutils.notebook.exit("[OK] Governance monitor created")
         else:
-            dbutils.notebook.exit("SKIPPED: Table not available")
+            print("-" * 70)
+            print("[⊘ SKIPPED] Table not available yet")
+            dbutils.notebook.exit("[SKIP] Table not available")
     except Exception as e:
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
+        error_msg = str(e)
+        print("-" * 70)
+        if "not found" in error_msg.lower() or "does not exist" in error_msg.lower():
+            print(f"[⊘ SKIPPED] Table does not exist yet")
+            dbutils.notebook.exit("[SKIP] Table not exists")
+        else:
+            print(f"[✗ FAILED] Error creating governance monitor")
+            print(f"  Error: {error_msg}")
+            dbutils.notebook.exit(f"[FAIL] {error_msg[:100]}")
 
 # COMMAND ----------
 
 if __name__ == "__main__":
     main()
+
+
 

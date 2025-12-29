@@ -162,18 +162,19 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     )
     
     # Aggregate job metrics by cluster
+    # Note: compute_ids is an array, we need to explode it to get cluster_id
     job_metrics = (
         spark.table(fact_job)
-        .filter(F.col("run_start_timestamp") >= F.date_sub(F.current_date(), 90))
+        .filter(F.col("period_start_time").isNotNull())
+        .withColumn("cluster_id", F.explode_outer(F.col("compute_ids")))
         .filter(F.col("cluster_id").isNotNull())
-        .groupBy("cluster_id", F.date_trunc("day", "run_start_timestamp").alias("usage_date"))
+        .groupBy("cluster_id", F.date_trunc("day", "period_start_time").alias("usage_date"))
         .agg(
             F.count("*").alias("jobs_run"),
             F.avg("run_duration_seconds").alias("avg_job_duration_sec"),
             F.max("run_duration_seconds").alias("max_job_duration_sec"),
-            F.sum(F.coalesce("rows_produced", F.lit(0))).alias("total_rows_processed"),
             # Concurrent jobs metric
-            F.max(F.size(F.collect_set("run_id"))).alias("max_concurrent_jobs")
+            F.countDistinct("run_id").alias("max_concurrent_jobs")
         )
     )
     
@@ -189,7 +190,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         .withColumn("memory_efficiency", F.col("avg_memory_util") / F.greatest(F.col("peak_memory_util"), F.lit(1)))
         # Workload intensity
         .withColumn("jobs_per_node_hour", F.col("jobs_run") / F.greatest(F.col("node_hours"), F.lit(1)))
-        .withColumn("rows_per_node_hour", F.col("total_rows_processed") / F.greatest(F.col("node_hours"), F.lit(1)))
+        # .withColumn("rows_per_node_hour", F.col("total_rows_processed") / F.greatest(F.col("node_hours"), F.lit(1)))  # Column not in Gold schema
         # Lag features (previous day capacity)
         .withColumn("prev_day_nodes", F.lag("num_nodes_used", 1).over(
             Window.partitionBy("cluster_id").orderBy("usage_date")
@@ -368,9 +369,9 @@ def main():
         # Feature columns
         feature_cols = [
             'node_hours', 'avg_cpu_util', 'peak_cpu_util', 'avg_memory_util', 'peak_memory_util',
-            'jobs_run', 'avg_job_duration_sec', 'max_job_duration_sec', 'total_rows_processed',
+            'jobs_run', 'avg_job_duration_sec', 'max_job_duration_sec',
             'max_concurrent_jobs', 'day_of_week', 'is_weekend',
-            'cpu_efficiency', 'memory_efficiency', 'jobs_per_node_hour', 'rows_per_node_hour',
+            'cpu_efficiency', 'memory_efficiency', 'jobs_per_node_hour',
             'prev_day_nodes', 'prev_day_peak_cpu'
         ]
         

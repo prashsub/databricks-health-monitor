@@ -101,7 +101,7 @@ RETURN
         SUM(q.total_duration_ms) / 3600000.0 AS total_duration_hours,
         AVG(q.total_duration_ms) / 1000.0 AS avg_duration_seconds,
         PERCENTILE_APPROX(q.total_duration_ms / 1000.0, 0.95) AS p95_duration_seconds,
-        AVG(COALESCE(q.waiting_in_queue_ms, 0)) / 1000.0 AS avg_queue_time_seconds,
+        AVG(COALESCE(q.waiting_at_capacity_duration_ms, 0)) / 1000.0 AS avg_queue_time_seconds,
         MAX(q.statement_id) AS peak_concurrency,  -- Placeholder: need proper concurrency calc
         (SUM(CASE WHEN q.execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)) AS error_rate_pct
     FROM ${catalog}.${gold_schema}.fact_query_history q
@@ -156,8 +156,8 @@ RETURN
             read_bytes / 1073741824.0 AS read_gb,
             produced_rows AS rows_produced,
             read_bytes / NULLIF(produced_rows, 0) AS bytes_per_row,
-            spilled_local_bytes > 0 OR spilled_remote_bytes > 0 AS has_spill,
-            (COALESCE(spilled_local_bytes, 0) + COALESCE(spilled_remote_bytes, 0)) / 1073741824.0 AS spill_gb,
+            spilled_local_bytes > 0 AS has_spill,
+            COALESCE(spilled_local_bytes, 0) / 1073741824.0 AS spill_gb,
             CASE
                 WHEN spilled_local_bytes > 0 THEN 40
                 WHEN read_bytes / NULLIF(produced_rows, 0) > 10000000 THEN 50
@@ -224,13 +224,13 @@ RETURN
         statement_type,
         total_duration_ms / 1000.0 AS duration_seconds,
         COALESCE(spilled_local_bytes, 0) / 1073741824.0 AS local_spill_gb,
-        COALESCE(spilled_remote_bytes, 0) / 1073741824.0 AS remote_spill_gb,
-        (COALESCE(spilled_local_bytes, 0) + COALESCE(spilled_remote_bytes, 0)) / 1073741824.0 AS total_spill_gb,
+        0.0 AS remote_spill_gb,  -- spilled_remote_bytes not available in Gold schema
+        COALESCE(spilled_local_bytes, 0) / 1073741824.0 AS total_spill_gb,
         read_bytes / 1073741824.0 AS read_gb,
-        (COALESCE(spilled_local_bytes, 0) + COALESCE(spilled_remote_bytes, 0)) / NULLIF(read_bytes, 0) AS spill_ratio
+        COALESCE(spilled_local_bytes, 0) / NULLIF(read_bytes, 0) AS spill_ratio
     FROM ${catalog}.${gold_schema}.fact_query_history
     WHERE DATE(start_time) BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
-        AND (COALESCE(spilled_local_bytes, 0) + COALESCE(spilled_remote_bytes, 0)) >= min_spill_gb * 1073741824
+        AND COALESCE(spilled_local_bytes, 0) >= min_spill_gb * 1073741824
     ORDER BY total_spill_gb DESC;
 
 
@@ -239,7 +239,7 @@ RETURN
 -- Returns query volume trends over time
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_query_volume_trends(
-    days_back INT DEFAULT 30 COMMENT 'Number of days to analyze',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     granularity STRING DEFAULT 'DAY' COMMENT 'Granularity: HOUR, DAY, WEEK'
 )
 RETURNS TABLE(
@@ -274,7 +274,7 @@ RETURN
             SUM(read_bytes) / 1099511627776.0 AS total_read_tb,
             SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) AS error_count
         FROM ${catalog}.${gold_schema}.fact_query_history
-        WHERE DATE(start_time) >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE DATE(start_time) >= DATE_ADD(CURRENT_DATE(), -days_back)
         GROUP BY 1
     )
     SELECT
@@ -451,7 +451,7 @@ RETURN
 -- Source: DBSQL Warehouse Advisor Repository
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_query_efficiency_analysis(
-    hours_back INT DEFAULT 24 COMMENT 'Hours of history to analyze',
+    hours_back INT COMMENT 'Hours of history to analyze (required)',
     warehouse_filter STRING DEFAULT 'ALL' COMMENT 'Warehouse ID or ALL'
 )
 RETURNS TABLE(
@@ -485,21 +485,21 @@ RETURN
             dw.warehouse_name,
             COUNT(*) AS total_queries,
             SUM(CASE
-                WHEN (COALESCE(qh.spilled_local_bytes, 0) + COALESCE(qh.spilled_remote_bytes, 0)) = 0
+                WHEN COALESCE(qh.spilled_local_bytes, 0) = 0
                  AND qh.waiting_at_capacity_duration_ms <= qh.total_duration_ms * 0.1
                  AND qh.total_duration_ms <= 300000
                 THEN 1 ELSE 0
             END) AS efficient_queries,
-            SUM(CASE WHEN (COALESCE(qh.spilled_local_bytes, 0) + COALESCE(qh.spilled_remote_bytes, 0)) > 0 THEN 1 ELSE 0 END) AS high_spill_queries,
+            SUM(CASE WHEN COALESCE(qh.spilled_local_bytes, 0) > 0 THEN 1 ELSE 0 END) AS high_spill_queries,
             SUM(CASE WHEN qh.waiting_at_capacity_duration_ms > qh.total_duration_ms * 0.1 THEN 1 ELSE 0 END) AS high_queue_queries,
             SUM(CASE WHEN qh.total_duration_ms > 300000 THEN 1 ELSE 0 END) AS slow_queries,
             AVG(qh.waiting_at_capacity_duration_ms * 100.0 / NULLIF(qh.total_duration_ms, 0)) AS avg_queue_ratio,
-            PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY qh.total_duration_ms) / 1000.0 AS p95_duration_sec,
-            PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY qh.total_duration_ms) / 1000.0 AS p99_duration_sec
+            PERCENTILE_APPROX(qh.total_duration_ms, 0.95) / 1000.0 AS p95_duration_sec,
+            PERCENTILE_APPROX(qh.total_duration_ms, 0.99) / 1000.0 AS p99_duration_sec
         FROM ${catalog}.${gold_schema}.fact_query_history qh
         LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse dw
             ON qh.compute_warehouse_id = dw.warehouse_id AND dw.delete_time IS NULL
-        WHERE qh.start_time >= CURRENT_TIMESTAMP() - INTERVAL hours_back HOUR
+        WHERE qh.start_time >= TIMESTAMPADD(HOUR, -hours_back, CURRENT_TIMESTAMP())
             AND qh.total_duration_ms > 1000  -- Exclude trivial queries
             AND (warehouse_filter = 'ALL' OR qh.compute_warehouse_id = warehouse_filter)
             AND qh.compute_warehouse_id IS NOT NULL
@@ -533,7 +533,7 @@ RETURN
 -- Source: Dashboard Pattern Analysis
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_job_outlier_runs(
-    days_back INT DEFAULT 7 COMMENT 'Days of history to analyze',
+    days_back INT COMMENT 'Days of history to analyze (required)',
     deviation_threshold DOUBLE DEFAULT 1.5 COMMENT 'Multiplier vs P90 to flag as outlier',
     min_baseline_runs INT DEFAULT 5 COMMENT 'Minimum runs to establish baseline'
 )
@@ -561,10 +561,10 @@ RETURN
     WITH job_baselines AS (
         SELECT
             job_id,
-            PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY run_duration_seconds) AS p90_duration,
+            PERCENTILE_APPROX(run_duration_seconds, 0.90) AS p90_duration,
             COUNT(*) AS run_count
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline
-        WHERE run_date >= CURRENT_DATE() - INTERVAL (days_back + 30) DAY  -- Extended window for baseline
+        WHERE run_date >= DATE_ADD(CURRENT_DATE(), -(days_back + 30))  -- Extended window for baseline
             AND run_duration_seconds IS NOT NULL
             AND result_state = 'SUCCESS'
         GROUP BY job_id
@@ -581,7 +581,7 @@ RETURN
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
             ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
-        WHERE jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND jrt.run_duration_seconds IS NOT NULL
     ),
     run_costs AS (
@@ -589,7 +589,7 @@ RETURN
             usage_metadata_job_run_id AS run_id,
             SUM(list_cost) AS run_cost
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE usage_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND usage_metadata_job_run_id IS NOT NULL
         GROUP BY usage_metadata_job_run_id
     ),

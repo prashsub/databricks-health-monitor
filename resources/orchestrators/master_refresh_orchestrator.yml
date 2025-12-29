@@ -51,23 +51,23 @@ resources:
         # PHASE 2: MONITORING REFRESH (after Gold data is updated)
         # ================================================================
         
-        # Step 3: Monitoring Refresh (composite job → Lakehouse Monitor Refresh)
+        # Step 3: Lakehouse Monitoring Refresh (atomic job - refreshes all monitors)
         - task_key: monitoring_refresh
           depends_on:
             - task_key: gold_merge
           run_job_task:
-            job_id: ${resources.jobs.monitoring_layer_refresh_job.id}
+            job_id: ${resources.jobs.lakehouse_monitoring_refresh_job.id}
         
         # ================================================================
         # PHASE 3: ML INFERENCE (after Gold data is updated)
         # ================================================================
         
-        # Step 4: ML Inference (composite job → ML Inference Pipeline)
+        # Step 4: ML Batch Inference (atomic job - runs all 25 models)
         - task_key: ml_inference
           depends_on:
             - task_key: gold_merge
           run_job_task:
-            job_id: ${resources.jobs.ml_layer_inference_job.id}
+            job_id: ${resources.jobs.ml_inference_pipeline.id}
       
       # Schedule: Daily at 2 AM UTC (PAUSED by default)
       schedule:

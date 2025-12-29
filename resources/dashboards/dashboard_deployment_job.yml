@@ -18,8 +18,15 @@ resources:
       name: "[${bundle.target}] Health Monitor - Dashboard Deployment"
       description: "Deploys all AI/BI Lakeview dashboards"
 
+      # ✅ MANDATORY: Serverless environment configuration
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+
       tasks:
         - task_key: deploy_all_dashboards
+          environment_key: default
           notebook_task:
             notebook_path: ../../src/dashboards/deploy_dashboards.py
             base_parameters:
@@ -30,8 +37,8 @@ resources:
       # No schedule - run on demand after Gold setup
       # Dashboards refresh automatically based on their queries
 
-      # Timeout: 30 minutes
-      timeout_seconds: 1800
+      # Timeout: 60 minutes (Lakeview SDK operations can be slow)
+      timeout_seconds: 3600
 
       # Email notifications
       email_notifications:

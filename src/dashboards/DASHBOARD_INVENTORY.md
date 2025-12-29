@@ -2,23 +2,30 @@
 
 ## Overview
 
-This document provides a comprehensive inventory of all Lakeview AI/BI dashboards implemented for the Databricks Health Monitor project. Dashboards are organized by Agent Domain to align with the project's five-agent architecture.
+The Databricks Health Monitor project uses a **single unified dashboard** with multiple tabs, organized by Agent Domain. This consolidation provides a better user experience with seamless navigation between different health monitoring views.
 
-## Dashboard Summary by Agent Domain
+## Unified Dashboard: Databricks Health Monitor
 
-| Agent Domain | Dashboard | Purpose | Key Widgets | Refresh |
-|---|---|---|---|---|
-| 💰 Cost | Executive Overview | Leadership KPIs | 3 KPIs + trend + summary | Daily |
-| 💰 Cost | Cost Management | FinOps analysis | Top contributors, SKU, WoW | Daily |
-| 💰 Cost | Commit Tracking | Budget vs Actual | Commit variance, forecast | Daily |
-| 🔄 Reliability | Job Reliability | Job health | Success rate, failures | Hourly |
-| 🔄 Reliability | Job Optimization | Cost savings | Autoscaling, stale datasets | Daily |
-| ⚡ Performance | Query Performance | DBA optimization | Slow queries, queue time | Hourly |
-| ⚡ Performance | Cluster Utilization | Right-sizing | CPU/Mem utilization | Daily |
-| ⚡ Performance | DBR Migration | Modernization | Legacy DBR, serverless | Weekly |
-| 🔒 Security | Security Audit | Compliance | User activity, access | Daily |
-| 🔒 Security | Governance Hub | Data governance | Lineage, tags, freshness | Daily |
-| ✅ Quality | Table Health | Storage health | File distribution, compaction | Daily |
+**Single Dashboard, 12 Tabs (Pages)**
+
+The deployment script dynamically builds the unified dashboard from individual component JSON files, allowing for modular development while delivering a cohesive user experience.
+
+## Tab Summary by Agent Domain
+
+| Tab Name | Agent Domain | Purpose | Key Widgets |
+|---|---|---|---|
+| 🏠 Executive Overview | 💰 Cost | Leadership KPIs | 3 KPIs + cost trend + SKU breakdown |
+| 💰 Cost Management | 💰 Cost | FinOps analysis | Top contributors, WoW, tag coverage |
+| 💰 Commit Tracking | 💰 Cost | Budget vs Actual | Commit variance, run rate, forecast |
+| 🔄 Job Reliability | 🔄 Reliability | Job health | Success rate, failures, duration trend |
+| 🔄 Job Optimization | 🔄 Reliability | Cost savings | Autoscaling, stale datasets, outliers |
+| ⚡ Query Performance | ⚡ Performance | DBA optimization | Slow queries, latency, cache hits |
+| ⚡ Cluster Utilization | ⚡ Performance | Right-sizing | CPU/Memory utilization, swap |
+| ⚡ DBR Migration | ⚡ Performance | Modernization | Legacy DBR, serverless adoption |
+| 🔒 Security Audit | 🔒 Security | Compliance | User activity, sensitive actions |
+| 🔒 Governance Hub | 🔒 Security | Data governance | Lineage, tags, inactive tables |
+| ✅ Table Health | ✅ Quality | Storage health | File distribution, compaction |
+| 🔧 Filters | Global | Cross-tab filtering | Workspace filter, date range |
 
 ---
 
@@ -305,21 +312,70 @@ All dashboards use these variables:
 
 ---
 
-## Deployment
+## Architecture: Modular Build
 
-### Using Deploy Script
+The unified dashboard is built dynamically at deployment time from individual component files:
 
-```bash
-# Deploy all dashboards
-databricks bundle run -t dev dashboard_deployment_job
-
-# Or run the deployment notebook directly
+```
+src/dashboards/
+├── deploy_dashboards.py          # Deployment script (builds + deploys)
+├── build_unified_dashboard.py    # Standalone builder (for local testing)
+│
+├── # Component Files (one per tab):
+├── executive_overview.lvdash.json
+├── cost_management.lvdash.json
+├── commit_tracking.lvdash.json
+├── job_reliability.lvdash.json
+├── job_optimization.lvdash.json
+├── query_performance.lvdash.json
+├── cluster_utilization.lvdash.json
+├── dbr_migration.lvdash.json
+├── security_audit.lvdash.json
+├── governance_hub.lvdash.json
+├── table_health.lvdash.json
+│
+└── DASHBOARD_INVENTORY.md        # This file
 ```
 
-### Manual Deployment
+### How It Works
 
-1. Open the `.lvdash.json` file
-2. Replace variables with actual values
+1. **Component Files**: Each tab has its own `.lvdash.json` file for modular development
+2. **Build Process**: The deployment script merges all components into one dashboard
+3. **Prefix Isolation**: Each tab's widgets and datasets are prefixed to avoid naming conflicts
+4. **Variable Substitution**: `${catalog}`, `${gold_schema}`, `${warehouse_id}` are replaced at deploy time
+
+### Benefits
+
+- ✅ **Modular Development**: Edit individual tabs without affecting others
+- ✅ **Version Control**: Clear diffs for each tab
+- ✅ **Single Dashboard UX**: Users navigate via tabs, not separate dashboards
+- ✅ **Consistent Filters**: Global filters apply across all tabs
+- ✅ **Easier Maintenance**: 1 dashboard to manage instead of 11
+
+---
+
+## Deployment
+
+### Deploy Unified Dashboard
+
+```bash
+# Deploy the unified dashboard
+databricks bundle run -t dev dashboard_deployment_job
+```
+
+### Local Testing (Build Only)
+
+```bash
+# Build unified JSON locally (for testing)
+cd src/dashboards
+python build_unified_dashboard.py
+# Output: health_monitor_unified.lvdash.json
+```
+
+### Manual Import
+
+1. Run `build_unified_dashboard.py` locally
+2. Replace `${catalog}`, `${gold_schema}`, `${warehouse_id}` in output JSON
 3. Import via Databricks UI: Dashboards → Import
 
 ---
@@ -328,21 +384,24 @@ databricks bundle run -t dev dashboard_deployment_job
 
 | Metric | Count |
 |--------|-------|
-| Total Dashboards | 11 |
+| Total Dashboards | **1 (Unified)** |
+| Total Tabs/Pages | 12 |
 | KPI Widgets | 32 |
 | Charts | 14 |
 | Tables | 19 |
 | Total Widgets | 65+ |
+| Total Datasets | 60+ |
 
-### By Agent Domain
+### Widgets by Agent Domain
 
-| Domain | Dashboard Count | KPI Count |
-|--------|----------------|-----------|
-| 💰 Cost | 3 | 12 |
-| 🔄 Reliability | 2 | 6 |
-| ⚡ Performance | 3 | 9 |
-| 🔒 Security | 2 | 6 |
-| ✅ Quality | 1 | 3 |
+| Domain | Tabs | KPI Count | Charts | Tables |
+|--------|------|-----------|--------|--------|
+| 💰 Cost | 3 | 12 | 4 | 5 |
+| 🔄 Reliability | 2 | 6 | 4 | 4 |
+| ⚡ Performance | 3 | 9 | 6 | 5 |
+| 🔒 Security | 2 | 6 | 4 | 4 |
+| ✅ Quality | 1 | 3 | 2 | 3 |
+| 🔧 Filters | 1 | 0 | 0 | 0 |
 
 ---
 
@@ -375,4 +434,6 @@ databricks bundle run -t dev dashboard_deployment_job
 - [Dashboard JSON Reference](https://docs.databricks.com/api/workspace/lakeview)
 - [System Tables Overview](https://docs.databricks.com/aws/en/admin/system-tables/)
 - [Cursor Rule 18 - AI/BI Dashboards](../.cursor/rules/monitoring/18-databricks-aibi-dashboards.mdc)
+
+
 

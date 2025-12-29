@@ -253,7 +253,7 @@ def create_cost_monitor(workspace_client, catalog: str, gold_schema: str, spark=
     # Clean up existing monitor
     delete_monitor_if_exists(workspace_client, table_name, spark)
 
-    # Create monitor
+    # Create monitor (pass spark to create monitoring schema if needed)
     monitor = create_time_series_monitor(
         workspace_client=workspace_client,
         table_name=table_name,
@@ -262,6 +262,7 @@ def create_cost_monitor(workspace_client, catalog: str, gold_schema: str, spark=
         custom_metrics=get_cost_custom_metrics(),
         slicing_exprs=["workspace_id", "sku_name", "cloud"],
         schedule_cron="0 0 6 * * ?",  # Daily at 6 AM UTC
+        spark=spark,  # Pass spark to create monitoring schema
     )
 
     return monitor
@@ -270,9 +271,19 @@ def create_cost_monitor(workspace_client, catalog: str, gold_schema: str, spark=
 
 def main():
     """Main entry point."""
+    table_name = f"{catalog}.{gold_schema}.fact_usage"
+    
+    print("=" * 70)
+    print("COST MONITOR SETUP")
+    print("=" * 70)
+    print(f"  Target Table: {table_name}")
+    print(f"  Catalog: {catalog}")
+    print(f"  Schema: {gold_schema}")
+    print("-" * 70)
+    
     if not check_monitoring_available():
-        print("Lakehouse Monitoring not available - skipping")
-        dbutils.notebook.exit("SKIPPED: SDK not available")
+        print("[⊘ SKIPPED] Lakehouse Monitoring SDK not available")
+        dbutils.notebook.exit("[SKIP] SDK not available")
         return
 
     workspace_client = WorkspaceClient()
@@ -280,11 +291,19 @@ def main():
     try:
         monitor = create_cost_monitor(workspace_client, catalog, gold_schema, spark)
         if monitor:
-            dbutils.notebook.exit("SUCCESS: Cost monitor created")
+            print("-" * 70)
+            print("[✓ SUCCESS] Cost monitor created successfully!")
+            print(f"  Monitor ID: {monitor.table_name if hasattr(monitor, 'table_name') else 'N/A'}")
+            dbutils.notebook.exit("[OK] Cost monitor created")
         else:
-            dbutils.notebook.exit("SKIPPED: Monitor already exists")
+            print("-" * 70)
+            print("[⊘ SKIPPED] Monitor already exists - no action needed")
+            dbutils.notebook.exit("[SKIP] Monitor already exists")
     except Exception as e:
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
+        print("-" * 70)
+        print(f"[✗ FAILED] Error creating cost monitor")
+        print(f"  Error: {str(e)}")
+        dbutils.notebook.exit(f"[FAIL] {str(e)[:100]}")
 
 # COMMAND ----------
 

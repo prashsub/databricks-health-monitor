@@ -56,7 +56,7 @@ RETURN
             MAX(nt.mem_used_percent) AS peak_memory
         FROM ${catalog}.${gold_schema}.fact_node_timeline nt
         LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c
-            ON nt.cluster_id = c.cluster_id AND c.is_current = TRUE
+            ON nt.cluster_id = c.cluster_id AND c.delete_time IS NULL
         WHERE CAST(nt.start_time AS DATE) BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
         GROUP BY nt.cluster_id, c.cluster_name, c.cluster_source, c.owned_by
     ),
@@ -89,7 +89,7 @@ RETURN
 -- Returns detailed cluster resource utilization metrics
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_cluster_resource_metrics(
-    days_back INT DEFAULT 1 COMMENT 'Number of days to analyze',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     top_n INT DEFAULT 50 COMMENT 'Number of clusters to return'
 )
 RETURNS TABLE(
@@ -131,8 +131,8 @@ RETURN
             ROW_NUMBER() OVER (ORDER BY AVG(nt.cpu_user_percent + nt.cpu_system_percent) DESC) AS rank
         FROM ${catalog}.${gold_schema}.fact_node_timeline nt
         LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c
-            ON nt.cluster_id = c.cluster_id AND c.is_current = TRUE
-        WHERE nt.start_time >= CURRENT_DATE() - INTERVAL days_back DAY
+            ON nt.cluster_id = c.cluster_id AND c.delete_time IS NULL
+        WHERE nt.start_time >= DATE_ADD(CURRENT_DATE(), -days_back)
         GROUP BY nt.cluster_id, c.cluster_name, nt.driver
     )
     SELECT cluster_id, cluster_name, is_driver,
@@ -154,7 +154,7 @@ RETURN
 -- Returns underutilized clusters with cost savings potential
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_underutilized_clusters(
-    days_back INT DEFAULT 7 COMMENT 'Number of days to analyze',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     cpu_threshold DOUBLE DEFAULT 30.0 COMMENT 'CPU utilization threshold (below = underutilized)',
     min_hours INT DEFAULT 10 COMMENT 'Minimum runtime hours to include'
 )
@@ -191,15 +191,15 @@ RETURN
             SUM(TIMESTAMPDIFF(MINUTE, nt.start_time, nt.end_time)) / 60.0 AS total_hours
         FROM ${catalog}.${gold_schema}.fact_node_timeline nt
         LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c
-            ON nt.cluster_id = c.cluster_id AND c.is_current = TRUE
-        WHERE nt.start_time >= CURRENT_DATE() - INTERVAL days_back DAY
+            ON nt.cluster_id = c.cluster_id AND c.delete_time IS NULL
+        WHERE nt.start_time >= DATE_ADD(CURRENT_DATE(), -days_back)
         GROUP BY nt.cluster_id, c.cluster_name, c.cluster_source, c.owned_by
         HAVING total_hours >= min_hours
     ),
     cluster_cost AS (
         SELECT usage_metadata_cluster_id AS cluster_id, SUM(list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE usage_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND usage_metadata_cluster_id IS NOT NULL
         GROUP BY usage_metadata_cluster_id
     )
@@ -235,7 +235,7 @@ RETURN
 -- Returns job clusters that could benefit from autoscaling
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_jobs_without_autoscaling(
-    days_back INT DEFAULT 30 COMMENT 'Number of days to analyze',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     min_runs INT DEFAULT 5 COMMENT 'Minimum runs to include job',
     min_cost DOUBLE DEFAULT 100 COMMENT 'Minimum cost to include job'
 )
@@ -275,7 +275,7 @@ RETURN
         LEFT JOIN ${catalog}.${gold_schema}.fact_node_timeline nt
             ON jrt.cluster_id = nt.cluster_id
             AND nt.start_time BETWEEN jrt.period_start_time AND jrt.period_end_time
-        WHERE jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
         GROUP BY jrt.job_id, j.name, j.run_as
         HAVING COUNT(DISTINCT jrt.run_id) >= min_runs
     ),
@@ -284,7 +284,7 @@ RETURN
             usage_metadata_job_id AS job_id,
             SUM(list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE usage_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND usage_metadata_job_id IS NOT NULL
         GROUP BY usage_metadata_job_id
     )
@@ -314,7 +314,7 @@ RETURN
 -- Returns jobs running on legacy Databricks Runtime versions
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_jobs_on_legacy_dbr(
-    days_back INT DEFAULT 30 COMMENT 'Number of days to analyze',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     legacy_threshold INT DEFAULT 13 COMMENT 'DBR major version below which is considered legacy'
 )
 RETURNS TABLE(
@@ -350,7 +350,7 @@ RETURN
             ON jrt.job_id = j.job_id AND j.is_current = TRUE
         LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c
             ON jrt.cluster_id = c.cluster_id AND c.is_current = TRUE
-        WHERE jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND c.dbr_version IS NOT NULL
         GROUP BY jrt.job_id, j.name, j.run_as, c.dbr_version
     ),
@@ -359,7 +359,7 @@ RETURN
             usage_metadata_job_id AS job_id,
             SUM(list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE usage_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND usage_metadata_job_id IS NOT NULL
         GROUP BY usage_metadata_job_id
     )
@@ -394,7 +394,7 @@ RETURN
 -- Source: Workflow Advisor Repository
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_cluster_right_sizing_recommendations(
-    days_back INT DEFAULT 7 COMMENT 'Days of history to analyze',
+    days_back INT COMMENT 'Days of history to analyze (required)',
     min_observation_hours INT DEFAULT 10 COMMENT 'Minimum hours of data required'
 )
 RETURNS TABLE(
@@ -433,17 +433,17 @@ RETURN
             c.owned_by,
             COUNT(*) / 60.0 AS observation_hours,
             AVG(nt.cpu_user_percent + nt.cpu_system_percent) AS avg_cpu_util,
-            PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY nt.cpu_user_percent + nt.cpu_system_percent) AS p95_cpu_util,
+            PERCENTILE_APPROX(nt.cpu_user_percent + nt.cpu_system_percent, 0.95) AS p95_cpu_util,
             AVG(nt.mem_used_percent) AS avg_memory_util,
-            PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY nt.mem_used_percent) AS p95_memory_util,
+            PERCENTILE_APPROX(nt.mem_used_percent, 0.95) AS p95_memory_util,
             SUM(CASE WHEN nt.cpu_user_percent + nt.cpu_system_percent > 90 THEN 1 ELSE 0 END) * 100.0 /
                 NULLIF(COUNT(*), 0) AS cpu_saturation_pct,
             SUM(CASE WHEN nt.cpu_user_percent + nt.cpu_system_percent < 20 THEN 1 ELSE 0 END) * 100.0 /
                 NULLIF(COUNT(*), 0) AS cpu_idle_pct
         FROM ${catalog}.${gold_schema}.fact_node_timeline nt
         LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c
-            ON nt.cluster_id = c.cluster_id AND c.is_current = TRUE
-        WHERE nt.start_time >= CURRENT_TIMESTAMP() - INTERVAL days_back DAY
+            ON nt.cluster_id = c.cluster_id AND c.delete_time IS NULL
+        WHERE nt.start_time >= TIMESTAMPADD(DAY, -days_back, CURRENT_TIMESTAMP())
         GROUP BY nt.cluster_id, c.cluster_name, c.cluster_source, c.owned_by
         HAVING observation_hours >= min_observation_hours
     ),
@@ -452,7 +452,7 @@ RETURN
             usage_metadata_cluster_id AS cluster_id,
             SUM(list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE usage_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND usage_metadata_cluster_id IS NOT NULL
         GROUP BY usage_metadata_cluster_id
     ),

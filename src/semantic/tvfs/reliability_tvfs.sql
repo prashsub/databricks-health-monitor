@@ -90,7 +90,7 @@ RETURN
         SELECT
             jrt.job_id,
             j.name AS job_name,
-            FIRST(j.run_as, TRUE) AS run_as,
+            ANY_VALUE(j.run_as) AS run_as,
             COUNT(*) AS total_runs,
             SUM(CASE WHEN jrt.is_success THEN 1 ELSE 0 END) AS successful_runs,
             SUM(CASE WHEN jrt.result_state IN ('FAILED', 'ERROR', 'TIMED_OUT') THEN 1 ELSE 0 END) AS failed_runs,
@@ -123,8 +123,8 @@ RETURN
 -- Returns job duration percentiles for SLA planning
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_job_duration_percentiles(
-    job_name_filter STRING DEFAULT 'ALL' COMMENT 'Job name filter, or ALL',
-    days_back INT DEFAULT 30 COMMENT 'Number of days to analyze'
+    days_back INT COMMENT 'Number of days to analyze (required)',
+    job_name_filter STRING DEFAULT 'ALL' COMMENT 'Job name filter, or ALL'
 )
 RETURNS TABLE(
     job_id STRING COMMENT 'Job ID',
@@ -163,7 +163,7 @@ RETURN
     LEFT JOIN ${catalog}.${gold_schema}.dim_job j
         ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
     WHERE jrt.is_success = TRUE
-        AND jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        AND jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
         AND (job_name_filter = 'ALL' OR j.name LIKE CONCAT('%', job_name_filter, '%'))
     GROUP BY jrt.job_id, j.name
     HAVING COUNT(*) >= 5
@@ -175,7 +175,7 @@ RETURN
 -- Returns daily failure trends for monitoring
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_job_failure_trends(
-    days_back INT DEFAULT 30 COMMENT 'Number of days to analyze'
+    days_back INT COMMENT 'Number of days to analyze (required)'
 )
 RETURNS TABLE(
     run_date DATE COMMENT 'Date',
@@ -201,7 +201,7 @@ RETURN
             SUM(CASE WHEN result_state IN ('FAILED', 'ERROR', 'TIMED_OUT') THEN 1 ELSE 0 END) AS failed_runs,
             COUNT(DISTINCT CASE WHEN result_state IN ('FAILED', 'ERROR', 'TIMED_OUT') THEN job_id END) AS unique_failing_jobs
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline
-        WHERE run_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND result_state IS NOT NULL
         GROUP BY run_date
     )
@@ -246,33 +246,22 @@ COMMENT '
 - SYNTAX: SELECT * FROM TABLE(get_job_sla_compliance("2024-01-01", "2024-12-31", 60))
 '
 RETURN
-    WITH sla_stats AS (
-        SELECT
-            jrt.job_id,
-            j.name AS job_name,
-            COUNT(*) AS total_runs,
-            SUM(CASE WHEN jrt.run_duration_minutes <= sla_duration_minutes THEN 1 ELSE 0 END) AS runs_within_sla,
-            SUM(CASE WHEN jrt.run_duration_minutes > sla_duration_minutes THEN 1 ELSE 0 END) AS runs_breaching_sla,
-            AVG(CASE WHEN jrt.run_duration_minutes > sla_duration_minutes
-                     THEN jrt.run_duration_minutes - sla_duration_minutes
-                     ELSE NULL END) AS avg_breach_minutes
-        FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
-        LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
-        WHERE jrt.is_success = TRUE
-            AND jrt.run_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
-        GROUP BY jrt.job_id, j.name
-    )
     SELECT
-        job_id,
-        job_name,
-        total_runs,
-        runs_within_sla,
-        runs_breaching_sla,
-        (runs_within_sla * 100.0 / NULLIF(total_runs, 0)) AS sla_compliance_pct,
-        avg_breach_minutes
-    FROM sla_stats
-    WHERE total_runs >= 3
+        jrt.job_id,
+        j.name AS job_name,
+        CAST(COUNT(*) AS INT) AS total_runs,
+        CAST(COUNT(CASE WHEN jrt.run_duration_minutes <= sla_duration_minutes THEN 1 END) AS INT) AS runs_within_sla,
+        CAST(COUNT(CASE WHEN jrt.run_duration_minutes > sla_duration_minutes THEN 1 END) AS INT) AS runs_breaching_sla,
+        ROUND(COUNT(CASE WHEN jrt.run_duration_minutes <= sla_duration_minutes THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS sla_compliance_pct,
+        ROUND(AVG(CASE WHEN jrt.run_duration_minutes > sla_duration_minutes
+                 THEN jrt.run_duration_minutes - sla_duration_minutes END), 2) AS avg_breach_minutes
+    FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
+    LEFT JOIN ${catalog}.${gold_schema}.dim_job j
+        ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
+    WHERE jrt.is_success = TRUE
+        AND jrt.run_date BETWEEN CAST(start_date AS DATE) AND CAST(end_date AS DATE)
+    GROUP BY jrt.job_id, j.name
+    HAVING COUNT(*) >= 3
     ORDER BY sla_compliance_pct ASC;
 
 
@@ -318,7 +307,7 @@ RETURN
     LEFT JOIN ${catalog}.${gold_schema}.dim_job j
         ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
     WHERE jrt.job_id = job_id_filter
-        AND jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        AND jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
     ORDER BY jrt.period_start_time DESC;
 
 
@@ -354,7 +343,7 @@ RETURN
         SELECT
             u.usage_metadata_job_id AS job_id,
             j.name AS job_name,
-            FIRST(u.identity_metadata_run_as, TRUE) AS run_as,
+            ANY_VALUE(u.identity_metadata_run_as) AS run_as,
             COUNT(DISTINCT u.usage_metadata_job_run_id) AS run_count,
             SUM(u.list_cost) AS total_cost
         FROM ${catalog}.${gold_schema}.fact_usage u
@@ -514,8 +503,8 @@ RETURN
     run_summary AS (
         SELECT
             jr.job_id,
-            FIRST(jr.job_name) AS job_name,
-            FIRST(jr.run_as) AS run_as,
+            ANY_VALUE(jr.job_name) AS job_name,
+            ANY_VALUE(jr.run_as) AS run_as,
             COUNT(DISTINCT jr.run_id) AS total_runs,
             SUM(CASE WHEN jr.is_success = FALSE THEN 1 ELSE 0 END) AS repair_count,
             SUM(CASE WHEN jr.is_success = FALSE THEN COALESCE(jc.run_cost, 0) ELSE 0 END) AS repair_cost
@@ -543,7 +532,7 @@ RETURN
 -- Reference: Microsoft Learn - Cost Observability Queries
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_job_spend_trend_analysis(
-    days_back INT DEFAULT 14 COMMENT 'Number of days to analyze',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     top_n INT DEFAULT 50 COMMENT 'Number of jobs to return'
 )
 RETURNS TABLE(
@@ -575,7 +564,7 @@ RETURN
             SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAY AND CURRENT_DATE() - INTERVAL 8 DAY
                      THEN list_cost ELSE 0 END) AS prior_7_day_spend
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE usage_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND usage_metadata_job_id IS NOT NULL
         GROUP BY workspace_id, usage_metadata_job_id, COALESCE(identity_metadata_run_as, identity_metadata_owned_by)
     ),
@@ -694,7 +683,7 @@ RETURN
 -- Reference: Microsoft Learn - Job Run Timeline Queries
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_job_run_duration_analysis(
-    days_back INT DEFAULT 7 COMMENT 'Number of days to analyze',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     min_runs INT DEFAULT 5 COMMENT 'Minimum number of runs to include job',
     top_n INT DEFAULT 100 COMMENT 'Number of jobs to return'
 )
@@ -715,7 +704,7 @@ COMMENT '
 - RETURNS: Jobs with avg, median, P90, P95, and max durations
 - PARAMS: days_back (default 7), min_runs (default 5), top_n (default 100)
 - SYNTAX: SELECT * FROM TABLE(get_job_run_duration_analysis(7, 5, 50))
-- NOTE: Uses PERCENTILE_CONT for exact percentile calculation
+- NOTE: Uses PERCENTILE_APPROX for approximate percentile calculation
 '
 RETURN
     WITH job_durations AS (
@@ -726,7 +715,7 @@ RETURN
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
             ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL
-        WHERE jrt.run_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND jrt.result_state IS NOT NULL
             AND jrt.run_duration_minutes IS NOT NULL
     ),
@@ -736,9 +725,9 @@ RETURN
             FIRST(job_name) AS job_name,
             COUNT(*) AS total_runs,
             AVG(run_duration_minutes) AS avg_duration_min,
-            PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY run_duration_minutes) AS median_duration_min,
-            PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY run_duration_minutes) AS p90_duration_min,
-            PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY run_duration_minutes) AS p95_duration_min,
+            PERCENTILE_APPROX(run_duration_minutes, 0.5) AS median_duration_min,
+            PERCENTILE_APPROX(run_duration_minutes, 0.9) AS p90_duration_min,
+            PERCENTILE_APPROX(run_duration_minutes, 0.95) AS p95_duration_min,
             MAX(run_duration_minutes) AS max_duration_min
         FROM job_durations
         GROUP BY job_id

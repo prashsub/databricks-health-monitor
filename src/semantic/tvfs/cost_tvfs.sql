@@ -255,7 +255,7 @@ RETURN
                 ELSE 'OTHER'
             END AS resource_type,
             COALESCE(usage_metadata_job_id, usage_metadata_warehouse_id, usage_metadata_cluster_id) AS resource_id,
-            COALESCE(f.identity_metadata_run_as, f.identity_metadata_owned_by) AS owner,
+            COALESCE(identity_metadata_run_as, identity_metadata_owned_by) AS owner,
             SUM(list_cost) AS total_cost,
             MAX(usage_date) AS last_used
         FROM ${catalog}.${gold_schema}.fact_usage
@@ -340,7 +340,7 @@ RETURN
 -- Returns week-over-week cost growth
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_cost_week_over_week(
-    weeks_back INT DEFAULT 12 COMMENT 'Number of weeks to analyze'
+    weeks_back INT COMMENT 'Number of weeks to analyze (required)'
 )
 RETURNS TABLE(
     week_start DATE COMMENT 'Start date of the week',
@@ -365,7 +365,7 @@ RETURN
             SUM(list_cost) AS weekly_cost,
             SUM(usage_quantity) AS weekly_dbu
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE usage_date >= CURRENT_DATE() - INTERVAL weeks_back WEEK
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -weeks_back * 7)
         GROUP BY 1
     ),
     with_growth AS (
@@ -697,7 +697,7 @@ RETURN
 -- Identifies entities with highest cost growth week-over-week
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_cost_growth_analysis(
-    days_back INT DEFAULT 14 COMMENT 'Number of days to analyze (for week-over-week)',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     entity_type STRING DEFAULT 'WORKSPACE' COMMENT 'Entity type: WORKSPACE, JOB, or SKU',
     top_n INT DEFAULT 20 COMMENT 'Number of entities to return'
 )
@@ -731,7 +731,7 @@ RETURN
             SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAY AND CURRENT_DATE() - INTERVAL 8 DAY
                      THEN list_cost ELSE 0 END) AS prior_7_day_spend
         FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE usage_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -days_back)
         GROUP BY 1
     ),
     with_growth AS (
@@ -774,8 +774,8 @@ RETURN
 -- Source: Dashboard Pattern Analysis
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_cost_growth_by_period(
-    entity_type STRING DEFAULT 'WORKSPACE' COMMENT 'Entity type: WORKSPACE, JOB, or SKU',
-    recent_days INT DEFAULT 7 COMMENT 'Number of days for recent period',
+    entity_type STRING COMMENT 'Entity type: WORKSPACE, JOB, or SKU (required)',
+    recent_days INT COMMENT 'Number of days for recent period (required)',
     comparison_days INT DEFAULT 7 COMMENT 'Number of days for comparison period',
     top_n INT DEFAULT 20 COMMENT 'Number of top entities to return'
 )
@@ -799,65 +799,46 @@ COMMENT '
 - NOTE: Categories: SPIKE (>50%), GROWTH (>10%), STABLE (-10% to 10%), DECLINE (<-10%), DROP (<-50%)
 '
 RETURN
-    WITH period_costs AS (
-        SELECT
-            CASE entity_type
-                WHEN 'WORKSPACE' THEN workspace_id
-                WHEN 'JOB' THEN usage_metadata_job_id
-                WHEN 'SKU' THEN sku_name
-            END AS entity_id,
-            -- Recent period (e.g., last 7 days)
-            SUM(CASE
-                WHEN usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -(recent_days)) AND DATE_ADD(CURRENT_DATE(), -1)
-                THEN list_cost ELSE 0
-            END) AS recent_period_spend,
-            -- Prior period (e.g., 7 days before recent)
-            SUM(CASE
-                WHEN usage_date BETWEEN DATE_ADD(CURRENT_DATE(), -(recent_days + comparison_days)) AND DATE_ADD(CURRENT_DATE(), -(recent_days + 1))
-                THEN list_cost ELSE 0
-            END) AS prior_period_spend
-        FROM ${catalog}.${gold_schema}.fact_usage
-        WHERE usage_date >= DATE_ADD(CURRENT_DATE(), -(recent_days + comparison_days + 1))
-        GROUP BY 1
-        HAVING entity_id IS NOT NULL
-    ),
-    with_change AS (
-        SELECT
-            p.entity_id,
-            COALESCE(w.workspace_name, j.name, p.entity_id) AS entity_name,
-            p.recent_period_spend,
-            p.prior_period_spend,
-            p.recent_period_spend - p.prior_period_spend AS absolute_change,
-            (p.recent_period_spend - p.prior_period_spend) / NULLIF(p.prior_period_spend, 0) * 100 AS pct_change
-        FROM period_costs p
-        LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w
-            ON entity_type = 'WORKSPACE' AND p.entity_id = w.workspace_id
-        LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON entity_type = 'JOB' AND p.entity_id = j.job_id AND j.delete_time IS NULL
-    ),
-    categorized AS (
-        SELECT *,
-            CASE
-                WHEN pct_change > 50 THEN 'SPIKE'
-                WHEN pct_change > 10 THEN 'GROWTH'
-                WHEN pct_change BETWEEN -10 AND 10 THEN 'STABLE'
-                WHEN pct_change > -50 THEN 'DECLINE'
-                ELSE 'DROP'
-            END AS change_category,
-            ROW_NUMBER() OVER (ORDER BY absolute_change DESC) AS rank
-        FROM with_change
-    )
     SELECT
-        CAST(rank AS INT) AS rank,
+        CAST(ROW_NUMBER() OVER (ORDER BY (recent_spend - prior_spend) DESC) AS INT) AS rank,
         entity_id,
         entity_name,
-        ROUND(recent_period_spend, 2) AS recent_period_spend,
-        ROUND(prior_period_spend, 2) AS prior_period_spend,
-        ROUND(absolute_change, 2) AS absolute_change,
-        ROUND(pct_change, 2) AS pct_change,
-        change_category
-    FROM categorized
-    WHERE rank <= top_n
+        ROUND(recent_spend, 2) AS recent_period_spend,
+        ROUND(prior_spend, 2) AS prior_period_spend,
+        ROUND(recent_spend - prior_spend, 2) AS absolute_change,
+        ROUND((recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100, 2) AS pct_change,
+        CASE
+            WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 > 50 THEN 'SPIKE'
+            WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 > 10 THEN 'GROWTH'
+            WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 BETWEEN -10 AND 10 THEN 'STABLE'
+            WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 > -50 THEN 'DECLINE'
+            ELSE 'DROP'
+        END AS change_category
+    FROM (
+        SELECT
+            CASE entity_type
+                WHEN 'WORKSPACE' THEN fu.workspace_id
+                WHEN 'JOB' THEN fu.usage_metadata_job_id
+                WHEN 'SKU' THEN fu.sku_name
+            END AS entity_id,
+            COALESCE(w.workspace_name, j.name,
+                CASE entity_type
+                    WHEN 'WORKSPACE' THEN fu.workspace_id
+                    WHEN 'JOB' THEN fu.usage_metadata_job_id
+                    WHEN 'SKU' THEN fu.sku_name
+                END) AS entity_name,
+            SUM(CASE WHEN fu.usage_date >= DATE_ADD(CURRENT_DATE(), -recent_days) THEN fu.list_cost ELSE 0 END) AS recent_spend,
+            SUM(CASE WHEN fu.usage_date < DATE_ADD(CURRENT_DATE(), -recent_days)
+                          AND fu.usage_date >= DATE_ADD(CURRENT_DATE(), -(recent_days + comparison_days))
+                     THEN fu.list_cost ELSE 0 END) AS prior_spend
+        FROM ${catalog}.${gold_schema}.fact_usage fu
+        LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON fu.workspace_id = w.workspace_id
+        LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON fu.usage_metadata_job_id = j.job_id AND j.delete_time IS NULL
+        WHERE fu.usage_date >= DATE_ADD(CURRENT_DATE(), -(recent_days + comparison_days + 1))
+        GROUP BY 1, 2
+        HAVING entity_id IS NOT NULL
+    ) agg
+    WHERE ROW_NUMBER() OVER (ORDER BY (recent_spend - prior_spend) DESC) <= top_n
     ORDER BY rank;
 
 

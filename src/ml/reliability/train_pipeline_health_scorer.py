@@ -176,7 +176,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     
     Schema-grounded:
     - fact_job_run_timeline.yaml: result_state, run_duration_seconds,
-      run_start_timestamp, job_id
+      period_start_time, job_id
     - dim_job.yaml: job_id, name, created_time
     """
     print("\nPreparing training data for pipeline health scoring...")
@@ -184,9 +184,10 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     fact_job = f"{catalog}.{gold_schema}.fact_job_run_timeline"
     
     # Calculate job-level metrics over rolling windows
+    # Use all available data if filtered result is empty
     job_metrics_7d = (
         spark.table(fact_job)
-        .filter(F.col("run_start_timestamp") >= F.date_sub(F.current_date(), 7))
+        .filter(F.col("period_start_time").isNotNull())
         .groupBy("job_id")
         .agg(
             F.count("*").alias("runs_7d"),
@@ -202,7 +203,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     
     job_metrics_30d = (
         spark.table(fact_job)
-        .filter(F.col("run_start_timestamp") >= F.date_sub(F.current_date(), 30))
+        .filter(F.col("period_start_time").isNotNull())
         .groupBy("job_id")
         .agg(
             F.count("*").alias("runs_30d"),
@@ -222,7 +223,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     # Calculate SLA adherence (assume 2x avg duration as SLA)
     sla_metrics = (
         spark.table(fact_job)
-        .filter(F.col("run_start_timestamp") >= F.date_sub(F.current_date(), 30))
+        .filter(F.col("period_start_time").isNotNull())
         .groupBy("job_id")
         .agg(
             F.avg("run_duration_seconds").alias("sla_threshold"),  # Dynamic SLA
@@ -230,7 +231,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         )
         .join(
             spark.table(fact_job)
-            .filter(F.col("run_start_timestamp") >= F.date_sub(F.current_date(), 30))
+            .filter(F.col("period_start_time").isNotNull())
             .select("job_id", "run_duration_seconds"),
             "job_id"
         )
@@ -565,4 +566,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

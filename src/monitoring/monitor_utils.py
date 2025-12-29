@@ -51,9 +51,9 @@ def delete_monitor_if_exists(
         workspace_client.quality_monitors.get(table_name=table_name)
 
         # Delete monitor definition
-        print(f"  Deleting existing monitor for {table_name}...")
+        print(f"  [→] Cleaning up existing monitor...")
         workspace_client.quality_monitors.delete(table_name=table_name)
-        print(f"  Monitor deleted")
+        print(f"      Monitor deleted")
 
         # Parse table name and drop output tables
         parts = table_name.split(".")
@@ -65,19 +65,19 @@ def delete_monitor_if_exists(
                 # Drop profile_metrics table
                 profile_table = f"{catalog}.{monitoring_schema}.{table}_profile_metrics"
                 spark.sql(f"DROP TABLE IF EXISTS {profile_table}")
-                print(f"  Dropped {profile_table}")
+                print(f"      Dropped profile_metrics table")
 
                 # Drop drift_metrics table
                 drift_table = f"{catalog}.{monitoring_schema}.{table}_drift_metrics"
                 spark.sql(f"DROP TABLE IF EXISTS {drift_table}")
-                print(f"  Dropped {drift_table}")
+                print(f"      Dropped drift_metrics table")
 
         return True
 
     except ResourceDoesNotExist:
         return False  # No monitor to delete
     except Exception as e:
-        print(f"  Error cleaning up monitor: {str(e)}")
+        print(f"  [⚠] Error cleaning up monitor: {str(e)[:80]}")
         return False
 
 
@@ -90,7 +90,8 @@ def create_time_series_monitor(
     slicing_exprs: Optional[List[str]] = None,
     assets_dir: Optional[str] = None,
     output_schema: Optional[str] = None,
-    schedule_cron: Optional[str] = None
+    schedule_cron: Optional[str] = None,
+    spark=None
 ):
     """
     Create a time series monitor with custom metrics.
@@ -105,6 +106,7 @@ def create_time_series_monitor(
         assets_dir: Optional assets directory path
         output_schema: Optional output schema name
         schedule_cron: Optional cron schedule expression
+        spark: SparkSession for creating monitoring schema if needed
     """
     if not MONITORING_AVAILABLE:
         raise RuntimeError("Lakehouse Monitoring SDK not available")
@@ -122,7 +124,19 @@ def create_time_series_monitor(
     if output_schema is None:
         output_schema = f"{catalog}.{schema}_monitoring"
 
-    print(f"Creating time series monitor for {table_name}...")
+    # Create monitoring schema if it doesn't exist
+    # This is required by Lakehouse Monitoring to store profile_metrics and drift_metrics tables
+    if spark is not None:
+        monitoring_schema_name = output_schema.split(".")[-1] if "." in output_schema else output_schema
+        monitoring_catalog = output_schema.split(".")[0] if "." in output_schema else catalog
+        print(f"  Creating monitoring schema: {output_schema}")
+        try:
+            spark.sql(f"CREATE SCHEMA IF NOT EXISTS {monitoring_catalog}.{monitoring_schema_name}")
+            print(f"  [✓] Monitoring schema ready")
+        except Exception as e:
+            print(f"  [⚠] Warning: Could not create monitoring schema: {str(e)[:80]}")
+
+    print(f"  Creating monitor for: {table}")
 
     try:
         # Build monitor configuration
@@ -149,17 +163,17 @@ def create_time_series_monitor(
         # Create monitor
         monitor = workspace_client.quality_monitors.create(**config)
 
-        print(f"  Monitor created for {table_name}")
+        print(f"  [✓] Monitor created successfully")
         if hasattr(monitor, 'dashboard_id') and monitor.dashboard_id:
-            print(f"  Dashboard ID: {monitor.dashboard_id}")
+            print(f"      Dashboard ID: {monitor.dashboard_id}")
 
         return monitor
 
     except ResourceAlreadyExists:
-        print(f"  Monitor already exists for {table_name}")
+        print(f"  [⊘] Monitor already exists - skipping")
         return None
     except Exception as e:
-        print(f"  Failed to create monitor: {str(e)}")
+        print(f"  [✗] Failed to create monitor: {str(e)[:80]}")
         raise
 
 

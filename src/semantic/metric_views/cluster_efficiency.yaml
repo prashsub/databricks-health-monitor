@@ -79,7 +79,7 @@ dimensions:
 
   # === Role Dimensions ===
   - name: is_driver
-    expr: source.is_driver
+    expr: source.driver
     comment: Whether this is a driver node (true) or worker node (false)
     display_name: Is Driver
     synonyms:
@@ -87,7 +87,7 @@ dimensions:
       - driver
   
   - name: node_role
-    expr: CASE WHEN source.is_driver THEN 'DRIVER' ELSE 'WORKER' END
+    expr: CASE WHEN source.driver THEN 'DRIVER' ELSE 'WORKER' END
     comment: Node role (DRIVER or WORKER)
     display_name: Node Role
     synonyms:
@@ -110,23 +110,15 @@ dimensions:
       - workspace
       - environment
 
-  # === State Dimensions ===
-  - name: state
-    expr: source.state
-    comment: Node state (RUNNING, PENDING, TERMINATING)
-    display_name: State
-    synonyms:
-      - node state
-      - status
-
   # === Utilization Tier Dimensions ===
+  # Note: Using cpu_user_percent + cpu_system_percent as total CPU utilization
   - name: cpu_utilization_tier
     expr: >
       CASE
-        WHEN source.avg_cpu_utilization_percent < 10 THEN 'IDLE'
-        WHEN source.avg_cpu_utilization_percent < 30 THEN 'LOW'
-        WHEN source.avg_cpu_utilization_percent < 70 THEN 'MODERATE'
-        WHEN source.avg_cpu_utilization_percent < 90 THEN 'HIGH'
+        WHEN (source.cpu_user_percent + source.cpu_system_percent) < 10 THEN 'IDLE'
+        WHEN (source.cpu_user_percent + source.cpu_system_percent) < 30 THEN 'LOW'
+        WHEN (source.cpu_user_percent + source.cpu_system_percent) < 70 THEN 'MODERATE'
+        WHEN (source.cpu_user_percent + source.cpu_system_percent) < 90 THEN 'HIGH'
         ELSE 'CRITICAL'
       END
     comment: CPU utilization tier (IDLE <10%, LOW <30%, MODERATE <70%, HIGH <90%, CRITICAL >=90%)
@@ -138,10 +130,10 @@ dimensions:
   - name: memory_utilization_tier
     expr: >
       CASE
-        WHEN source.avg_memory_utilization_percent < 10 THEN 'IDLE'
-        WHEN source.avg_memory_utilization_percent < 30 THEN 'LOW'
-        WHEN source.avg_memory_utilization_percent < 70 THEN 'MODERATE'
-        WHEN source.avg_memory_utilization_percent < 90 THEN 'HIGH'
+        WHEN source.mem_used_percent < 10 THEN 'IDLE'
+        WHEN source.mem_used_percent < 30 THEN 'LOW'
+        WHEN source.mem_used_percent < 70 THEN 'MODERATE'
+        WHEN source.mem_used_percent < 90 THEN 'HIGH'
         ELSE 'CRITICAL'
       END
     comment: Memory utilization tier (IDLE <10%, LOW <30%, MODERATE <70%, HIGH <90%, CRITICAL >=90%)
@@ -152,7 +144,7 @@ dimensions:
 
   # === Inefficiency Flags ===
   - name: is_underutilized
-    expr: source.avg_cpu_utilization_percent < 30 AND source.avg_memory_utilization_percent < 30
+    expr: (source.cpu_user_percent + source.cpu_system_percent) < 30 AND source.mem_used_percent < 30
     comment: Flag indicating cluster is underutilized (both CPU and memory below 30%)
     display_name: Is Underutilized
     synonyms:
@@ -160,7 +152,7 @@ dimensions:
       - inefficient
   
   - name: is_overprovisioned
-    expr: source.avg_cpu_utilization_percent < 50 AND source.avg_memory_utilization_percent < 50
+    expr: (source.cpu_user_percent + source.cpu_system_percent) < 50 AND source.mem_used_percent < 50
     comment: Flag indicating cluster may be overprovisioned (both CPU and memory below 50%)
     display_name: Is Overprovisioned
     synonyms:
@@ -198,9 +190,10 @@ dimensions:
 
 measures:
   # === Core Utilization Measures ===
+  # Note: Using cpu_user_percent + cpu_system_percent as total CPU utilization
   - name: avg_cpu_utilization
-    expr: AVG(source.avg_cpu_utilization_percent)
-    comment: Average CPU utilization percentage across all nodes
+    expr: AVG(source.cpu_user_percent + source.cpu_system_percent)
+    comment: Average CPU utilization percentage across all nodes (user + system)
     display_name: Avg CPU %
     format:
       type: percentage
@@ -213,7 +206,7 @@ measures:
       - average cpu
 
   - name: avg_memory_utilization
-    expr: AVG(source.avg_memory_utilization_percent)
+    expr: AVG(source.mem_used_percent)
     comment: Average memory utilization percentage across all nodes
     display_name: Avg Memory %
     format:
@@ -227,8 +220,8 @@ measures:
       - average memory
 
   - name: max_cpu_utilization
-    expr: MAX(source.max_cpu_utilization_percent)
-    comment: Maximum CPU utilization percentage
+    expr: MAX(source.cpu_user_percent + source.cpu_system_percent)
+    comment: Maximum CPU utilization percentage (user + system)
     display_name: Max CPU %
     format:
       type: percentage
@@ -240,7 +233,7 @@ measures:
       - max cpu
 
   - name: max_memory_utilization
-    expr: MAX(source.max_memory_utilization_percent)
+    expr: MAX(source.mem_used_percent)
     comment: Maximum memory utilization percentage
     display_name: Max Memory %
     format:
@@ -253,9 +246,10 @@ measures:
       - max memory
 
   # === Time-Based Measures ===
+  # Calculating duration from start_time and end_time
   - name: total_node_hours
-    expr: SUM(source.duration_hours)
-    comment: Total node hours consumed
+    expr: SUM((UNIX_TIMESTAMP(COALESCE(source.end_time, CURRENT_TIMESTAMP())) - UNIX_TIMESTAMP(source.start_time)) / 3600.0)
+    comment: Total node hours consumed (calculated from start/end times)
     display_name: Node Hours
     format:
       type: number
@@ -268,21 +262,8 @@ measures:
       - runtime
       - compute hours
 
-  - name: running_hours
-    expr: SUM(CASE WHEN source.state = 'RUNNING' THEN source.duration_hours ELSE 0 END)
-    comment: Total hours nodes were in running state
-    display_name: Running Hours
-    format:
-      type: number
-      decimal_places:
-        type: exact
-        places: 1
-    synonyms:
-      - active hours
-      - run time
-
   - name: idle_hours
-    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 10 THEN source.duration_hours ELSE 0 END)
+    expr: SUM(CASE WHEN (source.cpu_user_percent + source.cpu_system_percent) < 10 THEN (UNIX_TIMESTAMP(COALESCE(source.end_time, CURRENT_TIMESTAMP())) - UNIX_TIMESTAMP(source.start_time)) / 3600.0 ELSE 0 END)
     comment: Node hours with CPU utilization below 10% (considered idle)
     display_name: Idle Hours
     format:
@@ -315,7 +296,7 @@ measures:
       - cluster count
 
   - name: driver_nodes
-    expr: SUM(CASE WHEN source.is_driver THEN 1 ELSE 0 END)
+    expr: SUM(CASE WHEN source.driver THEN 1 ELSE 0 END)
     comment: Number of driver node records
     display_name: Driver Nodes
     format:
@@ -324,7 +305,7 @@ measures:
       - drivers
 
   - name: worker_nodes
-    expr: SUM(CASE WHEN NOT source.is_driver THEN 1 ELSE 0 END)
+    expr: SUM(CASE WHEN NOT source.driver THEN 1 ELSE 0 END)
     comment: Number of worker node records
     display_name: Worker Nodes
     format:
@@ -336,7 +317,7 @@ measures:
   - name: efficiency_score
     expr: >
       AVG(
-        (COALESCE(source.avg_cpu_utilization_percent, 0) + COALESCE(source.avg_memory_utilization_percent, 0)) / 2
+        (COALESCE(source.cpu_user_percent + source.cpu_system_percent, 0) + COALESCE(source.mem_used_percent, 0)) / 2
       )
     comment: Combined CPU and memory utilization efficiency score (0-100)
     display_name: Efficiency Score
@@ -351,8 +332,10 @@ measures:
 
   - name: idle_percentage
     expr: >
-      SUM(CASE WHEN source.avg_cpu_utilization_percent < 10 THEN source.duration_hours ELSE 0 END) * 100.0 /
-      NULLIF(SUM(source.duration_hours), 0)
+      SUM(CASE WHEN (source.cpu_user_percent + source.cpu_system_percent) < 10 
+          THEN (UNIX_TIMESTAMP(COALESCE(source.end_time, CURRENT_TIMESTAMP())) - UNIX_TIMESTAMP(source.start_time)) / 3600.0 
+          ELSE 0 END) * 100.0 /
+      NULLIF(SUM((UNIX_TIMESTAMP(COALESCE(source.end_time, CURRENT_TIMESTAMP())) - UNIX_TIMESTAMP(source.start_time)) / 3600.0), 0)
     comment: Percentage of total hours that nodes were idle (CPU < 10%)
     display_name: Idle %
     format:
@@ -366,8 +349,10 @@ measures:
 
   - name: underutilized_percentage
     expr: >
-      SUM(CASE WHEN source.avg_cpu_utilization_percent < 30 AND source.avg_memory_utilization_percent < 30 THEN source.duration_hours ELSE 0 END) * 100.0 /
-      NULLIF(SUM(source.duration_hours), 0)
+      SUM(CASE WHEN (source.cpu_user_percent + source.cpu_system_percent) < 30 AND source.mem_used_percent < 30 
+          THEN (UNIX_TIMESTAMP(COALESCE(source.end_time, CURRENT_TIMESTAMP())) - UNIX_TIMESTAMP(source.start_time)) / 3600.0 
+          ELSE 0 END) * 100.0 /
+      NULLIF(SUM((UNIX_TIMESTAMP(COALESCE(source.end_time, CURRENT_TIMESTAMP())) - UNIX_TIMESTAMP(source.start_time)) / 3600.0), 0)
     comment: Percentage of node hours where cluster was underutilized (CPU and memory both < 30%)
     display_name: Underutilized %
     format:
@@ -381,7 +366,7 @@ measures:
 
   # === Inefficiency Counts ===
   - name: underutilized_node_count
-    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 30 AND source.avg_memory_utilization_percent < 30 THEN 1 ELSE 0 END)
+    expr: SUM(CASE WHEN (source.cpu_user_percent + source.cpu_system_percent) < 30 AND source.mem_used_percent < 30 THEN 1 ELSE 0 END)
     comment: Number of node records that were underutilized
     display_name: Underutilized Nodes
     format:
@@ -391,7 +376,7 @@ measures:
       - low utilization nodes
 
   - name: overprovisioned_node_count
-    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 50 AND source.avg_memory_utilization_percent < 50 THEN 1 ELSE 0 END)
+    expr: SUM(CASE WHEN (source.cpu_user_percent + source.cpu_system_percent) < 50 AND source.mem_used_percent < 50 THEN 1 ELSE 0 END)
     comment: Number of node records that may be overprovisioned
     display_name: Overprovisioned Nodes
     format:
@@ -402,7 +387,7 @@ measures:
   - name: underutilized_cluster_count
     expr: >
       COUNT(DISTINCT CASE 
-        WHEN source.avg_cpu_utilization_percent < 30 AND source.avg_memory_utilization_percent < 30 
+        WHEN (source.cpu_user_percent + source.cpu_system_percent) < 30 AND source.mem_used_percent < 30 
         THEN source.cluster_id 
       END)
     comment: Number of distinct clusters with underutilization
@@ -413,8 +398,8 @@ measures:
       - inefficient clusters
 
   # === Right-Sizing Opportunities ===
-  - name: idle_node_hours
-    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 10 THEN source.duration_hours ELSE 0 END)
+  - name: idle_node_hours_total
+    expr: SUM(CASE WHEN (source.cpu_user_percent + source.cpu_system_percent) < 10 THEN (UNIX_TIMESTAMP(COALESCE(source.end_time, CURRENT_TIMESTAMP())) - UNIX_TIMESTAMP(source.start_time)) / 3600.0 ELSE 0 END)
     comment: Total node hours spent idle (potential waste)
     display_name: Idle Node Hours
     format:
@@ -427,7 +412,7 @@ measures:
       - idle compute
 
   - name: low_utilization_node_hours
-    expr: SUM(CASE WHEN source.avg_cpu_utilization_percent < 30 THEN source.duration_hours ELSE 0 END)
+    expr: SUM(CASE WHEN (source.cpu_user_percent + source.cpu_system_percent) < 30 THEN (UNIX_TIMESTAMP(COALESCE(source.end_time, CURRENT_TIMESTAMP())) - UNIX_TIMESTAMP(source.start_time)) / 3600.0 ELSE 0 END)
     comment: Total node hours with low CPU utilization (right-sizing opportunity)
     display_name: Low Utilization Hours
     format:
@@ -438,56 +423,43 @@ measures:
     synonyms:
       - underused hours
 
-  # === Network/Disk I/O (if available) ===
-  - name: avg_network_sent_mbps
-    expr: AVG(source.avg_network_sent_bytes_per_second) / 1048576
-    comment: Average network send rate in MB/s
-    display_name: Avg Network Send (MB/s)
+  # === CPU Breakdown ===
+  - name: avg_cpu_user_percent
+    expr: AVG(source.cpu_user_percent)
+    comment: Average CPU user percentage
+    display_name: Avg CPU User %
     format:
-      type: number
+      type: percentage
       decimal_places:
         type: exact
-        places: 2
+        places: 1
     synonyms:
-      - network out
-      - send rate
+      - user cpu
+      - application cpu
 
-  - name: avg_network_received_mbps
-    expr: AVG(source.avg_network_received_bytes_per_second) / 1048576
-    comment: Average network receive rate in MB/s
-    display_name: Avg Network Recv (MB/s)
+  - name: avg_cpu_system_percent
+    expr: AVG(source.cpu_system_percent)
+    comment: Average CPU system percentage
+    display_name: Avg CPU System %
     format:
-      type: number
+      type: percentage
       decimal_places:
         type: exact
-        places: 2
+        places: 1
     synonyms:
-      - network in
-      - receive rate
+      - system cpu
+      - kernel cpu
 
-  - name: avg_disk_read_mbps
-    expr: AVG(source.avg_disk_read_bytes_per_second) / 1048576
-    comment: Average disk read rate in MB/s
-    display_name: Avg Disk Read (MB/s)
+  - name: avg_cpu_wait_percent
+    expr: AVG(source.cpu_wait_percent)
+    comment: Average CPU I/O wait percentage
+    display_name: Avg CPU Wait %
     format:
-      type: number
+      type: percentage
       decimal_places:
         type: exact
-        places: 2
+        places: 1
     synonyms:
-      - disk read
-      - read rate
-
-  - name: avg_disk_write_mbps
-    expr: AVG(source.avg_disk_write_bytes_per_second) / 1048576
-    comment: Average disk write rate in MB/s
-    display_name: Avg Disk Write (MB/s)
-    format:
-      type: number
-      decimal_places:
-        type: exact
-        places: 2
-    synonyms:
-      - disk write
-      - write rate
+      - io wait
+      - cpu wait
 

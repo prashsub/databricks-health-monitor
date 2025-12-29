@@ -18,8 +18,15 @@ resources:
       name: "[${bundle.target}] Health Monitor - Genie Space Deployment"
       description: "Deploys all Genie Spaces for natural language analytics"
 
+      # ✅ MANDATORY: Serverless environment configuration
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+
       tasks:
         - task_key: deploy_all_genie_spaces
+          environment_key: default
           notebook_task:
             notebook_path: ../../src/semantic/genie/deploy_genie_spaces.py
             base_parameters:

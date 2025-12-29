@@ -31,6 +31,7 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
 
       # No schedule - run on demand after Gold setup
       # Can also be triggered after schema changes

@@ -139,31 +139,33 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     
     Schema-grounded:
     - fact_job_run_timeline.yaml: result_state, termination_code, run_id, 
-      run_start_timestamp, run_duration_seconds, job_id
+      period_start_time, run_duration_seconds, job_id
     """
     print("\nPreparing training data for retry success prediction...")
     
     fact_job = f"{catalog}.{gold_schema}.fact_job_run_timeline"
     
     # Get failed jobs
+    # Note: compute_ids is an array, extract first cluster_id
     failed_jobs = (
         spark.table(fact_job)
         .filter(F.col("result_state") == "FAILED")
-        .filter(F.col("run_start_timestamp") >= F.date_sub(F.current_date(), 90))
+        .filter(F.col("period_start_time").isNotNull())
+        .withColumn("cluster_id", F.element_at(F.col("compute_ids"), 1))  # Get first cluster
         .select(
             "run_id",
             "job_id",
-            "run_start_timestamp",
+            "period_start_time",
             "termination_code",
             "run_duration_seconds",
             "cluster_id",
             # Extract time features
-            F.hour("run_start_timestamp").alias("hour_of_day"),
-            F.dayofweek("run_start_timestamp").alias("day_of_week"),
-            F.when(F.dayofweek("run_start_timestamp").isin(1, 7), 1).otherwise(0).alias("is_weekend")
+            F.hour("period_start_time").alias("hour_of_day"),
+            F.dayofweek("period_start_time").alias("day_of_week"),
+            F.when(F.dayofweek("period_start_time").isin(1, 7), 1).otherwise(0).alias("is_weekend")
         )
         .withColumn("row_num", F.row_number().over(
-            Window.partitionBy("job_id").orderBy("run_start_timestamp")
+            Window.partitionBy("job_id").orderBy("period_start_time")
         ))
     )
     
@@ -174,13 +176,13 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
             spark.table(fact_job).alias("retry")
             .select(
                 F.col("job_id").alias("retry_job_id"),
-                F.col("run_start_timestamp").alias("retry_timestamp"),
+                F.col("period_start_time").alias("retry_timestamp"),
                 F.col("result_state").alias("retry_result")
             ),
             on=[
                 F.col("failed.job_id") == F.col("retry.retry_job_id"),
-                F.col("retry.retry_timestamp") > F.col("failed.run_start_timestamp"),
-                F.col("retry.retry_timestamp") <= F.col("failed.run_start_timestamp") + F.expr("INTERVAL 24 HOURS")
+                F.col("retry.retry_timestamp") > F.col("failed.period_start_time"),
+                F.col("retry.retry_timestamp") <= F.col("failed.period_start_time") + F.expr("INTERVAL 24 HOURS")
             ],
             how="inner"
         )
@@ -200,7 +202,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
             F.col("failed.row_num").alias("failure_count"),
             F.col("failed.cluster_id"),
             # Time to retry
-            (F.col("retry.retry_timestamp").cast("long") - F.col("failed.run_start_timestamp").cast("long")).alias("time_to_retry_sec"),
+            (F.col("retry.retry_timestamp").cast("long") - F.col("failed.period_start_time").cast("long")).alias("time_to_retry_sec"),
             # Target
             F.when(F.col("retry.retry_result") == "SUCCESS", 1).otherwise(0).alias("retry_succeeded")
         )
@@ -209,7 +211,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     # Add historical success rate per job
     job_success_rates = (
         spark.table(fact_job)
-        .filter(F.col("run_start_timestamp") < F.date_sub(F.current_date(), 7))
+        .filter(F.col("period_start_time") < F.date_sub(F.current_date(), 7))
         .groupBy("job_id")
         .agg(
             (F.sum(F.when(F.col("result_state") == "SUCCESS", 1).otherwise(0)) / F.count("*")).alias("historical_success_rate")
@@ -498,4 +500,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

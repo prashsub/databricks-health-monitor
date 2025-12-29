@@ -345,3 +345,5 @@ ORDER BY window_start DESC
 |---|---|---|
 | 2025-12-19 | 1.0.0 | Initial implementation with 8 monitors across 5 agent domains |
 
+
+

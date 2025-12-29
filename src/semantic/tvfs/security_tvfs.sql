@@ -440,7 +440,7 @@ RETURN
 -- Source: Audit Logs Security Dashboard patterns
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_user_activity_patterns(
-    days_back INT DEFAULT 7 COMMENT 'Number of days to analyze',
+    days_back INT COMMENT 'Number of days to analyze (required)',
     burst_threshold INT DEFAULT 50 COMMENT 'Events per hour threshold for burst detection',
     exclude_system_accounts BOOLEAN DEFAULT TRUE COMMENT 'Exclude system/service accounts'
 )
@@ -496,7 +496,7 @@ RETURN
             service_name,
             source_ip_address
         FROM ${catalog}.${gold_schema}.fact_audit_logs
-        WHERE event_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE event_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND user_identity_email IS NOT NULL
     ),
     -- Calculate hourly activity for burst detection
@@ -591,7 +591,7 @@ RETURN
 -- Source: Audit logs repo system account filtering pattern
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_service_account_audit(
-    days_back INT DEFAULT 7 COMMENT 'Number of days to analyze'
+    days_back INT COMMENT 'Number of days to analyze (required)'
 )
 RETURNS TABLE(
     account_email STRING COMMENT 'Service account email',
@@ -638,7 +638,7 @@ RETURN
             is_failed_action,
             is_sensitive_action
         FROM ${catalog}.${gold_schema}.fact_audit_logs
-        WHERE event_date >= CURRENT_DATE() - INTERVAL days_back DAY
+        WHERE event_date >= DATE_ADD(CURRENT_DATE(), -days_back)
             AND user_identity_email IS NOT NULL
     )
     SELECT

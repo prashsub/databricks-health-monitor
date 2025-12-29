@@ -199,10 +199,16 @@ def train_isolation_forest(X: pd.DataFrame, contamination: float = 0.05):
         
     Returns:
         Trained model, predictions, and anomaly scores
+        
+    Raises:
+        ValueError: If no training samples available
     """
     print("\nTraining Isolation Forest model...")
     print(f"  Contamination: {contamination}")
     print(f"  Training samples: {len(X)}")
+    
+    if len(X) == 0:
+        raise ValueError("No training samples available! Ensure the feature pipeline has populated cost_features with data.")
     
     model = IsolationForest(
         n_estimators=100,

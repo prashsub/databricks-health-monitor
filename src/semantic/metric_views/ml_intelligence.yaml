@@ -30,7 +30,7 @@ comment: >
   
   NOTE: Requires ML inference pipeline to have run. Risk levels: CRITICAL >=0.9, HIGH >=0.7, MEDIUM >=0.5.
 
-source: ${catalog}.${gold_schema}.cost_anomaly_predictions
+source: ${catalog}.${feature_schema}.cost_anomaly_predictions
 
 joins:
   - name: dim_workspace
@@ -144,8 +144,9 @@ dimensions:
 
 measures:
   # === Primary Measures ===
+  # NOTE: cost_anomaly_predictions has no prediction_id - using COUNT(*) for record counting
   - name: total_predictions
-    expr: COUNT(source.prediction_id)
+    expr: COUNT(*)
     comment: Total number of ML predictions generated
     display_name: Total Predictions
     format:
@@ -157,7 +158,7 @@ measures:
       - inference count
 
   - name: anomaly_count
-    expr: SUM(CASE WHEN source.is_anomaly THEN 1 ELSE 0 END)
+    expr: SUM(CASE WHEN source.is_anomaly = 1 THEN 1 ELSE 0 END)
     comment: Count of records flagged as anomalies by ML model
     display_name: Anomaly Count
     format:
@@ -169,7 +170,7 @@ measures:
       - flagged records
 
   - name: anomaly_rate
-    expr: (SUM(CASE WHEN source.is_anomaly THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(source.prediction_id), 0)
+    expr: (SUM(CASE WHEN source.is_anomaly = 1 THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(*), 0)
     comment: Percentage of predictions flagged as anomalies
     display_name: Anomaly Rate
     format:
@@ -237,7 +238,7 @@ measures:
 
   # === Cost Impact Measures ===
   - name: anomaly_cost
-    expr: SUM(CASE WHEN source.is_anomaly THEN fact_usage.list_cost ELSE 0 END)
+    expr: SUM(CASE WHEN source.is_anomaly = 1 THEN fact_usage.list_cost ELSE 0 END)
     comment: Total cost associated with anomalous usage
     display_name: Anomaly Cost
     format:
@@ -253,7 +254,7 @@ measures:
       - detected cost
 
   - name: normal_cost
-    expr: SUM(CASE WHEN NOT source.is_anomaly THEN fact_usage.list_cost ELSE 0 END)
+    expr: SUM(CASE WHEN source.is_anomaly = 0 THEN fact_usage.list_cost ELSE 0 END)
     comment: Total cost associated with normal (non-anomalous) usage
     display_name: Normal Cost
     format:
@@ -268,7 +269,7 @@ measures:
       - normal spend
 
   - name: anomaly_cost_pct
-    expr: (SUM(CASE WHEN source.is_anomaly THEN fact_usage.list_cost ELSE 0 END) * 100.0) / NULLIF(SUM(fact_usage.list_cost), 0)
+    expr: (SUM(CASE WHEN source.is_anomaly = 1 THEN fact_usage.list_cost ELSE 0 END) * 100.0) / NULLIF(SUM(fact_usage.list_cost), 0)
     comment: Percentage of total cost flagged as anomalous
     display_name: Anomaly Cost %
     format:

@@ -253,7 +253,7 @@ def create_cost_anomaly_inference_monitor(workspace_client, catalog: str, gold_s
     delete_monitor_if_exists(workspace_client, table_name, spark)
 
     try:
-        # Create monitor
+        # Create monitor (pass spark to create monitoring schema if needed)
         monitor = create_time_series_monitor(
             workspace_client=workspace_client,
             table_name=table_name,
@@ -262,6 +262,7 @@ def create_cost_anomaly_inference_monitor(workspace_client, catalog: str, gold_s
             custom_metrics=get_cost_anomaly_inference_metrics(),
             slicing_exprs=["workspace_id"],
             schedule_cron="0 0 8 * * ?",  # Daily at 8 AM UTC (after predictions run)
+            spark=spark,  # Pass spark to create monitoring schema
         )
         return monitor
     except Exception as e:
@@ -408,6 +409,7 @@ def create_failure_predictor_inference_monitor(workspace_client, catalog: str, g
     delete_monitor_if_exists(workspace_client, table_name, spark)
 
     try:
+        # Create monitor (pass spark to create monitoring schema if needed)
         monitor = create_time_series_monitor(
             workspace_client=workspace_client,
             table_name=table_name,
@@ -416,6 +418,7 @@ def create_failure_predictor_inference_monitor(workspace_client, catalog: str, g
             custom_metrics=get_failure_predictor_inference_metrics(),
             slicing_exprs=["workspace_id"],
             schedule_cron="0 0 8 * * ?",
+            spark=spark,  # Pass spark to create monitoring schema
         )
         return monitor
     except Exception as e:
@@ -436,22 +439,46 @@ def create_inference_monitor(workspace_client, catalog: str, gold_schema: str, s
     results = {}
 
     # Cost Anomaly Inference Monitor
-    print("\n--- Cost Anomaly Inference Monitor ---")
+    cost_table = f"{catalog}.{gold_schema}.cost_anomaly_predictions"
+    print(f"\n  [1/2] Cost Anomaly Inference Monitor")
+    print(f"        Table: {cost_table}")
     try:
         monitor = create_cost_anomaly_inference_monitor(workspace_client, catalog, gold_schema, spark)
-        results["cost_anomaly"] = "SUCCESS" if monitor else "SKIPPED"
+        if monitor:
+            print(f"        [✓] Created successfully")
+            results["cost_anomaly"] = "OK"
+        else:
+            print(f"        [⊘] Table not available yet (ML predictions pending)")
+            results["cost_anomaly"] = "SKIP"
     except Exception as e:
-        print(f"  Error: {str(e)}")
-        results["cost_anomaly"] = f"FAILED: {str(e)}"
+        error_msg = str(e)
+        if "not found" in error_msg.lower() or "does not exist" in error_msg.lower():
+            print(f"        [⊘] Table does not exist yet")
+            results["cost_anomaly"] = "SKIP"
+        else:
+            print(f"        [✗] Error: {error_msg[:80]}")
+            results["cost_anomaly"] = "FAIL"
 
     # Failure Predictor Inference Monitor
-    print("\n--- Failure Predictor Inference Monitor ---")
+    failure_table = f"{catalog}.{gold_schema}.failure_predictions"
+    print(f"\n  [2/2] Failure Predictor Inference Monitor")
+    print(f"        Table: {failure_table}")
     try:
         monitor = create_failure_predictor_inference_monitor(workspace_client, catalog, gold_schema, spark)
-        results["failure_predictor"] = "SUCCESS" if monitor else "SKIPPED"
+        if monitor:
+            print(f"        [✓] Created successfully")
+            results["failure_predictor"] = "OK"
+        else:
+            print(f"        [⊘] Table not available yet (ML predictions pending)")
+            results["failure_predictor"] = "SKIP"
     except Exception as e:
-        print(f"  Error: {str(e)}")
-        results["failure_predictor"] = f"FAILED: {str(e)}"
+        error_msg = str(e)
+        if "not found" in error_msg.lower() or "does not exist" in error_msg.lower():
+            print(f"        [⊘] Table does not exist yet")
+            results["failure_predictor"] = "SKIP"
+        else:
+            print(f"        [✗] Error: {error_msg[:80]}")
+            results["failure_predictor"] = "FAIL"
 
     return results
 
@@ -460,9 +487,16 @@ def create_inference_monitor(workspace_client, catalog: str, gold_schema: str, s
 
 def main():
     """Main entry point."""
+    print("=" * 70)
+    print("ML INFERENCE MONITOR SETUP")
+    print("=" * 70)
+    print(f"  Catalog: {catalog}")
+    print(f"  Schema: {gold_schema}")
+    print("-" * 70)
+    
     if not check_monitoring_available():
-        print("Lakehouse Monitoring not available - skipping")
-        dbutils.notebook.exit("SKIPPED: SDK not available")
+        print("[⊘ SKIPPED] Lakehouse Monitoring SDK not available")
+        dbutils.notebook.exit("[SKIP] SDK not available")
         return
 
     workspace_client = WorkspaceClient()
@@ -470,19 +504,31 @@ def main():
     try:
         results = create_inference_monitor(workspace_client, catalog, gold_schema, spark)
 
-        success_count = sum(1 for v in results.values() if v == "SUCCESS")
-        skipped_count = sum(1 for v in results.values() if v == "SKIPPED")
+        ok_count = sum(1 for v in results.values() if v == "OK")
+        skip_count = sum(1 for v in results.values() if v == "SKIP")
+        fail_count = sum(1 for v in results.values() if v == "FAIL")
 
-        print("\n" + "=" * 60)
-        print(f"Inference Monitor Summary: {success_count} created, {skipped_count} skipped")
-        print("=" * 60)
+        print("\n" + "-" * 70)
+        print("SUMMARY:")
+        print(f"  ✓ Created: {ok_count}")
+        print(f"  ⊘ Skipped: {skip_count} (tables not available yet)")
+        print(f"  ✗ Failed:  {fail_count}")
+        print("-" * 70)
 
-        dbutils.notebook.exit(f"SUCCESS: {success_count} inference monitors created")
+        if ok_count > 0:
+            dbutils.notebook.exit(f"[OK] {ok_count} inference monitors created")
+        elif skip_count > 0 and fail_count == 0:
+            dbutils.notebook.exit(f"[SKIP] Tables not available yet")
+        else:
+            dbutils.notebook.exit(f"[FAIL] {fail_count} monitors failed")
     except Exception as e:
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
+        print(f"[✗ FAILED] Unexpected error: {str(e)}")
+        dbutils.notebook.exit(f"[FAIL] {str(e)[:100]}")
 
 # COMMAND ----------
 
 if __name__ == "__main__":
     main()
+
+
 

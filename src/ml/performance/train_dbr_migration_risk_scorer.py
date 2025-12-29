@@ -158,13 +158,37 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     print("\nPreparing training data for DBR migration risk scoring...")
     
     fact_job = f"{catalog}.{gold_schema}.fact_job_run_timeline"
-    dim_job = f"{catalog}.{gold_schema}.dim_job"
+    dim_cluster = f"{catalog}.{gold_schema}.dim_cluster"
+    
+    # Get cluster DBR versions from dim_cluster
+    cluster_versions = (
+        spark.table(dim_cluster)
+        .filter(F.col("dbr_version").isNotNull())
+        .select("cluster_id", "workspace_id", F.col("dbr_version").alias("spark_version"))
+        .distinct()
+    )
+    
+    # Get job run statistics - join with cluster to get DBR version
+    # Note: compute_ids is an array, we need to explode it
+    job_runs = (
+        spark.table(fact_job)
+        .filter(F.col("period_start_time").isNotNull())
+        .withColumn("cluster_id", F.explode_outer(F.col("compute_ids")))
+    )
+    
+    # Join with cluster versions
+    job_with_version = (
+        job_runs
+        .join(cluster_versions, 
+              (job_runs.cluster_id == cluster_versions.cluster_id) & 
+              (job_runs.workspace_id == cluster_versions.workspace_id),
+              "left")
+        .filter(F.col("spark_version").isNotNull())
+    )
     
     # Get job run statistics with DBR versions
     job_stats = (
-        spark.table(fact_job)
-        .filter(F.col("run_start_timestamp") >= F.date_sub(F.current_date(), 180))
-        .filter(F.col("spark_version").isNotNull())
+        job_with_version
         .groupBy("job_id", "spark_version")
         .agg(
             F.count("*").alias("total_runs"),
@@ -173,9 +197,8 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
             F.avg("run_duration_seconds").alias("avg_duration_sec"),
             F.max("run_duration_seconds").alias("max_duration_sec"),
             F.stddev("run_duration_seconds").alias("duration_stddev"),
-            F.sum(F.coalesce("rows_produced", F.lit(0))).alias("total_rows_processed"),
-            F.min("run_start_timestamp").alias("first_run"),
-            F.max("run_start_timestamp").alias("last_run")
+            F.min("period_start_time").alias("first_run"),
+            F.max("period_start_time").alias("last_run")
         )
         .withColumn("failure_rate", F.col("failed_runs") / F.greatest(F.col("total_runs"), F.lit(1)))
         .withColumn("success_rate", F.col("successful_runs") / F.greatest(F.col("total_runs"), F.lit(1)))
@@ -184,7 +207,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     # Parse DBR version components
     job_stats_with_version = (
         job_stats
-        # Extract major.minor from spark_version
+        # Extract major.minor from spark_version (dbr_version format: "14.3.x-scala2.12")
         .withColumn("dbr_parts", F.split(F.split("spark_version", "-")[0], "\\."))
         .withColumn("dbr_major", F.col("dbr_parts")[0].cast("int"))
         .withColumn("dbr_minor", F.coalesce(
@@ -203,8 +226,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         # Job complexity score
         .withColumn("complexity_score", 
             F.log1p(F.col("avg_duration_sec")) * 0.3 +
-            F.log1p(F.col("total_rows_processed")) * 0.3 +
-            F.col("duration_stddev") / F.greatest(F.col("avg_duration_sec"), F.lit(1)) * 0.4
+            F.coalesce(F.col("duration_stddev"), F.lit(0)) / F.greatest(F.col("avg_duration_sec"), F.lit(1)) * 0.4
         )
         # Days since job creation
         .withColumn("job_age_days", F.datediff(F.current_date(), F.col("first_run")))
@@ -425,7 +447,7 @@ def main():
         # Feature columns
         feature_cols = [
             'total_runs', 'successful_runs', 'failed_runs', 'failure_rate', 'success_rate',
-            'avg_duration_sec', 'max_duration_sec', 'duration_stddev', 'total_rows_processed',
+            'avg_duration_sec', 'max_duration_sec', 'duration_stddev',
             'dbr_major', 'dbr_minor', 'versions_behind', 'is_ml_runtime', 'is_photon',
             'complexity_score', 'job_age_days'
         ]
@@ -499,4 +521,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
