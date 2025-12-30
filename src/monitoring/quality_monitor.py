@@ -282,43 +282,58 @@ def create_quality_monitor(workspace_client, catalog: str, gold_schema: str, spa
 def main():
     """Main entry point."""
     table_name = f"{catalog}.{gold_schema}.fact_data_quality_results"
+    custom_metrics = get_quality_custom_metrics()
+    num_metrics = len(custom_metrics)
     
     print("=" * 70)
     print("DATA QUALITY MONITOR SETUP")
     print("=" * 70)
-    print(f"  Target Table: {table_name}")
-    print(f"  Catalog: {catalog}")
-    print(f"  Schema: {gold_schema}")
+    print(f"  Target Table:    {table_name}")
+    print(f"  Catalog:         {catalog}")
+    print(f"  Schema:          {gold_schema}")
+    print(f"  Custom Metrics:  {num_metrics}")
+    print(f"  Timestamp Col:   evaluation_time")
+    print(f"  Granularity:     1 day")
+    print(f"  Slicing:         catalog_name, schema_name")
+    print(f"  Schedule:        Daily at 7 AM UTC")
+    print(f"  Note:            Requires DQX integration")
     print("-" * 70)
     
     if not check_monitoring_available():
         print("[⊘ SKIPPED] Lakehouse Monitoring SDK not available")
-        dbutils.notebook.exit("[SKIP] SDK not available")
+        dbutils.notebook.exit("SKIPPED: SDK not available")
         return
 
+    print("[1/3] Initializing WorkspaceClient...")
     workspace_client = WorkspaceClient()
+    print("      WorkspaceClient ready")
 
     try:
+        print("[2/3] Checking for existing monitor...")
         monitor = create_quality_monitor(workspace_client, catalog, gold_schema, spark)
+        
+        print("[3/3] Verifying monitor status...")
         if monitor:
             print("-" * 70)
-            print("[✓ SUCCESS] Data quality monitor created successfully!")
-            dbutils.notebook.exit("[OK] Quality monitor created")
+            print("[✓ SUCCESS] Data quality monitor created!")
+            print(f"  Custom Metrics:  {num_metrics} configured")
+            dbutils.notebook.exit(f"SUCCESS: Quality monitor created with {num_metrics} metrics")
         else:
             print("-" * 70)
             print("[⊘ SKIPPED] Table not available yet (DQX integration pending)")
-            dbutils.notebook.exit("[SKIP] Table not available")
+            dbutils.notebook.exit("SKIPPED: Quality table not available (DQX pending)")
     except Exception as e:
         error_msg = str(e)
         print("-" * 70)
         if "not found" in error_msg.lower() or "does not exist" in error_msg.lower():
             print(f"[⊘ SKIPPED] Table does not exist yet")
             print(f"  Note: This table will be created when DQX integration is enabled")
-            dbutils.notebook.exit("[SKIP] Table not exists")
+            dbutils.notebook.exit("SKIPPED: Quality table not exists (DQX pending)")
         else:
             print(f"[✗ FAILED] Error creating quality monitor")
-            print(f"  Error: {error_msg}")
-            dbutils.notebook.exit(f"[FAIL] {error_msg[:100]}")
+            print(f"  Error Type:  {type(e).__name__}")
+            print(f"  Error:       {error_msg}")
+            raise  # Let job show failure status
 
 # COMMAND ----------
 

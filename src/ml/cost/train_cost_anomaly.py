@@ -364,16 +364,37 @@ def main():
         print("✓ COST ANOMALY DETECTOR TRAINING COMPLETE")
         print(f"  Model: {model_name}")
         print(f"  MLflow Run: {run_id}")
+        print(f"  Training samples: {len(X)}")
         print("=" * 80)
+        
+        # Exit with detailed summary
+        import json
+        hyperparams = {"n_estimators": 100, "contamination": 0.05, "random_state": 42}
+        exit_summary = json.dumps({
+            "status": "SUCCESS",
+            "model": "cost_anomaly_detector",
+            "registered_as": model_name,
+            "run_id": run_id,
+            "algorithm": "IsolationForest",
+            "hyperparameters": hyperparams,
+            "metrics": {"training_samples": len(X), "features": len(feature_columns)}
+        })
+        dbutils.notebook.exit(exit_summary)
         
     except Exception as e:
         import traceback
-        print(f"\n❌ Error during training: {str(e)}")
+        error_msg = str(e)
+        print(f"\n❌ Error during training: {error_msg}")
         print(traceback.format_exc())
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
-    
-    # Signal success (REQUIRED for job status)
-    dbutils.notebook.exit("SUCCESS")
+        
+        import json
+        exit_summary = json.dumps({
+            "status": "FAILED",
+            "model": "cost_anomaly_detector",
+            "error": error_msg[:500]
+        })
+        dbutils.notebook.exit(exit_summary)
+        raise
 
 # COMMAND ----------
 

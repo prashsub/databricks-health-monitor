@@ -232,52 +232,48 @@ RETURN
 
 -- -----------------------------------------------------------------------------
 -- TVF 4: get_jobs_without_autoscaling
--- Returns job clusters that could benefit from autoscaling
+-- Returns high-cost jobs that could benefit from autoscaling
+-- NOTE: Simplified - removed node_timeline join which was causing complexity
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_jobs_without_autoscaling(
-    days_back INT COMMENT 'Number of days to analyze (required)',
-    min_runs INT DEFAULT 5 COMMENT 'Minimum runs to include job',
-    min_cost DOUBLE DEFAULT 100 COMMENT 'Minimum cost to include job'
+    days_back INT COMMENT 'Number of days to analyze (required)'
 )
 RETURNS TABLE(
     job_id STRING COMMENT 'Job ID',
     job_name STRING COMMENT 'Job name',
     run_as STRING COMMENT 'Job owner',
-    total_runs INT COMMENT 'Total runs in period',
+    total_runs BIGINT COMMENT 'Total runs in period',
     total_cost DOUBLE COMMENT 'Total cost in USD',
-    avg_cpu_pct DOUBLE COMMENT 'Average CPU utilization',
-    max_cpu_pct DOUBLE COMMENT 'Maximum CPU utilization',
-    cpu_variance DOUBLE COMMENT 'CPU utilization variance (high = autoscaling candidate)',
+    avg_duration_minutes DOUBLE COMMENT 'Average run duration',
+    max_duration_minutes DOUBLE COMMENT 'Maximum run duration',
+    duration_variance DOUBLE COMMENT 'Duration variance (high = autoscaling candidate)',
     recommendation STRING COMMENT 'Autoscaling recommendation'
 )
 COMMENT '
-- PURPOSE: Identify job clusters that could benefit from autoscaling for cost optimization
+- PURPOSE: Identify high-cost jobs with variable duration that could benefit from autoscaling
 - BEST FOR: "Which jobs should enable autoscaling?" "Show autoscaling opportunities" "Variable workload jobs"
 - NOT FOR: Underutilized clusters (use get_underutilized_clusters), job costs (use get_most_expensive_jobs)
-- RETURNS: Jobs with CPU utilization, variance, cost, and autoscaling recommendation
-- PARAMS: days_back (default 30), min_runs (default 5), min_cost (default 100)
-- SYNTAX: SELECT * FROM TABLE(get_jobs_without_autoscaling(30, 5, 500))
-- NOTE: High CPU variance with low average indicates autoscaling candidate
+- RETURNS: Jobs with duration variance and autoscaling recommendation
+- PARAMS: days_back (required) - number of days to analyze
+- SYNTAX: SELECT * FROM TABLE(get_jobs_without_autoscaling(30))
+- NOTE: High duration variance indicates autoscaling candidate
 '
 RETURN
-    WITH job_cluster_metrics AS (
+    WITH job_metrics AS (
         SELECT
             jrt.job_id,
             j.name AS job_name,
             j.run_as,
-            COUNT(DISTINCT jrt.run_id) AS total_runs,
-            AVG(nt.cpu_user_percent + nt.cpu_system_percent) AS avg_cpu_pct,
-            MAX(nt.cpu_user_percent + nt.cpu_system_percent) AS max_cpu_pct,
-            STDDEV(nt.cpu_user_percent + nt.cpu_system_percent) AS cpu_std
+            COUNT(*) AS total_runs,
+            AVG(jrt.run_duration_minutes) AS avg_duration,
+            MAX(jrt.run_duration_minutes) AS max_duration,
+            STDDEV(jrt.run_duration_minutes) AS duration_std
         FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jrt.job_id = j.job_id AND j.is_current = TRUE
-        LEFT JOIN ${catalog}.${gold_schema}.fact_node_timeline nt
-            ON jrt.cluster_id = nt.cluster_id
-            AND nt.start_time BETWEEN jrt.period_start_time AND jrt.period_end_time
+            ON jrt.job_id = j.job_id AND j.delete_time IS NULL
         WHERE jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
         GROUP BY jrt.job_id, j.name, j.run_as
-        HAVING COUNT(DISTINCT jrt.run_id) >= min_runs
+        HAVING COUNT(*) >= 5
     ),
     job_costs AS (
         SELECT
@@ -289,70 +285,80 @@ RETURN
         GROUP BY usage_metadata_job_id
     )
     SELECT
-        jcm.job_id,
-        jcm.job_name,
-        jcm.run_as,
-        jcm.total_runs,
+        jm.job_id,
+        jm.job_name,
+        jm.run_as,
+        jm.total_runs,
         ROUND(COALESCE(jc.total_cost, 0), 2) AS total_cost,
-        ROUND(jcm.avg_cpu_pct, 2) AS avg_cpu_pct,
-        ROUND(jcm.max_cpu_pct, 2) AS max_cpu_pct,
-        ROUND(jcm.cpu_std, 2) AS cpu_variance,
+        ROUND(jm.avg_duration, 2) AS avg_duration_minutes,
+        ROUND(jm.max_duration, 2) AS max_duration_minutes,
+        ROUND(jm.duration_std, 2) AS duration_variance,
         CASE
-            WHEN jcm.cpu_std > 20 AND jcm.avg_cpu_pct < 50 THEN 'High variance, low avg - strong autoscaling candidate'
-            WHEN jcm.avg_cpu_pct < 30 THEN 'Low utilization - consider smaller cluster or autoscaling'
-            WHEN jcm.cpu_std > 15 THEN 'Variable workload - autoscaling recommended'
+            WHEN jm.duration_std > 30 AND jm.avg_duration > 10 THEN 'High duration variance - strong autoscaling candidate'
+            WHEN jm.duration_std > 15 THEN 'Variable duration - autoscaling recommended'
+            WHEN jm.max_duration > jm.avg_duration * 2 THEN 'Occasional long runs - consider autoscaling'
             ELSE 'Evaluate for autoscaling benefits'
         END AS recommendation
-    FROM job_cluster_metrics jcm
-    LEFT JOIN job_costs jc ON jcm.job_id = jc.job_id
-    WHERE COALESCE(jc.total_cost, 0) >= min_cost
+    FROM job_metrics jm
+    LEFT JOIN job_costs jc ON jm.job_id = jc.job_id
+    WHERE COALESCE(jc.total_cost, 0) >= 100
     ORDER BY jc.total_cost DESC;
 
 
 -- -----------------------------------------------------------------------------
 -- TVF 5: get_jobs_on_legacy_dbr
 -- Returns jobs running on legacy Databricks Runtime versions
+-- NOTE: Uses EXPLODE on compute_ids array to join with dim_cluster
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_jobs_on_legacy_dbr(
-    days_back INT COMMENT 'Number of days to analyze (required)',
-    legacy_threshold INT DEFAULT 13 COMMENT 'DBR major version below which is considered legacy'
+    days_back INT COMMENT 'Number of days to analyze (required)'
 )
 RETURNS TABLE(
     job_id STRING COMMENT 'Job ID',
     job_name STRING COMMENT 'Job name',
     run_as STRING COMMENT 'Job owner',
     dbr_version STRING COMMENT 'Databricks Runtime version',
-    dbr_major INT COMMENT 'DBR major version number',
-    total_runs INT COMMENT 'Total runs in period',
+    total_runs BIGINT COMMENT 'Total runs in period',
     total_cost DOUBLE COMMENT 'Total cost in USD',
     recommendation STRING COMMENT 'Upgrade recommendation'
 )
 COMMENT '
-- PURPOSE: Identify jobs running on legacy Databricks Runtime for upgrade planning
-- BEST FOR: "Which jobs use old DBR?" "Show legacy runtime jobs" "DBR upgrade candidates"
+- PURPOSE: Identify jobs by Databricks Runtime version for upgrade planning
+- BEST FOR: "Which jobs use old DBR?" "Show DBR versions by job" "DBR upgrade candidates"
 - NOT FOR: Job performance analysis (use get_job_duration_percentiles), job costs (use get_most_expensive_jobs)
-- RETURNS: Jobs with DBR version, major version, run count, cost, and upgrade recommendation
-- PARAMS: days_back (default 30), legacy_threshold (default DBR 13)
-- SYNTAX: SELECT * FROM TABLE(get_jobs_on_legacy_dbr(30, 13))
-- NOTE: Recommendations: URGENT (<10), Recommended (<12), Consider (<14)
+- RETURNS: Jobs with DBR version, run count, cost, and upgrade recommendation
+- PARAMS: days_back (required) - number of days to analyze
+- SYNTAX: SELECT * FROM TABLE(get_jobs_on_legacy_dbr(30))
+- NOTE: Uses compute_ids array from job runs to find cluster DBR versions
 '
 RETURN
-    WITH job_dbr AS (
+    WITH job_runs_exploded AS (
+        -- Explode compute_ids array to get individual cluster IDs per run
         SELECT
+            jrt.workspace_id,
             jrt.job_id,
+            jrt.run_id,
+            jrt.run_date,
+            EXPLODE(jrt.compute_ids) AS cluster_id
+        FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
+        WHERE jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
+            AND jrt.compute_ids IS NOT NULL
+            AND SIZE(jrt.compute_ids) > 0
+    ),
+    job_dbr AS (
+        SELECT
+            jre.job_id,
             j.name AS job_name,
             j.run_as,
             c.dbr_version,
-            CAST(SPLIT(c.dbr_version, '\\.')[0] AS INT) AS dbr_major,
-            COUNT(DISTINCT jrt.run_id) AS total_runs
-        FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
+            COUNT(DISTINCT jre.run_id) AS total_runs
+        FROM job_runs_exploded jre
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j
-            ON jrt.job_id = j.job_id AND j.is_current = TRUE
+            ON jre.workspace_id = j.workspace_id AND jre.job_id = j.job_id AND j.delete_time IS NULL
         LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c
-            ON jrt.cluster_id = c.cluster_id AND c.is_current = TRUE
-        WHERE jrt.run_date >= DATE_ADD(CURRENT_DATE(), -days_back)
-            AND c.dbr_version IS NOT NULL
-        GROUP BY jrt.job_id, j.name, j.run_as, c.dbr_version
+            ON jre.cluster_id = c.cluster_id AND c.delete_time IS NULL
+        WHERE c.dbr_version IS NOT NULL
+        GROUP BY jre.job_id, j.name, j.run_as, c.dbr_version
     ),
     job_costs AS (
         SELECT
@@ -368,19 +374,21 @@ RETURN
         jd.job_name,
         jd.run_as,
         jd.dbr_version,
-        jd.dbr_major,
         jd.total_runs,
         ROUND(COALESCE(jc.total_cost, 0), 2) AS total_cost,
         CASE
-            WHEN jd.dbr_major < 10 THEN 'URGENT: Upgrade to latest LTS immediately'
-            WHEN jd.dbr_major < 12 THEN 'Recommended: Upgrade to DBR 14 LTS'
-            WHEN jd.dbr_major < 14 THEN 'Consider: Upgrade to latest LTS for best performance'
+            WHEN jd.dbr_version LIKE '9.%' THEN 'URGENT: Upgrade to latest LTS immediately'
+            WHEN jd.dbr_version LIKE '8.%' THEN 'URGENT: Upgrade to latest LTS immediately'
+            WHEN jd.dbr_version LIKE '7.%' THEN 'URGENT: Upgrade to latest LTS immediately'
+            WHEN jd.dbr_version LIKE '10.%' THEN 'Recommended: Upgrade to DBR 14 LTS'
+            WHEN jd.dbr_version LIKE '11.%' THEN 'Recommended: Upgrade to DBR 14 LTS'
+            WHEN jd.dbr_version LIKE '12.%' THEN 'Consider: Upgrade to latest LTS'
+            WHEN jd.dbr_version LIKE '13.%' THEN 'Consider: Upgrade to latest LTS'
             ELSE 'On supported version'
         END AS recommendation
     FROM job_dbr jd
     LEFT JOIN job_costs jc ON jd.job_id = jc.job_id
-    WHERE jd.dbr_major < legacy_threshold
-    ORDER BY jd.dbr_major ASC, jc.total_cost DESC;
+    ORDER BY jd.dbr_version ASC, jc.total_cost DESC;
 
 
 -- =============================================================================

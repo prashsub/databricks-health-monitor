@@ -327,37 +327,51 @@ def create_query_monitor(workspace_client, catalog: str, gold_schema: str, spark
 def main():
     """Main entry point."""
     table_name = f"{catalog}.{gold_schema}.fact_query_history"
+    custom_metrics = get_query_custom_metrics()
+    num_metrics = len(custom_metrics)
     
     print("=" * 70)
     print("QUERY PERFORMANCE MONITOR SETUP")
     print("=" * 70)
-    print(f"  Target Table: {table_name}")
-    print(f"  Catalog: {catalog}")
-    print(f"  Schema: {gold_schema}")
+    print(f"  Target Table:    {table_name}")
+    print(f"  Catalog:         {catalog}")
+    print(f"  Schema:          {gold_schema}")
+    print(f"  Custom Metrics:  {num_metrics}")
+    print(f"  Timestamp Col:   start_time")
+    print(f"  Granularity:     1 hour, 1 day")
+    print(f"  Slicing:         workspace_id, compute_warehouse_id, execution_status, statement_type")
+    print(f"  Schedule:        Hourly")
     print("-" * 70)
     
     if not check_monitoring_available():
         print("[⊘ SKIPPED] Lakehouse Monitoring SDK not available")
-        dbutils.notebook.exit("[SKIP] SDK not available")
+        dbutils.notebook.exit("SKIPPED: SDK not available")
         return
 
+    print("[1/3] Initializing WorkspaceClient...")
     workspace_client = WorkspaceClient()
+    print("      WorkspaceClient ready")
 
     try:
+        print("[2/3] Checking for existing monitor...")
         monitor = create_query_monitor(workspace_client, catalog, gold_schema, spark)
+        
+        print("[3/3] Verifying monitor status...")
         if monitor:
             print("-" * 70)
-            print("[✓ SUCCESS] Query performance monitor created successfully!")
-            dbutils.notebook.exit("[OK] Query monitor created")
+            print("[✓ SUCCESS] Query performance monitor created!")
+            print(f"  Custom Metrics:  {num_metrics} configured")
+            dbutils.notebook.exit(f"SUCCESS: Query monitor created with {num_metrics} metrics")
         else:
             print("-" * 70)
             print("[⊘ SKIPPED] Monitor already exists - no action needed")
-            dbutils.notebook.exit("[SKIP] Monitor already exists")
+            dbutils.notebook.exit("SKIPPED: Query monitor already exists")
     except Exception as e:
         print("-" * 70)
         print(f"[✗ FAILED] Error creating query monitor")
-        print(f"  Error: {str(e)}")
-        dbutils.notebook.exit(f"[FAIL] {str(e)[:100]}")
+        print(f"  Error Type:  {type(e).__name__}")
+        print(f"  Error:       {str(e)}")
+        raise  # Let job show failure status
 
 # COMMAND ----------
 

@@ -221,40 +221,42 @@ RETURN
 
 -- -----------------------------------------------------------------------------
 -- TVF 5: get_job_sla_compliance
--- Returns SLA compliance metrics by job
+-- Returns SLA compliance metrics by job (fixed 60-minute threshold)
+-- NOTE: Simplified to avoid parameter-in-aggregate issue (unsupported in SQL TVFs)
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_job_sla_compliance(
     start_date STRING COMMENT 'Start date (format: YYYY-MM-DD)',
-    end_date STRING COMMENT 'End date (format: YYYY-MM-DD)',
-    sla_duration_minutes INT DEFAULT 60 COMMENT 'SLA duration threshold in minutes'
+    end_date STRING COMMENT 'End date (format: YYYY-MM-DD)'
 )
 RETURNS TABLE(
     job_id STRING COMMENT 'Job ID',
     job_name STRING COMMENT 'Job name',
     total_runs INT COMMENT 'Total runs',
-    runs_within_sla INT COMMENT 'Runs completing within SLA',
-    runs_breaching_sla INT COMMENT 'Runs exceeding SLA',
-    sla_compliance_pct DOUBLE COMMENT 'SLA compliance percentage',
-    avg_breach_minutes DOUBLE COMMENT 'Average minutes over SLA when breached'
+    runs_within_60min INT COMMENT 'Runs completing within 60 minutes',
+    runs_over_60min INT COMMENT 'Runs exceeding 60 minutes',
+    sla_compliance_pct DOUBLE COMMENT 'SLA compliance percentage (60-min threshold)',
+    avg_duration_minutes DOUBLE COMMENT 'Average job duration in minutes',
+    max_duration_minutes DOUBLE COMMENT 'Maximum job duration in minutes'
 )
 COMMENT '
-- PURPOSE: SLA compliance tracking to identify jobs breaching duration thresholds
-- BEST FOR: "Which jobs are breaching SLA?" "What is our SLA compliance?" "Jobs over threshold"
-- NOT FOR: Duration percentiles (use get_job_duration_percentiles)
-- RETURNS: Jobs with SLA compliance %, runs within/breaching SLA, and average breach amount
-- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), sla_duration_minutes (default 60)
-- SYNTAX: SELECT * FROM TABLE(get_job_sla_compliance("2024-01-01", "2024-12-31", 60))
+- PURPOSE: SLA compliance tracking to identify jobs breaching 60-minute threshold
+- BEST FOR: "Which jobs are breaching SLA?" "What is our SLA compliance?" "Jobs over 60 minutes"
+- NOT FOR: Custom SLA thresholds (use dashboard filtering), duration percentiles (use get_job_duration_percentiles)
+- RETURNS: Jobs with 60-min SLA compliance %, runs within/breaching threshold, avg and max duration
+- PARAMS: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD)
+- SYNTAX: SELECT * FROM TABLE(get_job_sla_compliance("2024-01-01", "2024-12-31"))
+- NOTE: Uses fixed 60-minute SLA threshold; for custom thresholds, filter the results
 '
 RETURN
     SELECT
         jrt.job_id,
         j.name AS job_name,
         CAST(COUNT(*) AS INT) AS total_runs,
-        CAST(COUNT(CASE WHEN jrt.run_duration_minutes <= sla_duration_minutes THEN 1 END) AS INT) AS runs_within_sla,
-        CAST(COUNT(CASE WHEN jrt.run_duration_minutes > sla_duration_minutes THEN 1 END) AS INT) AS runs_breaching_sla,
-        ROUND(COUNT(CASE WHEN jrt.run_duration_minutes <= sla_duration_minutes THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS sla_compliance_pct,
-        ROUND(AVG(CASE WHEN jrt.run_duration_minutes > sla_duration_minutes
-                 THEN jrt.run_duration_minutes - sla_duration_minutes END), 2) AS avg_breach_minutes
+        CAST(COUNT(CASE WHEN jrt.run_duration_minutes <= 60 THEN 1 END) AS INT) AS runs_within_60min,
+        CAST(COUNT(CASE WHEN jrt.run_duration_minutes > 60 THEN 1 END) AS INT) AS runs_over_60min,
+        ROUND(COUNT(CASE WHEN jrt.run_duration_minutes <= 60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS sla_compliance_pct,
+        ROUND(AVG(jrt.run_duration_minutes), 2) AS avg_duration_minutes,
+        ROUND(MAX(jrt.run_duration_minutes), 2) AS max_duration_minutes
     FROM ${catalog}.${gold_schema}.fact_job_run_timeline jrt
     LEFT JOIN ${catalog}.${gold_schema}.dim_job j
         ON jrt.workspace_id = j.workspace_id AND jrt.job_id = j.job_id AND j.delete_time IS NULL

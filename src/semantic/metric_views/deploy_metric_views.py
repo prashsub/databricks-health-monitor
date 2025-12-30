@@ -24,6 +24,8 @@ Reference:
 
 import yaml
 import os
+import time
+from datetime import datetime
 from pathlib import Path
 from string import Template
 from typing import Dict, List, Tuple
@@ -193,12 +195,13 @@ def get_prerequisite_instructions(table_name: str) -> str:
 
 
 def deploy_metric_view(view_name: str, yaml_file: str, catalog: str, gold_schema: str,
-                       feature_schema: str = None, domain: str = "General") -> Tuple[bool, str]:
+                       feature_schema: str = None, domain: str = "General") -> Tuple[bool, str, float]:
     """Deploy a single metric view from YAML file.
     
     Returns:
-        Tuple[bool, str]: (success, error_reason) where error_reason is empty string if success
+        Tuple[bool, str, float]: (success, error_reason, duration_seconds)
     """
+    start_time = time.time()
     try:
         print(f"\n[{domain}] Deploying metric view: {view_name}")
 
@@ -208,10 +211,11 @@ def deploy_metric_view(view_name: str, yaml_file: str, catalog: str, gold_schema
         # Check if source table exists
         source_table = config.get('source', '')
         if source_table and not check_table_exists(source_table):
+            duration = time.time() - start_time
             error_reason = f"Source table does not exist: {source_table}"
-            print(f"  ✗ {error_reason}")
+            print(f"  ✗ {error_reason} ({duration:.2f}s)")
             print(get_prerequisite_instructions(source_table))
-            return (False, error_reason)
+            return (False, error_reason, duration)
 
         # Full view name with catalog and schema
         full_view_name = f"{catalog}.{METRIC_VIEW_SCHEMA}.{view_name}"
@@ -227,15 +231,17 @@ def deploy_metric_view(view_name: str, yaml_file: str, catalog: str, gold_schema
         sql = generate_metric_view_sql(full_view_name, config)
         spark.sql(sql)
 
-        print(f"  ✓ Successfully deployed: {full_view_name}")
-        return (True, "")
+        duration = time.time() - start_time
+        print(f"  ✓ Successfully deployed: {full_view_name} ({duration:.2f}s)")
+        return (True, "", duration)
 
     except Exception as e:
         import traceback
+        duration = time.time() - start_time
         error_reason = str(e)
-        print(f"  ✗ Failed to deploy {view_name}: {error_reason}")
+        print(f"  ✗ Failed to deploy {view_name}: {error_reason} ({duration:.2f}s)")
         print(f"  Full traceback:\n{traceback.format_exc()}")
-        return (False, error_reason)
+        return (False, error_reason, duration)
 
 # COMMAND ----------
 
@@ -282,15 +288,22 @@ METRIC_VIEWS: List[Tuple[str, str, str]] = [
 # COMMAND ----------
 
 # Deploy all metric views
+deployment_start = time.time()
 print("=" * 60)
 print("Starting Metric View Deployment")
+print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("=" * 60)
+print(f"Target Catalog: {catalog}")
+print(f"Target Schema: {METRIC_VIEW_SCHEMA}")
 print(f"Total metric views to deploy: {len(METRIC_VIEWS)}")
+print("-" * 60)
 
-# Results: (view_name, domain, success, error_reason)
-results: List[Tuple[str, str, bool, str]] = []
+# Results: (view_name, domain, success, error_reason, duration_seconds)
+results: List[Tuple[str, str, bool, str, float]] = []
 
-for view_name, yaml_file, domain in METRIC_VIEWS:
+for i, (view_name, yaml_file, domain) in enumerate(METRIC_VIEWS, 1):
+    print(f"\n[{i}/{len(METRIC_VIEWS)}] Processing {view_name}...")
+    
     # Build full path (works for both workspace and local)
     if isinstance(metric_views_dir, str) and metric_views_dir.startswith("/Workspace"):
         yaml_path = f"{metric_views_dir}/{yaml_file}"
@@ -298,8 +311,10 @@ for view_name, yaml_file, domain in METRIC_VIEWS:
         yaml_path = str(Path(metric_views_dir) / yaml_file)
     
     # Try to deploy - the read_workspace_file function handles file not found
-    success, error_reason = deploy_metric_view(view_name, yaml_path, catalog, gold_schema, feature_schema, domain)
-    results.append((view_name, domain, success, error_reason))
+    success, error_reason, duration = deploy_metric_view(view_name, yaml_path, catalog, gold_schema, feature_schema, domain)
+    results.append((view_name, domain, success, error_reason, duration))
+
+total_duration = time.time() - deployment_start
 
 # COMMAND ----------
 
@@ -308,44 +323,51 @@ print("\n" + "=" * 60)
 print("Metric View Deployment Summary")
 print("=" * 60)
 
+# Calculate totals
+successful = sum(1 for _, _, success, _, _ in results if success)
+failed = sum(1 for _, _, success, _, _ in results if not success)
+total_view_duration = sum(d for _, _, _, _, d in results)
+
 # Group by domain
-domain_results: Dict[str, List[Tuple[str, bool, str]]] = {}
-for view_name, domain, success, error_reason in results:
+domain_results: Dict[str, List[Tuple[str, bool, str, float]]] = {}
+for view_name, domain, success, error_reason, duration in results:
     if domain not in domain_results:
         domain_results[domain] = []
-    domain_results[domain].append((view_name, success, error_reason))
+    domain_results[domain].append((view_name, success, error_reason, duration))
 
 # Print by domain
 for domain in ["Cost", "Performance", "Reliability", "Security", "Quality"]:
     if domain in domain_results:
         views = domain_results[domain]
-        success_count = sum(1 for _, s, _ in views if s)
+        success_count = sum(1 for _, s, _, _ in views if s)
         total_count = len(views)
+        domain_duration = sum(d for _, _, _, d in views)
         status = "✓" if success_count == total_count else "✗"
-        print(f"\n{status} {domain}: {success_count}/{total_count}")
-        for view_name, success, error_reason in views:
+        print(f"\n{status} {domain}: {success_count}/{total_count} ({domain_duration:.2f}s)")
+        for view_name, success, error_reason, duration in views:
             status_icon = "✓" if success else "✗"
             if success:
-                print(f"    {status_icon} {view_name}")
+                print(f"    {status_icon} {view_name} ({duration:.2f}s)")
             else:
-                print(f"    {status_icon} {view_name}: {error_reason}")
+                print(f"    {status_icon} {view_name}: {error_reason[:50]}... ({duration:.2f}s)")
 
 # Overall summary
 print("\n" + "-" * 60)
-successful = sum(1 for _, _, success, _ in results if success)
-failed = sum(1 for _, _, success, _ in results if not success)
-print(f"Total: {len(results)} | Successful: {successful} | Failed: {failed}")
+print(f"Total: {len(results)} | Success: {successful} | Failed: {failed}")
+print(f"Total Duration: {total_duration:.2f}s (view deployments: {total_view_duration:.2f}s)")
 
 # COMMAND ----------
 
 # List failed views if any
 if failed > 0:
     print("\n" + "=" * 60)
-    print("❌ Failed Metric Views")
+    print("❌ Failed Metric Views (Details)")
     print("=" * 60)
-    for view_name, domain, success, error_reason in results:
+    for view_name, domain, success, error_reason, duration in results:
         if not success:
-            print(f"  [{domain}] {view_name}: {error_reason}")
+            print(f"  [{domain}] {view_name}:")
+            print(f"    Error: {error_reason}")
+            print(f"    Duration: {duration:.2f}s")
 
 # COMMAND ----------
 
@@ -403,16 +425,61 @@ for view_name, query in verification_queries:
 
 # COMMAND ----------
 
+# Build comprehensive exit message for job run visibility
+# The dbutils.notebook.exit() message is what shows in the CLI output
+def build_exit_summary() -> str:
+    """Build a detailed summary string for the notebook exit message."""
+    lines = []
+    lines.append("=" * 60)
+    lines.append("METRIC VIEW DEPLOYMENT SUMMARY")
+    lines.append("=" * 60)
+    lines.append(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append(f"Target: {catalog}.{METRIC_VIEW_SCHEMA}")
+    lines.append(f"Total Views: {len(results)} | Success: {successful} | Failed: {failed}")
+    lines.append(f"Total Duration: {total_duration:.2f}s")
+    lines.append("-" * 60)
+    
+    # Group results by domain for organized output
+    for domain in ["Cost", "Performance", "Reliability", "Security", "Quality"]:
+        if domain in domain_results:
+            views = domain_results[domain]
+            domain_success = sum(1 for _, s, _, _ in views if s)
+            domain_duration = sum(d for _, _, _, d in views)
+            domain_status = "✓" if domain_success == len(views) else "✗"
+            lines.append(f"\n{domain_status} {domain} Domain ({domain_success}/{len(views)}) [{domain_duration:.1f}s]:")
+            for view_name, success, error_reason, duration in views:
+                status_icon = "✓" if success else "✗"
+                if success:
+                    lines.append(f"    {status_icon} {view_name} ({duration:.1f}s)")
+                else:
+                    # Truncate error reason for readability
+                    short_error = error_reason[:50] + "..." if len(error_reason) > 50 else error_reason
+                    lines.append(f"    {status_icon} {view_name}: {short_error}")
+    
+    lines.append("\n" + "=" * 60)
+    return "\n".join(lines)
+
+# COMMAND ----------
+
 # Exit with appropriate status
 # FAIL if ANY metric view fails to deploy - no optional views
 if failed > 0:
-    failed_details = [(view_name, error_reason) for view_name, _, success, error_reason in results if not success]
+    failed_details = [(view_name, error_reason) for view_name, _, success, error_reason, _ in results if not success]
     failed_names = [name for name, _ in failed_details]
-    error_lines = [f"\n  - {name}: {reason}" for name, reason in failed_details]
-    error_msg = f"FAILED: {failed} metric views failed to deploy: {', '.join(failed_names)}{''.join(error_lines)}"
+    error_lines = [f"\n  - {name}: {reason[:100]}" for name, reason in failed_details]
+    
+    summary = build_exit_summary()
+    print(summary)
+    
+    error_msg = f"FAILED: {failed}/{len(results)} metric views failed to deploy: {', '.join(failed_names)}{''.join(error_lines)}"
     print(f"\n❌ {error_msg}")
-    raise RuntimeError(error_msg)
+    raise RuntimeError(f"{summary}\n\n{error_msg}")
 else:
-    success_msg = f"SUCCESS: All {successful} metric views deployed to {catalog}.{METRIC_VIEW_SCHEMA}"
-    print(f"\n✅ {success_msg}")
-    dbutils.notebook.exit(success_msg)
+    summary = build_exit_summary()
+    print(summary)
+    
+    success_msg = f"\n✅ SUCCESS: All {successful} metric views deployed to {catalog}.{METRIC_VIEW_SCHEMA} in {total_duration:.1f}s"
+    print(success_msg)
+    
+    # Include full summary in exit message for CLI visibility
+    dbutils.notebook.exit(f"{summary}{success_msg}")

@@ -272,38 +272,64 @@ def create_cost_monitor(workspace_client, catalog: str, gold_schema: str, spark=
 def main():
     """Main entry point."""
     table_name = f"{catalog}.{gold_schema}.fact_usage"
+    custom_metrics = get_cost_custom_metrics()
+    num_metrics = len(custom_metrics)
     
     print("=" * 70)
     print("COST MONITOR SETUP")
     print("=" * 70)
-    print(f"  Target Table: {table_name}")
-    print(f"  Catalog: {catalog}")
-    print(f"  Schema: {gold_schema}")
+    print(f"  Target Table:    {table_name}")
+    print(f"  Catalog:         {catalog}")
+    print(f"  Schema:          {gold_schema}")
+    print(f"  Custom Metrics:  {num_metrics}")
+    print(f"  Timestamp Col:   usage_date")
+    print(f"  Granularity:     1 day")
+    print(f"  Slicing:         workspace_id, sku_name, cloud")
+    print(f"  Schedule:        Daily at 6 AM UTC")
     print("-" * 70)
     
     if not check_monitoring_available():
         print("[⊘ SKIPPED] Lakehouse Monitoring SDK not available")
-        dbutils.notebook.exit("[SKIP] SDK not available")
+        dbutils.notebook.exit("SKIPPED: SDK not available")
         return
 
+    print("[1/3] Initializing WorkspaceClient...")
     workspace_client = WorkspaceClient()
+    print("      WorkspaceClient ready")
 
     try:
+        print("[2/3] Checking for existing monitor...")
         monitor = create_cost_monitor(workspace_client, catalog, gold_schema, spark)
+        
+        print("[3/3] Verifying monitor status...")
         if monitor:
+            monitor_schema = f"{catalog}.{gold_schema}_monitoring"
+            output_tables = [
+                f"{table_name.split('.')[-1]}_profile_metrics",
+                f"{table_name.split('.')[-1]}_drift_metrics"
+            ]
+            
             print("-" * 70)
-            print("[✓ SUCCESS] Cost monitor created successfully!")
-            print(f"  Monitor ID: {monitor.table_name if hasattr(monitor, 'table_name') else 'N/A'}")
-            dbutils.notebook.exit("[OK] Cost monitor created")
+            print("[✓ SUCCESS] Cost monitor created!")
+            print(f"  Monitor Table:   {monitor.table_name if hasattr(monitor, 'table_name') else table_name}")
+            print(f"  Output Schema:   {monitor_schema}")
+            print(f"  Output Tables:   {', '.join(output_tables)}")
+            print(f"  Custom Metrics:  {num_metrics} configured")
+            if hasattr(monitor, 'dashboard_id') and monitor.dashboard_id:
+                print(f"  Dashboard ID:    {monitor.dashboard_id}")
+            print("-" * 70)
+            
+            dbutils.notebook.exit(f"SUCCESS: Cost monitor created with {num_metrics} metrics")
         else:
             print("-" * 70)
             print("[⊘ SKIPPED] Monitor already exists - no action needed")
-            dbutils.notebook.exit("[SKIP] Monitor already exists")
+            dbutils.notebook.exit("SKIPPED: Cost monitor already exists")
     except Exception as e:
         print("-" * 70)
         print(f"[✗ FAILED] Error creating cost monitor")
-        print(f"  Error: {str(e)}")
-        dbutils.notebook.exit(f"[FAIL] {str(e)[:100]}")
+        print(f"  Error Type:  {type(e).__name__}")
+        print(f"  Error:       {str(e)}")
+        raise  # Let job show failure status
 
 # COMMAND ----------
 

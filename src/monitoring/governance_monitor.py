@@ -305,42 +305,56 @@ def create_governance_monitor(workspace_client, catalog: str, gold_schema: str, 
 def main():
     """Main entry point."""
     table_name = f"{catalog}.{gold_schema}.fact_table_lineage"
+    custom_metrics = get_governance_custom_metrics()
+    num_metrics = len(custom_metrics)
     
     print("=" * 70)
     print("GOVERNANCE & LINEAGE MONITOR SETUP")
     print("=" * 70)
-    print(f"  Target Table: {table_name}")
-    print(f"  Catalog: {catalog}")
-    print(f"  Schema: {gold_schema}")
+    print(f"  Target Table:    {table_name}")
+    print(f"  Catalog:         {catalog}")
+    print(f"  Schema:          {gold_schema}")
+    print(f"  Custom Metrics:  {num_metrics}")
+    print(f"  Timestamp Col:   event_date")
+    print(f"  Granularity:     1 day")
+    print(f"  Slicing:         workspace_id, entity_type")
+    print(f"  Schedule:        Daily at 6 AM UTC")
     print("-" * 70)
     
     if not check_monitoring_available():
         print("[⊘ SKIPPED] Lakehouse Monitoring SDK not available")
-        dbutils.notebook.exit("[SKIP] SDK not available")
+        dbutils.notebook.exit("SKIPPED: SDK not available")
         return
 
+    print("[1/3] Initializing WorkspaceClient...")
     workspace_client = WorkspaceClient()
+    print("      WorkspaceClient ready")
 
     try:
+        print("[2/3] Checking for existing monitor...")
         monitor = create_governance_monitor(workspace_client, catalog, gold_schema, spark)
+        
+        print("[3/3] Verifying monitor status...")
         if monitor:
             print("-" * 70)
-            print("[✓ SUCCESS] Governance & lineage monitor created successfully!")
-            dbutils.notebook.exit("[OK] Governance monitor created")
+            print("[✓ SUCCESS] Governance & lineage monitor created!")
+            print(f"  Custom Metrics:  {num_metrics} configured")
+            dbutils.notebook.exit(f"SUCCESS: Governance monitor created with {num_metrics} metrics")
         else:
             print("-" * 70)
             print("[⊘ SKIPPED] Table not available yet")
-            dbutils.notebook.exit("[SKIP] Table not available")
+            dbutils.notebook.exit("SKIPPED: Governance table not available")
     except Exception as e:
         error_msg = str(e)
         print("-" * 70)
         if "not found" in error_msg.lower() or "does not exist" in error_msg.lower():
             print(f"[⊘ SKIPPED] Table does not exist yet")
-            dbutils.notebook.exit("[SKIP] Table not exists")
+            dbutils.notebook.exit("SKIPPED: Governance table does not exist")
         else:
             print(f"[✗ FAILED] Error creating governance monitor")
-            print(f"  Error: {error_msg}")
-            dbutils.notebook.exit(f"[FAIL] {error_msg[:100]}")
+            print(f"  Error Type:  {type(e).__name__}")
+            print(f"  Error:       {error_msg}")
+            raise  # Let job show failure status
 
 # COMMAND ----------
 

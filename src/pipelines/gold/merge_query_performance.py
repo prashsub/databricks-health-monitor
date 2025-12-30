@@ -135,7 +135,7 @@ def merge_fact_query_history(spark: SparkSession, catalog: str, bronze_schema: s
     - Flattened query_source: job_info, legacy_dashboard_id, dashboard_id, alert_id,
                                notebook_id, sql_query_id, genie_space_id, pipeline_info
     - Flattened query_parameters: named_parameters, pos_parameters, truncated
-    - MAP type: query_tags (direct copy if MAP, already correct type)
+    - MAP type: query_tags → query_tags (native MAP<STRING,STRING>, no conversion)
     """
     print("\n" + "=" * 80)
     print("MERGING: fact_query_history")
@@ -180,14 +180,11 @@ def merge_fact_query_history(spark: SparkSession, catalog: str, bronze_schema: s
     }
     bronze_df = flatten_struct_fields(bronze_df, "compute", compute_fields)
     
-    # For complex nested types, serialize to JSON strings
-    # Gold DDL expects STRING for these columns
+    # For complex nested types, serialize to JSON strings where Gold expects STRING
+    # NOTE: query_tags stays as native MAP<STRING,STRING> per Gold DDL
     updates_df = (
         bronze_df
-        # Serialize query_tags MAP to JSON string
-        .withColumn("query_tags_json",
-                    when(col("query_tags").isNotNull(), to_json(col("query_tags")))
-                    .otherwise(lit(None)))
+        # query_tags: Keep as native MAP type (Gold DDL: MAP<STRING, STRING>)
         # Serialize query_source nested STRUCTs to JSON
         .withColumn("query_source_job_info",
                     when(col("query_source.job_info").isNotNull(), to_json(col("query_source.job_info")))
@@ -280,8 +277,8 @@ def merge_fact_query_history(spark: SparkSession, catalog: str, bronze_schema: s
             "query_parameters_pos_parameters",
             "query_parameters_truncated",
             
-            # Query tags (JSON serialized)
-            "query_tags_json"
+            # Query tags (native MAP<STRING, STRING>)
+            "query_tags"
         )
     )
     

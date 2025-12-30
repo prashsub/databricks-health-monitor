@@ -37,13 +37,38 @@ def set_mlflow_registry():
 def verify_and_promote_models(catalog: str, feature_schema: str):
     """Verify all models are registered and add aliases."""
     
+    # All 25 models from ML Training Pipeline
     models = [
+        # Cost Agent (6 models)
         "cost_anomaly_detector",
         "budget_forecaster", 
         "job_cost_optimizer",
+        "chargeback_attribution",
+        "commitment_recommender",
+        "tag_recommender",
+        # Security Agent (4 models)
         "security_threat_detector",
-        "query_performance_forecaster",
-        "job_failure_predictor"
+        "exfiltration_detector",
+        "privilege_escalation_detector",
+        "user_behavior_baseline",
+        # Performance Agent (7 models)
+        "query_forecaster",
+        "warehouse_optimizer",
+        "performance_regression_detector",
+        "cluster_capacity_planner",
+        "dbr_migration_risk_scorer",
+        "cache_hit_predictor",
+        "query_optimization_recommender",
+        # Reliability Agent (5 models)
+        "failure_predictor",
+        "duration_forecaster",
+        "sla_breach_predictor",
+        "retry_success_predictor",
+        "pipeline_health_scorer",
+        # Quality Agent (3 models)
+        "drift_detector",
+        "schema_change_predictor",
+        "freshness_predictor"
     ]
     
     client = MlflowClient()

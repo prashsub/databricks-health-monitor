@@ -1,5 +1,5 @@
 # Gold Layer Historical Backfill Job
-# Processes historical data in 2-week chunks for large tables (reduced from monthly to prevent timeouts)
+# Processes historical data in 1-week chunks for large tables (reduced from 2-week to prevent timeouts)
 # Works alongside incremental job - backfills data BEFORE current Gold min date
 #
 # Usage:
@@ -12,7 +12,7 @@ resources:
     gold_backfill_job:
       name: "[${bundle.target}] Health Monitor - Gold Historical Backfill"
       description: >
-        Processes historical data in 2-week chunks for large Gold tables (reduced from monthly to prevent timeouts).
+        Processes historical data in 1-week chunks for large Gold tables (reduced from 2-week to prevent timeouts).
         Runs 3 parallel tasks: fact_audit_logs, fact_usage, fact_query_history.
         Backfills data BEFORE the current Gold table's minimum date.
         Run alongside incremental job - they don't overlap.

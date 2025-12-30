@@ -136,7 +136,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     Target: Optimal node count for future capacity
     
     Schema-grounded:
-    - fact_node_timeline.yaml: node_hour_start, cpu_utilization_percent, 
+    - fact_node_timeline.yaml: start_time, cpu_utilization_percent, 
       memory_utilization_percent, cluster_id
     - fact_job_run_timeline.yaml: run_duration_seconds, rows_produced, 
       task_execution_time_ms
@@ -149,8 +149,8 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     # Aggregate cluster utilization by cluster and day
     cluster_metrics = (
         spark.table(fact_node)
-        .filter(F.col("node_hour_start") >= F.date_sub(F.current_date(), 90))
-        .groupBy("cluster_id", F.date_trunc("day", "node_hour_start").alias("usage_date"))
+        .filter(F.col("start_time") >= F.date_sub(F.current_date(), 90))
+        .groupBy("cluster_id", F.date_trunc("day", "start_time").alias("usage_date"))
         .agg(
             F.count("*").alias("node_hours"),
             F.avg("cpu_utilization_percent").alias("avg_cpu_util"),
@@ -434,10 +434,21 @@ def main():
         import traceback
         print(f"\n❌ Error during training: {str(e)}")
         print(traceback.format_exc())
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
+        raise  # Re-raise to fail the job
     
-    # Signal success (REQUIRED for job status)
-    dbutils.notebook.exit("SUCCESS")
+    # Exit with comprehensive JSON summary
+    import json
+    hyperparams = {'n_estimators': 100, 'max_depth': 5, 'learning_rate': 0.1}
+    exit_summary = json.dumps({
+        "status": "SUCCESS",
+        "model": "cluster_capacity_planner",
+        "registered_as": model_name,
+        "run_id": run_id,
+        "algorithm": "GradientBoostingRegressor",
+        "hyperparameters": hyperparams,
+        "metrics": {k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()}
+    })
+    dbutils.notebook.exit(exit_summary)
 
 # COMMAND ----------
 

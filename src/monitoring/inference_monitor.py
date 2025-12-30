@@ -496,7 +496,7 @@ def main():
     
     if not check_monitoring_available():
         print("[⊘ SKIPPED] Lakehouse Monitoring SDK not available")
-        dbutils.notebook.exit("[SKIP] SDK not available")
+        dbutils.notebook.exit("SKIPPED: SDK not available")
         return
 
     workspace_client = WorkspaceClient()
@@ -516,14 +516,14 @@ def main():
         print("-" * 70)
 
         if ok_count > 0:
-            dbutils.notebook.exit(f"[OK] {ok_count} inference monitors created")
+            dbutils.notebook.exit(f"SUCCESS: {ok_count} inference monitors created")
         elif skip_count > 0 and fail_count == 0:
-            dbutils.notebook.exit(f"[SKIP] Tables not available yet")
+            dbutils.notebook.exit(f"SKIPPED: ML prediction tables not available")
         else:
-            dbutils.notebook.exit(f"[FAIL] {fail_count} monitors failed")
+            raise RuntimeError(f"{fail_count} monitors failed to create")
     except Exception as e:
         print(f"[✗ FAILED] Unexpected error: {str(e)}")
-        dbutils.notebook.exit(f"[FAIL] {str(e)[:100]}")
+        raise  # Let job show failure status
 
 # COMMAND ----------
 

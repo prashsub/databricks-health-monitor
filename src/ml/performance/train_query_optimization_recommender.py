@@ -156,7 +156,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     - In production, would come from actual optimization outcomes
     
     Schema-grounded:
-    - fact_query_history.yaml: duration_ms, bytes_read, bytes_written,
+    - fact_query_history.yaml: duration_ms, read_bytes, bytes_written,
       rows_returned, spill_to_disk_bytes, statement_type
     """
     print("\nPreparing training data for query optimization recommendation...")
@@ -170,16 +170,16 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         .filter(F.col("execution_status") == "FINISHED")
         .filter(F.col("statement_type") == "SELECT")
         # Safe division helpers
-        .withColumn("bytes_read_safe", F.greatest(F.col("bytes_read"), F.lit(1)))
+        .withColumn("read_bytes_safe", F.greatest(F.col("read_bytes"), F.lit(1)))
         .withColumn("duration_safe", F.greatest(F.col("duration_ms"), F.lit(1)))
         # Performance indicators
-        .withColumn("bytes_per_ms", F.col("bytes_read_safe") / F.col("duration_safe"))
+        .withColumn("bytes_per_ms", F.col("read_bytes_safe") / F.col("duration_safe"))
         .withColumn("rows_per_ms", F.col("rows_returned") / F.col("duration_safe"))
         # Spill indicator (if available, otherwise estimate)
         .withColumn("spill_bytes", F.coalesce(F.col("spill_to_disk_bytes"), F.lit(0)))
         .withColumn("has_spill", F.when(F.col("spill_bytes") > 0, 1).otherwise(0))
         # Size categorization
-        .withColumn("is_large_scan", F.when(F.col("bytes_read_safe") > 1e10, 1).otherwise(0))  # >10GB
+        .withColumn("is_large_scan", F.when(F.col("read_bytes_safe") > 1e10, 1).otherwise(0))  # >10GB
         .withColumn("is_slow_query", F.when(F.col("duration_ms") > 60000, 1).otherwise(0))  # >1min
         .withColumn("is_wide_result", F.when(F.col("rows_returned") > 1000000, 1).otherwise(0))  # >1M rows
         # Time features
@@ -187,7 +187,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         .withColumn("is_peak_hours", F.when(F.col("hour_of_day").between(9, 17), 1).otherwise(0))
         # Log transforms
         .withColumn("duration_log", F.log1p(F.col("duration_ms")))
-        .withColumn("bytes_log", F.log1p(F.col("bytes_read_safe")))
+        .withColumn("bytes_log", F.log1p(F.col("read_bytes_safe")))
         .withColumn("rows_log", F.log1p(F.col("rows_returned")))
         .withColumn("spill_log", F.log1p(F.col("spill_bytes")))
     )
@@ -202,12 +202,12 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         ).otherwise(0))
         # CACHING: Frequently run queries with moderate size
         .withColumn("needs_caching", F.when(
-            (F.col("bytes_read_safe") < 1e9) & (F.col("duration_ms") > 5000), 1
+            (F.col("read_bytes_safe") < 1e9) & (F.col("duration_ms") > 5000), 1
         ).otherwise(0))
         # BROADCAST_JOIN: Small table joins (detected by row/byte ratio)
         .withColumn("needs_broadcast_join", F.when(
             (F.col("rows_returned") > 0) &
-            (F.col("bytes_read_safe") / F.col("rows_returned") > 10000), 1  # Wide rows = potential join issues
+            (F.col("read_bytes_safe") / F.col("rows_returned") > 10000), 1  # Wide rows = potential join issues
         ).otherwise(0))
         # PREDICATE_PUSHDOWN: Large scans with small results
         .withColumn("needs_predicate_pushdown", F.when(
@@ -216,7 +216,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         ).otherwise(0))
         # COLUMN_PRUNING: High bytes per row
         .withColumn("needs_column_pruning", F.when(
-            (F.col("bytes_read_safe") / F.greatest(F.col("rows_returned"), F.lit(1)) > 50000), 1
+            (F.col("read_bytes_safe") / F.greatest(F.col("rows_returned"), F.lit(1)) > 50000), 1
         ).otherwise(0))
         # CLUSTER_RESIZE: Spill + slow
         .withColumn("needs_cluster_resize", F.when(
@@ -466,10 +466,21 @@ def main():
         import traceback
         print(f"\n❌ Error during training: {str(e)}")
         print(traceback.format_exc())
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
+        raise  # Re-raise to fail the job
     
-    # Signal success (REQUIRED for job status)
-    dbutils.notebook.exit("SUCCESS")
+    # Exit with comprehensive JSON summary
+    import json
+    hyperparams = {'n_estimators': 100, 'max_depth': 5}
+    exit_summary = json.dumps({
+        "status": "SUCCESS",
+        "model": "query_optimization_recommender",
+        "registered_as": model_name,
+        "run_id": run_id,
+        "algorithm": "GradientBoostingClassifier",
+        "hyperparameters": hyperparams,
+        "metrics": {k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()}
+    })
+    dbutils.notebook.exit(exit_summary)
 
 # COMMAND ----------
 

@@ -143,24 +143,26 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     fact_usage = f"{catalog}.{gold_schema}.fact_usage"
     
     # Get tagged jobs for training
+    # Note: usage_metadata is FLATTENED in Gold layer to usage_metadata_job_id, etc.
+    # Note: custom_tags is kept as MAP<STRING, STRING> - use element_at() for access
     tagged_jobs = (
         spark.table(fact_usage)
         .filter(F.col("is_tagged") == True)
-        .filter(F.col("usage_metadata")["job_id"].isNotNull())
-        .groupBy(F.col("usage_metadata")["job_id"].alias("job_id"))
+        .filter(F.col("usage_metadata_job_id").isNotNull())  # Flattened column
+        .groupBy(F.col("usage_metadata_job_id").alias("job_id"))  # Flattened column
         .agg(
             F.first("workspace_id").alias("workspace_id"),
-            # Extract first available tag as target
+            # Extract first available tag as target (use element_at for MAP access)
             F.first(F.coalesce(
-                F.col("custom_tags")["team"],
-                F.col("custom_tags")["project"],
-                F.col("custom_tags")["cost_center"]
+                F.element_at(F.col("custom_tags"), "team"),
+                F.element_at(F.col("custom_tags"), "project"),
+                F.element_at(F.col("custom_tags"), "cost_center")
             )).alias("tag_value"),
             # Determine which tag key was found
             F.first(F.when(
-                F.col("custom_tags")["team"].isNotNull(), "team"
+                F.element_at(F.col("custom_tags"), "team").isNotNull(), "team"
             ).when(
-                F.col("custom_tags")["project"].isNotNull(), "project"
+                F.element_at(F.col("custom_tags"), "project").isNotNull(), "project"
             ).otherwise("cost_center")).alias("tag_key"),
             # Most common SKU
             F.first(F.col("sku_name")).alias("primary_sku"),
@@ -419,14 +421,40 @@ def main():
         print(f"  Validation F1: {metrics['val_f1']:.3f}")
         print("=" * 80)
         
+        # Exit with detailed summary (shows in job output)
+        import json
+        hyperparams = {"n_estimators": 100, "max_depth": 8, "learning_rate": 0.1}
+        exit_summary = json.dumps({
+            "status": "SUCCESS",
+            "model": "tag_recommender",
+            "registered_as": model_name,
+            "run_id": run_id,
+            "algorithm": "GradientBoostingClassifier",
+            "hyperparameters": hyperparams,
+            "metrics": {
+                "val_f1": round(metrics['val_f1'], 3),
+                "val_accuracy": round(metrics['val_accuracy'], 3),
+                "training_samples": metrics['training_samples'],
+                "n_classes": metrics['n_classes']
+            }
+        })
+        dbutils.notebook.exit(exit_summary)
+        
     except Exception as e:
         import traceback
-        print(f"\n❌ Error during training: {str(e)}")
+        error_msg = str(e)
+        print(f"\n❌ Error during training: {error_msg}")
         print(traceback.format_exc())
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
-    
-    # Signal success (REQUIRED for job status)
-    dbutils.notebook.exit("SUCCESS")
+        
+        # Exit with error details before raising
+        import json
+        exit_summary = json.dumps({
+            "status": "FAILED",
+            "model": "tag_recommender",
+            "error": error_msg[:500]  # Truncate long errors
+        })
+        dbutils.notebook.exit(exit_summary)
+        raise  # Re-raise to fail the job
 
 # COMMAND ----------
 

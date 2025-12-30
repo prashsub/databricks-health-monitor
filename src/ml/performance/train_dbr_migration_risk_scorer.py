@@ -205,15 +205,22 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     )
     
     # Parse DBR version components
+    # Filter out non-standard versions like "custom:custom" that can't be parsed
     job_stats_with_version = (
         job_stats
+        # Filter to standard DBR versions (e.g., "14.3.x-scala2.12", "13.2-ml-scala2.12")
+        # Standard versions start with a digit
+        .filter(F.col("spark_version").rlike("^[0-9]"))
         # Extract major.minor from spark_version (dbr_version format: "14.3.x-scala2.12")
         .withColumn("dbr_parts", F.split(F.split("spark_version", "-")[0], "\\."))
-        .withColumn("dbr_major", F.col("dbr_parts")[0].cast("int"))
+        # Use try_cast to handle any remaining edge cases
+        .withColumn("dbr_major", F.expr("try_cast(dbr_parts[0] as int)"))
         .withColumn("dbr_minor", F.coalesce(
-            F.regexp_replace(F.col("dbr_parts")[1], "x", "0").cast("int"),
+            F.expr("try_cast(regexp_replace(dbr_parts[1], 'x', '0') as int)"),
             F.lit(0)
         ))
+        # Filter out rows where version parsing failed
+        .filter(F.col("dbr_major").isNotNull())
         # Calculate version age (months behind latest - assume 15.0 is latest)
         .withColumn("versions_behind", F.greatest(
             F.lit(0),
@@ -512,10 +519,21 @@ def main():
         import traceback
         print(f"\n❌ Error during training: {str(e)}")
         print(traceback.format_exc())
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
+        raise  # Re-raise to fail the job
     
-    # Signal success (REQUIRED for job status)
-    dbutils.notebook.exit("SUCCESS")
+    # Exit with comprehensive JSON summary
+    import json
+    hyperparams = {'n_estimators': 100, 'max_depth': 10}
+    exit_summary = json.dumps({
+        "status": "SUCCESS",
+        "model": "dbr_migration_risk_scorer",
+        "registered_as": model_name,
+        "run_id": run_id,
+        "algorithm": "RandomForestClassifier",
+        "hyperparameters": hyperparams,
+        "metrics": {k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()}
+    })
+    dbutils.notebook.exit(exit_summary)
 
 # COMMAND ----------
 

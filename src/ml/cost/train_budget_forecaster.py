@@ -246,14 +246,40 @@ def main():
             model, X_train, metrics, feature_columns, catalog, feature_schema, experiment_name, spark
         )
         
-        print(f"\n✓ TRAINING COMPLETE - Run: {run_id}")
+        # Print comprehensive summary
+        print("
+" + "=" * 60)
+        print("✓ TRAINING COMPLETE")
+        print("=" * 60)
+        print(f"  Model:       {model_name}")
+        print(f"  Registered:  {model_name}")
+        print(f"  MLflow Run:  {run_id}")
+        print("
+  Metrics:")
+        for k, v in metrics.items():
+            print(f"    - {k}: {v:.4f}" if isinstance(v, float) else f"    - {k}: {v}")
+        print("=" * 60)
         
     except Exception as e:
         import traceback
         print(f"❌ Error: {e}\n{traceback.format_exc()}")
-        dbutils.notebook.exit(f"FAILED: {e}")
+        import json
+        exit_summary = json.dumps({"status": "FAILED", "model": "budget_forecaster", "error": str(e)[:500]})
+        dbutils.notebook.exit(exit_summary)
+        raise  # Re-raise to fail the job
     
-    dbutils.notebook.exit("SUCCESS")
+    import json
+    hyperparams = {"n_estimators": 100, "max_depth": 5, "learning_rate": 0.1}
+    exit_summary = json.dumps({
+            "status": "SUCCESS",
+            "model": "budget_forecaster",
+            "registered_as": model_name,
+            "run_id": run_id,
+            "algorithm": "GradientBoostingRegressor",
+            "hyperparameters": hyperparams,
+            "metrics": {k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()}
+        })
+    dbutils.notebook.exit(exit_summary)
 
 # COMMAND ----------
 

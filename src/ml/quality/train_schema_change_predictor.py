@@ -93,7 +93,16 @@ def train_and_log(X_train, X_test, y_train, y_test, feature_cols, catalog, featu
         
         signature = infer_signature(X_train.head(5), model.predict(X_train.head(5)))
         mlflow.sklearn.log_model(model, "model", signature=signature, input_example=X_train.head(5), registered_model_name=registered_name)
-        return run.info.run_id
+            # Return comprehensive summary
+        return {
+            "run_id": run.info.run_id,
+            "model_name": model_name,
+            "registered_as": registered_name,
+            "algorithm": "GradientBoostingClassifier",
+            "hyperparameters": {"n_estimators": 100, "max_depth": 5, "random_state": 42},
+            "metrics": dict(metrics, training_samples=len(X_train), test_samples=len(X_test), features=len(feature_cols)),
+            "features": feature_cols
+        }
 
 # COMMAND ----------
 
@@ -105,14 +114,41 @@ def main():
     
     try:
         X_train, X_test, y_train, y_test, feature_cols = load_and_prepare_data(spark, catalog, feature_schema)
-        run_id = train_and_log(X_train, X_test, y_train, y_test, feature_cols, catalog, feature_schema, spark)
-        print(f"✓ COMPLETE - Run: {run_id}")
+        result = train_and_log(X_train, X_test, y_train, y_test, feature_cols, catalog, feature_schema, spark)
+        # Print comprehensive summary
+        print("\n" + "=" * 60)
+        print("✓ TRAINING COMPLETE")
+        print("=" * 60)
+        print(f"  Model:       {result['model_name']}")
+        print(f"  Algorithm:   {result['algorithm']}")
+        print(f"  Registered:  {result['registered_as']}")
+        print(f"  MLflow Run:  {result['run_id']}")
+        print("\n  Hyperparameters:")
+        for k, v in result['hyperparameters'].items():
+            print(f"    - {k}: {v}")
+        print("\n  Metrics:")
+        for k, v in result['metrics'].items():
+            print(f"    - {k}: {v}")
+        print("=" * 60)
     except Exception as e:
         import traceback
         print(f"❌ {e}\n{traceback.format_exc()}")
-        dbutils.notebook.exit(f"FAILED: {e}")
+        import json
+        exit_summary = json.dumps({"status": "FAILED", "model": "schema_change_predictor", "error": str(e)[:500]})
+        dbutils.notebook.exit(exit_summary)
+        raise  # Re-raise to fail the job
     
-    dbutils.notebook.exit("SUCCESS")
+    import json
+    exit_summary = json.dumps({
+            "status": "SUCCESS",
+            "model": result['model_name'],
+            "registered_as": result['registered_as'],
+            "run_id": result['run_id'],
+            "algorithm": result['algorithm'],
+            "hyperparameters": result['hyperparameters'],
+            "metrics": result['metrics']
+        })
+    dbutils.notebook.exit(exit_summary)
 
 if __name__ == "__main__":
     main()

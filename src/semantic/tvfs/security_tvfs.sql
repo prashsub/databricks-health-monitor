@@ -510,6 +510,21 @@ RETURN
         FROM user_activity
         GROUP BY user_email, user_type, event_date, event_hour
     ),
+    -- Calculate peak hour per user (separate CTE to avoid window/aggregate mixing)
+    hourly_counts AS (
+        SELECT
+            user_email,
+            event_hour,
+            COUNT(*) AS hour_events,
+            ROW_NUMBER() OVER (PARTITION BY user_email ORDER BY COUNT(*) DESC) AS hour_rank
+        FROM user_activity
+        GROUP BY user_email, event_hour
+    ),
+    peak_hours AS (
+        SELECT user_email, event_hour AS peak_hour, hour_events AS peak_hour_events_raw
+        FROM hourly_counts
+        WHERE hour_rank = 1
+    ),
     -- Aggregate user metrics
     user_metrics AS (
         SELECT
@@ -518,11 +533,6 @@ RETURN
             COUNT(*) AS total_events,
             COUNT(DISTINCT ua.event_date) AS active_days,
             COUNT(*) * 1.0 / NULLIF(COUNT(DISTINCT ua.event_date), 0) AS avg_daily_events,
-            -- Peak hour analysis
-            FIRST_VALUE(ua.event_hour) OVER (
-                PARTITION BY ua.user_email
-                ORDER BY COUNT(*) DESC
-            ) AS peak_hour,
             -- Off-hours: before 7am or after 7pm
             SUM(CASE WHEN ua.event_hour < 7 OR ua.event_hour >= 19 THEN 1 ELSE 0 END) * 100.0 /
                 NULLIF(COUNT(*), 0) AS off_hours_pct,
@@ -554,8 +564,8 @@ RETURN
             um.total_events,
             um.active_days,
             um.avg_daily_events,
-            um.peak_hour,
-            COALESCE(bc.peak_hour_events, 0) AS peak_hour_events,
+            COALESCE(ph.peak_hour, 0) AS peak_hour,
+            COALESCE(ph.peak_hour_events_raw, bc.peak_hour_events, 0) AS peak_hour_events,
             um.off_hours_pct,
             um.weekend_pct,
             COALESCE(bc.burst_count, 0) AS burst_count,
@@ -570,6 +580,7 @@ RETURN
                 ELSE 'NORMAL'
             END AS activity_pattern
         FROM user_metrics um
+        LEFT JOIN peak_hours ph ON um.user_email = ph.user_email
         LEFT JOIN burst_counts bc ON um.user_email = bc.user_email
     )
     SELECT *

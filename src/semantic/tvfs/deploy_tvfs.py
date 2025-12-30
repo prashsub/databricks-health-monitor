@@ -157,7 +157,7 @@ def deploy_tvf_file(
     spark: SparkSession,
     file_path: str,
     variables: Dict[str, str]
-) -> Tuple[int, int, List[Dict[str, str]]]:
+) -> Tuple[int, int, List[Dict[str, str]], List[str]]:
     """
     Deploy all TVFs from a single SQL file.
 
@@ -167,7 +167,7 @@ def deploy_tvf_file(
         variables: Variable substitutions
 
     Returns:
-        Tuple of (success_count, error_count, error_details_list)
+        Tuple of (success_count, error_count, error_details_list, success_tvf_names_list)
     """
     file_name = os.path.basename(file_path)
     
@@ -189,7 +189,7 @@ def deploy_tvf_file(
         }
         print(f"✗ CRITICAL: Failed to read file!")
         print(f"   Error: {str(e)}")
-        return 0, 1, [error_detail]
+        return 0, 1, [error_detail], []
 
     # Substitute variables
     sql_content = substitute_variables(sql_content, variables)
@@ -202,6 +202,7 @@ def deploy_tvf_file(
     success_count = 0
     error_count = 0
     error_details = []
+    success_tvfs = []
 
     print(f"\n{'─'*80}")
     print(f"Deploying TVFs from {file_name}...")
@@ -216,6 +217,7 @@ def deploy_tvf_file(
             spark.sql(stmt)
             print(f"      ✓ SUCCESS: {func_name} deployed")
             success_count += 1
+            success_tvfs.append(func_name)
             
         except Exception as e:
             error_str = str(e)
@@ -263,7 +265,7 @@ def deploy_tvf_file(
     print(f"   ✗ Failed: {error_count}")
     print(f"{'─'*80}")
 
-    return success_count, error_count, error_details
+    return success_count, error_count, error_details, success_tvfs
 
 # COMMAND ----------
 
@@ -422,10 +424,11 @@ def main():
     total_success = 0
     total_errors = 0
     all_error_details = []
+    all_success_tvfs = []
     file_results = []
 
     for file_path in tvf_files:
-        success, errors, error_details = deploy_tvf_file(spark, file_path, variables)
+        success, errors, error_details, success_tvfs = deploy_tvf_file(spark, file_path, variables)
         total_success += success
         total_errors += errors
         all_error_details.extend(error_details)
@@ -434,8 +437,10 @@ def main():
             'file': os.path.basename(file_path),
             'success': success,
             'errors': errors,
-            'total': success + errors
+            'total': success + errors,
+            'success_tvfs': success_tvfs
         })
+        all_success_tvfs.extend(success_tvfs)
 
     # ========================================================================
     # DETAILED SUMMARY
@@ -458,7 +463,41 @@ def main():
     print(f"{'TOTAL':<30} {total_success:>10} {total_errors:>10} {total_success + total_errors:>10}")
     print("=" * 80)
 
-    # Error categorization
+    # ========================================================================
+    # SUCCESSFUL TVFs BY FILE
+    # ========================================================================
+    
+    print("\n" + "=" * 80)
+    print("✅ SUCCESSFULLY DEPLOYED TVFs BY CATEGORY")
+    print("=" * 80)
+    
+    # Map file names to agent domains
+    domain_mapping = {
+        'cost_tvfs.sql': '💰 COST AGENT',
+        'reliability_tvfs.sql': '🔄 RELIABILITY AGENT',
+        'performance_tvfs.sql': '⚡ PERFORMANCE AGENT (Queries)',
+        'compute_tvfs.sql': '⚡ PERFORMANCE AGENT (Compute)',
+        'security_tvfs.sql': '🔒 SECURITY AGENT',
+        'quality_tvfs.sql': '✅ QUALITY AGENT'
+    }
+    
+    for result in file_results:
+        file_name = result['file']
+        domain = domain_mapping.get(file_name, f"📄 {file_name}")
+        success_tvfs = result.get('success_tvfs', [])
+        
+        if success_tvfs:
+            print(f"\n{domain} ({len(success_tvfs)} TVFs)")
+            print("─" * 70)
+            for i, tvf in enumerate(success_tvfs, 1):
+                # Extract just the function name (remove catalog.schema prefix)
+                short_name = tvf.split('.')[-1] if '.' in tvf else tvf
+                print(f"   {i:2d}. {short_name}")
+    
+    # ========================================================================
+    # ERROR DETAILS (if any)
+    # ========================================================================
+    
     if all_error_details:
         print("\n" + "=" * 80)
         print("❌ ERROR DETAILS")
@@ -505,12 +544,37 @@ def main():
     print(f"Deployed TVFs:  {actual_count}")
     print(f"Success Rate:   {(total_success / expected_count * 100):.1f}%" if expected_count > 0 else "N/A")
     
-    # Final status
+    # ========================================================================
+    # FINAL STATUS
+    # ========================================================================
+    
     print("\n" + "=" * 80)
     if total_errors == 0:
         print("✅ TVF DEPLOYMENT COMPLETE - ALL SUCCESSFUL")
         print("=" * 80)
-        dbutils.notebook.exit("SUCCESS")
+        
+        # Create detailed success message
+        success_summary = []
+        success_summary.append(f"SUCCESS: All {total_success} TVFs deployed successfully!")
+        success_summary.append("")
+        success_summary.append("📊 Summary by Agent Domain:")
+        
+        for result in file_results:
+            file_name = result['file']
+            domain = domain_mapping.get(file_name, file_name)
+            count = result['success']
+            success_summary.append(f"   {domain}: {count} TVFs")
+        
+        success_summary.append("")
+        success_summary.append(f"🎯 Target: {catalog}.{gold_schema}")
+        success_summary.append(f"📁 Total Files: {len(file_results)}")
+        success_summary.append(f"✅ Total TVFs: {total_success}")
+        
+        exit_message = "\n".join(success_summary)
+        print(exit_message)
+        print("=" * 80)
+        
+        dbutils.notebook.exit(exit_message)
     else:
         print(f"⚠️  TVF DEPLOYMENT COMPLETED WITH ERRORS")
         print(f"   ✓ Successful: {total_success}")
@@ -521,6 +585,7 @@ def main():
         print("=" * 80)
         
         # Exit with error to fail the job
+        failed_tvfs = [err['tvf_name'] for err in all_error_details if err['tvf_name'] != 'FILE_READ_ERROR']
         raise Exception(
             f"TVF deployment failed: {total_errors} errors out of {total_success + total_errors} TVFs. "
             f"See detailed error log above. Failed TVFs: {', '.join(failed_tvfs[:10])}..."

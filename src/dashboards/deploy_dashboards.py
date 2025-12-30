@@ -53,11 +53,21 @@ def load_dashboard_json(file_path: str) -> dict:
 
 
 def prefix_dataset_names(datasets: list, prefix: str) -> list:
-    """Add prefix to dataset names to avoid conflicts."""
+    """Add prefix to dataset names to avoid conflicts.
+    
+    Also adds displayName field if not present (required by Lakeview API).
+    """
     prefixed = []
     for ds in datasets:
         new_ds = ds.copy()
-        new_ds['name'] = f"{prefix}_{ds['name']}"
+        original_name = ds['name']
+        new_name = f"{prefix}_{original_name}"
+        new_ds['name'] = new_name
+        # displayName is required by Lakeview API
+        if 'displayName' not in new_ds or not new_ds['displayName']:
+            new_ds['displayName'] = new_name
+        else:
+            new_ds['displayName'] = f"{prefix}_{new_ds['displayName']}"
         prefixed.append(new_ds)
     return prefixed
 
@@ -144,6 +154,7 @@ def add_global_filters_page(unified: dict) -> dict:
     
     workspace_filter_ds = {
         "name": "ds_workspace_filter",
+        "displayName": "ds_workspace_filter",
         "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE is_current = TRUE ORDER BY workspace_name"
     }
     
@@ -226,58 +237,85 @@ def substitute_variables(content: str, catalog: str, gold_schema: str, warehouse
     return content
 
 
-def get_existing_dashboards_map(workspace_client) -> dict:
-    """Build a map of existing dashboard names to IDs for efficient lookup."""
-    dashboard_map = {}
+def find_existing_dashboard(workspace_client, display_name: str) -> str:
+    """Find a specific dashboard by name without listing all dashboards.
+    
+    Uses a limited iteration with early exit to avoid timeout on large workspaces.
+    Returns dashboard_id if found, None otherwise.
+    """
     try:
+        # Only check first 100 dashboards (most recent) to find our dashboard
+        # This avoids iterating through 17,000+ dashboards
+        count = 0
+        max_check = 100
         for dash in workspace_client.lakeview.list():
-            if dash.display_name:
-                dashboard_map[dash.display_name] = dash.dashboard_id
+            if dash.display_name == display_name:
+                return dash.dashboard_id
+            count += 1
+            if count >= max_check:
+                break
+        return None
     except Exception as e:
-        print(f"  Warning: Could not list existing dashboards: {str(e)}")
-    return dashboard_map
+        print(f"  Warning: Could not search for existing dashboard: {str(e)}")
+        return None
 
 
-def deploy_dashboard_sdk(workspace_client, dashboard_config: dict, existing_dashboards: dict) -> str:
+def deploy_dashboard_sdk(workspace_client, dashboard_config: dict) -> str:
     """Deploy dashboard using Databricks SDK.
     
-    The LakeviewAPI.create() and update() methods require a Dashboard object,
-    not individual keyword arguments.
+    Uses "try create, catch and update" pattern to avoid listing all dashboards.
+    Dashboard is created in user's default workspace location.
     
     Reference: https://databricks-sdk-py.readthedocs.io/en/latest/workspace/dashboards/lakeview.html
     """
+    display_name = dashboard_config.get('displayName')
+    serialized_dashboard = json.dumps(dashboard_config)
+    warehouse_id_from_config = dashboard_config.get('warehouse_id')
+    
+    # First, try to create the dashboard (no parent_path = user's default location)
     try:
-        display_name = dashboard_config.get('displayName')
-        existing_id = existing_dashboards.get(display_name)
-        serialized_dashboard = json.dumps(dashboard_config)
-        warehouse_id_from_config = dashboard_config.get('warehouse_id')
-
-        if existing_id:
-            print(f"  Updating existing dashboard: {display_name}")
-            dashboard_obj = Dashboard(
-                display_name=display_name,
-                serialized_dashboard=serialized_dashboard,
-                warehouse_id=warehouse_id_from_config
-            )
-            result = workspace_client.lakeview.update(
-                dashboard_id=existing_id,
-                dashboard=dashboard_obj
-            )
-        else:
-            print(f"  Creating new dashboard: {display_name}")
-            dashboard_obj = Dashboard(
-                display_name=display_name,
-                serialized_dashboard=serialized_dashboard,
-                warehouse_id=warehouse_id_from_config,
-                parent_path="/Workspace/Shared/health_monitor/dashboards"
-            )
-            result = workspace_client.lakeview.create(dashboard=dashboard_obj)
-
+        print(f"  Creating dashboard: {display_name}")
+        dashboard_obj = Dashboard(
+            display_name=display_name,
+            serialized_dashboard=serialized_dashboard,
+            warehouse_id=warehouse_id_from_config
+        )
+        result = workspace_client.lakeview.create(dashboard=dashboard_obj)
+        print(f"  ✓ Dashboard created successfully")
         return result.dashboard_id if hasattr(result, 'dashboard_id') else "SUCCESS"
-
-    except Exception as e:
-        print(f"  SDK deployment failed: {str(e)}")
-        raise
+        
+    except Exception as create_error:
+        error_str = str(create_error).lower()
+        
+        # If dashboard already exists, try to find and update it
+        if "already exists" in error_str or "conflict" in error_str:
+            print(f"  Dashboard exists, searching for it to update...")
+            
+            existing_id = find_existing_dashboard(workspace_client, display_name)
+            
+            if existing_id:
+                try:
+                    print(f"  Updating existing dashboard (ID: {existing_id})")
+                    dashboard_obj = Dashboard(
+                        display_name=display_name,
+                        serialized_dashboard=serialized_dashboard,
+                        warehouse_id=warehouse_id_from_config
+                    )
+                    result = workspace_client.lakeview.update(
+                        dashboard_id=existing_id,
+                        dashboard=dashboard_obj
+                    )
+                    print(f"  ✓ Dashboard updated successfully")
+                    return result.dashboard_id if hasattr(result, 'dashboard_id') else "SUCCESS"
+                except Exception as update_error:
+                    print(f"  ✗ Update failed: {str(update_error)}")
+                    raise
+            else:
+                print(f"  ✗ Could not find existing dashboard to update")
+                raise create_error
+        else:
+            print(f"  ✗ Create failed: {str(create_error)}")
+            raise
 
 
 # COMMAND ----------
@@ -307,12 +345,9 @@ if not warehouse_id:
 
 # Initialize SDK
 workspace_client = None
-existing_dashboards = {}
 if SDK_AVAILABLE:
     workspace_client = WorkspaceClient()
-    print("\nBuilding map of existing dashboards...")
-    existing_dashboards = get_existing_dashboards_map(workspace_client)
-    print(f"  Found {len(existing_dashboards)} existing dashboards")
+    print("\n✓ Databricks SDK initialized")
 
 # COMMAND ----------
 
@@ -337,7 +372,7 @@ try:
     
     # Deploy
     if SDK_AVAILABLE and workspace_client:
-        dashboard_id = deploy_dashboard_sdk(workspace_client, unified_config, existing_dashboards)
+        dashboard_id = deploy_dashboard_sdk(workspace_client, unified_config)
         print(f"\n  Dashboard ID: {dashboard_id}")
         deployment_success = True
     else:

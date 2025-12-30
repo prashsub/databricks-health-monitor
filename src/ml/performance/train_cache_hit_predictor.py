@@ -140,7 +140,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     - Historical cache effectiveness
     
     Schema-grounded:
-    - fact_query_history.yaml: statement_type, duration_ms, bytes_read, 
+    - fact_query_history.yaml: statement_type, duration_ms, read_bytes, 
       rows_returned, user_name, warehouse_id, start_time
     """
     print("\nPreparing training data for cache hit prediction...")
@@ -152,9 +152,9 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         spark.table(fact_query)
         .filter(F.col("start_time") >= F.date_sub(F.current_date(), 90))
         .filter(F.col("execution_status") == "FINISHED")
-        # Calculate cache hit rate (bytes_read_from_cache / bytes_read)
+        # Calculate cache hit rate (read_bytes_from_cache / read_bytes)
         # If these columns don't exist, we'll simulate based on patterns
-        .withColumn("bytes_read_safe", F.greatest(F.col("bytes_read"), F.lit(1)))
+        .withColumn("read_bytes_safe", F.greatest(F.col("read_bytes"), F.lit(1)))
         # Simulate cache effectiveness based on query patterns
         # In production, this would use actual cache metrics
         .withColumn("query_hash", F.hash("query_text"))
@@ -174,7 +174,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
             F.count("*").alias("query_frequency"),
             F.avg("duration_ms").alias("avg_duration"),
             F.stddev("duration_ms").alias("duration_stddev"),
-            F.avg("bytes_read_safe").alias("avg_bytes_read"),
+            F.avg("read_bytes_safe").alias("avg_read_bytes"),
             F.avg("rows_returned").alias("avg_rows_returned"),
             F.countDistinct("user_name").alias("unique_users"),
             F.countDistinct(F.date_trunc("day", "start_time")).alias("days_active")
@@ -194,7 +194,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         .withColumn("is_describe", F.when(F.col("statement_type").startswith("DESCRIBE"), 1).otherwise(0))
         # Query complexity indicators
         .withColumn("duration_log", F.log1p(F.col("duration_ms")))
-        .withColumn("bytes_log", F.log1p(F.col("bytes_read_safe")))
+        .withColumn("bytes_log", F.log1p(F.col("read_bytes_safe")))
         .withColumn("rows_log", F.log1p(F.col("rows_returned")))
         # Encode warehouse
         .withColumn("warehouse_hash", F.hash("warehouse_id"))
@@ -205,7 +205,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         .withColumn("high_cache_hit", F.when(
             (F.col("query_regularity") > 2) &
             (F.col("is_select") == 1) &
-            (F.col("bytes_read_safe") < 1e9) &  # < 1GB
+            (F.col("read_bytes_safe") < 1e9) &  # < 1GB
             (F.col("query_frequency") > 5),
             1
         ).otherwise(0))
@@ -394,7 +394,7 @@ def main():
             'hour_of_day', 'day_of_week', 'is_business_hours',
             'is_select', 'is_show', 'is_describe',
             'query_frequency', 'avg_duration', 'duration_stddev',
-            'avg_bytes_read', 'avg_rows_returned',
+            'avg_read_bytes', 'avg_rows_returned',
             'unique_users', 'days_active', 'query_regularity',
             'warehouse_hash', 'user_hash'
         ]
@@ -451,22 +451,55 @@ def main():
             spark=spark
         )
         
+        hyperparams = {"n_estimators": 100, "max_depth": 10, "learning_rate": 0.1}
+        
         print("\n" + "=" * 80)
-        print("✓ CACHE HIT PREDICTOR TRAINING COMPLETE")
-        print(f"  Model: {model_name}")
-        print(f"  MLflow Run: {run_id}")
-        print(f"  Validation AUC: {val_auc:.3f}")
-        print(f"  Validation F1: {metrics['val_f1']:.3f}")
+        print("✓ TRAINING COMPLETE")
         print("=" * 80)
+        print(f"  Model:       cache_hit_predictor")
+        print(f"  Algorithm:   GradientBoostingClassifier")
+        print(f"  Registered:  {model_name}")
+        print(f"  MLflow Run:  {run_id}")
+        print("\n  Hyperparameters:")
+        for k, v in hyperparams.items():
+            print(f"    - {k}: {v}")
+        print("\n  Metrics:")
+        for k, v in metrics.items():
+            print(f"    - {k}: {round(v, 4) if isinstance(v, float) else v}")
+        print(f"\n  Features ({len(feature_cols)}):")
+        for f in feature_cols[:5]:
+            print(f"    - {f}")
+        print(f"    ... and {len(feature_cols) - 5} more")
+        print("=" * 80)
+        
+        # Exit with comprehensive JSON summary
+        import json
+        exit_summary = json.dumps({
+            "status": "SUCCESS",
+            "model": "cache_hit_predictor",
+            "registered_as": model_name,
+            "run_id": run_id,
+            "algorithm": "GradientBoostingClassifier",
+            "hyperparameters": hyperparams,
+            "metrics": {k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()}
+        })
+        dbutils.notebook.exit(exit_summary)
         
     except Exception as e:
         import traceback
-        print(f"\n❌ Error during training: {str(e)}")
+        error_msg = str(e)
+        print(f"\n❌ ERROR: {error_msg}")
         print(traceback.format_exc())
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
-    
-    # Signal success (REQUIRED for job status)
-    dbutils.notebook.exit("SUCCESS")
+        
+        import json
+        exit_summary = json.dumps({
+            "status": "FAILED",
+            "model": "cache_hit_predictor",
+            "error": error_msg[:500],
+            "error_type": type(e).__name__
+        })
+        dbutils.notebook.exit(exit_summary)
+        raise
 
 # COMMAND ----------
 

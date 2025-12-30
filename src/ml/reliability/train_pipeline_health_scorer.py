@@ -557,10 +557,21 @@ def main():
         import traceback
         print(f"\n❌ Error during training: {str(e)}")
         print(traceback.format_exc())
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
+        raise  # Re-raise to fail the job
     
-    # Signal success (REQUIRED for job status)
-    dbutils.notebook.exit("SUCCESS")
+    # Exit with comprehensive JSON summary
+    import json
+    hyperparams = {'n_estimators': 100, 'max_depth': 5}
+    exit_summary = json.dumps({
+        "status": "SUCCESS",
+        "model": "pipeline_health_scorer",
+        "registered_as": model_name,
+        "run_id": run_id,
+        "algorithm": "GradientBoostingRegressor",
+        "hyperparameters": hyperparams,
+        "metrics": {k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()}
+    })
+    dbutils.notebook.exit(exit_summary)
 
 # COMMAND ----------
 

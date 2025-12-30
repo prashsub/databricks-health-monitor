@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Historical Backfill for Large Gold Tables
 # MAGIC 
-# MAGIC Processes historical data in 2-week chunks to avoid memory issues and timeouts.
+# MAGIC Processes historical data in 1-week chunks to avoid memory issues and timeouts.
 # MAGIC Works alongside the incremental job - backfills data BEFORE the current Gold min date.
 # MAGIC 
 # MAGIC **Tables supported:**
@@ -66,7 +66,7 @@ def backfill_fact_audit_logs_chunk(
     end_date: str
 ) -> int:
     """
-    Backfill a single 2-week chunk of fact_audit_logs.
+    Backfill a single 1-week chunk of fact_audit_logs.
     
     Returns number of records merged.
     """
@@ -161,7 +161,7 @@ def backfill_fact_usage_chunk(
     end_date: str
 ) -> int:
     """
-    Backfill a single 2-week chunk of fact_usage.
+    Backfill a single 1-week chunk of fact_usage.
     """
     from merge_helpers import (
         deduplicate_bronze, flatten_usage_metadata, flatten_identity_metadata,
@@ -301,7 +301,7 @@ def backfill_fact_query_history_chunk(
     end_date: str
 ) -> int:
     """
-    Backfill a single 2-week chunk of fact_query_history.
+    Backfill a single 1-week chunk of fact_query_history.
     """
     from merge_helpers import deduplicate_bronze, flatten_struct_fields, merge_fact_table
     
@@ -379,17 +379,20 @@ def backfill_fact_query_history_chunk(
 
 # COMMAND ----------
 
-def generate_biweekly_chunks(end_date, months_back: int):
+def generate_weekly_chunks(end_date, months_back: int):
     """
-    Generate list of (start_date, end_date) tuples for 2-week processing.
+    Generate list of (start_date, end_date) tuples for 1-week processing.
     Goes backwards from end_date.
     
     Args:
         end_date: End date to start from (typically today)
-        months_back: Number of months to backfill (will be split into 2-week chunks)
+        months_back: Number of months to backfill (will be split into 1-week chunks)
     
     Returns:
-        List of (start_date, end_date) tuples, each representing ~2 weeks
+        List of (start_date, end_date) tuples, each representing ~1 week (7 days)
+    
+    Note: Reduced from 2-week to 1-week chunks due to timeout issues with
+    large tables (fact_audit_logs has 300M-763M records per 2-week period).
     """
     chunks = []
     
@@ -397,10 +400,10 @@ def generate_biweekly_chunks(end_date, months_back: int):
     total_days = months_back * 30
     current_end = end_date
     
-    # Generate 2-week (14 day) chunks
+    # Generate 1-week (7 day) chunks to avoid timeouts
     while total_days > 0:
-        # Create 2-week chunk (or remaining days if less than 14)
-        chunk_size = min(14, total_days)
+        # Create 1-week chunk (or remaining days if less than 7)
+        chunk_size = min(7, total_days)
         current_start = current_end - timedelta(days=chunk_size)
         
         chunks.append((
@@ -467,13 +470,13 @@ def main():
     today = datetime.now().date()
     backfill_end = today
     
-    print(f"\n  → Backfilling last {months_to_backfill} months in 2-week chunks (from {backfill_end} going back)")
+    print(f"\n  → Backfilling last {months_to_backfill} months in 1-week chunks (from {backfill_end} going back)")
     print(f"     Note: MERGE ensures no duplicates with existing data")
     
-    # Generate 2-week chunks going backwards FROM TODAY
-    chunks = generate_biweekly_chunks(backfill_end, months_to_backfill)
+    # Generate 1-week chunks going backwards FROM TODAY
+    chunks = generate_weekly_chunks(backfill_end, months_to_backfill)
     
-    print(f"\nProcessing {len(chunks)} 2-week chunks:")
+    print(f"\nProcessing {len(chunks)} 1-week chunks:")
     for start, end in chunks:
         print(f"  • {start} to {end}")
     

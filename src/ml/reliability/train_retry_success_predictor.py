@@ -170,25 +170,30 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     )
     
     # Get next run for each failed job (within 24 hours)
+    # Create retry candidates DataFrame separately to avoid alias issues
+    retry_candidates = (
+        spark.table(fact_job)
+        .select(
+            F.col("job_id").alias("retry_job_id"),
+            F.col("period_start_time").alias("retry_timestamp"),
+            F.col("result_state").alias("retry_result")
+        )
+    )
+    
     retry_outcomes = (
         failed_jobs.alias("failed")
         .join(
-            spark.table(fact_job).alias("retry")
-            .select(
-                F.col("job_id").alias("retry_job_id"),
-                F.col("period_start_time").alias("retry_timestamp"),
-                F.col("result_state").alias("retry_result")
-            ),
+            retry_candidates,
             on=[
-                F.col("failed.job_id") == F.col("retry.retry_job_id"),
-                F.col("retry.retry_timestamp") > F.col("failed.period_start_time"),
-                F.col("retry.retry_timestamp") <= F.col("failed.period_start_time") + F.expr("INTERVAL 24 HOURS")
+                F.col("failed.job_id") == F.col("retry_job_id"),
+                F.col("retry_timestamp") > F.col("failed.period_start_time"),
+                F.col("retry_timestamp") <= F.col("failed.period_start_time") + F.expr("INTERVAL 24 HOURS")
             ],
             how="inner"
         )
         # Get first retry only
         .withColumn("retry_rank", F.row_number().over(
-            Window.partitionBy("failed.run_id").orderBy("retry.retry_timestamp")
+            Window.partitionBy("failed.run_id").orderBy("retry_timestamp")
         ))
         .filter(F.col("retry_rank") == 1)
         .select(
@@ -202,9 +207,9 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
             F.col("failed.row_num").alias("failure_count"),
             F.col("failed.cluster_id"),
             # Time to retry
-            (F.col("retry.retry_timestamp").cast("long") - F.col("failed.period_start_time").cast("long")).alias("time_to_retry_sec"),
+            (F.col("retry_timestamp").cast("long") - F.col("failed.period_start_time").cast("long")).alias("time_to_retry_sec"),
             # Target
-            F.when(F.col("retry.retry_result") == "SUCCESS", 1).otherwise(0).alias("retry_succeeded")
+            F.when(F.col("retry_result") == "SUCCESS", 1).otherwise(0).alias("retry_succeeded")
         )
     )
     
@@ -491,10 +496,21 @@ def main():
         import traceback
         print(f"\n❌ Error during training: {str(e)}")
         print(traceback.format_exc())
-        dbutils.notebook.exit(f"FAILED: {str(e)}")
+        raise  # Re-raise to fail the job
     
-    # Signal success (REQUIRED for job status)
-    dbutils.notebook.exit("SUCCESS")
+    # Exit with comprehensive JSON summary
+    import json
+    hyperparams = {'n_estimators': 100, 'max_depth': 5}
+    exit_summary = json.dumps({
+        "status": "SUCCESS",
+        "model": "retry_success_predictor",
+        "registered_as": model_name,
+        "run_id": run_id,
+        "algorithm": "GradientBoostingClassifier",
+        "hyperparameters": hyperparams,
+        "metrics": {k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()}
+    })
+    dbutils.notebook.exit(exit_summary)
 
 # COMMAND ----------
 

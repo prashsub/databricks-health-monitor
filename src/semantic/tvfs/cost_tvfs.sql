@@ -770,51 +770,35 @@ RETURN
 
 -- -----------------------------------------------------------------------------
 -- TVF 14: get_cost_growth_by_period
--- Period-over-period comparison (7 vs 14 day pattern)
+-- Fixed 7-day vs prior 7-day comparison (simplified to avoid parameter-in-aggregate issue)
 -- Source: Dashboard Pattern Analysis
+-- NOTE: Parameters can't be used inside aggregate CASE expressions in SQL TVFs
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${catalog}.${gold_schema}.get_cost_growth_by_period(
     entity_type STRING COMMENT 'Entity type: WORKSPACE, JOB, or SKU (required)',
-    recent_days INT COMMENT 'Number of days for recent period (required)',
-    comparison_days INT DEFAULT 7 COMMENT 'Number of days for comparison period',
     top_n INT DEFAULT 20 COMMENT 'Number of top entities to return'
 )
 RETURNS TABLE(
     rank INT COMMENT 'Growth rank (1 = highest growth)',
     entity_id STRING COMMENT 'Entity identifier',
     entity_name STRING COMMENT 'Entity name',
-    recent_period_spend DOUBLE COMMENT 'Spend in recent period',
-    prior_period_spend DOUBLE COMMENT 'Spend in prior period',
+    recent_7d_spend DOUBLE COMMENT 'Spend in last 7 days',
+    prior_7d_spend DOUBLE COMMENT 'Spend in prior 7 days',
     absolute_change DOUBLE COMMENT 'Absolute change in spend',
     pct_change DOUBLE COMMENT 'Percentage change',
     change_category STRING COMMENT 'SPIKE/GROWTH/STABLE/DECLINE/DROP'
 )
 COMMENT '
-- PURPOSE: Flexible period-over-period cost comparison with customizable windows
+- PURPOSE: 7-day period-over-period cost comparison for identifying spend trends
 - BEST FOR: "Compare last 7 days vs prior 7 days" "Which workspaces grew most?" "Cost change analysis"
-- NOT FOR: Fixed week-over-week analysis (use get_cost_growth_analysis instead)
-- RETURNS: Entities ranked by change with both periods, absolute change, %, and category
-- PARAMS: entity_type (WORKSPACE/JOB/SKU), recent_days (default 7), comparison_days (default 7), top_n (default 20)
-- SYNTAX: SELECT * FROM TABLE(get_cost_growth_by_period("JOB", 14, 14, 10))
+- NOT FOR: Custom period analysis (use cost dashboard directly)
+- RETURNS: Entities ranked by change with 7d comparison, absolute change, %, and category
+- PARAMS: entity_type (WORKSPACE/JOB/SKU required), top_n (default 20)
+- SYNTAX: SELECT * FROM TABLE(get_cost_growth_by_period("JOB", 10))
 - NOTE: Categories: SPIKE (>50%), GROWTH (>10%), STABLE (-10% to 10%), DECLINE (<-10%), DROP (<-50%)
 '
 RETURN
-    SELECT
-        CAST(ROW_NUMBER() OVER (ORDER BY (recent_spend - prior_spend) DESC) AS INT) AS rank,
-        entity_id,
-        entity_name,
-        ROUND(recent_spend, 2) AS recent_period_spend,
-        ROUND(prior_spend, 2) AS prior_period_spend,
-        ROUND(recent_spend - prior_spend, 2) AS absolute_change,
-        ROUND((recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100, 2) AS pct_change,
-        CASE
-            WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 > 50 THEN 'SPIKE'
-            WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 > 10 THEN 'GROWTH'
-            WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 BETWEEN -10 AND 10 THEN 'STABLE'
-            WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 > -50 THEN 'DECLINE'
-            ELSE 'DROP'
-        END AS change_category
-    FROM (
+    WITH base_data AS (
         SELECT
             CASE entity_type
                 WHEN 'WORKSPACE' THEN fu.workspace_id
@@ -827,18 +811,38 @@ RETURN
                     WHEN 'JOB' THEN fu.usage_metadata_job_id
                     WHEN 'SKU' THEN fu.sku_name
                 END) AS entity_name,
-            SUM(CASE WHEN fu.usage_date >= DATE_ADD(CURRENT_DATE(), -recent_days) THEN fu.list_cost ELSE 0 END) AS recent_spend,
-            SUM(CASE WHEN fu.usage_date < DATE_ADD(CURRENT_DATE(), -recent_days)
-                          AND fu.usage_date >= DATE_ADD(CURRENT_DATE(), -(recent_days + comparison_days))
+            -- Fixed 7-day periods (no parameter in aggregate)
+            SUM(CASE WHEN fu.usage_date >= CURRENT_DATE() - INTERVAL 7 DAY THEN fu.list_cost ELSE 0 END) AS recent_spend,
+            SUM(CASE WHEN fu.usage_date >= CURRENT_DATE() - INTERVAL 14 DAY
+                          AND fu.usage_date < CURRENT_DATE() - INTERVAL 7 DAY
                      THEN fu.list_cost ELSE 0 END) AS prior_spend
         FROM ${catalog}.${gold_schema}.fact_usage fu
         LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON fu.workspace_id = w.workspace_id
         LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON fu.usage_metadata_job_id = j.job_id AND j.delete_time IS NULL
-        WHERE fu.usage_date >= DATE_ADD(CURRENT_DATE(), -(recent_days + comparison_days + 1))
+        WHERE fu.usage_date >= CURRENT_DATE() - INTERVAL 14 DAY
         GROUP BY 1, 2
         HAVING entity_id IS NOT NULL
-    ) agg
-    WHERE ROW_NUMBER() OVER (ORDER BY (recent_spend - prior_spend) DESC) <= top_n
+    ),
+    ranked AS (
+        SELECT
+            CAST(ROW_NUMBER() OVER (ORDER BY (recent_spend - prior_spend) DESC) AS INT) AS rank,
+            entity_id,
+            entity_name,
+            ROUND(recent_spend, 2) AS recent_7d_spend,
+            ROUND(prior_spend, 2) AS prior_7d_spend,
+            ROUND(recent_spend - prior_spend, 2) AS absolute_change,
+            ROUND((recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100, 2) AS pct_change,
+            CASE
+                WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 > 50 THEN 'SPIKE'
+                WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 > 10 THEN 'GROWTH'
+                WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 BETWEEN -10 AND 10 THEN 'STABLE'
+                WHEN (recent_spend - prior_spend) / NULLIF(prior_spend, 0) * 100 > -50 THEN 'DECLINE'
+                ELSE 'DROP'
+            END AS change_category
+        FROM base_data
+    )
+    SELECT * FROM ranked
+    WHERE rank <= top_n
     ORDER BY rank;
 
 

@@ -48,12 +48,13 @@ def delete_monitor_if_exists(
     """
     try:
         # Check if monitor exists
-        workspace_client.quality_monitors.get(table_name=table_name)
+        existing = workspace_client.quality_monitors.get(table_name=table_name)
+        print(f"      Found existing monitor (created: {getattr(existing, 'create_time', 'unknown')})")
 
         # Delete monitor definition
-        print(f"  [→] Cleaning up existing monitor...")
+        print(f"      Deleting monitor definition...")
         workspace_client.quality_monitors.delete(table_name=table_name)
-        print(f"      Monitor deleted")
+        print(f"      ✓ Monitor definition deleted")
 
         # Parse table name and drop output tables
         parts = table_name.split(".")
@@ -64,20 +65,24 @@ def delete_monitor_if_exists(
             if spark:
                 # Drop profile_metrics table
                 profile_table = f"{catalog}.{monitoring_schema}.{table}_profile_metrics"
+                print(f"      Dropping {profile_table}...")
                 spark.sql(f"DROP TABLE IF EXISTS {profile_table}")
-                print(f"      Dropped profile_metrics table")
+                print(f"      ✓ Dropped profile_metrics")
 
                 # Drop drift_metrics table
                 drift_table = f"{catalog}.{monitoring_schema}.{table}_drift_metrics"
+                print(f"      Dropping {drift_table}...")
                 spark.sql(f"DROP TABLE IF EXISTS {drift_table}")
-                print(f"      Dropped drift_metrics table")
+                print(f"      ✓ Dropped drift_metrics")
 
+        print(f"      Cleanup complete")
         return True
 
     except ResourceDoesNotExist:
+        print(f"      No existing monitor found - clean slate")
         return False  # No monitor to delete
     except Exception as e:
-        print(f"  [⚠] Error cleaning up monitor: {str(e)[:80]}")
+        print(f"  [⚠] Error cleaning up monitor: {type(e).__name__}: {str(e)[:80]}")
         return False
 
 
@@ -129,14 +134,22 @@ def create_time_series_monitor(
     if spark is not None:
         monitoring_schema_name = output_schema.split(".")[-1] if "." in output_schema else output_schema
         monitoring_catalog = output_schema.split(".")[0] if "." in output_schema else catalog
-        print(f"  Creating monitoring schema: {output_schema}")
+        print(f"      Ensuring monitoring schema exists: {output_schema}")
         try:
             spark.sql(f"CREATE SCHEMA IF NOT EXISTS {monitoring_catalog}.{monitoring_schema_name}")
-            print(f"  [✓] Monitoring schema ready")
+            print(f"      ✓ Monitoring schema ready")
         except Exception as e:
-            print(f"  [⚠] Warning: Could not create monitoring schema: {str(e)[:80]}")
+            print(f"      ⚠ Warning: Could not create monitoring schema: {str(e)[:80]}")
 
-    print(f"  Creating monitor for: {table}")
+    print(f"      Building monitor configuration...")
+    print(f"        Table:       {table_name}")
+    print(f"        Timestamp:   {timestamp_col}")
+    print(f"        Granularity: {', '.join(granularities)}")
+    print(f"        Metrics:     {len(custom_metrics)} custom metrics")
+    if slicing_exprs:
+        print(f"        Slicing:     {', '.join(slicing_exprs)}")
+    if schedule_cron:
+        print(f"        Schedule:    {schedule_cron}")
 
     try:
         # Build monitor configuration
@@ -161,19 +174,26 @@ def create_time_series_monitor(
             )
 
         # Create monitor
+        print(f"      Calling quality_monitors.create()...")
         monitor = workspace_client.quality_monitors.create(**config)
 
-        print(f"  [✓] Monitor created successfully")
+        print(f"      ✓ Monitor created successfully")
+        print(f"        Table:       {monitor.table_name if hasattr(monitor, 'table_name') else table_name}")
+        print(f"        Status:      {monitor.status if hasattr(monitor, 'status') else 'CREATED'}")
         if hasattr(monitor, 'dashboard_id') and monitor.dashboard_id:
-            print(f"      Dashboard ID: {monitor.dashboard_id}")
+            print(f"        Dashboard:   {monitor.dashboard_id}")
+        if hasattr(monitor, 'monitor_version') and monitor.monitor_version:
+            print(f"        Version:     {monitor.monitor_version}")
 
         return monitor
 
     except ResourceAlreadyExists:
-        print(f"  [⊘] Monitor already exists - skipping")
+        print(f"      ⊘ Monitor already exists - no action needed")
         return None
     except Exception as e:
-        print(f"  [✗] Failed to create monitor: {str(e)[:80]}")
+        print(f"      ✗ Failed to create monitor")
+        print(f"        Error Type:  {type(e).__name__}")
+        print(f"        Error:       {str(e)[:120]}")
         raise
 
 
