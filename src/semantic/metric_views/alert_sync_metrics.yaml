@@ -1,0 +1,202 @@
+# Alert Sync Metrics View
+# ========================
+#
+# Metric view for alert sync operation observability.
+# Tracks sync success rates, latencies, and errors over time.
+#
+# Use cases:
+# - "What's our alert sync success rate this week?"
+# - "Average sync latency over the past 24 hours?"
+# - "How many alerts were created vs updated today?"
+
+version: "1.1"
+comment: >
+  PURPOSE: Alert sync operation observability metrics for monitoring sync health and performance.
+  
+  BEST FOR: Alert sync success rate | API latency trends | Error rate monitoring | 
+  Sync duration analysis | Created vs updated alerts over time
+  
+  NOT FOR: Individual alert configuration details (use alert_configurations table)
+  
+  DIMENSIONS: sync_date, is_dry_run, catalog, gold_schema
+  
+  MEASURES: success_rate, avg_latency_ms, total_syncs, error_rate, created_count, updated_count
+  
+  SOURCE: alert_sync_metrics (alerting domain)
+  
+  NOTE: Excludes dry runs in most measures for accurate production metrics.
+
+source: ${catalog}.${gold_schema}.alert_sync_metrics
+
+dimensions:
+  - name: sync_date
+    expr: DATE(source.sync_started_at)
+    comment: Date of sync operation for daily trending and analysis.
+    display_name: Sync Date
+    synonyms:
+      - date
+      - day
+      - sync day
+
+  - name: is_dry_run
+    expr: source.dry_run
+    comment: Whether the sync was a dry run (no actual changes made).
+    display_name: Dry Run
+    synonyms:
+      - dry run flag
+      - test run
+
+  - name: catalog
+    expr: source.catalog
+    comment: Target catalog for the sync operation.
+    display_name: Catalog
+    synonyms:
+      - target catalog
+
+  - name: gold_schema
+    expr: source.gold_schema
+    comment: Target schema for the sync operation.
+    display_name: Schema
+    synonyms:
+      - target schema
+
+measures:
+  - name: total_syncs
+    expr: COUNT(source.sync_run_id)
+    comment: Total number of sync operations executed.
+    display_name: Total Syncs
+    format:
+      type: number
+      decimal_places:
+        type: all
+    synonyms:
+      - sync count
+      - number of syncs
+      - syncs
+
+  - name: successful_syncs
+    expr: SUM(CASE WHEN source.error_count = 0 THEN 1 ELSE 0 END)
+    comment: Number of sync operations with zero errors.
+    display_name: Successful Syncs
+    format:
+      type: number
+      decimal_places:
+        type: all
+    synonyms:
+      - success count
+      - no error syncs
+
+  - name: success_rate
+    expr: SUM(CASE WHEN source.error_count = 0 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(source.sync_run_id), 0)
+    comment: Percentage of sync operations that completed without errors.
+    display_name: Success Rate
+    format:
+      type: percentage
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - success percentage
+      - sync success rate
+
+  - name: total_alerts_created
+    expr: SUM(source.created_count)
+    comment: Total number of new alerts created across all syncs.
+    display_name: Total Created
+    format:
+      type: number
+      decimal_places:
+        type: all
+    synonyms:
+      - created count
+      - new alerts
+
+  - name: total_alerts_updated
+    expr: SUM(source.updated_count)
+    comment: Total number of existing alerts updated across all syncs.
+    display_name: Total Updated
+    format:
+      type: number
+      decimal_places:
+        type: all
+    synonyms:
+      - updated count
+      - modified alerts
+
+  - name: total_alerts_deleted
+    expr: SUM(source.deleted_count)
+    comment: Total number of disabled alerts deleted across all syncs.
+    display_name: Total Deleted
+    format:
+      type: number
+      decimal_places:
+        type: all
+    synonyms:
+      - deleted count
+      - removed alerts
+
+  - name: total_errors
+    expr: SUM(source.error_count)
+    comment: Total number of errors across all sync operations.
+    display_name: Total Errors
+    format:
+      type: number
+      decimal_places:
+        type: all
+    synonyms:
+      - error count
+      - failures
+
+  - name: avg_api_latency
+    expr: AVG(source.avg_api_latency_ms)
+    comment: Average API call latency across all sync operations (milliseconds).
+    display_name: Avg API Latency (ms)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 0
+    synonyms:
+      - average latency
+      - api latency
+      - response time
+
+  - name: max_api_latency
+    expr: MAX(source.max_api_latency_ms)
+    comment: Maximum API call latency observed (milliseconds).
+    display_name: Max API Latency (ms)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 0
+    synonyms:
+      - peak latency
+      - slowest api call
+
+  - name: avg_sync_duration
+    expr: AVG(source.total_duration_seconds)
+    comment: Average total sync duration (seconds).
+    display_name: Avg Sync Duration (s)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 1
+    synonyms:
+      - average duration
+      - sync time
+
+  - name: p95_api_latency
+    expr: AVG(source.p95_api_latency_ms)
+    comment: 95th percentile API latency (milliseconds) - averaged across syncs.
+    display_name: P95 API Latency (ms)
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 0
+    synonyms:
+      - p95 latency
+      - 95th percentile
+

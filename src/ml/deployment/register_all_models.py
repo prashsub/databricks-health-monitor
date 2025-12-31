@@ -38,6 +38,7 @@ def verify_and_promote_models(catalog: str, feature_schema: str):
     """Verify all models are registered and add aliases."""
     
     # All 25 models from ML Training Pipeline
+    # IMPORTANT: These names MUST match the model_name in each training script!
     models = [
         # Cost Agent (6 models)
         "cost_anomaly_detector",
@@ -52,7 +53,7 @@ def verify_and_promote_models(catalog: str, feature_schema: str):
         "privilege_escalation_detector",
         "user_behavior_baseline",
         # Performance Agent (7 models)
-        "query_forecaster",
+        "query_performance_forecaster",      # Was: query_forecaster
         "warehouse_optimizer",
         "performance_regression_detector",
         "cluster_capacity_planner",
@@ -60,15 +61,15 @@ def verify_and_promote_models(catalog: str, feature_schema: str):
         "cache_hit_predictor",
         "query_optimization_recommender",
         # Reliability Agent (5 models)
-        "failure_predictor",
-        "duration_forecaster",
+        "job_failure_predictor",             # Was: failure_predictor
+        "job_duration_forecaster",           # Was: duration_forecaster
         "sla_breach_predictor",
         "retry_success_predictor",
         "pipeline_health_scorer",
         # Quality Agent (3 models)
-        "drift_detector",
+        "data_drift_detector",               # Was: drift_detector
         "schema_change_predictor",
-        "freshness_predictor"
+        "data_freshness_predictor"           # Was: freshness_predictor
     ]
     
     client = MlflowClient()

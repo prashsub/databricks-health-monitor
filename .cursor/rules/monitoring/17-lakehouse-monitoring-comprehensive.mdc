@@ -14,7 +14,8 @@ alwaysApply: false
 4. [Querying Metrics](#querying-metrics)
 5. [Complete Examples](#complete-examples)
 6. [Troubleshooting](#troubleshooting)
-7. [References](#references)
+7. [AI/BI Dashboard Creation](#aibi-dashboard-creation-from-custom-metrics)
+8. [References](#references)
 
 ---
 
@@ -343,360 +344,6 @@ def main():
 | `custom_metrics=[]` | ❌ Deletes all custom metrics |
 | Omit `custom_metrics` | ❌ Deletes all custom metrics |
 | `custom_metrics=[...]` | ✅ Replaces with provided list |
-
-### Document Monitor Output Tables for Genie
-
-**⚠️ CRITICAL:** After monitors initialize (~15 min), add detailed descriptions to output tables so Genie/LLMs can understand the metrics for natural language queries.
-
-**Problem:** By default, Lakehouse Monitoring creates `_profile_metrics` and `_drift_metrics` tables with no descriptions. Custom metrics appear as columns with no context, making Genie unable to interpret them correctly.
-
-**Solution:** Add table and column comments after monitors initialize.
-
-#### Documentation Registry Pattern
-
-Create a centralized metric descriptions dictionary:
-
-```python
-# monitor_utils.py
-
-METRIC_DESCRIPTIONS = {
-    # Format: "metric_name": "Business meaning. Technical: calculation details."
-    
-    # Cost metrics
-    "total_daily_cost": "Total daily cost in list prices. Business: Primary FinOps metric for budgeting. Technical: SUM(list_cost), aggregated per time window.",
-    "tag_coverage_pct": "Percentage of cost covered by tags. Business: FinOps maturity KPI (target: >90%). Technical: tagged_cost / total_cost * 100.",
-    
-    # Job metrics
-    "success_rate": "Job success rate percentage. Business: Primary reliability KPI (target: >95%). Technical: success_count / total_runs * 100.",
-    "p99_duration_minutes": "P99 job duration. Business: Critical SLA threshold for worst-case scenarios. Technical: PERCENTILE(duration, 0.99).",
-    
-    # Drift metrics
-    "cost_drift_pct": "Period-over-period cost change. Business: Budget variance indicator (alert if >10%). Technical: (current - baseline) / baseline * 100.",
-}
-
-MONITOR_TABLE_DESCRIPTIONS = {
-    "fact_usage": {
-        "profile_table": "Lakehouse Monitoring profile metrics for fact_usage. Contains daily cost aggregations, tag coverage, SKU breakdowns. Use column_name=':table' for table-level KPIs. Business: Primary source for FinOps dashboards.",
-        "drift_table": "Lakehouse Monitoring drift metrics for fact_usage. Contains period-over-period cost comparisons. Business: Alert source for budget variance monitoring."
-    },
-    # ... more tables
-}
-```
-
-#### Documentation Function
-
-```python
-def document_monitor_output_tables(
-    spark,
-    catalog: str,
-    gold_schema: str,
-    table_name: str
-) -> dict:
-    """
-    Add Genie-friendly descriptions to Lakehouse Monitoring output tables.
-    
-    Run AFTER monitors initialize (~15 min after creation).
-    """
-    monitoring_schema = f"{gold_schema}_monitoring"
-    profile_table = f"{catalog}.{monitoring_schema}.{table_name}_profile_metrics"
-    drift_table = f"{catalog}.{monitoring_schema}.{table_name}_drift_metrics"
-    
-    results = {"profile_metrics": "NOT_FOUND", "drift_metrics": "NOT_FOUND"}
-    
-    # Get table descriptions
-    table_descs = MONITOR_TABLE_DESCRIPTIONS.get(table_name, {})
-    profile_desc = table_descs.get("profile_table", f"Profile metrics for {table_name}")
-    
-    # Document profile_metrics table
-    try:
-        # Check if table exists
-        spark.sql(f"DESCRIBE TABLE {profile_table}")
-        
-        # Add table comment
-        escaped_desc = profile_desc.replace("'", "''")
-        spark.sql(f"ALTER TABLE {profile_table} SET TBLPROPERTIES ('comment' = '{escaped_desc}')")
-        print(f"  ✓ Added table comment to {table_name}_profile_metrics")
-        
-        # Add column comments for custom metrics
-        columns_documented = 0
-        for metric_name, description in METRIC_DESCRIPTIONS.items():
-            try:
-                escaped_col_desc = description.replace("'", "''")
-                spark.sql(f"ALTER TABLE {profile_table} ALTER COLUMN {metric_name} COMMENT '{escaped_col_desc}'")
-                columns_documented += 1
-            except Exception:
-                pass  # Column may not exist in this table
-        
-        print(f"  ✓ Documented {columns_documented} custom metric columns")
-        results["profile_metrics"] = f"SUCCESS: {columns_documented} columns"
-        
-    except Exception as e:
-        if "TABLE_OR_VIEW_NOT_FOUND" in str(e):
-            print(f"  ⚠ Table not found (monitor may still be initializing)")
-            results["profile_metrics"] = "NOT_READY"
-        else:
-            results["profile_metrics"] = f"ERROR: {str(e)[:50]}"
-    
-    # Similar pattern for drift_metrics table...
-    
-    return results
-```
-
-#### Integration with Setup Workflow
-
-```python
-# setup_all_monitors.py
-
-def main():
-    # 1. Create all monitors
-    results = setup_all_monitors(workspace_client, catalog, gold_schema, spark)
-    
-    # 2. Wait for tables to be created (async operation)
-    if not skip_wait:
-        wait_for_monitor_tables(minutes=15)
-        
-        # 3. Document tables for Genie AFTER tables exist
-        print("Documenting Monitor Tables for Genie...")
-        doc_results = document_all_monitor_tables(spark, catalog, gold_schema)
-        
-        doc_success = sum(
-            1 for table_results in doc_results.values()
-            for status in table_results.values()
-            if "SUCCESS" in status
-        )
-        print(f"  Documented {doc_success} monitoring tables for Genie")
-```
-
-#### Documentation Job (Run Separately)
-
-For monitors that already exist, run documentation as a separate job:
-
-```yaml
-# lakehouse_monitors_job.yml
-
-lakehouse_monitoring_document_job:
-  name: "[${bundle.target}] Document Monitoring Tables for Genie"
-  description: "Adds descriptions to Lakehouse Monitor output tables for Genie/LLM understanding"
-  
-  tasks:
-    - task_key: document_all_monitors
-      notebook_task:
-        notebook_path: ../../src/monitoring/document_monitors.py
-        base_parameters:
-          catalog: ${var.catalog}
-          gold_schema: ${var.gold_schema}
-```
-
-#### Description Format Guidelines
-
-**Dual-Purpose Format:** Business meaning + Technical details
-
-```python
-# ✅ GOOD: Both business and technical context
-"success_rate": "Job success rate percentage. Business: Primary reliability KPI (target: >95%). Technical: success_count / total_runs * 100."
-
-# ❌ BAD: Only technical
-"success_rate": "success_count / total_runs * 100"
-
-# ❌ BAD: Only business (no calculation)
-"success_rate": "Measure of job reliability"
-```
-
-**Key Elements:**
-- **One-line business description**: What decision this metric informs
-- **Business context**: Target values, stakeholders, use cases
-- **Technical context**: Calculation formula, data type, source
-
-#### Validation Checklist
-
-- [ ] Metric descriptions include business meaning AND technical calculation
-- [ ] Table descriptions explain purpose and how to query (column_name=':table')
-- [ ] Documentation runs AFTER monitors initialize (~15 min)
-- [ ] Custom metric columns documented in correct table (AGGREGATE/DERIVED → profile, DRIFT → drift)
-- [ ] Error handling for tables that don't exist yet
-
-#### Genie Integration Benefits
-
-| Without Documentation | With Documentation |
-|----------------------|-------------------|
-| Genie sees: `tag_coverage_pct` (no context) | Genie sees: "Percentage of cost covered by tags. Business: FinOps maturity KPI (target: >90%)..." |
-| User asks: "Show tag coverage" → ❓ | User asks: "Show tag coverage" → ✅ Correct metric selected |
-| Manual metric lookup required | Natural language queries work |
-
----
-
-## Custom Metrics Syntax Reference
-
-**⚠️ CRITICAL:** Custom metrics have strict syntax requirements that differ by type. Using incorrect syntax causes **silent initialization failures** (monitor creates but never initializes).
-
-### Required Imports
-
-```python
-from databricks.sdk.service.catalog import MonitorMetric, MonitorMetricType
-from pyspark.sql import types as T  # ⚠️ MANDATORY for output_data_type
-```
-
-### The Three Custom Metric Types
-
-| Type | Purpose | References | Syntax Pattern |
-|------|---------|-----------|----------------|
-| **AGGREGATE** | Calculate from table columns | Raw table columns | `SUM(column_name)` |
-| **DERIVED** | Calculate from aggregates | Aggregate metric names | `metric_name` (NO `{{ }}`) |
-| **DRIFT** | Compare between windows | Metrics + window templates | `{{current_df}}.metric - {{base_df}}.metric` |
-
-### AGGREGATE Metrics ✅
-
-**Purpose:** Calculate statistics directly from table columns
-
-**Syntax:** Raw SQL expressions on table data
-
-```python
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_AGGREGATE,
-    name="daily_revenue",
-    input_columns=[":table"],  # or specific columns: ["col1", "col2"]
-    definition="SUM(total_booking_value)",  # ✅ Raw SQL on table columns
-    output_data_type=T.StructField("output", T.DoubleType()).json()  # ✅ MUST use StructField.json()
-)
-```
-
-**Key Points:**
-- References actual table columns
-- Uses SQL aggregate functions (SUM, AVG, COUNT, STDDEV, etc.)
-- Computed directly on primary table data
-- **⚠️ `output_data_type` MUST be `T.StructField().json()` format, NOT string**
-
-### DERIVED Metrics ✅
-
-**Purpose:** Calculate from previously computed aggregate metrics
-
-**Syntax:** Direct reference to aggregate metric names (**NO `{{ }}` templates**)
-
-```python
-# First define the aggregates it depends on:
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_AGGREGATE,
-    name="total_bookings",
-    input_columns=[":table"],
-    definition="SUM(booking_count)",
-    output_data_type=T.StructField("output", T.DoubleType()).json()
-),
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_AGGREGATE,
-    name="total_cancellations",
-    input_columns=[":table"],
-    definition="SUM(cancellation_count)",
-    output_data_type=T.StructField("output", T.DoubleType()).json()
-),
-
-# Then define derived metric:
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_DERIVED,
-    name="cancellation_rate",
-    input_columns=[":table"],
-    definition="(total_cancellations / NULLIF(total_bookings, 0)) * 100",  # ✅ Direct reference, NO {{ }}!
-    output_data_type=T.StructField("output", T.DoubleType()).json()
-)
-```
-
-**Key Points:**
-- References aggregate metric **names** directly (no template syntax)
-- ❌ **NEVER use `{{ }}` for DERIVED metrics**
-- Minimizes recomputation (doesn't scan table again)
-- Must reference metrics defined earlier in same monitor
-- All referenced metrics must have same `input_columns` value
-
-**Common Error:**
-```python
-# ❌ WRONG - Using template syntax for DERIVED
-definition="({{total_cancellations}} / NULLIF({{total_bookings}}, 0)) * 100"
-# Error: INVALID_DERIVED_METRIC - UNDEFINED_TEMPLATE_VARIABLE
-
-# ✅ CORRECT - Direct reference
-definition="(total_cancellations / NULLIF(total_bookings, 0)) * 100"
-```
-
-### DRIFT Metrics ✅
-
-**Purpose:** Compare metrics between two time windows or against baseline
-
-**Syntax:** Template syntax with `{{current_df}}` and `{{base_df}}` prefixes
-
-```python
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_DRIFT,
-    name="revenue_vs_baseline",
-    input_columns=[":table"],
-    definition="{{current_df}}.daily_revenue - {{base_df}}.daily_revenue",  # ✅ MUST use {{ }} templates
-    output_data_type=T.StructField("output", T.DoubleType()).json()
-)
-```
-
-**Key Points:**
-- **MUST use `{{current_df}}` and `{{base_df}}` templates**
-- Compares same metric across two windows
-- Stores results in **drift_metrics** table (not profile_metrics)
-- For TimeSeries: Compares consecutive windows
-- For Snapshot: Requires baseline table
-
-**Window Comparison Patterns:**
-
-```python
-# Absolute difference
-definition="{{current_df}}.metric_name - {{base_df}}.metric_name"
-
-# Percentage change
-definition="(({{current_df}}.metric_name - {{base_df}}.metric_name) / NULLIF({{base_df}}.metric_name, 0)) * 100"
-
-# Ratio
-definition="{{current_df}}.metric_name / NULLIF({{base_df}}.metric_name, 1)"
-```
-
-**Common Error:**
-```python
-# ❌ WRONG - Missing window comparison
-definition="{{daily_revenue}}"  # Just references metric
-# Error: INVALID_DRIFT_METRIC - Must specify current_df and base_df
-
-# ✅ CORRECT - Compares windows
-definition="{{current_df}}.daily_revenue - {{base_df}}.daily_revenue"
-```
-
-### Critical Syntax Rules
-
-| Rule | ✅ Correct | ❌ Wrong |
-|------|-----------|---------|
-| **SDK Objects** | `MonitorMetric(...)` | `{"name": "...", "type": "..."}` (dict) |
-| **output_data_type** | `T.StructField("output", T.DoubleType()).json()` | `"double"` (string) |
-| **DERIVED syntax** | `metric_name` | `{{metric_name}}` (template) |
-| **DRIFT syntax** | `{{current_df}}.metric - {{base_df}}.metric` | `{{metric}}` (no comparison) |
-| **imports** | `from pyspark.sql import types as T` | ❌ Missing import |
-
-### Monitor Mode and Drift Requirements
-
-**⚠️ CRITICAL:** Snapshot monitors need baseline table for drift metrics
-
-| Monitor Mode | Consecutive Windows? | Drift Without Baseline? |
-|--------------|---------------------|------------------------|
-| **TimeSeries** | ✅ Yes | ✅ Yes (consecutive comparison) |
-| **Snapshot** | ❌ No | ❌ NO (must provide baseline_table) |
-
-**For Snapshot Monitors with DRIFT:**
-
-```python
-# Option 1: Provide baseline table
-create_monitor_with_custom_metrics(
-    snapshot_config=MonitorSnapshot(),
-    baseline_table=f"{catalog}.{schema}.{table}_baseline",  # ✅ Required for drift
-    custom_metrics=[...drift metrics...]
-)
-
-# Option 2: Remove drift metrics (simpler)
-create_monitor_with_custom_metrics(
-    snapshot_config=MonitorSnapshot(),
-    custom_metrics=[...no drift metrics...]  # ✅ No baseline needed
-)
-```
 
 ---
 
@@ -1417,215 +1064,632 @@ LIMIT 10;
 - [ ] Use PIVOT only for per-column metrics (rare)
 - [ ] Direct SELECT for table-level metrics (common)
 
-**Documentation (Genie Integration):**
-- [ ] Run documentation job AFTER monitors initialize (~15 min)
-- [ ] Add table comments via `ALTER TABLE ... SET TBLPROPERTIES ('comment' = ...)`
-- [ ] Add column comments via `ALTER TABLE ... ALTER COLUMN ... COMMENT`
+**Documentation:**
 - [ ] Document metrics in `profile_metrics` (AGGREGATE + DERIVED)
 - [ ] Document metrics in `drift_metrics` (DRIFT type)
-- [ ] Use dual-purpose format (Business meaning + Technical calculation)
-- [ ] Include METRIC_DESCRIPTIONS registry with ~100+ metric descriptions
-- [ ] Include MONITOR_TABLE_DESCRIPTIONS with table-level context
+- [ ] Use dual-purpose format (Business + Technical)
 - [ ] Do NOT try to document `custom_metrics` table (doesn't exist)
 
 **Workflow:**
 - [ ] Wait 15+ minutes after creation before querying
-- [ ] Run documentation job after wait period for Genie
 - [ ] Update with FULL configuration (never omit custom_metrics)
 - [ ] Use silent success pattern for idempotent operations
 - [ ] Verify metric counts match before/after updates
 
 ---
 
-## Production Deployment Errors (December 2025)
+## AI/BI Dashboard Creation from Custom Metrics
 
-**Source:** Real production deployment of 5 monitors (22 custom metrics) - encountered 7 systematic errors through 7 iterations.
+### Dashboard Architecture Patterns
 
-**Impact:** 100% of monitors failed initialization → All patterns now documented for prevention.
+**Critical Rule: Organize datasets by business purpose, not by metric type.**
 
-**Full Post-Mortem:** See `docs/reference/rule-improvement-lakehouse-monitoring-custom-metrics.md`
+#### Dataset Organization Strategy
 
-### Error #1: Using Dictionaries Instead of SDK Objects
-
-**Symptom:** `'dict' object has no attribute 'as_dict'`
-
-**Root Cause:** Custom metrics must be `MonitorMetric` SDK objects, not plain dicts
-
-```python
-# ❌ WRONG
-custom_metrics = [{"name": "metric1", "type": "AGGREGATE", ...}]
-
-# ✅ CORRECT
-from databricks.sdk.service.catalog import MonitorMetric, MonitorMetricType
-
-custom_metrics = [MonitorMetric(name="metric1", type=MonitorMetricType.CUSTOM_METRIC_TYPE_AGGREGATE, ...)]
+```json
+{
+  "datasets": [
+    // 1. Core Aggregate Metrics (Foundational)
+    {
+      "name": "sales_aggregate_core",
+      "displayName": "Sales Core Aggregate Metrics",
+      "queryLines": ["SELECT window.start, window.end,",
+                     "  total_gross_revenue, total_net_revenue, ...",
+                     "FROM profile_metrics",
+                     "WHERE column_name = ':table' ..."]
+    },
+    
+    // 2. Derived KPIs (Business Ratios)
+    {
+      "name": "sales_derived_kpis",
+      "displayName": "Sales Derived KPIs and Ratios",
+      "queryLines": ["SELECT window.start, window.end,",
+                     "  overall_return_rate, discount_intensity, ...",
+                     "FROM profile_metrics",
+                     "WHERE column_name = ':table' ..."]
+    },
+    
+    // 3. Data Quality Metrics
+    {
+      "name": "sales_data_quality",
+      "displayName": "Sales Data Quality Metrics",
+      "queryLines": ["SELECT window.start, window.end,",
+                     "  total_records, null_rate_*, zero_revenue_records, ...",
+                     "FROM profile_metrics",
+                     "WHERE column_name = ':table' ..."]
+    },
+    
+    // 4. Drift Metrics (Period Comparison)
+    {
+      "name": "sales_drift_metrics",
+      "displayName": "Sales Drift Metrics (Period-over-Period)",
+      "queryLines": ["SELECT window.start, drift_type,",
+                     "  revenue_drift_pct, transaction_drift_pct, ...",
+                     "FROM drift_metrics",
+                     "WHERE column_name = ':table' ..."]
+    },
+    
+    // 5-N. Time Series Datasets (Chart-Specific)
+    {
+      "name": "sales_revenue_trend",
+      "displayName": "Sales Revenue Trend (Time Series)",
+      "queryLines": ["SELECT window.start,",
+                     "  total_gross_revenue, total_net_revenue, total_return_amount",
+                     "FROM profile_metrics",
+                     "WHERE column_name = ':table' ..."]
+    }
+  ]
+}
 ```
 
-### Error #2: Incorrect output_data_type Format (Silent Killer)
+**Benefits of This Pattern:**
+- ✅ Clear separation of concerns
+- ✅ Easy to add new metrics to correct category
+- ✅ Reusable datasets across multiple widgets
+- ✅ Intuitive for dashboard consumers
 
-**Symptom:** Monitor creates successfully but never initializes (monitor_version stays at 0, all refreshes show INTERNAL_ERROR)
+### Standard Query Patterns for Monitoring Tables
 
-**Root Cause:** Using string format instead of PySpark StructField
+#### Pattern 1: Profile Metrics (AGGREGATE + DERIVED)
 
-```python
-# ❌ WRONG - Monitor creates but NEVER initializes!
-MonitorMetric(
-    output_data_type="double"  # String format not supported
-)
-
-# ✅ CORRECT
-from pyspark.sql import types as T
-
-MonitorMetric(
-    output_data_type=T.StructField("output", T.DoubleType()).json()
-)
+```sql
+SELECT 
+  window.start AS window_start,
+  window.end AS window_end,
+  -- Custom AGGREGATE metrics
+  total_gross_revenue,
+  total_net_revenue,
+  total_transactions,
+  -- Custom DERIVED metrics
+  overall_return_rate,
+  discount_intensity,
+  units_per_transaction
+FROM `{catalog}`.`{schema}_monitoring`.`{table}_profile_metrics`
+WHERE window.start >= :`Time Window Start`
+  AND window.end <= :`Time Window End`
+  AND log_type = 'INPUT'                              -- Always INPUT
+  AND column_name = ':table'                          -- Table-level metrics
+  AND COALESCE(slice_key, 'No Slice') = :slice_key    -- Handle NULL slices
+  AND COALESCE(slice_value, 'No Slice') = :slice_value
+ORDER BY window.start DESC
 ```
 
-**Why This is the Worst Error:**
-- ✅ Monitor creation succeeds (no error)
-- ❌ Background initialization fails silently
-- ❌ monitor_version = 0 (never increments)
-- ❌ No metrics tables created
-- ❌ Takes 20+ minutes to discover the issue
+**Key Elements:**
+- `log_type = 'INPUT'` - Always use INPUT (not OUTPUT)
+- `column_name = ':table'` - For table-level business KPIs
+- `COALESCE(slice_key, 'No Slice')` - Handle NULL slices gracefully
+- Time window filtering with parameters
 
-**Prevention:** Always check monitor_version after creation - should be > 0 after initialization
+#### Pattern 2: Drift Metrics
 
-### Error #3: SDK Version Attribute Differences
-
-**Symptom:** `'MonitorInfo' object has no attribute 'monitor_name'`
-
-**Root Cause:** Different SDK versions have different response attributes
-
-```python
-# ❌ WRONG - Assumes attributes exist
-print(f"Monitor: {monitor_info.monitor_name}")
-print(f"Status: {monitor_info.status}")
-
-# ✅ CORRECT - Defensive attribute access
-if hasattr(monitor_info, 'table_name'):
-    print(f"Table: {monitor_info.table_name}")
-if hasattr(monitor_info, 'status'):
-    print(f"Status: {monitor_info.status}")
+```sql
+SELECT 
+  window.start AS window_start,
+  drift_type,
+  -- Custom DRIFT metrics
+  revenue_drift_pct,
+  transaction_volume_drift_pct,
+  unit_sales_drift_pct,
+  discount_intensity_drift
+FROM `{catalog}`.`{schema}_monitoring`.`{table}_drift_metrics`
+WHERE window.start >= :`Time Window Start`
+  AND window.start <= :`Time Window End`
+  AND drift_type = 'CONSECUTIVE'                      -- or 'BASELINE'
+  AND column_name = ':table'
+  AND COALESCE(slice_key, 'No Slice') = :slice_key
+  AND COALESCE(slice_value, 'No Slice') = :slice_value
+ORDER BY window.start
 ```
 
-### Error #4: Wrong Monitor Mode for Table Type
+**Drift Types:**
+- `CONSECUTIVE` - Compare to previous period
+- `BASELINE` - Compare to baseline window
 
-**Symptom:** Internal errors during monitor refresh
+#### Pattern 3: Distinct Slice Keys (Cascading Filter Source)
 
-**Root Cause:** Using TimeSeries for dimension tables with SCD2 timestamps
-
-```python
-# ❌ WRONG - Dimension tables don't have event timestamps!
-MonitorTimeSeries(
-    timestamp_col="effective_from",  # SCD2 field, not event timestamp
-    granularities=["1 day"]
+```sql
+WITH profile_metrics_inspected AS (
+  SELECT *
+  FROM `{catalog}`.`{schema}_monitoring`.`{table}_profile_metrics`
+  WHERE window.start >= :`Time Window Start` 
+    AND window.end <= :`Time Window End`
+    AND slice_key IS NOT NULL
 )
-
-# ✅ CORRECT - Use Snapshot for dimensions
-MonitorSnapshot()
+SELECT 'No Slice' AS `Slice Key`
+UNION ALL
+SELECT DISTINCT slice_key AS `Slice Key`
+FROM profile_metrics_inspected
+ORDER BY `Slice Key`
 ```
 
-**Decision Matrix:**
+#### Pattern 4: Distinct Slice Values (Depends on Slice Key)
 
-| Table Type | Timestamps | Monitor Mode |
-|-----------|------------|--------------|
-| Fact tables (events) | Transaction timestamps | `MonitorTimeSeries` |
-| Dimension tables | SCD2 (effective_from/to) | `MonitorSnapshot` |
-| Reference tables | Static/infrequent | `MonitorSnapshot` |
-
-### Error #5: DRIFT Metric on Snapshot Without Baseline
-
-**Symptom:** Monitor creation fails or drift metrics return NULL
-
-**Root Cause:** Snapshot monitors require baseline table for drift comparison
-
-```python
-# ❌ WRONG - Snapshot with drift but no baseline
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_DRIFT,
-    name="customer_growth",
-    definition="{{total_customers}}"
+```sql
+WITH profile_metrics_inspected AS (
+  SELECT *,
+    COALESCE(slice_key, 'No Slice') AS `Slice key`
+  FROM `{catalog}`.`{schema}_monitoring`.`{table}_profile_metrics`
+  WHERE window.start >= :`Time Window Start` 
+    AND window.end <= :`Time Window End`
+    AND slice_value IS NOT NULL
 )
-create_monitor(snapshot_config=MonitorSnapshot())  # No baseline!
-
-# ✅ CORRECT Option 1 - Provide baseline
-create_monitor(
-    snapshot_config=MonitorSnapshot(),
-    baseline_table=f"{catalog}.{schema}.{table}_baseline"
-)
-
-# ✅ CORRECT Option 2 - Remove drift metrics
-# (Simpler if you don't have baseline data)
+SELECT 'No Slice' AS `Slice Value`
+UNION ALL
+SELECT DISTINCT slice_value AS `Slice Value`
+FROM profile_metrics_inspected
+WHERE `Slice key` = :slice_key
+ORDER BY `Slice Value`
 ```
 
-### Error #6: INVALID_DERIVED_METRIC - Template Syntax
+**Cascading Filter Pattern:**
+1. Slice Key filter uses Pattern 3
+2. Slice Value filter uses Pattern 4 (depends on selected slice_key)
+3. All data datasets filter by both slice_key and slice_value
 
-**Symptom:** `UNDEFINED_TEMPLATE_VARIABLE: total_bookings, total_cancellations`
+### Parameter Patterns
 
-**Root Cause:** DERIVED metrics use direct references, NOT template syntax
+#### Time Window Parameters (DATETIME)
 
-```python
-# ❌ WRONG - Using {{ }} templates for DERIVED
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_DERIVED,
-    definition="({{total_cancellations}} / NULLIF({{total_bookings}}, 0)) * 100"
-)
+**⚠️ CRITICAL:** For Lakehouse Monitoring, use `DATETIME` (not `DATE`) with dynamic expressions.
 
-# ✅ CORRECT - Direct reference (no templates)
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_DERIVED,
-    definition="(total_cancellations / NULLIF(total_bookings, 0)) * 100"
-)
+```json
+{
+  "parameters": [
+    {
+      "displayName": "Time Window Start",
+      "keyword": "Time Window Start",
+      "dataType": "DATETIME",
+      "defaultSelection": {
+        "values": {
+          "dataType": "DATETIME",
+          "values": [{"value": "now-12M/M"}]  // ✅ Last 12 months
+        }
+      }
+    },
+    {
+      "displayName": "Time Window End",
+      "keyword": "Time Window End",
+      "dataType": "DATETIME",
+      "defaultSelection": {
+        "values": {
+          "dataType": "DATETIME",
+          "values": [{"value": "now/s"}]  // ✅ Current time
+        }
+      }
+    }
+  ]
+}
 ```
 
-**Remember:** Template syntax `{{ }}` is ONLY for DRIFT metrics!
+**Common Dynamic Date Expressions:**
+- `now-12M/M` - Start of 12 months ago
+- `now-30d` - 30 days ago
+- `now-7d/d` - Start of 7 days ago
+- `now/s` - Current second
+- `now/d` - Start of today
 
-### Error #7: INVALID_DRIFT_METRIC - Missing Window Comparison
+#### Slice Filter Parameters (STRING)
 
-**Symptom:** `UNDEFINED_TEMPLATE_VARIABLE: daily_revenue. Must specify: [base_df, current_df]`
-
-**Root Cause:** DRIFT metrics must compare two windows
-
-```python
-# ❌ WRONG - Just references metric
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_DRIFT,
-    definition="{{daily_revenue}}"
-)
-
-# ✅ CORRECT - Compares current vs baseline window
-MonitorMetric(
-    type=MonitorMetricType.CUSTOM_METRIC_TYPE_DRIFT,
-    definition="{{current_df}}.daily_revenue - {{base_df}}.daily_revenue"
-)
+```json
+{
+  "parameters": [
+    {
+      "displayName": "slice_key",
+      "keyword": "slice_key",
+      "dataType": "STRING",
+      "defaultSelection": {
+        "values": {
+          "dataType": "STRING",
+          "values": [{"value": "No Slice"}]  // ✅ Default to no slicing
+        }
+      }
+    },
+    {
+      "displayName": "slice_value",
+      "keyword": "slice_value",
+      "dataType": "STRING",
+      "defaultSelection": {
+        "values": {
+          "dataType": "STRING",
+          "values": [{"value": "No Slice"}]
+        }
+      }
+    }
+  ]
+}
 ```
 
-### Quick Validation Checklist
+### Filter Widget Patterns
 
-Before deploying ANY monitor:
+#### Time Window Filters (Date Pickers)
 
-- [ ] Import PySpark types: `from pyspark.sql import types as T`
-- [ ] All metrics are `MonitorMetric()` objects (NOT dicts)
-- [ ] All `output_data_type` use `T.StructField("output", T.DoubleType()).json()`
-- [ ] Correct monitor mode: TimeSeries for facts, Snapshot for dimensions
-- [ ] DERIVED metrics use direct references (no `{{ }}`)
-- [ ] DRIFT metrics use `{{current_df}}` and `{{base_df}}` templates
-- [ ] Snapshot with DRIFT has baseline_table OR no drift metrics
-- [ ] Defensive `hasattr()` checks for SDK response attributes
+```json
+{
+  "widget": {
+    "name": "time_start_filter",
+    "queries": [
+      {"name": "param_dataset1", "query": {
+        "datasetName": "dataset1",
+        "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}],
+        "disaggregated": false
+      }},
+      // ... repeat for all datasets
+    ],
+    "spec": {
+      "encodings": {
+        "fields": [
+          {"parameterName": "Time Window Start", "queryName": "param_dataset1"},
+          // ... repeat for all datasets
+        ]
+      },
+      "frame": {"showTitle": true, "title": "Start Time:"},
+      "version": 2,
+      "widgetType": "filter-date-picker"
+    }
+  },
+  "position": {"x": 0, "y": 0, "width": 3, "height": 2}
+}
+```
 
-### Prevention ROI
+**Pattern:** Connect filter to ALL datasets that use the parameter.
 
-**Without Documentation:**
-- Time to deploy: 2+ hours (7 iterations)
-- Success rate: 0% (all monitors fail initialization)
-- Debugging difficulty: High (silent failures)
+#### Cascading Slice Filters
 
-**With Documentation:**
-- Time to deploy: < 20 minutes (follow patterns)
-- Success rate: 100% (all errors preventable)
-- Debugging difficulty: Low (clear error messages + solutions)
+**Slice Key Filter (Independent):**
 
-**Break-Even:** 2 implementations (saves 1.7 hours each)
+```json
+{
+  "widget": {
+    "name": "slice_key_filter",
+    "queries": [
+      // Source query for filter options
+      {"name": "source_query", "query": {
+        "datasetName": "distinct_slice_key",
+        "fields": [{"name": "Slice Key", "expression": "`Slice Key`"}],
+        "disaggregated": true
+      }},
+      // Parameter updates for all dependent datasets
+      {"name": "param_dataset1", "query": {
+        "datasetName": "dataset1",
+        "parameters": [{"name": "slice_key", "keyword": "slice_key"}],
+        "disaggregated": false
+      }},
+      {"name": "param_distinct_slice_value", "query": {
+        "datasetName": "distinct_slice_value",
+        "parameters": [{"name": "slice_key", "keyword": "slice_key"}],
+        "disaggregated": false
+      }}
+      // ... repeat for all datasets
+    ],
+    "spec": {
+      "encodings": {
+        "fields": [
+          {"displayName": "Slice Key", "fieldName": "Slice Key", "queryName": "source_query"},
+          {"parameterName": "slice_key", "queryName": "param_dataset1"},
+          {"parameterName": "slice_key", "queryName": "param_distinct_slice_value"}
+          // ... repeat
+        ]
+      },
+      "frame": {"showTitle": true, "title": "Slice Key:"},
+      "version": 2,
+      "widgetType": "filter-single-select"
+    }
+  },
+  "position": {"x": 6, "y": 0, "width": 3, "height": 2}
+}
+```
+
+**Slice Value Filter (Depends on Slice Key):**
+
+```json
+{
+  "widget": {
+    "name": "slice_value_filter",
+    "queries": [
+      // Source query (depends on slice_key)
+      {"name": "source_query", "query": {
+        "datasetName": "distinct_slice_value",  // Uses slice_key parameter!
+        "fields": [{"name": "Slice Value", "expression": "`Slice Value`"}],
+        "disaggregated": true
+      }},
+      // Parameter updates for all dependent datasets
+      {"name": "param_dataset1", "query": {
+        "datasetName": "dataset1",
+        "parameters": [{"name": "slice_value", "keyword": "slice_value"}],
+        "disaggregated": false
+      }}
+      // ... repeat for all datasets
+    ],
+    "spec": {
+      "encodings": {
+        "fields": [
+          {"displayName": "Slice Value", "fieldName": "Slice Value", "queryName": "source_query"},
+          {"parameterName": "slice_value", "queryName": "param_dataset1"}
+          // ... repeat
+        ]
+      },
+      "frame": {"showTitle": true, "title": "Slice Value:"},
+      "version": 2,
+      "widgetType": "filter-single-select"
+    }
+  },
+  "position": {"x": 9, "y": 0, "width": 3, "height": 2}
+}
+```
+
+**Cascading Behavior:**
+1. User selects Slice Key → Slice Value options update
+2. Slice Value dataset filters by `WHERE \`Slice key\` = :slice_key`
+3. All data datasets filter by both parameters
+
+### Visualization Patterns
+
+#### Line Charts for Time Series Trends
+
+```json
+{
+  "widget": {
+    "name": "revenue_chart",
+    "queries": [
+      {"name": "main_query", "query": {
+        "datasetName": "sales_revenue_trend",
+        "fields": [
+          {"name": "window_start", "expression": "`window_start`"},
+          {"name": "total_gross_revenue", "expression": "`total_gross_revenue`"},
+          {"name": "total_net_revenue", "expression": "`total_net_revenue`"},
+          {"name": "total_return_amount", "expression": "`total_return_amount`"}
+        ],
+        "disaggregated": true
+      }}
+    ],
+    "spec": {
+      "encodings": {
+        "x": {
+          "axis": {"title": "Time"},
+          "displayName": "Window",
+          "fieldName": "window_start",
+          "scale": {"type": "temporal"}  // ✅ For timestamps
+        },
+        "y": {
+          "fields": [  // ✅ Multiple series
+            {"displayName": "Gross Revenue", "fieldName": "total_gross_revenue"},
+            {"displayName": "Net Revenue", "fieldName": "total_net_revenue"},
+            {"displayName": "Returns", "fieldName": "total_return_amount"}
+          ],
+          "scale": {"type": "quantitative"}
+        }
+      },
+      "frame": {
+        "description": "Track revenue trends over time",
+        "showDescription": true,
+        "showTitle": true,
+        "title": "Revenue Metrics Over Time"
+      },
+      "version": 3,
+      "widgetType": "line"
+    }
+  },
+  "position": {"x": 0, "y": 2, "width": 6, "height": 6}
+}
+```
+
+**Key Pattern:** Multiple Y-axis series using `fields` array.
+
+#### Tables for Detailed Data
+
+```json
+{
+  "widget": {
+    "name": "sales_aggregate_table",
+    "queries": [
+      {"name": "main_query", "query": {
+        "datasetName": "sales_aggregate_core",
+        "disaggregated": true  // ✅ Get all columns
+      }}
+    ],
+    "spec": {
+      "version": 1,
+      "widgetType": "table",
+      "encodings": {
+        "columns": [
+          {
+            "fieldName": "window_start",
+            "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS",
+            "type": "datetime",
+            "displayAs": "datetime",
+            "visible": true,
+            "order": 0,
+            "title": "Window Start"
+          },
+          {
+            "fieldName": "total_gross_revenue",
+            "numberFormat": "0.00",  // ✅ 2 decimal places
+            "type": "float",
+            "displayAs": "number",
+            "visible": true,
+            "order": 2,
+            "title": "Gross Revenue"
+          },
+          {
+            "fieldName": "total_transactions",
+            "numberFormat": "0",  // ✅ Integer format
+            "type": "integer",
+            "displayAs": "number",
+            "visible": true,
+            "order": 9,
+            "title": "Transactions"
+          }
+          // ... more columns
+        ]
+      },
+      "itemsPerPage": 25,
+      "condensed": true,
+      "withRowNumber": false
+    }
+  },
+  "position": {"x": 0, "y": 20, "width": 12, "height": 6}
+}
+```
+
+**Formatting Tips:**
+- `numberFormat: "0.00"` - Currency/decimal metrics
+- `numberFormat: "0"` - Integer counts
+- `dateTimeFormat: "DD/MM/YYYY HH:mm:ss.SSS"` - Timestamps
+
+### Dashboard Layout Pattern
+
+**Standard Monitoring Dashboard Layout:**
+
+```
+Row 0-1:  [Time Start Filter] [Time End Filter] [Slice Key Filter] [Slice Value Filter]
+          └─ 3 cols wide ─┘ └─ 3 cols wide ─┘  └─ 3 cols wide ─┘  └─ 3 cols wide ──┘
+
+Row 2-7:  [Revenue Chart - 6 cols]  [Volume Chart - 6 cols]
+
+Row 8-13: [KPI Chart - 6 cols]      [Drift Chart - 6 cols]
+
+Row 14-19: [Discount Chart - 6 cols] [Loyalty Chart - 6 cols]
+
+Row 20-25: [Aggregate Metrics Table - 12 cols full width]
+
+Row 26-31: [Derived KPIs Table - 6 cols] [Drift Metrics Table - 6 cols]
+```
+
+**Grid System:** 12 columns total (not 6 like standard AI/BI)
+
+**Best Practices:**
+- Filters at top (height: 2)
+- Charts in middle (height: 6 for standard, 9 for detailed)
+- Tables at bottom (height: 6+ for pagination)
+- Full-width tables for comprehensive data views
+
+### Complete Dashboard JSON Structure
+
+```json
+{
+  "datasets": [
+    // 4-10 datasets organized by purpose
+  ],
+  "pages": [
+    {
+      "name": "sales_page",
+      "displayName": "Sales Monitoring - fact_sales_daily",
+      "layout": [
+        // 4 filter widgets (row 0-1)
+        // 2-6 line charts (rows 2-19)
+        // 1-3 tables (rows 20-31)
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}
+```
+
+### Dashboard Creation Checklist
+
+**Dataset Design:**
+- [ ] Core aggregate metrics dataset
+- [ ] Derived KPIs dataset
+- [ ] Data quality metrics dataset (if applicable)
+- [ ] Drift metrics dataset
+- [ ] Time series datasets for each chart
+- [ ] Distinct slice key/value datasets for filters
+
+**Query Patterns:**
+- [ ] All profile metrics queries use `log_type = 'INPUT'`
+- [ ] All table-level queries use `column_name = ':table'`
+- [ ] All queries handle NULL slices with `COALESCE(..., 'No Slice')`
+- [ ] Time window filtering with `window.start >= :param`
+- [ ] Drift queries use `drift_type = 'CONSECUTIVE'` or 'BASELINE'
+
+**Parameters:**
+- [ ] Time Window Start/End use DATETIME with dynamic expressions
+- [ ] Slice key/value use STRING with "No Slice" default
+- [ ] All datasets connected to relevant parameters
+
+**Filters:**
+- [ ] Time window filters (2 date pickers)
+- [ ] Slice key filter (connects to slice_value + all datasets)
+- [ ] Slice value filter (depends on slice_key)
+- [ ] All filters connect to ALL relevant datasets
+
+**Visualizations:**
+- [ ] Line charts for trends (x: temporal, y: multiple series)
+- [ ] Tables for detailed data (proper formatting)
+- [ ] Consistent titles and descriptions
+- [ ] Proper number formatting (0.00 for decimals, 0 for integers)
+
+**Layout:**
+- [ ] Filters at top (row 0-1, height 2)
+- [ ] Charts in middle (height 6)
+- [ ] Tables at bottom (height 6+)
+- [ ] 12-column grid used correctly
+
+### Troubleshooting Dashboard Issues
+
+#### Issue: "No data" in widgets
+
+**Solutions:**
+1. Check `column_name = ':table'` (not per-column filtering)
+2. Verify `log_type = 'INPUT'` (not 'OUTPUT')
+3. Check time window includes data (`window.start >= :param`)
+4. Verify slice filters handle NULL (`COALESCE(..., 'No Slice')`)
+
+#### Issue: Filters don't cascade
+
+**Solution:** Ensure slice_value dataset has slice_key parameter:
+```json
+{"name": "param_distinct_slice_value", "query": {
+  "datasetName": "distinct_slice_value",
+  "parameters": [{"name": "slice_key", "keyword": "slice_key"}],
+  "disaggregated": false
+}}
+```
+
+#### Issue: Metrics show NULL values
+
+**Cause:** DERIVED metrics reference AGGREGATE metrics in different `input_columns` row.
+
+**Solution:** Verify all related metrics use `input_columns=[":table"]` in Python monitor definition.
+
+#### Issue: Time window filter doesn't update charts
+
+**Solution:** Connect time window parameters to ALL datasets:
+```json
+{"name": "param_dataset1", "query": {
+  "datasetName": "dataset1",
+  "parameters": [
+    {"name": "Time Window Start", "keyword": "Time Window Start"},
+    {"name": "Time Window End", "keyword": "Time Window End"}
+  ],
+  "disaggregated": false
+}}
+```
 
 ---
 
@@ -1640,12 +1704,13 @@ Before deploying ANY monitor:
 - [Column Schemas for Generated Tables](https://docs.databricks.com/lakehouse-monitoring/monitor-output#column-schemas-for-generated-tables) - **Critical for understanding where custom metrics appear**
 - [Quality Monitors Update API](https://docs.databricks.com/api/workspace/qualitymonitors/update)
 - [Time Series Monitoring Example](https://docs.databricks.com/notebooks/source/monitoring/timeseries-monitor.html)
+- [Lakeview AI/BI Dashboards](https://docs.databricks.com/dashboards/)
 
 ### Project Implementation
-- `src/company_gold/lakehouse_monitoring.py` - Monitor creation with 144 custom metrics
-- `src/company_gold/monitor_configs.py` - Centralized configuration (pure Python file)
-- `src/company_gold/document_monitoring_tables.py` - Automated documentation
-- `src/company_gold/update_monitors.py` - Safe monitor updates
+- `src/altria_gold/lakehouse_monitoring.py` - Monitor creation with 144 custom metrics
+- `src/altria_gold/monitor_configs.py` - Centralized configuration (pure Python file)
+- `src/altria_gold/document_monitoring_tables.py` - Automated documentation
+- `src/altria_gold/update_monitors.py` - Safe monitor updates
 
 ### Case Studies
 

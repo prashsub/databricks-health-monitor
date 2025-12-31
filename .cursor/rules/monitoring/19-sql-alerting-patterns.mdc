@@ -1,22 +1,25 @@
 ---
-description: Comprehensive guide for Databricks SQL Alerts - config-driven alerting framework with SDK deployment
+description: Comprehensive guide for Databricks SQL Alerts V2 - config-driven alerting framework with SDK deployment
 globs: **/*alert*.py,**/*alert*.yml
 alwaysApply: false
 ---
 
-# SQL Alerting: Config-Driven Framework for Databricks
+# SQL Alerting: Config-Driven Framework for Databricks (V2 API)
 
 ## 📋 Table of Contents
 
 1. [Core Principles](#core-principles)
-2. [Alert ID Convention](#alert-id-convention)
-3. [Alert Rules Configuration Table](#alert-rules-configuration-table)
-4. [SQL Query Patterns](#sql-query-patterns)
-5. [Databricks SDK Integration](#databricks-sdk-integration)
-6. [DAB Job Configuration](#dab-job-configuration)
-7. [Complete Examples](#complete-examples)
-8. [Troubleshooting](#troubleshooting)
-9. [References](#references)
+2. [⚠️ CRITICAL: V2 API Reference](#critical-v2-api-reference)
+3. [Alert ID Convention](#alert-id-convention)
+4. [Alert Rules Configuration Table](#alert-rules-configuration-table)
+5. [SQL Query Patterns](#sql-query-patterns)
+6. [Databricks SDK Integration (Recommended)](#databricks-sdk-integration-recommended)
+7. [REST API Integration (Alternative)](#rest-api-integration-alternative)
+8. [DAB Job Configuration](#dab-job-configuration)
+9. [Complete Examples](#complete-examples)
+10. [Troubleshooting](#troubleshooting)
+11. [Unity Catalog Table Limitations](#unity-catalog-table-limitations)
+12. [References](#references)
 
 ---
 
@@ -69,6 +72,129 @@ Alerts are categorized by severity with different notification strategies:
 | CRITICAL | 🔴 | Immediate | Real-time (email + Slack) |
 | WARNING | 🟡 | Investigate soon | Batched (email) |
 | INFO | 🟢 | Informational | Daily digest |
+
+---
+
+## ⚠️ CRITICAL: V2 API Reference
+
+### API Endpoints
+
+**⚠️ CRITICAL:** The correct V2 endpoint is `/api/2.0/alerts` (NOT `/api/2.0/sql/alerts` or `/api/2.0/sql/alerts-v2`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/2.0/alerts` | Create a new alert |
+| `GET` | `/api/2.0/alerts` | List all alerts (paginated) |
+| `GET` | `/api/2.0/alerts/{id}` | Get alert by ID |
+| `PATCH` | `/api/2.0/alerts/{id}?update_mask=...` | Update alert (**requires update_mask**) |
+| `DELETE` | `/api/2.0/alerts/{id}` | Trash alert (soft delete, 30-day recovery) |
+
+**Reference:** [Databricks Alerts V2 API](https://docs.databricks.com/api/workspace/alertsv2/createalert)
+
+### V2 API Payload Structure
+
+```json
+{
+  "display_name": "[CRITICAL] Alert Name",
+  "query_text": "SELECT column_name FROM catalog.schema.table WHERE condition",
+  "warehouse_id": "warehouse-id-here",
+  "schedule": {
+    "quartz_cron_schedule": "0 0 8 * * ?",
+    "timezone_id": "America/Los_Angeles",
+    "pause_status": "UNPAUSED"
+  },
+  "evaluation": {
+    "source": {
+      "name": "column_name",
+      "aggregation": "SUM"
+    },
+    "comparison_operator": "GREATER_THAN",
+    "threshold": {
+      "value": {
+        "double_value": 100.0
+      }
+    },
+    "empty_result_state": "OK",
+    "notification": {
+      "subscriptions": [
+        {"user_email": "user@example.com"},
+        {"destination_id": "uuid-here"}
+      ],
+      "notify_on_ok": false,
+      "retrigger_seconds": 3600
+    }
+  },
+  "custom_summary": "Custom email subject",
+  "custom_description": "Custom notification body with {{column_name}} mustache templates"
+}
+```
+
+### Comparison Operators (V2 API)
+
+| Operator | API Value | Symbol |
+|----------|-----------|--------|
+| Greater than | `GREATER_THAN` | `>` |
+| Greater or equal | `GREATER_THAN_OR_EQUAL` | `>=` |
+| Less than | `LESS_THAN` | `<` |
+| Less or equal | `LESS_THAN_OR_EQUAL` | `<=` |
+| Equal | `EQUAL` | `=` |
+| Not equal | `NOT_EQUAL` | `!=` |
+| Is null | `IS_NULL` | - |
+| Is not null | `IS_NOT_NULL` | - |
+
+### Aggregation Types (V2 API)
+
+| Aggregation | API Value | Notes |
+|-------------|-----------|-------|
+| Sum | `SUM` | Numeric columns |
+| Count | `COUNT` | Any column |
+| Count distinct | `COUNT_DISTINCT` | Any column |
+| Average | `AVG` | Numeric columns |
+| Median | `MEDIAN` | Numeric columns |
+| Minimum | `MIN` | Numeric columns |
+| Maximum | `MAX` | Numeric columns |
+| Std deviation | `STDDEV` | Numeric columns |
+| First value | - (null/omit) | **FIRST maps to null in API** |
+
+### Threshold Value Types (V2 API)
+
+```json
+// For numeric comparisons
+{"double_value": 100.0}
+
+// For string comparisons
+{"string_value": "expected_value"}
+
+// For column-to-column comparisons (advanced)
+{"column": {"name": "other_column"}}
+```
+
+### ⚠️ Update Mask Required for PATCH
+
+When updating an alert, you **MUST** specify which fields to update:
+
+```bash
+PATCH /api/2.0/alerts/{id}?update_mask=display_name,query_text,schedule,evaluation
+```
+
+Valid `update_mask` fields:
+- `display_name`
+- `query_text`
+- `warehouse_id`
+- `schedule`
+- `evaluation`
+- `custom_summary`
+- `custom_description`
+
+### Key Differences: V2 vs Legacy API
+
+| Feature | Legacy API | V2 API |
+|---------|------------|--------|
+| **Endpoint** | `/api/2.0/sql/alerts` | `/api/2.0/alerts` |
+| **Query** | References saved query via `query_id` | Embeds SQL directly via `query_text` |
+| **Condition** | `options.column`, `options.op`, `options.value` | `evaluation.source.name`, `evaluation.comparison_operator`, `evaluation.threshold` |
+| **Updates** | Full replacement | Partial updates with `update_mask` |
+| **Delete** | Permanent | Soft delete (trash, 30-day recovery) |
 
 ---
 
@@ -347,118 +473,238 @@ WHERE check_in_date = DATE_ADD(CURRENT_DATE(), -1)
 
 ---
 
-## Databricks SDK Integration
+## Databricks SDK Integration (Recommended)
+
+**SDK Reference:** https://databricks-sdk-py.readthedocs.io/en/latest/workspace/sql/alerts_v2.html
+
+**Why SDK over REST API?**
+- Automatic authentication via `WorkspaceClient()` (no token handling)
+- Typed objects (`AlertV2`) with IDE autocompletion
+- Pagination handled automatically
+- Built-in error types (`ResourceAlreadyExists`)
+- Cleaner, more maintainable code
+
+### ⚠️ CRITICAL: SDK Version Requirement
+
+**The `AlertV2` type requires SDK version >= 0.40.0.** Databricks serverless environments have an older pre-installed SDK that takes precedence over job dependencies.
+
+**Solution:** Force pip upgrade at the start of your notebook:
+
+```python
+# Databricks notebook source
+# MAGIC %pip install --upgrade databricks-sdk>=0.40.0 --quiet
+
+# COMMAND ----------
+
+# MAGIC %restart_python
+
+# COMMAND ----------
+
+# Now imports will work
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.sql import AlertV2
+```
+
+**Why this is necessary:**
+- Serverless environments have a pre-installed SDK at `/databricks/python/lib/python3.12/site-packages/`
+- Job dependencies (`environments.spec.dependencies`) install packages but don't override system packages
+- Python imports the system SDK first (earlier in `sys.path`)
+- `%pip install --upgrade` + `%restart_python` forces the new version to be used
+
+### SDK Methods
+
+| Method | Description |
+|--------|-------------|
+| `ws.alerts_v2.create_alert(alert)` | Create a new alert |
+| `ws.alerts_v2.get_alert(id)` | Get alert by ID |
+| `ws.alerts_v2.list_alerts()` | List all alerts (paginated iterator) |
+| `ws.alerts_v2.update_alert(id, alert, update_mask)` | Update an alert |
+| `ws.alerts_v2.trash_alert(id)` | Soft delete (30-day recovery) |
 
 ### Import Pattern
 
 ```python
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.sql import (
-    AlertCondition,
-    AlertConditionOperand,
-    AlertConditionThreshold,
-    AlertOperandColumn,
-    AlertOperandValue,
-    AlertConditionOperator,
-)
+from databricks.sdk.service.sql import AlertV2
 ```
 
-### Operator Mapping
+**Note:** The full set of typed classes (`AlertV2Condition`, etc.) may not be needed - SDK accepts dicts via `AlertV2.from_dict()`.
+
+### Build AlertV2 Object
 
 ```python
-def get_operator_enum(operator_str: str) -> AlertConditionOperator:
-    """Convert string operator to AlertConditionOperator enum."""
-    operator_map = {
-        ">": AlertConditionOperator.GREATER_THAN,
-        ">=": AlertConditionOperator.GREATER_THAN_OR_EQUAL,
-        "<": AlertConditionOperator.LESS_THAN,
-        "<=": AlertConditionOperator.LESS_THAN_OR_EQUAL,
-        "=": AlertConditionOperator.EQUAL,
-        "==": AlertConditionOperator.EQUAL,
-        "!=": AlertConditionOperator.NOT_EQUAL,
-        "<>": AlertConditionOperator.NOT_EQUAL,
-    }
-    return operator_map.get(operator_str, AlertConditionOperator.GREATER_THAN)
-```
-
-### Creating an Alert
-
-```python
-def create_alert(ws: WorkspaceClient, rule: dict, warehouse_id: str):
-    """Create a SQL Alert from a rule configuration."""
+def build_alert_v2(cfg, warehouse_id: str, subscriptions: list) -> AlertV2:
+    """Build an AlertV2 object from config row."""
+    
+    display_name = f"[{cfg.severity}] {cfg.alert_name}"
+    
+    # Build operand (source column with optional aggregation)
+    operand = AlertV2ConditionOperand(name=cfg.threshold_column)
+    if cfg.aggregation_type and cfg.aggregation_type.upper() != "FIRST":
+        operand.aggregation = cfg.aggregation_type.upper()
+    
+    # Build threshold value
+    try:
+        threshold_value = AlertV2ConditionThresholdValue(
+            double_value=float(cfg.threshold_value)
+        )
+    except (ValueError, TypeError):
+        threshold_value = AlertV2ConditionThresholdValue(
+            string_value=str(cfg.threshold_value)
+        )
+    
+    # Build notification subscriptions
+    notification_subs = []
+    for sub in subscriptions:
+        if "user_email" in sub:
+            notification_subs.append(
+                AlertV2NotificationSubscription(user_email=sub["user_email"])
+            )
+        elif "destination_id" in sub:
+            notification_subs.append(
+                AlertV2NotificationSubscription(destination_id=sub["destination_id"])
+            )
+    
+    # Build notification
+    notification = AlertV2Notification(
+        notify_on_ok=cfg.notify_on_ok,
+        subscriptions=notification_subs if notification_subs else None,
+        retrigger_seconds=cfg.rearm_seconds,
+    )
     
     # Build condition
-    condition = AlertCondition(
-        op=get_operator_enum(rule["condition_operator"]),
-        operand=AlertConditionOperand(
-            column=AlertOperandColumn(name=rule["condition_column"])
-        ),
-        threshold=AlertConditionThreshold(
-            value=AlertOperandValue(
-                string_value=str(rule["condition_threshold"])
-            )
-        )
+    condition = AlertV2Condition(
+        comparison_operator=cfg.comparison_operator,  # e.g., "GREATER_THAN"
+        empty_result_state=cfg.empty_result_state or "OK",
+        operand=operand,
+        threshold=AlertV2ConditionThreshold(value=threshold_value),
+        notification=notification,
     )
     
-    # Create alert
-    new_alert = ws.alerts.create(
-        display_name=f"[{rule['severity']}] {rule['alert_name']}",
-        query_text=rule["alert_query"],
+    # Build schedule
+    schedule = AlertV2Schedule(
+        quartz_cron_schedule=cfg.schedule_cron,
+        timezone_id=cfg.schedule_timezone,
+        pause_status="UNPAUSED" if cfg.is_enabled else "PAUSED",
+    )
+    
+    # Build AlertV2 object
+    alert = AlertV2(
+        display_name=display_name,
         warehouse_id=warehouse_id,
+        query_text=cfg.alert_query,
+        schedule=schedule,
         condition=condition,
-        cron_schedule=rule["schedule_cron"],
-        cron_timezone=rule["schedule_timezone"],
-        notify_on_ok=rule.get("notify_on_ok", False),
-        custom_subject=rule.get("custom_subject_template"),
-        custom_body=rule.get("custom_body_template"),
     )
     
-    return new_alert
+    # Add custom templates if present
+    if cfg.custom_subject_template:
+        alert.custom_summary = cfg.custom_subject_template
+    if cfg.custom_body_template:
+        alert.custom_description = cfg.custom_body_template
+    
+    return alert
 ```
 
-### Listing Existing Alerts
+### List Existing Alerts (SDK handles pagination)
 
 ```python
-def get_existing_alerts(ws: WorkspaceClient) -> dict:
-    """Get all existing alerts keyed by display name."""
+def list_existing_alerts(ws: WorkspaceClient) -> dict:
+    """List all existing alerts, keyed by display_name.
+    
+    SDK handles pagination automatically via iterator.
+    """
     existing = {}
-    try:
-        alerts = ws.alerts.list()
-        for alert in alerts:
-            if alert.display_name:
-                existing[alert.display_name] = alert
-    except Exception as e:
-        print(f"Warning: Could not list existing alerts: {e}")
+    for alert in ws.alerts_v2.list_alerts():
+        if alert.display_name:
+            existing[alert.display_name] = alert
     return existing
 ```
 
-### Idempotent Deployment Pattern
+### Create Alert
 
 ```python
-def deploy_alert(ws: WorkspaceClient, rule: dict, warehouse_id: str, 
-                 existing_alerts: dict, dry_run: bool = False):
-    """Deploy alert with idempotency check."""
-    
-    alert_name = f"[{rule['severity']}] {rule['alert_name']}"
-    existing = existing_alerts.get(alert_name)
-    
-    if dry_run:
-        if existing:
-            print(f"[DRY RUN] Would update: {existing.id}")
-        else:
-            print(f"[DRY RUN] Would create new alert")
-        return {"status": "dry_run"}
-    
-    if existing:
-        # Alert exists - skip or update
-        # Note: Delete and recreate for updates (SDK limitation)
-        print(f"Alert exists: {existing.id} - skipping")
-        return {"status": "skipped", "id": existing.id}
-    
-    # Create new alert
-    new_alert = create_alert(ws, rule, warehouse_id)
-    return {"status": "created", "id": new_alert.id}
+def create_alert(ws: WorkspaceClient, alert: AlertV2) -> AlertV2:
+    """Create a new SQL alert using SDK."""
+    return ws.alerts_v2.create_alert(alert)
 ```
+
+### Update Alert (requires update_mask)
+
+```python
+def update_alert(ws: WorkspaceClient, alert_id: str, alert: AlertV2) -> AlertV2:
+    """Update an existing SQL alert.
+    
+    ⚠️ CRITICAL: update_mask is required to specify which fields to update.
+    """
+    return ws.alerts_v2.update_alert(
+        id=alert_id,
+        alert=alert,
+        update_mask="display_name,query_text,warehouse_id,schedule,condition,custom_summary,custom_description"
+    )
+```
+
+### Delete Alert (Trash)
+
+```python
+def trash_alert(ws: WorkspaceClient, alert_id: str) -> None:
+    """Soft delete an alert (can be restored within 30 days)."""
+    ws.alerts_v2.trash_alert(alert_id)
+```
+
+### Handle ResourceAlreadyExists Error
+
+**⚠️ CRITICAL PATTERN:** SDK raises `ResourceAlreadyExists` when alert exists. Catch and update instead.
+
+```python
+from databricks.sdk.errors import ResourceAlreadyExists
+
+def sync_alert(ws: WorkspaceClient, cfg, warehouse_id: str, existing_alerts: dict):
+    """Sync a single alert with ResourceAlreadyExists handling."""
+    
+    alert = build_alert_v2(cfg, warehouse_id, subscriptions=[])
+    display_name = alert.display_name
+    existing = existing_alerts.get(display_name)
+    
+    if not existing:
+        # Create new alert
+        try:
+            created = ws.alerts_v2.create_alert(alert)
+            return {"status": "CREATED", "id": created.id}
+        except ResourceAlreadyExists:
+            # Refresh and update instead
+            print(f"  Alert already exists, updating...")
+            existing_alerts = list_existing_alerts(ws)
+            existing = existing_alerts.get(display_name)
+            if existing:
+                updated = update_alert(ws, existing.id, alert)
+                return {"status": "UPDATED", "id": updated.id}
+            raise RuntimeError("Alert exists but could not be found")
+    else:
+        # Update existing alert
+        updated = update_alert(ws, existing.id, alert)
+        return {"status": "UPDATED", "id": updated.id}
+```
+
+---
+
+## REST API Integration (Alternative)
+
+**Use REST API when:**
+- SDK version constraints are problematic
+- You need more control over request/response handling
+- SDK doesn't support a specific feature yet
+- You prefer not to add startup overhead from `%pip install`
+
+**Trade-off:** REST API approach is faster (no pip install overhead) but requires manual token handling.
+
+### API Endpoint
+
+```
+/api/2.0/alerts
+```
+
+**⚠️ NOT:** `/api/2.0/sql/alerts` or `/api/2.0/sql/alerts-v2`
 
 ---
 
@@ -505,30 +751,34 @@ resources:
 ### Deploy Job (Create SQL Alerts from Config)
 
 ```yaml
-# resources/gold/alert_deploy_job.yml
+# resources/alerting/sql_alert_deployment_job.yml
 resources:
   jobs:
-    alert_deploy_job:
-      name: "[${bundle.target}] Wanderbricks Alert - Deploy"
-      description: "Deploys SQL alerts from alert_rules configuration table"
+    sql_alert_deployment_job:
+      name: "[${bundle.target}] SQL Alert - Deploy"
+      description: "Deploys SQL alerts from alert_configurations table using V2 API"
       
       environments:
         - environment_key: default
           spec:
             environment_version: "4"
             dependencies:
-              - "databricks-sdk>=0.28.0"  # Required for alerts API
+              - "requests>=2.28.0"  # For REST API calls
       
       tasks:
-        - task_key: deploy_alerts
+        - task_key: sync_sql_alerts
           environment_key: default
           notebook_task:
-            notebook_path: ../../src/wanderbricks_gold/alerting/deploy_alerts.py
+            notebook_path: ../../src/alerting/sync_sql_alerts.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
               warehouse_id: ${var.warehouse_id}
               dry_run: "false"
+              delete_disabled: "false"  # Set to "true" to auto-delete disabled alerts
+              api_base: "/api/2.0/alerts"  # ⚠️ V2 API endpoint (NOT /api/2.0/sql/alerts!)
+              enable_parallel: "false"
+              parallel_workers: "5"
           timeout_seconds: 1800
       
       email_notifications:
@@ -539,7 +789,7 @@ resources:
       
       tags:
         environment: ${bundle.target}
-        project: wanderbricks
+        project: health_monitor
         layer: gold
         job_type: deployment
         component: alerting
@@ -548,10 +798,12 @@ resources:
 
 ### Key Configuration Points
 
-1. **SDK Dependency**: Deploy job requires `databricks-sdk>=0.28.0`
+1. **API Endpoint**: Must be `/api/2.0/alerts` (V2 API) - NOT `/api/2.0/sql/alerts`
 2. **Warehouse ID**: Required for SQL Alert execution
 3. **Dry Run**: Enable for validation without creating alerts
-4. **Serverless**: Both jobs use serverless compute
+4. **Delete Disabled**: Controls whether disabled alerts are removed from Databricks
+5. **Serverless**: Both jobs use serverless compute
+6. **Parallel Sync**: Optional parallel processing for large alert sets
 
 ---
 
@@ -853,6 +1105,31 @@ spark.sql(f"""
 - `CAN_CREATE` permission for SQL Alerts
 - `CAN_USE` on catalog and schema
 
+### Problem: V2 API List Response Key
+
+**Symptoms:** `list_existing_alerts()` returns empty dict even though alerts exist
+
+**Root Cause:** V2 API returns `alerts` key, not `results`:
+```json
+// V2 API Response (CORRECT)
+{"alerts": [...], "next_page_token": "..."}
+
+// NOT "results" like other APIs
+{"results": [...]}  // WRONG - this is NOT what V2 returns
+```
+
+**Fix:** Use `alerts` key when parsing response:
+```python
+# ✅ CORRECT
+for alert in result.get("alerts", []):
+    existing[alert.get("display_name")] = alert
+
+# ❌ WRONG
+for alert in result.get("results", []):  # Will always be empty!
+```
+
+---
+
 ### Problem: Duplicate Alerts Created
 
 **Symptoms:** Multiple alerts with same name
@@ -862,6 +1139,130 @@ spark.sql(f"""
 existing = get_existing_alerts(ws)
 if alert_name not in existing:
     ws.alerts.create(...)
+```
+
+### Problem: RESOURCE_ALREADY_EXISTS Error
+
+**Symptoms:** `HTTP 400` with `RESOURCE_ALREADY_EXISTS` when creating alert
+
+**Root Causes:**
+1. Alert already exists with same display name
+2. Previous deployment created alert but sync status wasn't updated
+3. Manual alert creation with same name
+
+**Fix:** Catch the error and update instead of create:
+```python
+try:
+    result = create_alert(session, host, token, api_base, payload)
+except Exception as e:
+    if "RESOURCE_ALREADY_EXISTS" in str(e):
+        # Find existing alert and update
+        existing = list_existing_alerts(session, host, token, api_base)
+        if display_name in existing:
+            alert_id = existing[display_name]["id"]
+            update_alert(session, host, token, api_base, alert_id, payload)
+    else:
+        raise
+```
+
+### Problem: Update Fails with 400 Error
+
+**Symptoms:** PATCH request returns 400 error
+
+**Root Cause:** Missing `update_mask` parameter (required for V2 API)
+
+**Fix:** Include update_mask in PATCH URL:
+```python
+# ❌ WRONG
+PATCH /api/2.0/alerts/{id}
+Body: {...}
+
+# ✅ CORRECT
+PATCH /api/2.0/alerts/{id}?update_mask=display_name,query_text,schedule,evaluation
+Body: {...}
+```
+
+### Problem: Wrong API Endpoint
+
+**Symptoms:** `HTTP 404` when calling API
+
+**Common Mistakes:**
+- `/api/2.0/sql/alerts` (Legacy, wrong for V2)
+- `/api/2.0/sql/alerts-v2` (Incorrect)
+- `/api/2.0/preview/sql/alerts` (Old preview path)
+
+**Fix:** Use correct V2 endpoint:
+```python
+# ✅ CORRECT V2 endpoint
+api_base = "/api/2.0/alerts"
+```
+
+---
+
+## Unity Catalog Table Limitations
+
+**⚠️ CRITICAL:** Unity Catalog has different DDL support than traditional Databricks tables.
+
+### CHECK Constraints NOT Supported
+
+```sql
+-- ❌ WRONG: Will fail in Unity Catalog
+CREATE TABLE alert_configurations (
+    severity STRING NOT NULL,
+    CONSTRAINT chk_severity CHECK (severity IN ('CRITICAL', 'WARNING', 'INFO'))
+)
+
+-- ✅ CORRECT: Validate in application code
+CREATE TABLE alert_configurations (
+    severity STRING NOT NULL
+        COMMENT 'Alert severity: CRITICAL, WARNING, INFO'
+)
+```
+
+### DEFAULT Values NOT Supported
+
+```sql
+-- ❌ WRONG: Will fail in Unity Catalog
+CREATE TABLE alert_configurations (
+    is_enabled BOOLEAN NOT NULL DEFAULT true,
+    record_created_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
+)
+
+-- ✅ CORRECT: Set values explicitly in INSERT statements
+CREATE TABLE alert_configurations (
+    is_enabled BOOLEAN NOT NULL,
+    record_created_timestamp TIMESTAMP NOT NULL
+)
+
+-- Then in INSERT:
+INSERT INTO alert_configurations VALUES (
+    ...,
+    true,  -- is_enabled
+    CURRENT_TIMESTAMP()  -- record_created_timestamp
+)
+```
+
+### PARTITIONED BY and CLUSTER BY AUTO Conflict
+
+```sql
+-- ❌ WRONG: Cannot use both together
+CREATE TABLE alert_history (
+    ...
+)
+PARTITIONED BY (alert_date)
+CLUSTER BY AUTO
+
+-- ✅ CORRECT Option 1: Use CLUSTER BY AUTO only (recommended)
+CREATE TABLE alert_history (
+    ...
+)
+CLUSTER BY AUTO
+
+-- ✅ CORRECT Option 2: Use explicit PARTITIONED BY only
+CREATE TABLE alert_history (
+    ...
+)
+PARTITIONED BY (alert_date)
 ```
 
 ---
@@ -923,15 +1324,90 @@ databricks bundle run alert_deploy_job -t dev
 
 ---
 
-## References
+## Validation Checklist
 
-- [Databricks SQL Alerts Documentation](https://docs.databricks.com/sql/user/alerts/)
-- [Alert Notifications](https://docs.databricks.com/sql/user/alerts/index.html#notifications)
-- [Databricks SDK - Alerts API](https://databricks-sdk-py.readthedocs.io/en/latest/)
-- [Quartz Cron Expression Format](http://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/crontrigger.html)
+Before deploying alerts:
+
+### Configuration Table
+- [ ] Table uses Unity Catalog (no CHECK constraints, no DEFAULT values)
+- [ ] All columns have explicit values in INSERT statements
+- [ ] `CLUSTER BY AUTO` used (not `PARTITIONED BY`)
+
+### V2 API
+- [ ] API endpoint is `/api/2.0/alerts` (NOT `/api/2.0/sql/alerts`)
+- [ ] Payload uses `display_name` (not `name`)
+- [ ] Payload uses `query_text` (not `query_id`)
+- [ ] Payload uses `evaluation` block (not `condition`)
+- [ ] PATCH requests include `?update_mask=...` parameter
+- [ ] `FIRST` aggregation maps to `null`/omitted in API
+
+### Queries
+- [ ] Fully qualified table names (no `${catalog}` parameters)
+- [ ] Includes `alert_message` column for notifications
+- [ ] Uses `HAVING` clause to filter trigger conditions
+- [ ] Uses `NULLIF()` for division operations
+
+### Error Handling
+- [ ] Handles `RESOURCE_ALREADY_EXISTS` by updating instead of failing
+- [ ] Implements retry logic with exponential backoff
+- [ ] Updates sync status in config table
 
 ---
 
-**Last Updated:** December 2024  
-**Pattern Origin:** Wanderbricks Platform - Config-driven alerting framework  
-**Key Lesson:** Always use fully qualified table names in alert queries - parameters are NOT supported
+## References
+
+### Official Documentation
+- [Databricks SQL Alerts V2 API](https://docs.databricks.com/api/workspace/alertsv2/createalert)
+- [Databricks SQL Alerts User Guide](https://docs.databricks.com/aws/en/sql/user/alerts)
+- [Databricks SDK - Alerts V2](https://databricks-sdk-py.readthedocs.io/en/stable/workspace/sql/alerts_v2.html)
+- [Quartz Cron Expression Format](http://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/crontrigger.html)
+
+### Internal Documentation
+- [Alerting Framework Architecture](../../docs/alerting/architecture.md)
+- [Alerting API Reference](../../docs/alerting/api-reference.md)
+- [Alerting Deployment Guide](../../docs/alerting/deployment-guide.md)
+- [Alerting Operations Guide](../../docs/alerting/operations-guide.md)
+
+---
+
+## Version History
+
+- **v2.1** (December 31, 2024) - SDK integration improvements
+  - **Changed SDK to Recommended** (was Alternative)
+  - Added critical `%pip install --upgrade databricks-sdk>=0.40.0` pattern
+  - Added `%restart_python` requirement for SDK to take effect
+  - Documented why job dependencies don't override system SDK
+  - Added V2 API list response key (`alerts` not `results`)
+  - Created `context/prompts/14-sql-alerts-prompt.md` for easy reuse
+  - **Key Learning:** Serverless environments have pre-installed SDK; use `%pip install --upgrade` + `%restart_python`
+
+- **v2.0** (December 2024) - Major update based on production implementation learnings
+  - Added V2 API reference section with correct endpoint (`/api/2.0/alerts`)
+  - Added REST API integration patterns
+  - Added `update_mask` requirement for PATCH requests
+  - Added `RESOURCE_ALREADY_EXISTS` error handling pattern
+  - Added Unity Catalog table limitations (CHECK, DEFAULT, PARTITIONED BY)
+  - Added aggregation type mapping (`FIRST` → null)
+  - Added validation checklist
+  - Updated references to official V2 API documentation
+  - **Key Learning:** V2 API endpoint is `/api/2.0/alerts`, NOT `/api/2.0/sql/alerts`
+
+- **v1.0** (October 2024) - Initial config-driven alerting framework
+  - Core principles and alert ID convention
+  - SQL query patterns
+  - SDK integration patterns
+  - DAB job configuration
+
+---
+
+**Last Updated:** December 31, 2024  
+**Pattern Origin:** Databricks Health Monitor - Config-driven alerting framework  
+**Key Lessons:**
+1. V2 API endpoint is `/api/2.0/alerts` (NOT `/api/2.0/sql/alerts` or `/api/2.0/sql/alerts-v2`)
+2. PATCH requests require `update_mask` parameter
+3. Handle `RESOURCE_ALREADY_EXISTS` by updating instead of failing
+4. Unity Catalog doesn't support CHECK constraints or DEFAULT values
+5. `FIRST` aggregation type maps to null/omitted in V2 API payload
+6. Always use fully qualified table names - query parameters are NOT supported
+7. **SDK requires `%pip install --upgrade` + `%restart_python`** - job dependencies don't override system packages
+8. V2 API list response uses `alerts` key (NOT `results`)

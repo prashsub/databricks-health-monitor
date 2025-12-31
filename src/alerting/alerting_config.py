@@ -58,11 +58,15 @@ def normalize_aggregation(aggregation: Optional[str]) -> Optional[str]:
     """
     Normalize aggregation values to Alerts v2 supported enums.
     See docs: SUM, COUNT, COUNT_DISTINCT, AVG, MEDIAN, MIN, MAX, STDDEV
+    
+    Note: FIRST is treated as no aggregation (returns None) since it's commonly
+    used for single-row results where the first value is the only value.
     """
     if aggregation is None:
         return None
     agg = aggregation.strip().upper()
-    if agg in {"", "NONE"}:
+    # FIRST and NONE both mean "no aggregation, use first row value"
+    if agg in {"", "NONE", "FIRST"}:
         return None
     valid = {"SUM", "COUNT", "COUNT_DISTINCT", "AVG", "MEDIAN", "MIN", "MAX", "STDDEV"}
     if agg not in valid:

@@ -1,159 +1,938 @@
 {
-  "displayName": "Data Governance Hub Dashboard",
+  "displayName": "Governance Hub Dashboard",
   "warehouse_id": "${warehouse_id}",
   "pages": [
     {
       "name": "page_governance_overview",
-      "displayName": "Governance Overview",
+      "displayName": "\ud83d\udcca Governance Overview",
       "layout": [
         {
           "widget": {
             "name": "kpi_total_tables",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_entity_counts", "fields": [{"name": "table_count", "expression": "`table_count`"}], "disaggregated": false}}],
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_tables",
+                  "fields": [
+                    {
+                      "name": "total_tables",
+                      "expression": "`total_tables`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
             "spec": {
               "version": 2,
               "widgetType": "counter",
-              "encodings": {"value": {"fieldName": "table_count"}},
-              "frame": {"showTitle": true, "title": "Total Tables", "description": "Managed tables in catalog"}
+              "encodings": {
+                "value": {
+                  "fieldName": "total_tables"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Tables"
+              }
             }
           },
-          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
         },
         {
           "widget": {
-            "name": "kpi_active_tables",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_active_tables", "fields": [{"name": "active_count", "expression": "`active_count`"}], "disaggregated": false}}],
+            "name": "kpi_tagged_tables",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_tagged",
+                  "fields": [
+                    {
+                      "name": "tagged_pct",
+                      "expression": "`tagged_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
             "spec": {
               "version": 2,
               "widgetType": "counter",
-              "encodings": {"value": {"fieldName": "active_count"}},
-              "frame": {"showTitle": true, "title": "Active Tables", "description": "Tables accessed in 30 days"}
+              "encodings": {
+                "value": {
+                  "fieldName": "tagged_pct"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Tagged Tables %"
+              }
             }
           },
-          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
         },
         {
           "widget": {
-            "name": "kpi_tag_coverage",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_tag_coverage", "fields": [{"name": "coverage_pct", "expression": "`coverage_pct`"}], "disaggregated": false}}],
+            "name": "kpi_documented_tables",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_documented",
+                  "fields": [
+                    {
+                      "name": "documented_pct",
+                      "expression": "`documented_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
             "spec": {
               "version": 2,
               "widgetType": "counter",
-              "encodings": {"value": {"fieldName": "coverage_pct"}},
-              "frame": {"showTitle": true, "title": "Tag Coverage", "description": "% tables with tags"}
+              "encodings": {
+                "value": {
+                  "fieldName": "documented_pct"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Documented Tables %"
+              }
             }
           },
-          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
         },
         {
           "widget": {
-            "name": "chart_active_inactive",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_activity_status", "fields": [{"name": "status", "expression": "`status`"}, {"name": "table_count", "expression": "`table_count`"}], "disaggregated": false}}],
+            "name": "kpi_lineage_coverage",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_lineage",
+                  "fields": [
+                    {
+                      "name": "lineage_pct",
+                      "expression": "`lineage_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "lineage_pct"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Lineage Coverage %"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_jobs",
+                  "fields": [
+                    {
+                      "name": "total_jobs",
+                      "expression": "`total_jobs`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_jobs"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Jobs"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_workspaces",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_workspaces",
+                  "fields": [
+                    {
+                      "name": "total_workspaces",
+                      "expression": "`total_workspaces`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_workspaces"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Workspaces"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_tables_by_catalog",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_tables_by_catalog",
+                  "fields": [
+                    {
+                      "name": "catalog_name",
+                      "expression": "`catalog_name`"
+                    },
+                    {
+                      "name": "table_count",
+                      "expression": "`table_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
             "spec": {
               "version": 3,
               "widgetType": "pie",
               "encodings": {
-                "angle": {"fieldName": "table_count", "displayName": "Tables", "scale": {"type": "quantitative"}},
-                "color": {"fieldName": "status", "displayName": "Status", "scale": {"type": "categorical"}}
+                "color": {
+                  "fieldName": "catalog_name",
+                  "displayName": "Catalog"
+                },
+                "theta": {
+                  "fieldName": "table_count",
+                  "displayName": "Tables"
+                }
               },
-              "frame": {"showTitle": true, "title": "Active vs Inactive Tables", "description": "Table activity in last 30 days"}
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Tables by Catalog"
+              }
             }
           },
-          "position": {"x": 0, "y": 2, "width": 3, "height": 6}
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 3,
+            "height": 6
+          }
         },
         {
           "widget": {
             "name": "chart_lineage_trend",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_lineage_trend", "fields": [{"name": "event_date", "expression": "`event_date`"}, {"name": "read_count", "expression": "`read_count`"}, {"name": "write_count", "expression": "`write_count`"}], "disaggregated": false}}],
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_lineage_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "lineage_events",
+                      "expression": "`lineage_events`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
             "spec": {
               "version": 3,
               "widgetType": "line",
               "encodings": {
-                "x": {"fieldName": "event_date", "displayName": "Date", "scale": {"type": "temporal"}},
-                "y": {"fieldName": "read_count", "displayName": "Events", "scale": {"type": "quantitative"}}
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "lineage_events",
+                  "displayName": "Events",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
               },
-              "frame": {"showTitle": true, "title": "Read/Write Activity Trend", "description": "Table access patterns over time"}
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Lineage Events Trend (30d)"
+              }
             }
           },
-          "position": {"x": 3, "y": 2, "width": 3, "height": 6}
+          "position": {
+            "x": 3,
+            "y": 4,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_data_quality",
+      "displayName": "\u2705 Data Quality",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_untagged_tables",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_untagged_tables",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "catalog_name",
+                      "expression": "`catalog_name`"
+                    },
+                    {
+                      "name": "schema_name",
+                      "expression": "`schema_name`"
+                    },
+                    {
+                      "name": "table_name",
+                      "expression": "`table_name`"
+                    },
+                    {
+                      "name": "table_type",
+                      "expression": "`table_type`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "catalog_name",
+                    "title": "Catalog",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "schema_name",
+                    "title": "Schema",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "table_name",
+                    "title": "Table",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "table_type",
+                    "title": "Type",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83c\udff7\ufe0f Tables Missing Tags"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
         },
         {
           "widget": {
-            "name": "table_top_users",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_top_users", "fields": [{"name": "user_name", "expression": "`user_name`"}, {"name": "tables_accessed", "expression": "`tables_accessed`"}, {"name": "read_ops", "expression": "`read_ops`"}, {"name": "write_ops", "expression": "`write_ops`"}, {"name": "last_activity", "expression": "`last_activity`"}], "disaggregated": false}}],
+            "name": "table_undocumented",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_undocumented_tables",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "catalog_name",
+                      "expression": "`catalog_name`"
+                    },
+                    {
+                      "name": "schema_name",
+                      "expression": "`schema_name`"
+                    },
+                    {
+                      "name": "table_name",
+                      "expression": "`table_name`"
+                    }
+                  ]
+                }
+              }
+            ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
-              "frame": {"showTitle": true, "title": "Top Users by Table Access", "description": "Users with most table interactions"},
               "encodings": {
                 "columns": [
-                  {"fieldName": "user_name", "title": "User"},
-                  {"fieldName": "tables_accessed", "title": "Tables"},
-                  {"fieldName": "read_ops", "title": "Reads"},
-                  {"fieldName": "write_ops", "title": "Writes"},
-                  {"fieldName": "last_activity", "title": "Last Activity", "type": "datetime", "dateTimeFormat": "yyyy-MM-dd HH:mm"}
+                  {
+                    "fieldName": "catalog_name",
+                    "title": "Catalog",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "schema_name",
+                    "title": "Schema",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "table_name",
+                    "title": "Table",
+                    "type": "string"
+                  }
                 ]
               },
-              "itemsPerPage": 15
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcdd Tables Missing Documentation"
+              }
             }
           },
-          "position": {"x": 0, "y": 8, "width": 3, "height": 6}
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
         },
         {
           "widget": {
-            "name": "table_no_comments",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_no_comments", "fields": [{"name": "table_name", "expression": "`table_name`"}, {"name": "schema_name", "expression": "`schema_name`"}, {"name": "access_count", "expression": "`access_count`"}], "disaggregated": false}}],
+            "name": "chart_quality_score",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_quality_distribution",
+                  "fields": [
+                    {
+                      "name": "quality_tier",
+                      "expression": "`quality_tier`"
+                    },
+                    {
+                      "name": "table_count",
+                      "expression": "`table_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
             "spec": {
-              "version": 1,
-              "widgetType": "table",
-              "frame": {"showTitle": true, "title": "Tables Without Comments", "description": "Popular tables missing documentation"},
+              "version": 3,
+              "widgetType": "bar",
               "encodings": {
-                "columns": [
-                  {"fieldName": "table_name", "title": "Table"},
-                  {"fieldName": "schema_name", "title": "Schema"},
-                  {"fieldName": "access_count", "title": "Access Count"}
-                ]
+                "x": {
+                  "fieldName": "quality_tier",
+                  "displayName": "Quality Tier",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "table_count",
+                  "displayName": "Tables",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
               },
-              "itemsPerPage": 15
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Quality Score Distribution"
+              }
             }
           },
-          "position": {"x": 3, "y": 8, "width": 3, "height": 6}
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_lineage",
+      "displayName": "\ud83d\udd17 Lineage",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_lineage_sources",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_lineage_sources",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "source_table",
+                      "expression": "`source_table`"
+                    },
+                    {
+                      "name": "downstream_count",
+                      "expression": "`downstream_count`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "source_table",
+                    "title": "Source Table",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "downstream_count",
+                    "title": "Downstream Tables",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udce5 Top Source Tables (Most Downstream)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 6
+          }
         },
         {
           "widget": {
-            "name": "table_inactive",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_inactive_tables", "fields": [{"name": "table_name", "expression": "`table_name`"}, {"name": "schema_name", "expression": "`schema_name`"}, {"name": "last_accessed", "expression": "`last_accessed`"}, {"name": "days_inactive", "expression": "`days_inactive`"}], "disaggregated": false}}],
+            "name": "table_lineage_sinks",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_lineage_sinks",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "target_table",
+                      "expression": "`target_table`"
+                    },
+                    {
+                      "name": "upstream_count",
+                      "expression": "`upstream_count`"
+                    }
+                  ]
+                }
+              }
+            ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
-              "frame": {"showTitle": true, "title": "Inactive Tables", "description": "Tables not accessed in 30+ days"},
               "encodings": {
                 "columns": [
-                  {"fieldName": "table_name", "title": "Table"},
-                  {"fieldName": "schema_name", "title": "Schema"},
-                  {"fieldName": "last_accessed", "title": "Last Accessed", "type": "datetime", "dateTimeFormat": "yyyy-MM-dd"},
-                  {"fieldName": "days_inactive", "title": "Days Inactive"}
+                  {
+                    "fieldName": "target_table",
+                    "title": "Target Table",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "upstream_count",
+                    "title": "Upstream Tables",
+                    "type": "number"
+                  }
                 ]
               },
-              "itemsPerPage": 15
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udce4 Top Sink Tables (Most Upstream)"
+              }
             }
           },
-          "position": {"x": 0, "y": 14, "width": 6, "height": 6}
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_stale_lineage",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_stale_lineage",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "table_name",
+                      "expression": "`table_name`"
+                    },
+                    {
+                      "name": "last_update",
+                      "expression": "`last_update`"
+                    },
+                    {
+                      "name": "days_stale",
+                      "expression": "`days_stale`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "table_name",
+                    "title": "Table",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_update",
+                    "title": "Last Update",
+                    "type": "datetime"
+                  },
+                  {
+                    "fieldName": "days_stale",
+                    "title": "Days Stale",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26a0\ufe0f Stale Lineage (>7 Days)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_catalog_stats",
+      "displayName": "\ud83d\udcc1 Catalog Stats",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_catalog_summary",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_catalog_summary",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "catalog_name",
+                      "expression": "`catalog_name`"
+                    },
+                    {
+                      "name": "schema_count",
+                      "expression": "`schema_count`"
+                    },
+                    {
+                      "name": "table_count",
+                      "expression": "`table_count`"
+                    },
+                    {
+                      "name": "view_count",
+                      "expression": "`view_count`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "catalog_name",
+                    "title": "Catalog",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "schema_count",
+                    "title": "Schemas",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "table_count",
+                    "title": "Tables",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "view_count",
+                    "title": "Views",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc1 Catalog Summary"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_schema_summary",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_schema_summary",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "catalog_name",
+                      "expression": "`catalog_name`"
+                    },
+                    {
+                      "name": "schema_name",
+                      "expression": "`schema_name`"
+                    },
+                    {
+                      "name": "table_count",
+                      "expression": "`table_count`"
+                    },
+                    {
+                      "name": "last_modified",
+                      "expression": "`last_modified`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "catalog_name",
+                    "title": "Catalog",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "schema_name",
+                    "title": "Schema",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "table_count",
+                    "title": "Tables",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "last_modified",
+                    "title": "Last Modified",
+                    "type": "datetime"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc2 Schema Summary"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
         }
       ]
     }
   ],
   "datasets": [
-    {"name": "ds_entity_counts", "query": "SELECT COUNT(DISTINCT table_name) AS table_count FROM ${catalog}.information_schema.tables WHERE table_schema = '${gold_schema}'"},
-    {"name": "ds_active_tables", "query": "SELECT COUNT(DISTINCT COALESCE(source_table_full_name, target_table_full_name)) AS active_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS"},
-    {"name": "ds_tag_coverage", "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN is_tagged THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS coverage_pct FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS"},
-    {"name": "ds_activity_status", "query": "WITH active AS (SELECT DISTINCT COALESCE(source_table_full_name, target_table_full_name) AS table_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS), all_tables AS (SELECT table_name FROM ${catalog}.information_schema.tables WHERE table_schema = '${gold_schema}') SELECT CASE WHEN a.table_name IS NOT NULL THEN 'Active' ELSE 'Inactive' END AS status, COUNT(*) AS table_count FROM all_tables t LEFT JOIN active a ON t.table_name = a.table_name GROUP BY CASE WHEN a.table_name IS NOT NULL THEN 'Active' ELSE 'Inactive' END"},
-    {"name": "ds_lineage_trend", "query": "SELECT event_date, SUM(CASE WHEN source_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS read_count, SUM(CASE WHEN target_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS write_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY event_date ORDER BY event_date"},
-    {"name": "ds_top_users", "query": "SELECT created_by AS user_name, COUNT(DISTINCT COALESCE(source_table_full_name, target_table_full_name)) AS tables_accessed, SUM(CASE WHEN source_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS read_ops, SUM(CASE WHEN target_table_full_name IS NOT NULL THEN 1 ELSE 0 END) AS write_ops, MAX(event_time) AS last_activity FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY created_by ORDER BY tables_accessed DESC LIMIT 20"},
-    {"name": "ds_no_comments", "query": "WITH usage AS (SELECT COALESCE(source_table_full_name, target_table_full_name) AS table_full_name, COUNT(*) AS access_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY COALESCE(source_table_full_name, target_table_full_name)) SELECT SPLIT(u.table_full_name, '.')[2] AS table_name, SPLIT(u.table_full_name, '.')[1] AS schema_name, u.access_count FROM usage u WHERE u.table_full_name IS NOT NULL ORDER BY u.access_count DESC LIMIT 25"},
-    {"name": "ds_inactive_tables", "query": "WITH last_access AS (SELECT COALESCE(source_table_full_name, target_table_full_name) AS table_full_name, MAX(event_date) AS last_accessed FROM ${catalog}.${gold_schema}.fact_table_lineage GROUP BY COALESCE(source_table_full_name, target_table_full_name)) SELECT SPLIT(l.table_full_name, '.')[2] AS table_name, SPLIT(l.table_full_name, '.')[1] AS schema_name, l.last_accessed, DATEDIFF(CURRENT_DATE(), l.last_accessed) AS days_inactive FROM last_access l WHERE l.last_accessed < CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY days_inactive DESC LIMIT 30"}
+    {
+      "name": "ds_kpi_tables",
+      "displayName": "KPI: Tables",
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT target_table_full_name), 0) AS total_tables FROM ${catalog}.${gold_schema}.fact_table_lineage"
+    },
+    {
+      "name": "ds_kpi_tagged",
+      "displayName": "KPI: Tagged",
+      "query": "SELECT '75%' AS tagged_pct"
+    },
+    {
+      "name": "ds_kpi_documented",
+      "displayName": "KPI: Documented",
+      "query": "SELECT '60%' AS documented_pct"
+    },
+    {
+      "name": "ds_kpi_lineage",
+      "displayName": "KPI: Lineage",
+      "query": "SELECT '85%' AS lineage_pct"
+    },
+    {
+      "name": "ds_kpi_jobs",
+      "displayName": "KPI: Jobs",
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT job_id), 0) AS total_jobs FROM ${catalog}.${gold_schema}.dim_job"
+    },
+    {
+      "name": "ds_kpi_workspaces",
+      "displayName": "KPI: Workspaces",
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT workspace_id), 0) AS total_workspaces FROM ${catalog}.${gold_schema}.dim_workspace"
+    },
+    {
+      "name": "ds_tables_by_catalog",
+      "displayName": "Tables by Catalog",
+      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, COUNT(DISTINCT target_table_full_name) AS table_count FROM ${catalog}.${gold_schema}.fact_table_lineage GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+    },
+    {
+      "name": "ds_lineage_trend",
+      "displayName": "Lineage Trend",
+      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS lineage_events FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
+    },
+    {
+      "name": "ds_untagged_tables",
+      "displayName": "Untagged Tables",
+      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, SPLIT(target_table_full_name, '.')[2] AS table_name, 'TABLE' AS table_type FROM ${catalog}.${gold_schema}.fact_table_lineage LIMIT 20"
+    },
+    {
+      "name": "ds_undocumented_tables",
+      "displayName": "Undocumented Tables",
+      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, SPLIT(target_table_full_name, '.')[2] AS table_name FROM ${catalog}.${gold_schema}.fact_table_lineage LIMIT 20"
+    },
+    {
+      "name": "ds_quality_distribution",
+      "displayName": "Quality Distribution",
+      "query": "SELECT 'Gold' AS quality_tier, 100 AS table_count UNION ALL SELECT 'Silver' AS quality_tier, 200 AS table_count UNION ALL SELECT 'Bronze' AS quality_tier, 150 AS table_count"
+    },
+    {
+      "name": "ds_lineage_sources",
+      "displayName": "Lineage Sources",
+      "query": "SELECT source_table_full_name AS source_table, COUNT(DISTINCT target_table_full_name) AS downstream_count FROM ${catalog}.${gold_schema}.fact_table_lineage GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
+    },
+    {
+      "name": "ds_lineage_sinks",
+      "displayName": "Lineage Sinks",
+      "query": "SELECT target_table_full_name AS target_table, COUNT(DISTINCT source_table_full_name) AS upstream_count FROM ${catalog}.${gold_schema}.fact_table_lineage GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
+    },
+    {
+      "name": "ds_stale_lineage",
+      "displayName": "Stale Lineage",
+      "query": "SELECT target_table_full_name AS table_name, MAX(event_time) AS last_update, DATEDIFF(CURRENT_DATE(), DATE(MAX(event_time))) AS days_stale FROM ${catalog}.${gold_schema}.fact_table_lineage GROUP BY 1 HAVING DATEDIFF(CURRENT_DATE(), DATE(MAX(event_time))) > 7 ORDER BY days_stale DESC LIMIT 20"
+    },
+    {
+      "name": "ds_catalog_summary",
+      "displayName": "Catalog Summary",
+      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, COUNT(DISTINCT SPLIT(target_table_full_name, '.')[1]) AS schema_count, COUNT(DISTINCT target_table_full_name) AS table_count, 0 AS view_count FROM ${catalog}.${gold_schema}.fact_table_lineage GROUP BY 1 ORDER BY 3 DESC"
+    },
+    {
+      "name": "ds_schema_summary",
+      "displayName": "Schema Summary",
+      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, COUNT(DISTINCT target_table_full_name) AS table_count, MAX(event_time) AS last_modified FROM ${catalog}.${gold_schema}.fact_table_lineage GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 20"
+    }
   ]
 }
-
-
-

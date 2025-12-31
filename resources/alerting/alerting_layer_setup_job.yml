@@ -1,0 +1,100 @@
+# Alerting Layer Setup Orchestrator
+# ==================================
+#
+# Composite job that orchestrates the complete alerting layer setup:
+# 1. Creates alerting tables (alert_configurations, notification_destinations, alert_history, alert_sync_metrics)
+# 2. Validates all alert queries
+# 3. Syncs notification destinations (optional)
+# 4. Deploys SQL alerts to Databricks
+#
+# This job should be run once to set up the alerting framework, then re-run
+# when alert configurations change.
+#
+# Usage:
+#   databricks bundle run -t dev alerting_layer_setup_job
+
+resources:
+  jobs:
+    alerting_layer_setup_job:
+      name: "[${bundle.target}] Health Monitor - Alerting Layer Setup"
+      description: >
+        Composite job: Orchestrates complete alerting framework setup.
+        Sequence: Tables → Validation → Notification Destinations → SQL Alerts.
+        Run once for initial setup, then on configuration changes.
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "requests>=2.31.0"
+              - "databricks-sdk>=0.28.0"
+
+      tasks:
+        # Step 1: Create/verify alerting tables
+        - task_key: setup_alerting_tables
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/alerting/setup_alerting_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+          timeout_seconds: 600
+
+        # Step 2: Validate all alert queries (catches errors early)
+        - task_key: validate_alert_queries
+          depends_on:
+            - task_key: setup_alerting_tables
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/alerting/validate_all_queries.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              fail_on_warning: "false"
+          timeout_seconds: 900
+
+        # Step 3: Sync notification destinations (optional - requires admin)
+        - task_key: sync_notification_destinations
+          depends_on:
+            - task_key: setup_alerting_tables
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/alerting/sync_notification_destinations.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              dry_run: "true"  # Set to "false" to create destinations (requires admin)
+          timeout_seconds: 600
+
+        # Step 4: Deploy SQL alerts (only if validation passes)
+        - task_key: deploy_sql_alerts
+          depends_on:
+            - task_key: validate_alert_queries
+            - task_key: sync_notification_destinations
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/alerting/sync_sql_alerts.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              warehouse_id: ${var.warehouse_id}
+              dry_run: "true"           # Set to "false" to deploy alerts
+              delete_disabled: "false"  # Set to "true" to auto-delete disabled alerts
+              enable_parallel: "false"  # Reserved for future use
+              parallel_workers: "5"     # Reserved for future use
+          timeout_seconds: 1800
+
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+        on_success:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: alerting
+        job_type: setup
+        job_level: composite
+        compute_type: serverless

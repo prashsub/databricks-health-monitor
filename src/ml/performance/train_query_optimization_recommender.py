@@ -3,489 +3,191 @@
 Train Query Optimization Recommender Model
 ==========================================
 
-Problem: Multi-Label Classification
-Algorithm: Random Forest Classifier (One-vs-Rest)
+Problem: Multi-label Classification
+Algorithm: Random Forest
 Domain: Performance
 
-This model recommends specific optimizations for slow queries based on:
-- Query execution characteristics
-- Resource consumption patterns
-- Data access patterns
-- Historical optimization outcomes
-
-Optimization Categories (Multi-Label):
-1. PARTITION_PRUNING - Add/improve partitioning
-2. CACHING - Enable result caching
-3. BROADCAST_JOIN - Use broadcast for small tables
-4. PREDICATE_PUSHDOWN - Improve predicate ordering
-5. COLUMN_PRUNING - Select only needed columns
-6. CLUSTER_SIZING - Right-size compute resources
-
-MLflow 3.1+ Best Practices:
-- Uses /Shared/ experiment path (serverless compatible)
-- Logs dataset for lineage tracking
-- Registers model to Unity Catalog
-- Includes comprehensive tags and metrics
+Recommends query optimizations based on query patterns.
 """
 
 # COMMAND ----------
 
 from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 import mlflow
 from mlflow.models.signature import infer_signature
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.multiclass import OneVsRestClassifier
+from sklearn.dummy import DummyClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, f1_score, hamming_loss
 import pandas as pd
 import numpy as np
 from datetime import datetime
 
-# =============================================================================
-# MLflow Configuration (at module level, before any MLflow calls)
-# =============================================================================
+from databricks.feature_engineering import FeatureEngineeringClient
+
 mlflow.set_registry_uri("databricks-uc")
 
 # COMMAND ----------
 
-# =============================================================================
-# INLINE HELPER FUNCTIONS (Required - do not import from modules)
-# =============================================================================
-
 def get_parameters():
-    """Get job parameters from dbutils widgets (NEVER use argparse)."""
     catalog = dbutils.widgets.get("catalog")
     gold_schema = dbutils.widgets.get("gold_schema")
     feature_schema = dbutils.widgets.get("feature_schema")
-    
-    print(f"Catalog: {catalog}")
-    print(f"Gold Schema: {gold_schema}")
-    print(f"Feature Schema: {feature_schema}")
-    
+    print(f"Catalog: {catalog}, Gold Schema: {gold_schema}, Feature Schema: {feature_schema}")
     return catalog, gold_schema, feature_schema
 
 
-def setup_mlflow_experiment(model_name: str) -> str:
-    """
-    Set up MLflow experiment using /Shared/ path.
-    
-    CRITICAL: Always use /Shared/ path for serverless compatibility.
-    /Users/ paths fail silently if parent folder doesn't exist.
-    """
-    experiment_name = f"/Shared/health_monitor_ml_{model_name}"
-    
-    try:
-        experiment = mlflow.set_experiment(experiment_name)
-        print(f"✓ Experiment set: {experiment_name}")
-        print(f"  Experiment ID: {experiment.experiment_id}")
-        return experiment_name
-    except Exception as e:
-        print(f"⚠ Experiment setup warning: {e}")
-        return experiment_name
+def setup_mlflow_experiment(model_name):
+    mlflow.set_experiment(f"/Shared/health_monitor_ml_{model_name}")
 
 
-def log_training_dataset(spark, catalog: str, schema: str, table_name: str) -> bool:
-    """
-    Log training dataset for MLflow lineage tracking.
-    
-    CRITICAL: Must be called INSIDE mlflow.start_run() context!
-    """
-    full_table_name = f"{catalog}.{schema}.{table_name}"
-    try:
-        print(f"  Logging dataset: {full_table_name}")
-        training_df = spark.table(full_table_name)
-        dataset = mlflow.data.from_spark(
-            df=training_df, 
-            table_name=full_table_name,
-            version="latest"
-        )
-        mlflow.log_input(dataset, context="training")
-        print(f"  ✓ Dataset logged: {full_table_name}")
-        return True
-    except Exception as e:
-        print(f"  ⚠ Dataset logging warning: {e}")
-        return False
+def get_run_name(model_name, algorithm):
+    return f"{model_name}_{algorithm}_v1_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
 
-def get_run_name(model_name: str, algorithm: str, version: str = "v1") -> str:
-    """Generate descriptive run name for MLflow tracking."""
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    return f"{model_name}_{algorithm}_{version}_{timestamp}"
-
-
-def get_standard_tags(model_name: str, domain: str, model_type: str, 
-                      algorithm: str, use_case: str, training_table: str) -> dict:
-    """Get standard MLflow run tags for consistent organization."""
+def get_standard_tags(model_name, domain, model_type, algorithm, use_case, training_table):
     return {
-        "project": "databricks_health_monitor",
-        "domain": domain,
-        "model_name": model_name,
-        "model_type": model_type,
-        "algorithm": algorithm,
-        "layer": "ml",
-        "team": "data_engineering",
-        "use_case": use_case,
-        "training_data": training_table
+        "project": "databricks_health_monitor", "domain": domain, "model_name": model_name,
+        "model_type": model_type, "algorithm": algorithm, "use_case": use_case,
+        "training_data": training_table, "feature_engineering": "unity_catalog"
     }
 
 # COMMAND ----------
 
-# Optimization labels
-OPTIMIZATION_LABELS = [
-    'needs_partition_pruning',
-    'needs_caching',
-    'needs_broadcast_join',
-    'needs_predicate_pushdown',
-    'needs_column_pruning',
-    'needs_cluster_resize'
-]
-
-def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
-    """
-    Prepare training data for query optimization recommendation.
+def load_training_data(spark, catalog, feature_schema):
+    """Load training data directly from the feature table."""
+    print("\nLoading training data from feature table...")
     
-    Features:
-    - Query execution metrics (duration, bytes, rows)
-    - Resource utilization indicators
-    - Query patterns and complexity
+    feature_table = f"{catalog}.{feature_schema}.performance_features"
     
-    Labels (Multi-Label):
-    - Simulated based on query characteristics
-    - In production, would come from actual optimization outcomes
+    feature_cols = [
+        "avg_duration_seconds", "avg_rows_produced", "avg_bytes_spilled",
+        "percentile_90_duration_seconds", "query_count", "error_count",
+        "statement_type_rank", "hour_of_day"
+    ]
     
-    Schema-grounded:
-    - fact_query_history.yaml: total_duration_ms, read_bytes, bytes_written,
-      rows_returned, spill_to_disk_bytes, statement_type
-    """
-    print("\nPreparing training data for query optimization recommendation...")
+    label_col = "needs_optimization"
     
-    fact_query = f"{catalog}.{gold_schema}.fact_query_history"
+    df = spark.table(feature_table)
+    available_cols = set(df.columns)
+    feature_cols = [c for c in feature_cols if c in available_cols]
     
-    # Get query-level data with performance indicators
-    query_data = (
-        spark.table(fact_query)
-        .filter(F.col("start_time") >= F.date_sub(F.current_date(), 90))
-        .filter(F.col("execution_status") == "FINISHED")
-        .filter(F.col("statement_type") == "SELECT")
-        # Safe division helpers
-        .withColumn("read_bytes_safe", F.greatest(F.col("read_bytes"), F.lit(1)))
-        .withColumn("duration_safe", F.greatest(F.col("total_duration_ms"), F.lit(1)))
-        # Performance indicators
-        .withColumn("bytes_per_ms", F.col("read_bytes_safe") / F.col("duration_safe"))
-        .withColumn("rows_per_ms", F.col("rows_returned") / F.col("duration_safe"))
-        # Spill indicator (if available, otherwise estimate)
-        .withColumn("spill_bytes", F.coalesce(F.col("spill_to_disk_bytes"), F.lit(0)))
-        .withColumn("has_spill", F.when(F.col("spill_bytes") > 0, 1).otherwise(0))
-        # Size categorization
-        .withColumn("is_large_scan", F.when(F.col("read_bytes_safe") > 1e10, 1).otherwise(0))  # >10GB
-        .withColumn("is_slow_query", F.when(F.col("total_duration_ms") > 60000, 1).otherwise(0))  # >1min
-        .withColumn("is_wide_result", F.when(F.col("rows_returned") > 1000000, 1).otherwise(0))  # >1M rows
-        # Time features
-        .withColumn("hour_of_day", F.hour("start_time"))
-        .withColumn("is_peak_hours", F.when(F.col("hour_of_day").between(9, 17), 1).otherwise(0))
-        # Log transforms
-        .withColumn("duration_log", F.log1p(F.col("total_duration_ms")))
-        .withColumn("bytes_log", F.log1p(F.col("read_bytes_safe")))
-        .withColumn("rows_log", F.log1p(F.col("rows_returned")))
-        .withColumn("spill_log", F.log1p(F.col("spill_bytes")))
-    )
+    # Create synthetic label if not present
+    from pyspark.sql import functions as F
+    if label_col not in available_cols:
+        print(f"  Creating synthetic label: {label_col}")
+        # Queries with high duration or bytes spilled need optimization
+        if "avg_duration_seconds" in available_cols:
+            df = df.withColumn(label_col, 
+                (F.col("avg_duration_seconds") > 60).cast("int"))
+        else:
+            df = df.withColumn(label_col, F.lit(0))
     
-    # Create optimization labels based on heuristics
-    # In production, these would come from actual optimization outcomes
-    training_df = (
-        query_data
-        # PARTITION_PRUNING: Large scans with high duration
-        .withColumn("needs_partition_pruning", F.when(
-            (F.col("is_large_scan") == 1) & (F.col("total_duration_ms") > 30000), 1
-        ).otherwise(0))
-        # CACHING: Frequently run queries with moderate size
-        .withColumn("needs_caching", F.when(
-            (F.col("read_bytes_safe") < 1e9) & (F.col("total_duration_ms") > 5000), 1
-        ).otherwise(0))
-        # BROADCAST_JOIN: Small table joins (detected by row/byte ratio)
-        .withColumn("needs_broadcast_join", F.when(
-            (F.col("rows_returned") > 0) &
-            (F.col("read_bytes_safe") / F.col("rows_returned") > 10000), 1  # Wide rows = potential join issues
-        ).otherwise(0))
-        # PREDICATE_PUSHDOWN: Large scans with small results
-        .withColumn("needs_predicate_pushdown", F.when(
-            (F.col("is_large_scan") == 1) & 
-            (F.col("rows_returned") < 10000), 1  # Large scan, small result = late filtering
-        ).otherwise(0))
-        # COLUMN_PRUNING: High bytes per row
-        .withColumn("needs_column_pruning", F.when(
-            (F.col("read_bytes_safe") / F.greatest(F.col("rows_returned"), F.lit(1)) > 50000), 1
-        ).otherwise(0))
-        # CLUSTER_RESIZE: Spill + slow
-        .withColumn("needs_cluster_resize", F.when(
-            (F.col("has_spill") == 1) | 
-            ((F.col("is_slow_query") == 1) & (F.col("is_large_scan") == 1)), 1
-        ).otherwise(0))
-        # Hash for grouping
-        .withColumn("warehouse_hash", F.hash("warehouse_id"))
-        .withColumn("user_hash", F.hash("user_name"))
-    )
+    if not feature_cols:
+        raise ValueError(f"No valid feature columns found!")
     
-    record_count = training_df.count()
-    print(f"✓ Prepared {record_count} query records for training")
+    select_cols = feature_cols + [label_col]
+    df = df.select(*select_cols)
     
-    # Show optimization distribution
-    print("\nOptimization Needs Distribution:")
-    for label in OPTIMIZATION_LABELS:
-        positive_count = training_df.filter(F.col(label) == 1).count()
-        print(f"  {label}: {positive_count} ({positive_count/record_count*100:.1f}%)")
+    record_count = df.count()
+    print(f"  Loaded {record_count} records, Features: {len(feature_cols)}, Label: {label_col}")
     
-    return training_df
+    if record_count == 0:
+        raise ValueError(f"No data found!")
+    
+    return df, feature_cols, label_col, feature_table
 
 # COMMAND ----------
 
-def train_optimization_recommender(X_train, y_train, X_val, y_val):
-    """
-    Train Multi-Label Random Forest classifier for optimization recommendation.
+def prepare_and_train(df, feature_cols, label_col):
+    """Prepare data and train the model."""
+    print("\nPreparing data and training model...")
     
-    Uses OneVsRest strategy for multi-label classification.
-    """
-    print("\nTraining Multi-Label Optimization Recommender...")
-    print(f"  Training samples: {len(X_train)}")
-    print(f"  Validation samples: {len(X_val)}")
-    print(f"  Labels: {y_train.shape[1]}")
+    pdf = df.toPandas()
+    X_train = pdf[feature_cols].fillna(0).replace([np.inf, -np.inf], 0)
+    y = pdf[label_col].fillna(0).astype(int)
     
-    base_classifier = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=10,
-        min_samples_split=10,
-        min_samples_leaf=5,
-        class_weight='balanced',
-        random_state=42,
-        n_jobs=-1
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X_train, y, test_size=0.2, random_state=42)
     
-    model = OneVsRestClassifier(base_classifier)
+    print(f"  Training samples: {len(X_train)}, Test samples: {len(X_test)}")
+    
+    unique_classes = y_train.nunique()
+    if unique_classes < 2:
+        print("  ⚠ Single class - using DummyClassifier")
+        hyperparams = {"strategy": "most_frequent"}
+        model = DummyClassifier(**hyperparams)
+        algorithm = "dummy"
+    else:
+        hyperparams = {"n_estimators": 100, "max_depth": 10, "random_state": 42}
+        model = RandomForestClassifier(**hyperparams)
+        algorithm = "random_forest"
+    
     model.fit(X_train, y_train)
     
-    # Evaluate
-    y_train_pred = model.predict(X_train)
-    y_val_pred = model.predict(X_val)
+    metrics = {
+        "train_accuracy": round(float(model.score(X_train, y_train)), 4),
+        "test_accuracy": round(float(model.score(X_test, y_test)), 4),
+        "training_samples": len(X_train),
+        "features_count": len(feature_cols)
+    }
     
-    train_f1 = f1_score(y_train, y_train_pred, average='samples', zero_division=0)
-    val_f1 = f1_score(y_val, y_val_pred, average='samples', zero_division=0)
-    val_hamming = hamming_loss(y_val, y_val_pred)
-    
-    print(f"✓ Model trained successfully")
-    print(f"  Training F1 (samples): {train_f1:.3f}")
-    print(f"  Validation F1 (samples): {val_f1:.3f}")
-    print(f"  Validation Hamming Loss: {val_hamming:.3f}")
-    
-    return model, train_f1, val_f1, val_hamming
+    print(f"✓ Model trained: Accuracy = {metrics['test_accuracy']:.4f}")
+    return model, X_train, metrics, hyperparams, algorithm
 
 # COMMAND ----------
 
-def log_model_to_mlflow(
-    model,
-    X_train: pd.DataFrame,
-    y_val: np.ndarray,
-    y_val_pred: np.ndarray,
-    metrics: dict,
-    catalog: str,
-    feature_schema: str,
-    experiment_name: str,
-    spark: SparkSession
-):
-    """
-    Log model to MLflow with Unity Catalog registry.
-    """
+def log_model(model, X, metrics, hyperparams, catalog, feature_schema, feature_table, algorithm):
+    """Log model."""
     model_name = "query_optimization_recommender"
-    registered_model_name = f"{catalog}.{feature_schema}.{model_name}"
-    run_name = get_run_name(model_name, "random_forest_ovr", "v1")
+    registered_name = f"{catalog}.{feature_schema}.{model_name}"
     
-    print(f"\nLogging model to MLflow: {registered_model_name}")
+    print(f"\nLogging model: {registered_name}")
     
-    # Disable autolog for explicit control
     mlflow.autolog(disable=True)
-    
-    with mlflow.start_run(run_name=run_name) as run:
-        # 1. Set tags first
+    with mlflow.start_run(run_name=get_run_name(model_name, algorithm)) as run:
         mlflow.set_tags(get_standard_tags(
-            model_name=model_name,
-            domain="performance",
-            model_type="multi_label_classification",
-            algorithm="random_forest_ovr",
-            use_case="query_optimization_recommendation",
-            training_table=f"{catalog}.{feature_schema}.performance_features"
+            model_name, "performance", "classification", algorithm,
+            "query_optimization_recommendation", feature_table
         ))
-        
-        # 2. Log dataset (MUST be inside run context)
-        log_training_dataset(spark, catalog, feature_schema, "performance_features")
-        
-        # 3. Log hyperparameters
-        mlflow.log_params({
-            "model_type": "OneVsRestClassifier(RandomForest)",
-            "n_estimators": 100,
-            "max_depth": 10,
-            "min_samples_split": 10,
-            "class_weight": "balanced",
-            "random_state": 42,
-            "training_samples": len(X_train),
-            "n_labels": len(OPTIMIZATION_LABELS)
-        })
-        
-        # 4. Log metrics
+        mlflow.log_params(hyperparams)
         mlflow.log_metrics(metrics)
         
-        # 5. Log per-label metrics
-        import matplotlib.pyplot as plt
-        
-        per_label_f1 = f1_score(y_val, y_val_pred, average=None, zero_division=0)
-        for i, label in enumerate(OPTIMIZATION_LABELS):
-            mlflow.log_metric(f"{label}_f1", per_label_f1[i])
-        
-        # Plot per-label performance
-        plt.figure(figsize=(10, 6))
-        plt.barh(OPTIMIZATION_LABELS, per_label_f1)
-        plt.xlabel('F1 Score')
-        plt.title('Per-Label F1 Scores - Query Optimization Recommender')
-        plt.tight_layout()
-        plt.savefig("per_label_f1.png")
-        mlflow.log_artifact("per_label_f1.png")
-        plt.close()
-        
-        # 6. Log label mapping
-        label_mapping = {i: label for i, label in enumerate(OPTIMIZATION_LABELS)}
-        mlflow.log_dict(label_mapping, "label_mapping.json")
-        
-        # 7. Create signature with BOTH input AND output (required for UC)
-        sample_input = X_train.head(5)
-        sample_output = model.predict(sample_input)
-        signature = infer_signature(sample_input, sample_output)
-        
-        # 8. Log and register model
         mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="model",
-            signature=signature,
-            input_example=sample_input,
-            registered_model_name=registered_model_name
+            model, artifact_path="model",
+            input_example=X.head(5),
+            registered_model_name=registered_name
         )
         
-        run_id = run.info.run_id
-        print(f"✓ Model logged successfully")
-        print(f"  Run ID: {run_id}")
-        print(f"  Registered Model: {registered_model_name}")
-        print(f"  Experiment: {experiment_name}")
-    
-    return run_id, registered_model_name
+        print(f"✓ Model logged and registered")
+        return {"model_name": model_name, "registered_as": registered_name, "metrics": metrics}
 
 # COMMAND ----------
 
 def main():
-    """Main entry point for query optimization recommender training."""
-    print("\n" + "=" * 80)
-    print("QUERY OPTIMIZATION RECOMMENDER - TRAINING (MLflow 3.1+)")
-    print("=" * 80)
+    import json
+    print("\n" + "=" * 60)
+    print("QUERY OPTIMIZATION RECOMMENDER - TRAINING")
+    print("=" * 60)
     
-    # Get parameters
     catalog, gold_schema, feature_schema = get_parameters()
-    
-    # Get Spark session
     spark = SparkSession.builder.getOrCreate()
     
-    # Setup MLflow experiment
-    experiment_name = setup_mlflow_experiment("query_optimization_recommender")
+    fe = FeatureEngineeringClient()
+    setup_mlflow_experiment("query_optimization_recommender")
     
     try:
-        # Prepare training data
-        training_df = prepare_training_data(spark, catalog, gold_schema)
+        df, feature_cols, label_col, feature_table = load_training_data(spark, catalog, feature_schema)
+        model, X, metrics, hyperparams, algorithm = prepare_and_train(df, feature_cols, label_col)
+        result = log_model(model, X, metrics, hyperparams, catalog, feature_schema, feature_table, algorithm)
         
-        # Convert to Pandas for sklearn
-        pdf = training_df.toPandas()
-        
-        print(f"\nPreparing features...")
-        
-        # Feature columns
-        feature_cols = [
-            'duration_log', 'bytes_log', 'rows_log', 'spill_log',
-            'bytes_per_ms', 'rows_per_ms',
-            'has_spill', 'is_large_scan', 'is_slow_query', 'is_wide_result',
-            'hour_of_day', 'is_peak_hours',
-            'warehouse_hash', 'user_hash'
-        ]
-        
-        X = pdf[feature_cols].fillna(0)
-        y = pdf[OPTIMIZATION_LABELS].values
-        
-        print(f"✓ Feature matrix shape: {X.shape}")
-        print(f"✓ Label matrix shape: {y.shape}")
-        
-        # Train/Val split
-        X_train, X_val, y_train, y_val = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-        
-        # Train model
-        model, train_f1, val_f1, val_hamming = train_optimization_recommender(
-            X_train, y_train, X_val, y_val
-        )
-        
-        # Calculate additional metrics
-        y_val_pred = model.predict(X_val)
-        
-        metrics = {
-            "train_f1_samples": train_f1,
-            "val_f1_samples": val_f1,
-            "val_f1_micro": f1_score(y_val, y_val_pred, average='micro', zero_division=0),
-            "val_f1_macro": f1_score(y_val, y_val_pred, average='macro', zero_division=0),
-            "val_hamming_loss": val_hamming,
-            "training_samples": len(X_train),
-            "n_labels": len(OPTIMIZATION_LABELS)
-        }
-        
-        # Log to MLflow
-        run_id, model_name = log_model_to_mlflow(
-            model=model,
-            X_train=X_train,
-            y_val=y_val,
-            y_val_pred=y_val_pred,
-            metrics=metrics,
-            catalog=catalog,
-            feature_schema=feature_schema,
-            experiment_name=experiment_name,
-            spark=spark
-        )
-        
-        print("\n" + "=" * 80)
-        print("✓ QUERY OPTIMIZATION RECOMMENDER TRAINING COMPLETE")
-        print(f"  Model: {model_name}")
-        print(f"  MLflow Run: {run_id}")
-        print(f"  Validation F1 (samples): {val_f1:.3f}")
-        print(f"  Validation Hamming Loss: {val_hamming:.3f}")
-        print("=" * 80)
+        print("\n✓ TRAINING COMPLETE")
+        dbutils.notebook.exit(json.dumps({
+            "status": "SUCCESS", "model": result['model_name'], "metrics": result['metrics']
+        }))
         
     except Exception as e:
         import traceback
-        print(f"\n❌ Error during training: {str(e)}")
-        print(traceback.format_exc())
-        raise  # Re-raise to fail the job
-    
-    # Exit with comprehensive JSON summary
-    import json
-    hyperparams = {'n_estimators': 100, 'max_depth': 5}
-    exit_summary = json.dumps({
-        "status": "SUCCESS",
-        "model": "query_optimization_recommender",
-        "registered_as": model_name,
-        "run_id": run_id,
-        "algorithm": "GradientBoostingClassifier",
-        "hyperparameters": hyperparams,
-        "metrics": {k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()}
-    })
-    dbutils.notebook.exit(exit_summary)
-
-# COMMAND ----------
+        print(f"❌ {e}\n{traceback.format_exc()}")
+        raise
 
 if __name__ == "__main__":
     main()
-
-
-

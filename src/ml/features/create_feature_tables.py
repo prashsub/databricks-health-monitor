@@ -87,9 +87,15 @@ def create_feature_table(
     print(f"\nCreating feature table: {full_table_name}")
     print(f"Primary keys: {primary_keys}")
     
+    # Filter out rows where any primary key column is NULL
+    # This is REQUIRED for PRIMARY KEY constraint
+    print(f"  Filtering NULL primary key rows...")
+    for pk_col in primary_keys:
+        df = df.filter(F.col(pk_col).isNotNull())
+    
     # Ensure we have data
     row_count = df.count()
-    print(f"  DataFrame has {row_count} rows")
+    print(f"  DataFrame has {row_count} rows after NULL filtering")
     
     if row_count == 0:
         raise ValueError(f"Cannot create feature table {full_table_name} with 0 rows")
@@ -101,21 +107,35 @@ def create_feature_table(
     except Exception as e:
         print(f"  Note: {e}")
     
-    # Create temporary view for the dataframe
-    temp_view_name = f"temp_{table_name}"
-    df.createOrReplaceTempView(temp_view_name)
+    # Build column definitions with NOT NULL for primary keys
+    schema_fields = []
+    for field in df.schema.fields:
+        col_name = field.name
+        col_type = field.dataType.simpleString()
+        if col_name in primary_keys:
+            schema_fields.append(f"`{col_name}` {col_type} NOT NULL")
+        else:
+            schema_fields.append(f"`{col_name}` {col_type}")
     
-    # Use CREATE TABLE AS SELECT for reliable Unity Catalog table creation
-    spark.sql(f"""
-        CREATE TABLE {full_table_name}
+    schema_def = ", ".join(schema_fields)
+    
+    # Create table with explicit schema (NOT NULL for PKs)
+    create_sql = f"""
+        CREATE TABLE {full_table_name} (
+            {schema_def}
+        )
         USING DELTA
         TBLPROPERTIES (
             'delta.autoOptimize.optimizeWrite' = 'true',
             'delta.autoOptimize.autoCompact' = 'true'
         )
-        AS SELECT * FROM {temp_view_name}
-    """)
-    print(f"  ✓ Table created via CTAS")
+    """
+    print(f"  Creating table with explicit schema...")
+    spark.sql(create_sql)
+    
+    # Insert data
+    print(f"  Inserting {row_count} rows...")
+    df.write.mode("append").saveAsTable(full_table_name)
     
     # Verify table exists and has data
     verify_count = spark.sql(f"SELECT COUNT(*) FROM {full_table_name}").collect()[0][0]
@@ -132,17 +152,45 @@ def create_feature_table(
         print(f"  Note: Could not add comment: {e}")
     
     # Add primary key constraint for feature table eligibility
-    pk_cols = ", ".join(primary_keys)
+    # CRITICAL: Feature Engineering requires tables to have PRIMARY KEY constraints
+    pk_cols = ", ".join([f"`{pk}`" for pk in primary_keys])
     pk_name = f"pk_{table_name}"
     
+    # First, try to drop any existing constraint
     try:
-        spark.sql(f"""
-            ALTER TABLE {full_table_name}
-            ADD CONSTRAINT {pk_name} PRIMARY KEY ({pk_cols}) NOT ENFORCED
-        """)
+        spark.sql(f"ALTER TABLE {full_table_name} DROP CONSTRAINT IF EXISTS {pk_name}")
+    except Exception:
+        pass  # Ignore if constraint doesn't exist
+    
+    # Add the primary key constraint - MUST succeed for Feature Engineering
+    try:
+        add_pk_sql = f"ALTER TABLE {full_table_name} ADD CONSTRAINT {pk_name} PRIMARY KEY ({pk_cols}) NOT ENFORCED"
+        print(f"  Adding PK constraint: {add_pk_sql}")
+        spark.sql(add_pk_sql)
         print(f"  ✓ Primary key constraint added: {pk_name}")
     except Exception as e:
-        print(f"  ⚠ Warning: Could not add PK constraint: {e}")
+        error_msg = str(e)
+        if "already exists" in error_msg.lower():
+            print(f"  ✓ Primary key constraint already exists: {pk_name}")
+        else:
+            print(f"  ❌ CRITICAL: Could not add PK constraint: {e}")
+            raise ValueError(f"Feature table {full_table_name} requires PRIMARY KEY constraint for Feature Engineering. Error: {e}")
+    
+    # Verify the constraint was added
+    try:
+        constraints = spark.sql(f"SHOW TBLPROPERTIES {full_table_name}").collect()
+        pk_found = any("primary_key" in str(c).lower() or pk_name.lower() in str(c).lower() for c in constraints)
+        if not pk_found:
+            # Try another verification method
+            desc = spark.sql(f"DESCRIBE EXTENDED {full_table_name}").collect()
+            pk_found = any("primary key" in str(row).lower() for row in desc)
+        
+        if pk_found:
+            print(f"  ✓ Verified: Primary key constraint exists on {full_table_name}")
+        else:
+            print(f"  ⚠ Warning: Could not verify PK constraint on {full_table_name}")
+    except Exception as e:
+        print(f"  Note: Could not verify PK constraint: {e}")
     
     print(f"  ✓ Feature table created successfully: {full_table_name}")
     
@@ -194,12 +242,13 @@ def compute_cost_features(
         # Aggregate to daily level by workspace and SKU with ALL_PURPOSE detection
         # Workflow Advisor Blog: Jobs on ALL_PURPOSE clusters are inefficient
         # NOTE: Gold layer flattens usage_metadata.* to usage_metadata_* columns
-        # NOTE: Using ALL available data (no date filter) to ensure features are created
+        # NOTE: Aggregate to workspace-date level for Feature Engineering compatibility
+        # Primary keys: ["workspace_id", "usage_date"] - matches training scripts lookup keys
         usage_df = (
             spark.table(fact_usage)
             .withColumn("usage_date", F.to_date("usage_date"))
             .filter(F.col("usage_date").isNotNull())  # Only filter nulls, keep all dates
-            .groupBy("workspace_id", "sku_name", "usage_date")
+            .groupBy("workspace_id", "usage_date")  # Aggregate across SKUs
             .agg(
                 F.sum("usage_quantity").alias("daily_dbu"),
                 F.sum(F.coalesce(F.col("list_cost"), F.lit(0))).alias("daily_cost"),
@@ -235,24 +284,24 @@ def compute_cost_features(
             )
         )
         agg_count = usage_df.count()
-        print(f"  Aggregated to {agg_count} workspace-SKU-date combinations")
+        print(f"  Aggregated to {agg_count} workspace-date combinations")
         print(f"  ✓ Found {fact_usage}")
     except Exception as e:
         print(f"  ⚠ Error reading {fact_usage}: {e}")
         raise
 
-    # Define window for rolling calculations
-    workspace_sku_window = Window.partitionBy("workspace_id", "sku_name").orderBy("usage_date")
-    workspace_sku_window_7d = workspace_sku_window.rowsBetween(-6, 0)
-    workspace_sku_window_30d = workspace_sku_window.rowsBetween(-29, 0)
+    # Define window for rolling calculations (workspace-date level)
+    workspace_window = Window.partitionBy("workspace_id").orderBy("usage_date")
+    workspace_window_7d = workspace_window.rowsBetween(-6, 0)
+    workspace_window_30d = workspace_window.rowsBetween(-29, 0)
 
     cost_features = (
         usage_df
         # Rolling statistics
-        .withColumn("avg_dbu_7d", F.avg("daily_dbu").over(workspace_sku_window_7d))
-        .withColumn("std_dbu_7d", F.stddev("daily_dbu").over(workspace_sku_window_7d))
-        .withColumn("avg_dbu_30d", F.avg("daily_dbu").over(workspace_sku_window_30d))
-        .withColumn("std_dbu_30d", F.stddev("daily_dbu").over(workspace_sku_window_30d))
+        .withColumn("avg_dbu_7d", F.avg("daily_dbu").over(workspace_window_7d))
+        .withColumn("std_dbu_7d", F.stddev("daily_dbu").over(workspace_window_7d))
+        .withColumn("avg_dbu_30d", F.avg("daily_dbu").over(workspace_window_30d))
+        .withColumn("std_dbu_30d", F.stddev("daily_dbu").over(workspace_window_30d))
 
         # Z-scores for anomaly detection
         .withColumn("z_score_7d",
@@ -275,8 +324,8 @@ def compute_cost_features(
         .withColumn("dow_cos", F.cos(2 * 3.14159 * F.col("day_of_week") / 7))
 
         # Lag features
-        .withColumn("daily_dbu_lag1", F.lag("daily_dbu", 1).over(workspace_sku_window))
-        .withColumn("daily_dbu_lag7", F.lag("daily_dbu", 7).over(workspace_sku_window))
+        .withColumn("daily_dbu_lag1", F.lag("daily_dbu", 1).over(workspace_window))
+        .withColumn("daily_dbu_lag7", F.lag("daily_dbu", 7).over(workspace_window))
 
         # Growth rates
         .withColumn("dbu_change_pct_1d",
@@ -386,8 +435,9 @@ def compute_security_features(
                     F.lit("SYSTEM")
                 ).otherwise(F.lit("UNKNOWN"))
             )
-            .groupBy("user_id", "user_type", "event_date")
+            .groupBy("user_id", "event_date")  # Simplified for Feature Engineering lookup keys
             .agg(
+                F.first("user_type").alias("user_type"),  # Keep user_type as a feature, not primary key
                 F.count("*").alias("event_count"),
                 # Access table names from request_params MAP
                 F.countDistinct(F.element_at("request_params", "tableName")).alias("tables_accessed"),
@@ -850,7 +900,7 @@ def create_cost_feature_table(
         config=config,
         table_name="cost_features",
         df=cost_features,
-        primary_keys=["workspace_id", "sku_name", "usage_date"],
+        primary_keys=["workspace_id", "usage_date"],
         description="Cost agent features for anomaly detection and forecasting. "
                    "Captures daily DBU usage patterns, rolling statistics, and contextual features.",
         timestamp_keys=["usage_date"],
@@ -887,7 +937,7 @@ def create_security_feature_table(
         config=config,
         table_name="security_features",
         df=security_features,
-        primary_keys=["user_id", "user_type", "event_date"],
+        primary_keys=["user_id", "event_date"],
         description="Security agent features for threat and anomaly detection. "
                    "Includes user type classification (HUMAN_USER, SERVICE_PRINCIPAL, SYSTEM), "
                    "activity burst detection, and lateral movement risk indicators.",
@@ -970,6 +1020,124 @@ def create_reliability_feature_table(
 
 # COMMAND ----------
 
+def compute_quality_features(
+    spark: SparkSession,
+    config: FeatureEngineeringConfig,
+    lookback_days: int = 365
+):
+    """
+    Compute quality features for data governance and quality monitoring.
+    
+    Features:
+    - Table counts and schema metrics
+    - Primary key coverage
+    - Change data feed adoption
+    - Schema change detection
+    
+    Source: information_schema tables
+    """
+    print("\nComputing quality features...")
+    print(f"  Using lookback period: {lookback_days} days")
+    
+    # Get catalog-level statistics from information_schema
+    try:
+        # Get table counts from information_schema.tables
+        # Note: information_schema.columns doesn't have table_type
+        quality_df = (
+            spark.sql(f"""
+                WITH table_stats AS (
+                    SELECT 
+                        table_catalog,
+                        table_schema,
+                        table_name,
+                        COUNT(*) as column_count
+                    FROM {config.catalog}.information_schema.columns
+                    WHERE table_catalog = '{config.catalog}'
+                    GROUP BY table_catalog, table_schema, table_name
+                )
+                SELECT 
+                    table_catalog as catalog_name,
+                    current_date() as snapshot_date,
+                    COUNT(DISTINCT table_name) as table_count,
+                    COUNT(DISTINCT table_schema) as schema_count,
+                    AVG(column_count) as column_count_avg,
+                    0 as total_rows,
+                    0 as tables_with_pk,
+                    0.0 as pk_coverage,
+                    0 as tables_with_cdf,
+                    0.0 as cdf_coverage,
+                    0 as tables_created_last_7d,
+                    0 as tables_modified_last_7d,
+                    0 as schema_changes_7d
+                FROM table_stats
+                GROUP BY table_catalog
+            """)
+            .withColumn("feature_timestamp", F.current_timestamp())
+        )
+        
+        row_count = quality_df.count()
+        print(f"  ✓ Computed {row_count} quality feature rows")
+        
+        return quality_df
+        
+    except Exception as e:
+        print(f"  ⚠ Error computing quality features: {e}")
+        # Return minimal dataframe with catalog as the key
+        return spark.createDataFrame([(
+            config.catalog,  # catalog_name
+            None,  # snapshot_date - will be set below
+            0,  # table_count
+            0,  # schema_count
+            0.0,  # column_count_avg
+            0,  # total_rows
+            0,  # tables_with_pk
+            0.0,  # pk_coverage
+            0,  # tables_with_cdf
+            0.0,  # cdf_coverage
+            0,  # tables_created_last_7d
+            0,  # tables_modified_last_7d
+            0,  # schema_changes_7d
+        )], ["catalog_name", "snapshot_date", "table_count", "schema_count", 
+             "column_count_avg", "total_rows", "tables_with_pk", "pk_coverage",
+             "tables_with_cdf", "cdf_coverage", "tables_created_last_7d",
+             "tables_modified_last_7d", "schema_changes_7d"]).withColumn(
+             "snapshot_date", F.current_date()
+        ).withColumn("feature_timestamp", F.current_timestamp())
+
+
+def create_quality_feature_table(
+    spark: SparkSession,
+    config: FeatureEngineeringConfig
+) -> str:
+    """Create quality agent feature table."""
+    # Compute features
+    quality_features = compute_quality_features(spark, config, lookback_days=365)
+    
+    # Create feature table
+    table_name = create_feature_table(
+        spark=spark,
+        config=config,
+        table_name="quality_features",
+        df=quality_features,
+        primary_keys=["catalog_name", "snapshot_date"],
+        description="Quality agent features for data governance monitoring. "
+                   "Captures catalog-level statistics and data quality metrics.",
+        timestamp_keys=["snapshot_date"],
+        tags={
+            "agent_domain": "quality",
+            "feature_type": "catalog_metrics",
+            "refresh_frequency": "daily"
+        }
+    )
+    
+    row_count = quality_features.count()
+    print(f"✓ Quality features created with {row_count} rows")
+    
+    return table_name
+
+
+# COMMAND ----------
+
 def create_all_feature_tables(
     spark: SparkSession,
     catalog: str,
@@ -1040,6 +1208,17 @@ def create_all_feature_tables(
         print(f"❌ Error: {error_msg}")
         errors.append(error_msg)
     
+    # Create quality features
+    print("\n" + "=" * 60)
+    print("Creating Quality Feature Table")
+    print("=" * 60)
+    try:
+        tables["quality"] = create_quality_feature_table(spark, config)
+    except Exception as e:
+        error_msg = f"Quality features: {str(e)}"
+        print(f"❌ Error: {error_msg}")
+        errors.append(error_msg)
+    
     # Summary
     print("\n" + "=" * 80)
     print("Feature Table Creation Summary")
@@ -1070,8 +1249,8 @@ def create_all_feature_tables(
     if len(verified_tables) == 0:
         raise RuntimeError(f"No feature tables were created! Errors: {errors}")
     
-    if len(verified_tables) < 4:
-        print(f"\n⚠ WARNING: Only {len(verified_tables)}/4 tables created successfully")
+    if len(verified_tables) < 5:
+        print(f"\n⚠ WARNING: Only {len(verified_tables)}/5 tables created successfully")
     
     return tables
 

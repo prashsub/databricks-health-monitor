@@ -3,17 +3,20 @@
 Train Budget Forecaster Model
 =============================
 
-Problem: Regression (Time Series Forecasting)
+Problem: Regression (Time Series)
 Algorithm: Gradient Boosting Regressor
 Domain: Cost
 
-This model predicts future monthly DBU costs to help:
-- Budget planning and allocation
-- Alert on projected overages
-- Capacity planning
-- Contract negotiation
+Forecasts future daily costs based on historical patterns.
 
-MLflow 3.1+ Best Practices Applied
+Feature Engineering in Unity Catalog:
+- Uses FeatureLookup for automatic lineage tracking
+- Uses fe.log_model() for automatic feature lookup at inference time
+
+CRITICAL: Unity Catalog requires models with BOTH input AND output signatures.
+All numeric columns are cast to float64 (MLflow doesn't support DECIMAL).
+
+Reference: https://docs.databricks.com/aws/en/machine-learning/feature-store/train-models-with-feature-store
 """
 
 # COMMAND ----------
@@ -24,262 +27,242 @@ import mlflow
 from mlflow.models.signature import infer_signature
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import pandas as pd
 import numpy as np
 from datetime import datetime
 
-# =============================================================================
-# MLflow Configuration (at module level)
-# =============================================================================
+from databricks.feature_engineering import FeatureEngineeringClient, FeatureLookup
+
 mlflow.set_registry_uri("databricks-uc")
 
 # COMMAND ----------
 
-# =============================================================================
-# INLINE HELPER FUNCTIONS (Required - do not import)
-# =============================================================================
-
 def get_parameters():
-    """Get job parameters from dbutils widgets."""
     catalog = dbutils.widgets.get("catalog")
     gold_schema = dbutils.widgets.get("gold_schema")
     feature_schema = dbutils.widgets.get("feature_schema")
-    
-    print(f"Catalog: {catalog}")
-    print(f"Gold Schema: {gold_schema}")
-    print(f"Feature Schema: {feature_schema}")
-    
+    print(f"Catalog: {catalog}, Gold Schema: {gold_schema}, Feature Schema: {feature_schema}")
     return catalog, gold_schema, feature_schema
 
 
-def setup_mlflow_experiment(model_name: str) -> str:
-    """Set up MLflow experiment using /Shared/ path."""
-    experiment_name = f"/Shared/health_monitor_ml_{model_name}"
-    try:
-        experiment = mlflow.set_experiment(experiment_name)
-        print(f"✓ Experiment: {experiment_name}")
-        return experiment_name
-    except Exception as e:
-        print(f"⚠ Experiment setup: {e}")
-        return experiment_name
+def setup_mlflow_experiment(model_name):
+    mlflow.set_experiment(f"/Shared/health_monitor_ml_{model_name}")
 
 
-def log_training_dataset(spark, catalog: str, schema: str, table_name: str) -> bool:
-    """Log training dataset - MUST be inside mlflow.start_run()."""
-    full_table_name = f"{catalog}.{schema}.{table_name}"
-    try:
-        training_df = spark.table(full_table_name)
-        dataset = mlflow.data.from_spark(df=training_df, table_name=full_table_name, version="latest")
-        mlflow.log_input(dataset, context="training")
-        print(f"  ✓ Dataset logged: {full_table_name}")
-        return True
-    except Exception as e:
-        print(f"  ⚠ Dataset logging: {e}")
-        return False
+def get_run_name(model_name, algorithm):
+    return f"{model_name}_{algorithm}_v1_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
 
-def get_run_name(model_name: str, algorithm: str) -> str:
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    return f"{model_name}_{algorithm}_v1_{timestamp}"
-
-
-def get_standard_tags(model_name: str, domain: str, model_type: str, algorithm: str, use_case: str, training_table: str) -> dict:
+def get_standard_tags(model_name, domain, model_type, algorithm, use_case, training_table):
     return {
-        "project": "databricks_health_monitor",
-        "domain": domain,
-        "model_name": model_name,
-        "model_type": model_type,
-        "algorithm": algorithm,
-        "layer": "ml",
-        "team": "data_engineering",
-        "use_case": use_case,
-        "training_data": training_table
+        "project": "databricks_health_monitor", "domain": domain, "model_name": model_name,
+        "model_type": model_type, "algorithm": algorithm, "use_case": use_case,
+        "training_data": training_table, "feature_engineering": "unity_catalog"
     }
 
 # COMMAND ----------
 
-def load_features(spark: SparkSession, catalog: str, feature_schema: str):
-    """Load cost features from feature table."""
-    feature_table = f"{catalog}.{feature_schema}.cost_features"
-    print(f"Loading features from {feature_table}...")
-    features_df = spark.table(feature_table)
-    print(f"✓ Loaded {features_df.count()} rows")
-    return features_df
-
-# COMMAND ----------
-
-def prepare_training_data(features_df):
+def create_training_set_with_features(spark, fe, catalog, feature_schema):
     """
-    Prepare features for budget forecasting.
-
-    Includes blog-derived features for better cost prediction:
-    - Serverless adoption trends (Workflow Advisor Blog)
-    - ALL_PURPOSE inefficiency patterns
-    - SKU breakdown indicators
-    """
-    feature_columns = [
-        # Core statistics
-        "avg_dbu_7d", "avg_dbu_30d", "std_dbu_7d", "std_dbu_30d",
-        # Time features
-        "dow_sin", "dow_cos", "is_weekend", "is_month_end",
-        "day_of_week", "day_of_month",
-        # Lag features for trend detection
-        "dbu_change_pct_1d", "dbu_change_pct_7d",
-        # =============================================================================
-        # WORKFLOW ADVISOR BLOG FEATURES (NEW)
-        # =============================================================================
-        "serverless_adoption_ratio",       # Trend toward serverless
-        "all_purpose_inefficiency_ratio",  # Inefficient spending pattern
-        "jobs_on_all_purpose_cost",        # Potential migration savings
-        "serverless_cost",                 # Serverless component
-        "dlt_cost",                         # DLT pipeline costs
-        "model_serving_cost",               # ML inference costs
-    ]
-    target_column = "daily_cost"  # Target: daily cost (not just DBU)
-
-    pandas_df = features_df.select(feature_columns + [target_column]).toPandas()
-
-    # Convert types and handle missing values
-    for col in feature_columns + [target_column]:
-        pandas_df[col] = pd.to_numeric(pandas_df[col], errors='coerce')
-    pandas_df = pandas_df.fillna(0).replace([np.inf, -np.inf], 0)
-
-    X = pandas_df[feature_columns]
-    y = pandas_df[target_column]
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    print(f"✓ Data: {X_train.shape[0]} train, {X_test.shape[0]} test samples")
-
-    return X_train, X_test, y_train, y_test, feature_columns
-
-# COMMAND ----------
-
-def train_model(X_train, y_train, X_test, y_test):
-    """Train Gradient Boosting Regressor."""
-    print("\nTraining Gradient Boosting Regressor...")
+    Create training set using Feature Engineering in Unity Catalog.
     
-    model = GradientBoostingRegressor(
-        n_estimators=100,
-        max_depth=5,
-        learning_rate=0.1,
-        random_state=42
+    Key Pattern from Databricks docs:
+    1. Base DataFrame has ONLY lookup keys + label
+    2. FeatureLookup specifies features (NOT the label)
+    3. create_training_set joins features using lookup keys
+    """
+    print("\nCreating training set with Feature Engineering...")
+    
+    feature_table = f"{catalog}.{feature_schema}.cost_features"
+    
+    # Features to retrieve from feature table (excludes label)
+    feature_names = [
+        "avg_dbu_7d", "avg_dbu_30d", "std_dbu_7d", "std_dbu_30d",
+        "dow_sin", "dow_cos", "is_weekend", "is_month_end",
+        "day_of_week", "day_of_month", "dbu_change_pct_1d", "dbu_change_pct_7d",
+        "serverless_adoption_ratio", "all_purpose_inefficiency_ratio",
+        "jobs_on_all_purpose_cost", "serverless_cost", "dlt_cost", "model_serving_cost"
+    ]
+    
+    label_col = "daily_cost"
+    
+    # FeatureLookup specifies which features to pull and how to join
+    feature_lookups = [
+        FeatureLookup(
+            table_name=feature_table,
+            feature_names=feature_names,
+            lookup_key=["workspace_id", "usage_date"]
+        )
+    ]
+    
+    # Base DataFrame: lookup keys + label ONLY
+    base_df = (spark.table(feature_table)
+               .select("workspace_id", "usage_date", label_col)
+               .filter(F.col(label_col).isNotNull())
+               .distinct())
+    
+    record_count = base_df.count()
+    print(f"  Base DataFrame has {record_count} records")
+    
+    if record_count == 0:
+        raise ValueError(f"No data found in {feature_table}!")
+    
+    # Create training set - joins features to base DataFrame
+    training_set = fe.create_training_set(
+        df=base_df,
+        feature_lookups=feature_lookups,
+        label=label_col,
+        exclude_columns=["workspace_id", "usage_date"]
     )
     
-    model.fit(X_train, y_train)
+    training_df = training_set.load_df()
+    print(f"✓ Training set: {training_df.count()} rows, {len(feature_names)} features")
     
-    # Calculate metrics
-    y_pred = model.predict(X_test)
-    metrics = {
-        "mae": mean_absolute_error(y_test, y_pred),
-        "rmse": np.sqrt(mean_squared_error(y_test, y_pred)),
-        "r2": r2_score(y_test, y_pred),
-        "training_samples": len(X_train),
-        "test_samples": len(X_test)
-    }
-    
-    print(f"✓ Model trained - MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
-    
-    return model, metrics
+    return training_set, training_df, feature_names, label_col
 
 # COMMAND ----------
 
-def log_model_to_mlflow(model, X_train, metrics, feature_columns, catalog, feature_schema, experiment_name, spark):
-    """Log model with MLflow 3.1+ best practices."""
+def prepare_and_train(training_df, feature_names, label_col):
+    """Prepare data and train the model."""
+    print("\nPreparing data and training model...")
+    
+    pdf = training_df.toPandas()
+    
+    # Handle missing features gracefully
+    available_features = [f for f in feature_names if f in pdf.columns]
+    missing_features = [f for f in feature_names if f not in pdf.columns]
+    if missing_features:
+        print(f"  ⚠ Missing features: {missing_features}")
+    
+    X_train = pdf[available_features].fillna(0).replace([np.inf, -np.inf], 0)
+    y = pdf[label_col].fillna(0)
+    
+    # CRITICAL: Cast all columns to float64 (MLflow doesn't support DECIMAL)
+    for col in X.columns:
+        X[col] = X[col].astype('float64')
+    y = y.astype('float64')
+    
+    X_train, X_test, y_train, y_test = train_test_split(X_train, y, test_size=0.2, random_state=42)
+    
+    print(f"  Training samples: {len(X_train)}, Test samples: {len(X_test)}")
+    
+    hyperparams = {"n_estimators": 100, "max_depth": 6, "learning_rate": 0.1, "random_state": 42}
+    model = GradientBoostingRegressor(**hyperparams)
+    model.fit(X_train, y_train)
+    
+    metrics = {
+        "train_r2": round(float(model.score(X_train, y_train)), 4),
+        "test_r2": round(float(model.score(X_test, y_test)), 4),
+        "training_samples": len(X_train),
+        "test_samples": len(X_test),
+        "features_count": len(available_features)
+    }
+    
+    print(f"✓ Model trained: R² = {metrics['test_r2']:.4f}")
+    return model, metrics, hyperparams, X_train
+
+# COMMAND ----------
+
+def log_model_with_feature_engineering(fe, model, training_set, metrics, hyperparams, catalog, feature_schema, feature_table, X_train):
+    """
+    Log model with Feature Engineering for automatic feature lookup at inference.
+    
+    CRITICAL: Unity Catalog requires BOTH input AND output signatures.
+    We must provide input_example and explicit signature.
+    """
     model_name = "budget_forecaster"
-    registered_model_name = f"{catalog}.{feature_schema}.{model_name}"
-    run_name = get_run_name(model_name, "gradient_boosting")
+    registered_name = f"{catalog}.{feature_schema}.{model_name}"
+    
+    print(f"\nLogging model with Feature Engineering: {registered_name}")
+    
+    # Create input example (first 5 rows, ensure float64)
+    input_example = X_train.head(5).astype('float64')
+    
+    # Create sample predictions for output signature
+    sample_predictions = model.predict(input_example)
+    
+    # Infer signature with BOTH input AND output (REQUIRED for Unity Catalog)
+    signature = infer_signature(input_example, sample_predictions)
+    print(f"  Signature: {len(input_example.columns)} inputs → float64 output")
     
     mlflow.autolog(disable=True)
-    
-    with mlflow.start_run(run_name=run_name) as run:
-        # 1. Tags
+    with mlflow.start_run(run_name=get_run_name(model_name, "gradient_boosting")) as run:
         mlflow.set_tags(get_standard_tags(
-            model_name=model_name, domain="cost", model_type="regression",
-            algorithm="gradient_boosting", use_case="budget_forecasting",
-            training_table=f"{catalog}.{feature_schema}.cost_features"
+            model_name, "cost", "regression", "gradient_boosting",
+            "budget_forecasting", feature_table
         ))
-        
-        # 2. Dataset (inside run context)
-        log_training_dataset(spark, catalog, feature_schema, "cost_features")
-        
-        # 3. Parameters
-        mlflow.log_params({
-            "n_estimators": 100, "max_depth": 5, "learning_rate": 0.1,
-            "feature_count": len(feature_columns)
-        })
-        
-        # 4. Metrics
+        mlflow.log_params(hyperparams)
+        mlflow.log_params({"feature_engineering": "unity_catalog"})
         mlflow.log_metrics(metrics)
         
-        # 5. Signature with BOTH input AND output
-        sample_input = X_train.head(5)
-        sample_output = model.predict(sample_input)
-        signature = infer_signature(sample_input, sample_output)
-        
-        # 6. Log and register model
-        mlflow.sklearn.log_model(
-            sk_model=model, artifact_path="model", signature=signature,
-            input_example=sample_input, registered_model_name=registered_model_name
+        # Log model with feature metadata for inference
+        # input_example and signature are REQUIRED for Unity Catalog
+        fe.log_model(
+            model=model,
+            artifact_path="model",
+            flavor=mlflow.sklearn,
+            training_set=training_set,
+            registered_model_name=registered_name,
+            input_example=input_example,
+            signature=signature
         )
         
-        print(f"✓ Model registered: {registered_model_name}")
-        return run.info.run_id, registered_model_name
+        print(f"✓ Model logged with Feature Engineering")
+        return {
+            "run_id": run.info.run_id,
+            "model_name": model_name,
+            "registered_as": registered_name,
+            "algorithm": "GradientBoostingRegressor",
+            "hyperparameters": hyperparams,
+            "metrics": metrics
+        }
 
 # COMMAND ----------
 
 def main():
-    """Main entry point."""
-    print("\n" + "=" * 80)
-    print("BUDGET FORECASTER - TRAINING (MLflow 3.1+)")
-    print("=" * 80)
+    import json
+    print("\n" + "=" * 60)
+    print("BUDGET FORECASTER - TRAINING")
+    print("Feature Engineering in Unity Catalog")
+    print("=" * 60)
     
     catalog, gold_schema, feature_schema = get_parameters()
     spark = SparkSession.builder.getOrCreate()
-    experiment_name = setup_mlflow_experiment("budget_forecaster")
+    
+    fe = FeatureEngineeringClient()
+    print("✓ Feature Engineering client initialized")
+    
+    setup_mlflow_experiment("budget_forecaster")
+    
+    feature_table = f"{catalog}.{feature_schema}.cost_features"
     
     try:
-        features_df = load_features(spark, catalog, feature_schema)
-        X_train, X_test, y_train, y_test, feature_columns = prepare_training_data(features_df)
-        model, metrics = train_model(X_train, y_train, X_test, y_test)
-        run_id, model_name = log_model_to_mlflow(
-            model, X_train, metrics, feature_columns, catalog, feature_schema, experiment_name, spark
+        training_set, training_df, feature_names, label_col = create_training_set_with_features(
+            spark, fe, catalog, feature_schema
+        )
+        model, metrics, hyperparams, X_train = prepare_and_train(training_df, feature_names, label_col)
+        result = log_model_with_feature_engineering(
+            fe, model, training_set, metrics, hyperparams, 
+            catalog, feature_schema, feature_table, X_train
         )
         
-        # Print comprehensive summary
         print("\n" + "=" * 60)
         print("✓ TRAINING COMPLETE")
+        print(f"  Model: {result['model_name']}")
+        print(f"  R²: {result['metrics']['test_r2']}")
+        print(f"  Feature Engineering: Unity Catalog ENABLED")
         print("=" * 60)
-        print(f"  Model:       budget_forecaster")
-        print(f"  Registered:  {model_name}")
-        print(f"  MLflow Run:  {run_id}")
-        print("\n  Metrics:")
-        for k, v in metrics.items():
-            print(f"    - {k}: {v:.4f}" if isinstance(v, float) else f"    - {k}: {v}")
-        print("=" * 60)
+        
+        dbutils.notebook.exit(json.dumps({
+            "status": "SUCCESS", "model": result['model_name'],
+            "registered_as": result['registered_as'], "run_id": result['run_id'],
+            "metrics": result['metrics'], "feature_engineering": "unity_catalog"
+        }))
         
     except Exception as e:
         import traceback
-        print(f"❌ Error: {e}\n{traceback.format_exc()}")
-        import json
-        exit_summary = json.dumps({"status": "FAILED", "model": "budget_forecaster", "error": str(e)[:500]})
-        dbutils.notebook.exit(exit_summary)
-        raise  # Re-raise to fail the job
-    
-    import json
-    hyperparams = {"n_estimators": 100, "max_depth": 5, "learning_rate": 0.1}
-    exit_summary = json.dumps({
-            "status": "SUCCESS",
-            "model": "budget_forecaster",
-            "registered_as": model_name,
-            "run_id": run_id,
-            "algorithm": "GradientBoostingRegressor",
-            "hyperparameters": hyperparams,
-            "metrics": {k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()}
-        })
-    dbutils.notebook.exit(exit_summary)
-
-# COMMAND ----------
+        print(f"❌ {e}\n{traceback.format_exc()}")
+        raise
 
 if __name__ == "__main__":
     main()

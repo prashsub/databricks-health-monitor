@@ -76,6 +76,16 @@ resources:
             - task_key: gold_setup
           run_job_task:
             job_id: ${resources.jobs.lakehouse_monitoring_setup_job.id}
+
+        # ================================================================
+        # PHASE 3.5: ALERTING LAYER SETUP (requires Gold tables)
+        # ================================================================
+
+        - task_key: alerting_layer_setup
+          depends_on:
+            - task_key: gold_setup
+          run_job_task:
+            job_id: ${resources.jobs.alerting_layer_setup_job.id}
         
         # ================================================================
         # PHASE 4: ML LAYER SETUP (requires Gold data)

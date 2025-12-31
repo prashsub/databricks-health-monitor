@@ -1,0 +1,63 @@
+# SQL Alert Deployment Job (Atomic)
+# =================================
+#
+# Deploys Databricks SQL Alerts (v2) from the central alert_configurations table.
+# Uses Databricks SDK for automatic authentication and clean API access.
+#
+# SDK Reference: https://databricks-sdk-py.readthedocs.io/en/latest/workspace/sql/alerts_v2.html
+#
+# IMPORTANT:
+# - SQL alerts do not support query parameters. The deploy script renders ${catalog}/${gold_schema}.
+# - Notification destinations require workspace admin setup; map internal destination ids to
+#   workspace destination UUIDs in notification_destinations.databricks_destination_id.
+#
+# Usage:
+#   databricks bundle run -t dev sql_alert_deployment_job
+
+resources:
+  jobs:
+    sql_alert_deployment_job:
+      name: "[${bundle.target}] Health Monitor - SQL Alert Deployment"
+      description: "Atomic job: Sync SQL Alerts (v2) from Gold alert_configurations via SDK"
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            # SDK installed via %pip in notebook to override system version
+
+      tasks:
+        - task_key: sync_sql_alerts
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/alerting/sync_sql_alerts.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              warehouse_id: ${var.warehouse_id}
+              dry_run: "false"          # Set to "true" for validation mode
+              delete_disabled: "false"  # Set to "true" to auto-delete disabled alerts
+              enable_parallel: "false"  # Reserved for future use
+              parallel_workers: "5"     # Reserved for future use
+
+      # Optional schedule (paused by default to avoid noise in dev)
+      schedule:
+        quartz_cron_expression: "0 */15 * * * ?"
+        timezone_id: "America/Los_Angeles"
+        pause_status: PAUSED
+
+      timeout_seconds: 1800
+
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: alerting
+        job_type: deployment
+        job_level: atomic
+        compute_type: serverless
+
+

@@ -75,6 +75,9 @@ include:
   # Orchestrators (Master Setup/Refresh)
   - resources/orchestrators/*.yml
   
+  # Alerting Framework (SQL Alerts)
+  - resources/alerting/*.yml
+  
   # Machine Learning
   - resources/ml/*.yml
   

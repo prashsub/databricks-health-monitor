@@ -1,0 +1,48 @@
+# Alert Query Validation Job
+# ==========================
+#
+# Pre-deployment validation of all alert SQL queries.
+# Should run BEFORE alert sync to catch:
+# - SQL syntax errors
+# - Security violations (DROP, DELETE, etc.)
+# - Missing table references
+#
+# If any queries fail validation, the job fails to prevent bad deployments.
+
+resources:
+  jobs:
+    alert_query_validation_job:
+      name: "[${bundle.target}] Health Monitor - Alert Query Validation"
+      description: >
+        Validates all enabled alert SQL queries before deployment.
+        Checks syntax, security patterns, and table references.
+        Run before alert sync to prevent deployment of invalid queries.
+      
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+      
+      tasks:
+        - task_key: validate_alert_queries
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/alerting/validate_all_queries.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              fail_on_warning: "false"
+          timeout_seconds: 900  # 15 minutes
+      
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+      
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: gold
+        job_type: validation
+        component: alerting
+        compute_type: serverless
+

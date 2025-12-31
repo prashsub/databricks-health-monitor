@@ -1,86 +1,1783 @@
 {
-  "displayName": "Security Audit Dashboard",
+  "displayName": "Security & Audit Dashboard",
   "warehouse_id": "${warehouse_id}",
   "pages": [
     {
-      "name": "page_security",
-      "displayName": "Security Audit",
+      "name": "page_security_overview",
+      "displayName": "\ud83d\udd12 Security Overview",
       "layout": [
         {
           "widget": {
             "name": "kpi_total_events",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_total_events", "fields": [{"name": "total_events", "expression": "`total_events`"}], "disaggregated": false}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "total_events"}}, "frame": {"showTitle": true, "title": "Total Events (7d)"}}
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_events",
+                  "fields": [
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_events"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Audit Events (7d)"
+              }
+            }
           },
-          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
         },
         {
           "widget": {
-            "name": "kpi_sensitive_actions",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_sensitive_count", "fields": [{"name": "sensitive_count", "expression": "`sensitive_count`"}], "disaggregated": false}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "sensitive_count"}}, "frame": {"showTitle": true, "title": "Sensitive Actions (7d)"}}
+            "name": "kpi_unique_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_events",
+                  "fields": [
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unique_users"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Unique Users (7d)"
+              }
+            }
           },
-          "position": {"x": 2, "y": 0, "width": 2, "height": 2}
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
         },
         {
           "widget": {
-            "name": "kpi_failed_actions",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_failed_count", "fields": [{"name": "failed_count", "expression": "`failed_count`"}], "disaggregated": false}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "failed_count"}}, "frame": {"showTitle": true, "title": "Failed Actions (7d)"}}
+            "name": "kpi_high_risk",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_high_risk",
+                  "fields": [
+                    {
+                      "name": "high_risk_events",
+                      "expression": "`high_risk_events`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "high_risk_events"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd34 High Risk Events (7d)"
+              }
+            }
           },
-          "position": {"x": 4, "y": 0, "width": 2, "height": 2}
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
         },
         {
           "widget": {
-            "name": "chart_events_trend",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_events_trend", "fields": [{"name": "event_date", "expression": "`event_date`"}, {"name": "event_count", "expression": "`event_count`"}, {"name": "sensitive_count", "expression": "`sensitive_count`"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "event_date", "displayName": "Date", "scale": {"type": "temporal"}}, "y": {"fieldName": "event_count", "displayName": "Events", "scale": {"type": "quantitative"}}}, "frame": {"showTitle": true, "title": "Audit Events Trend"}}
+            "name": "kpi_denied_access",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_denied",
+                  "fields": [
+                    {
+                      "name": "denied_access",
+                      "expression": "`denied_access`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "denied_access"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26d4 Access Denied (7d)"
+              }
+            }
           },
-          "position": {"x": 0, "y": 2, "width": 6, "height": 6}
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_permission_changes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_permissions",
+                  "fields": [
+                    {
+                      "name": "permission_changes",
+                      "expression": "`permission_changes`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "permission_changes"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd10 Permission Changes (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_admin_actions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_admin",
+                  "fields": [
+                    {
+                      "name": "admin_actions",
+                      "expression": "`admin_actions`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "admin_actions"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udc51 Admin Actions (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_event_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_event_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "event_count",
+                      "expression": "`event_count`"
+                    },
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "event_count",
+                      "displayName": "Events"
+                    },
+                    {
+                      "fieldName": "unique_users",
+                      "displayName": "Users"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Audit Event Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_risk_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_risk_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "high_risk",
+                      "expression": "`high_risk`"
+                    },
+                    {
+                      "name": "medium_risk",
+                      "expression": "`medium_risk`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "high_risk",
+                      "displayName": "High Risk"
+                    },
+                    {
+                      "fieldName": "medium_risk",
+                      "displayName": "Medium Risk"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd34 Risk Event Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_access_control",
+      "displayName": "\ud83d\udd10 Access Control",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_denied_access",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_denied_access",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
+                    },
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "service_name",
+                      "expression": "`service_name`"
+                    },
+                    {
+                      "name": "event_time",
+                      "expression": "`event_time`"
+                    },
+                    {
+                      "name": "source_ip",
+                      "expression": "`source_ip`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "action_name",
+                    "title": "Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "service_name",
+                    "title": "Service",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "event_time",
+                    "title": "Time",
+                    "type": "datetime"
+                  },
+                  {
+                    "fieldName": "source_ip",
+                    "title": "Source IP",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26d4 Access Denied Events (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_permission_changes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_permission_changes",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
+                    },
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "target_entity",
+                      "expression": "`target_entity`"
+                    },
+                    {
+                      "name": "event_time",
+                      "expression": "`event_time`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "action_name",
+                    "title": "Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "target_entity",
+                    "title": "Target",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "event_time",
+                    "title": "Time",
+                    "type": "datetime"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd10 Recent Permission Changes (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_denied_by_service",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_denied_by_service",
+                  "fields": [
+                    {
+                      "name": "service_name",
+                      "expression": "`service_name`"
+                    },
+                    {
+                      "name": "denial_count",
+                      "expression": "`denial_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "service_name",
+                  "displayName": "Service",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "denial_count",
+                  "displayName": "Denials",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd34 Access Denials by Service"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_denied_by_user",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_denied_by_user",
+                  "fields": [
+                    {
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
+                    },
+                    {
+                      "name": "denial_count",
+                      "expression": "`denial_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "user_identity",
+                  "displayName": "User",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "denial_count",
+                  "displayName": "Denials",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udc64 Access Denials by User"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_admin_audit",
+      "displayName": "\ud83d\udc51 Admin Audit",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_admin_actions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_admin_actions",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
+                    },
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "service_name",
+                      "expression": "`service_name`"
+                    },
+                    {
+                      "name": "target_entity",
+                      "expression": "`target_entity`"
+                    },
+                    {
+                      "name": "event_time",
+                      "expression": "`event_time`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity",
+                    "title": "Admin",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "action_name",
+                    "title": "Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "service_name",
+                    "title": "Service",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "target_entity",
+                    "title": "Target",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "event_time",
+                    "title": "Time",
+                    "type": "datetime"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udc51 Admin Actions (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
         },
         {
           "widget": {
             "name": "table_sensitive_actions",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_recent_sensitive", "fields": [{"name": "user_identity_email", "expression": "`user_identity_email`"}, {"name": "action_name", "expression": "`action_name`"}, {"name": "service_name", "expression": "`service_name`"}, {"name": "event_time", "expression": "`event_time`"}], "disaggregated": false}}],
-            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "Recent Sensitive Actions"}, "encodings": {"columns": [{"fieldName": "user_identity_email", "title": "User"}, {"fieldName": "action_name", "title": "Action"}, {"fieldName": "service_name", "title": "Service"}, {"fieldName": "event_time", "title": "Time"}]}, "itemsPerPage": 15}
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_sensitive_actions",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
+                    },
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "service_name",
+                      "expression": "`service_name`"
+                    },
+                    {
+                      "name": "event_time",
+                      "expression": "`event_time`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "action_name",
+                    "title": "Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "service_name",
+                    "title": "Service",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "event_time",
+                    "title": "Time",
+                    "type": "datetime"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26a0\ufe0f Sensitive Actions (7d)"
+              }
+            }
           },
-          "position": {"x": 0, "y": 8, "width": 3, "height": 6}
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
         },
         {
           "widget": {
-            "name": "chart_actions_by_service",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_by_service", "fields": [{"name": "service_name", "expression": "`service_name`"}, {"name": "count", "expression": "`count`"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "pie", "encodings": {"angle": {"fieldName": "count", "scale": {"type": "quantitative"}}, "color": {"fieldName": "service_name", "scale": {"type": "categorical"}}}, "frame": {"showTitle": true, "title": "Events by Service"}}
+            "name": "chart_admin_by_action",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_admin_by_action",
+                  "fields": [
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "action_count",
+                      "expression": "`action_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "action_name",
+                  "displayName": "Action",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "action_count",
+                  "displayName": "Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Admin Actions Distribution"
+              }
+            }
           },
-          "position": {"x": 3, "y": 8, "width": 3, "height": 6}
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_data_access",
+      "displayName": "\ud83d\udcca Data Access",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_data_access",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_data_access",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
+                    },
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "target_table",
+                      "expression": "`target_table`"
+                    },
+                    {
+                      "name": "access_count",
+                      "expression": "`access_count`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "action_name",
+                    "title": "Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "target_table",
+                    "title": "Table",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "access_count",
+                    "title": "Accesses",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Data Access Summary (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
         },
         {
           "widget": {
-            "name": "table_failed_actions",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_recent_failed", "fields": [{"name": "user_identity_email", "expression": "`user_identity_email`"}, {"name": "action_name", "expression": "`action_name`"}, {"name": "response_status_code", "expression": "`response_status_code`"}, {"name": "event_time", "expression": "`event_time`"}], "disaggregated": false}}],
-            "spec": {"version": 1, "widgetType": "table", "frame": {"showTitle": true, "title": "Recent Failed Actions"}, "encodings": {"columns": [{"fieldName": "user_identity_email", "title": "User"}, {"fieldName": "action_name", "title": "Action"}, {"fieldName": "response_status_code", "title": "Status"}, {"fieldName": "event_time", "title": "Time"}]}, "itemsPerPage": 10}
+            "name": "chart_access_by_service",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_access_by_service",
+                  "fields": [
+                    {
+                      "name": "service_name",
+                      "expression": "`service_name`"
+                    },
+                    {
+                      "name": "access_count",
+                      "expression": "`access_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "color": {
+                  "fieldName": "service_name",
+                  "displayName": "Service"
+                },
+                "theta": {
+                  "fieldName": "access_count",
+                  "displayName": "Accesses"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd35 Access by Service"
+              }
+            }
           },
-          "position": {"x": 0, "y": 14, "width": 3, "height": 6}
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
         },
         {
           "widget": {
-            "name": "chart_top_users",
-            "queries": [{"name": "main_query", "query": {"datasetName": "ds_top_users", "fields": [{"name": "user_identity_email", "expression": "`user_identity_email`"}, {"name": "action_count", "expression": "`action_count`"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "action_count", "displayName": "Actions", "scale": {"type": "quantitative"}}, "y": {"fieldName": "user_identity_email", "displayName": "User", "scale": {"type": "categorical"}}}, "frame": {"showTitle": true, "title": "Most Active Users"}}
+            "name": "chart_access_hourly",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_access_hourly",
+                  "fields": [
+                    {
+                      "name": "hour",
+                      "expression": "`hour`"
+                    },
+                    {
+                      "name": "access_count",
+                      "expression": "`access_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "hour",
+                  "displayName": "Hour of Day",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "access_count",
+                  "displayName": "Accesses",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u23f0 Access Pattern by Hour"
+              }
+            }
           },
-          "position": {"x": 3, "y": 14, "width": 3, "height": 6}
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_ml_predictions",
+      "displayName": "\ud83e\udd16 ML Predictions",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_ml_threats",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_threats",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
+                    },
+                    {
+                      "name": "threat_type",
+                      "expression": "`threat_type`"
+                    },
+                    {
+                      "name": "risk_score",
+                      "expression": "`risk_score`"
+                    },
+                    {
+                      "name": "confidence",
+                      "expression": "`confidence`"
+                    },
+                    {
+                      "name": "prediction_date",
+                      "expression": "`prediction_date`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "threat_type",
+                    "title": "Threat Type",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "risk_score",
+                    "title": "Risk Score",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "confidence",
+                    "title": "Confidence",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "prediction_date",
+                    "title": "Date",
+                    "type": "datetime"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Threat Detection",
+                "description": "Anomaly detection model"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_exfiltration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_exfiltration",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
+                    },
+                    {
+                      "name": "data_volume",
+                      "expression": "`data_volume`"
+                    },
+                    {
+                      "name": "risk_level",
+                      "expression": "`risk_level`"
+                    },
+                    {
+                      "name": "anomaly_score",
+                      "expression": "`anomaly_score`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "data_volume",
+                    "title": "Data Volume (GB)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "risk_level",
+                    "title": "Risk Level",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "anomaly_score",
+                    "title": "Score",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Data Exfiltration Risk",
+                "description": "Volume anomaly model"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_privilege",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_privilege",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
+                    },
+                    {
+                      "name": "current_role",
+                      "expression": "`current_role`"
+                    },
+                    {
+                      "name": "escalation_risk",
+                      "expression": "`escalation_risk`"
+                    },
+                    {
+                      "name": "confidence",
+                      "expression": "`confidence`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "current_role",
+                    "title": "Role",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "escalation_risk",
+                    "title": "Risk Level",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "confidence",
+                    "title": "Confidence",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Privilege Escalation Risk",
+                "description": "Behavioral analysis model"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_monitoring",
+      "displayName": "\ud83d\udcca Lakehouse Monitoring",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_monitor_events",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_events"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Total Events"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_monitor_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unique_users"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Unique Users"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_monitor_risk",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "high_risk_rate",
+                      "expression": "`high_risk_rate`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "high_risk_rate"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: High Risk Rate %"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_event_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_trend",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    },
+                    {
+                      "name": "high_risk_events",
+                      "expression": "`high_risk_events`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "total_events",
+                      "displayName": "Total Events"
+                    },
+                    {
+                      "fieldName": "high_risk_events",
+                      "displayName": "High Risk"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Event Trend"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_access_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_access",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "denied_accesses",
+                      "expression": "`denied_accesses`"
+                    },
+                    {
+                      "name": "permission_changes",
+                      "expression": "`permission_changes`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "denied_accesses",
+                      "displayName": "Denials"
+                    },
+                    {
+                      "fieldName": "permission_changes",
+                      "displayName": "Perm Changes"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Access Control Trend"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_drift",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_drift",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "event_volume_drift",
+                      "expression": "`event_volume_drift`"
+                    },
+                    {
+                      "name": "risk_level_drift",
+                      "expression": "`risk_level_drift`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "event_volume_drift",
+                      "displayName": "Volume Drift %"
+                    },
+                    {
+                      "fieldName": "risk_level_drift",
+                      "displayName": "Risk Drift %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Security Drift Detection"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_monitor_detailed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_detailed",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    },
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    },
+                    {
+                      "name": "high_risk_events",
+                      "expression": "`high_risk_events`"
+                    },
+                    {
+                      "name": "denied_accesses",
+                      "expression": "`denied_accesses`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start",
+                    "title": "Period",
+                    "type": "datetime"
+                  },
+                  {
+                    "fieldName": "total_events",
+                    "title": "Events",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "unique_users",
+                    "title": "Users",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "high_risk_events",
+                    "title": "High Risk",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "denied_accesses",
+                    "title": "Denials",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Complete Security Metrics"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 6,
+            "height": 6
+          }
         }
       ]
     }
   ],
   "datasets": [
-    {"name": "ds_total_events", "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS"},
-    {"name": "ds_sensitive_count", "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN is_sensitive_action THEN 1 ELSE 0 END), 0) AS sensitive_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS"},
-    {"name": "ds_failed_count", "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN is_failed_action THEN 1 ELSE 0 END), 0) AS failed_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS"},
-    {"name": "ds_events_trend", "query": "SELECT event_date, COUNT(*) AS event_count, SUM(CASE WHEN is_sensitive_action THEN 1 ELSE 0 END) AS sensitive_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY event_date ORDER BY event_date"},
-    {"name": "ds_recent_sensitive", "query": "SELECT user_identity_email, action_name, service_name, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND is_sensitive_action = TRUE ORDER BY event_time DESC LIMIT 25"},
-    {"name": "ds_by_service", "query": "SELECT COALESCE(service_name, 'UNKNOWN') AS service_name, COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY service_name ORDER BY count DESC LIMIT 10"},
-    {"name": "ds_recent_failed", "query": "SELECT user_identity_email, action_name, response_status_code, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND is_failed_action = TRUE ORDER BY event_time DESC LIMIT 25"},
-    {"name": "ds_top_users", "query": "SELECT user_identity_email, COUNT(*) AS action_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND user_identity_email IS NOT NULL AND user_identity_email != 'System-User' GROUP BY user_identity_email ORDER BY action_count DESC LIMIT 10"}
+    {
+      "name": "ds_kpi_events",
+      "displayName": "KPI: Events",
+      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events, FORMAT_NUMBER(COUNT(DISTINCT user_identity), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+    },
+    {
+      "name": "ds_kpi_high_risk",
+      "displayName": "KPI: High Risk",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' OR action_name LIKE '%revoke%' THEN 1 ELSE 0 END), 0) AS high_risk_events FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+    },
+    {
+      "name": "ds_kpi_denied",
+      "displayName": "KPI: Denied",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN response_status_code >= 400 THEN 1 ELSE 0 END), 0) AS denied_access FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+    },
+    {
+      "name": "ds_kpi_permissions",
+      "displayName": "KPI: Permissions",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%grant%' OR action_name LIKE '%revoke%' OR action_name LIKE '%permission%' THEN 1 ELSE 0 END), 0) AS permission_changes FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+    },
+    {
+      "name": "ds_kpi_admin",
+      "displayName": "KPI: Admin",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%' THEN 1 ELSE 0 END), 0) AS admin_actions FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+    },
+    {
+      "name": "ds_event_trend",
+      "displayName": "Event Trend",
+      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS event_count, COUNT(DISTINCT user_identity) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
+    },
+    {
+      "name": "ds_risk_trend",
+      "displayName": "Risk Trend",
+      "query": "SELECT DATE(event_time) AS day, SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' THEN 1 ELSE 0 END) AS high_risk, SUM(CASE WHEN action_name LIKE '%update%' OR action_name LIKE '%modify%' THEN 1 ELSE 0 END) AS medium_risk FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
+    },
+    {
+      "name": "ds_denied_access",
+      "displayName": "Denied Access",
+      "query": "SELECT user_identity, action_name, service_name, event_time, source_ip_address AS source_ip FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND response_status_code >= 400 ORDER BY event_time DESC LIMIT 30"
+    },
+    {
+      "name": "ds_permission_changes",
+      "displayName": "Permission Changes",
+      "query": "SELECT user_identity, action_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%grant%' OR action_name LIKE '%revoke%' OR action_name LIKE '%permission%') ORDER BY event_time DESC LIMIT 30"
+    },
+    {
+      "name": "ds_denied_by_service",
+      "displayName": "Denied by Service",
+      "query": "SELECT service_name, COUNT(*) AS denial_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND response_status_code >= 400 GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+    },
+    {
+      "name": "ds_denied_by_user",
+      "displayName": "Denied by User",
+      "query": "SELECT user_identity, COUNT(*) AS denial_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND response_status_code >= 400 GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+    },
+    {
+      "name": "ds_admin_actions",
+      "displayName": "Admin Actions",
+      "query": "SELECT user_identity, action_name, service_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%') ORDER BY event_time DESC LIMIT 30"
+    },
+    {
+      "name": "ds_sensitive_actions",
+      "displayName": "Sensitive Actions",
+      "query": "SELECT user_identity, action_name, service_name, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%delete%' OR action_name LIKE '%drop%' OR action_name LIKE '%revoke%') ORDER BY event_time DESC LIMIT 30"
+    },
+    {
+      "name": "ds_admin_by_action",
+      "displayName": "Admin by Action",
+      "query": "SELECT action_name, COUNT(*) AS action_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%') GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+    },
+    {
+      "name": "ds_data_access",
+      "displayName": "Data Access",
+      "query": "SELECT user_identity, action_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_table, COUNT(*) AS access_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND service_name = 'unityCatalog' GROUP BY 1, 2, 3 ORDER BY 4 DESC LIMIT 30"
+    },
+    {
+      "name": "ds_access_by_service",
+      "displayName": "Access by Service",
+      "query": "SELECT service_name, COUNT(*) AS access_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+    },
+    {
+      "name": "ds_access_hourly",
+      "displayName": "Access Hourly",
+      "query": "SELECT HOUR(event_time) AS hour, COUNT(*) AS access_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY 1 ORDER BY 1"
+    },
+    {
+      "name": "ds_ml_threats",
+      "displayName": "ML: Threats",
+      "query": "SELECT 'user@example.com' AS user_identity, 'N/A' AS threat_type, 0.0 AS risk_score, 0.0 AS confidence, CURRENT_DATE() AS prediction_date WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity, 'Pending' AS threat_type, 0.0 AS risk_score, 0.0 AS confidence, CURRENT_DATE() AS prediction_date LIMIT 1"
+    },
+    {
+      "name": "ds_ml_exfiltration",
+      "displayName": "ML: Exfiltration",
+      "query": "SELECT 'user@example.com' AS user_identity, 0.0 AS data_volume, 'N/A' AS risk_level, 0.0 AS anomaly_score WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity, 0.0 AS data_volume, 'Pending' AS risk_level, 0.0 AS anomaly_score LIMIT 1"
+    },
+    {
+      "name": "ds_ml_privilege",
+      "displayName": "ML: Privilege",
+      "query": "SELECT 'user@example.com' AS user_identity, 'N/A' AS current_role, 'N/A' AS escalation_risk, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity, 'N/A' AS current_role, 'Pending' AS escalation_risk, 0.0 AS confidence LIMIT 1"
+    },
+    {
+      "name": "ds_monitor_latest",
+      "displayName": "Monitor: Latest",
+      "query": "SELECT FORMAT_NUMBER(COALESCE(total_events, 0), 0) AS total_events, FORMAT_NUMBER(COALESCE(unique_users, 0), 0) AS unique_users, CONCAT(ROUND(COALESCE(high_risk_rate, 0) * 100, 1), '%') AS high_risk_rate FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' ORDER BY window.start DESC LIMIT 1"
+    },
+    {
+      "name": "ds_monitor_trend",
+      "displayName": "Monitor: Trend",
+      "query": "SELECT window.start AS window_start, COALESCE(total_events, 0) AS total_events, COALESCE(high_risk_events, 0) AS high_risk_events FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND window.start >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start"
+    },
+    {
+      "name": "ds_monitor_access",
+      "displayName": "Monitor: Access",
+      "query": "SELECT window.start AS window_start, COALESCE(denied_accesses, 0) AS denied_accesses, COALESCE(permission_changes, 0) AS permission_changes FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND window.start >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start"
+    },
+    {
+      "name": "ds_monitor_drift",
+      "displayName": "Monitor: Drift",
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(event_volume_drift_pct, 0), 1) AS event_volume_drift, ROUND(COALESCE(risk_level_drift_pct, 0), 1) AS risk_level_drift FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND window.start >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start"
+    },
+    {
+      "name": "ds_monitor_detailed",
+      "displayName": "Monitor: Detailed",
+      "query": "SELECT window.start AS window_start, COALESCE(total_events, 0) AS total_events, COALESCE(unique_users, 0) AS unique_users, COALESCE(high_risk_events, 0) AS high_risk_events, COALESCE(denied_accesses, 0) AS denied_accesses FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND window.start >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start DESC"
+    }
   ]
 }
