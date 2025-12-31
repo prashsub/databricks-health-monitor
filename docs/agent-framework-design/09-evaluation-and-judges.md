@@ -428,6 +428,245 @@ synthetic_set = mlflow.genai.synthesize_evaluation_set(
 synthetic_set.to_json("evaluation_sets/health_monitor_eval_set.json")
 ```
 
+### Document-Based Synthetic Evaluation Sets
+
+For agents that use document retrieval (RAG), Mosaic AI Agent Evaluation provides the `generate_evals_df` method to automatically generate representative evaluation sets from your documents.
+
+> **Reference**: [Synthesize Evaluation Sets - Databricks Documentation](https://docs.databricks.com/aws/en/generative-ai/agent-evaluation/synthesize-evaluation-set)
+
+#### Why Use Document-Based Synthesis?
+
+- **Time-saving**: Manually building evaluation sets is time-consuming
+- **Coverage**: Ensures test cases cover all document content
+- **Quality**: Generates questions with expected facts for validation
+- **Representative**: Questions match real user query patterns
+
+#### Using generate_evals_df
+
+```python
+%pip install databricks-agents
+dbutils.library.restartPython()
+
+from databricks.agents.evals import generate_evals_df
+import pandas as pd
+
+# Prepare documents as DataFrame
+# Required columns: 'content' (parsed document text) and 'doc_uri' (document URI)
+docs = pd.DataFrame.from_records([
+    {
+        'content': """
+            Databricks costs are driven by DBU consumption across compute types.
+            SQL Warehouses use serverless DBUs at different rates depending on size.
+            Jobs compute uses standard DBUs with auto-scaling capabilities.
+            Cost optimization can be achieved through right-sizing clusters and
+            enabling auto-termination policies.
+        """,
+        'doc_uri': 'docs/cost-management.md'
+    },
+    {
+        'content': """
+            Job reliability is measured by success rate and SLA compliance.
+            Failed jobs should be investigated for root cause analysis.
+            Common failure reasons include resource constraints, data issues,
+            and dependency failures. Retry policies can improve resilience.
+        """,
+        'doc_uri': 'docs/job-reliability.md'
+    },
+    {
+        'content': """
+            Security monitoring includes audit log analysis and access pattern detection.
+            Suspicious activities like unusual login attempts or data access patterns
+            should trigger alerts. Unity Catalog provides governance and lineage tracking.
+        """,
+        'doc_uri': 'docs/security-monitoring.md'
+    }
+])
+
+# Define agent description for context
+agent_description = """
+The Health Monitor Agent is a RAG chatbot that answers questions about Databricks 
+platform health. It covers cost analysis, job reliability, security monitoring, 
+query performance, and data quality. The agent helps data engineers and platform 
+administrators understand and optimize their Databricks environment.
+"""
+
+# Define question generation guidelines
+question_guidelines = """
+# User personas
+- A data engineer investigating production issues
+- A platform administrator monitoring costs and security
+- A manager needing executive summaries of platform health
+
+# Example questions
+- Why did our costs spike last week?
+- Which jobs are failing most frequently?
+- Are there any security concerns in the audit logs?
+
+# Additional Guidelines
+- Questions should be natural and conversational
+- Include both simple lookups and analytical queries
+- Cover single-domain and cross-domain scenarios
+"""
+
+# Generate synthetic evaluation set
+evals = generate_evals_df(
+    docs,
+    num_evals=50,  # Total evaluations across all documents
+    agent_description=agent_description,
+    question_guidelines=question_guidelines
+)
+
+display(evals)
+```
+
+#### Output Format (MLflow 3)
+
+The generated DataFrame includes:
+
+| Column | Description |
+|--------|-------------|
+| `request_id` | Unique identifier for each evaluation |
+| `inputs` | Synthesized inputs in Chat Completion API format |
+| `expectations.expected_facts` | List of expected facts the response should contain |
+| `expectations.expected_retrieved_context` | Source document content and URI |
+
+Example output:
+
+| inputs.messages[0].content | expectations.expected_facts |
+|---------------------------|----------------------------|
+| What drives Databricks costs? | DBU consumption drives costs. Different compute types use different DBU rates. |
+| How can I optimize costs? | Right-sizing clusters. Enabling auto-termination policies. |
+| What metrics measure job reliability? | Success rate. SLA compliance. |
+
+#### Estimating num_evals for Coverage
+
+Use `estimate_synthetic_num_evals` to determine appropriate coverage:
+
+```python
+from databricks.agents.evals import estimate_synthetic_num_evals
+
+# Estimate evals needed for desired coverage
+num_evals = estimate_synthetic_num_evals(
+    docs,
+    eval_per_x_tokens=1000  # Generate 1 eval per 1000 tokens
+)
+
+print(f"Recommended num_evals for coverage: {num_evals}")
+```
+
+#### Running Evaluation with Synthetic Data
+
+```python
+import mlflow
+
+# Generate evaluation set
+evals = generate_evals_df(
+    docs,
+    num_evals=num_evals,
+    agent_description=agent_description,
+    question_guidelines=question_guidelines
+)
+
+# Evaluate against your agent or a baseline model
+results = mlflow.evaluate(
+    model="endpoints:/databricks-meta-llama-3-1-405b-instruct",  # Or your agent
+    data=evals,
+    model_type="databricks-agent"
+)
+
+# View results
+print(f"Overall Score: {results.metrics.get('overall_score', 'N/A')}")
+```
+
+#### Health Monitor-Specific Document Synthesis
+
+For the Health Monitor agent, synthesize from operational documentation:
+
+```python
+from databricks.agents.evals import generate_evals_df
+import pandas as pd
+
+# Collect Health Monitor documentation
+health_monitor_docs = pd.DataFrame.from_records([
+    # Cost domain docs
+    {
+        'content': open('docs/runbooks/cost-analysis.md').read(),
+        'doc_uri': 'runbooks/cost-analysis.md'
+    },
+    {
+        'content': open('docs/runbooks/budget-management.md').read(),
+        'doc_uri': 'runbooks/budget-management.md'
+    },
+    # Security domain docs
+    {
+        'content': open('docs/runbooks/security-audit.md').read(),
+        'doc_uri': 'runbooks/security-audit.md'
+    },
+    # Reliability domain docs
+    {
+        'content': open('docs/runbooks/job-monitoring.md').read(),
+        'doc_uri': 'runbooks/job-monitoring.md'
+    },
+    # Performance domain docs
+    {
+        'content': open('docs/runbooks/query-optimization.md').read(),
+        'doc_uri': 'runbooks/query-optimization.md'
+    },
+    # Data quality docs
+    {
+        'content': open('docs/runbooks/data-quality.md').read(),
+        'doc_uri': 'runbooks/data-quality.md'
+    }
+])
+
+# Generate domain-balanced evaluation set
+health_monitor_evals = generate_evals_df(
+    health_monitor_docs,
+    num_evals=100,  # 100 total evaluations
+    agent_description="""
+    Health Monitor Agent: A multi-domain AI assistant for Databricks platform 
+    monitoring covering cost, security, performance, reliability, and data quality.
+    """,
+    question_guidelines="""
+    # Personas
+    - Data engineers troubleshooting issues
+    - Platform admins monitoring health
+    - Executives needing high-level summaries
+    
+    # Question types
+    - Investigative: "Why did X happen?"
+    - Analytical: "What are the trends in X?"
+    - Comparative: "How does X compare to Y?"
+    - Action-oriented: "What should I do about X?"
+    
+    # Guidelines
+    - Include time context (today, this week, last month)
+    - Mix simple and complex queries
+    - Include cross-domain questions
+    """
+)
+
+# Save for reuse
+health_monitor_evals.to_parquet("evaluation_sets/health_monitor_synthetic_evals.parquet")
+```
+
+#### Best Practices for Synthetic Evaluation
+
+| Practice | Description |
+|----------|-------------|
+| **Balance coverage** | Ensure `num_evals` covers all documents proportionally |
+| **Diverse personas** | Include multiple user types in `question_guidelines` |
+| **Real examples** | Add actual user queries as examples |
+| **Iterative refinement** | Review generated questions and refine guidelines |
+| **Combine approaches** | Use both synthetic and manual evaluation sets |
+
+#### Important Notes
+
+- Synthetic data generation may use third-party services (Azure OpenAI)
+- For EU workspaces, models are hosted in the EU; other regions use US
+- Generated data should be used for evaluation only, not for model training
+- Data sent to the synthesis service is not used for model training
+
 ### Manual Evaluation Set
 
 ```python
