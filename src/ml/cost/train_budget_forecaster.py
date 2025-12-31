@@ -247,15 +247,13 @@ def main():
         )
         
         # Print comprehensive summary
-        print("
-" + "=" * 60)
+        print("\n" + "=" * 60)
         print("✓ TRAINING COMPLETE")
         print("=" * 60)
-        print(f"  Model:       {model_name}")
+        print(f"  Model:       budget_forecaster")
         print(f"  Registered:  {model_name}")
         print(f"  MLflow Run:  {run_id}")
-        print("
-  Metrics:")
+        print("\n  Metrics:")
         for k, v in metrics.items():
             print(f"    - {k}: {v:.4f}" if isinstance(v, float) else f"    - {k}: {v}")
         print("=" * 60)

@@ -136,7 +136,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     Target: Optimal node count for future capacity
     
     Schema-grounded:
-    - fact_node_timeline.yaml: start_time, cpu_utilization_percent, 
+    - fact_node_timeline.yaml: start_time, cpu_user_percent, 
       memory_utilization_percent, cluster_id
     - fact_job_run_timeline.yaml: run_duration_seconds, rows_produced, 
       task_execution_time_ms
@@ -153,8 +153,8 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         .groupBy("cluster_id", F.date_trunc("day", "start_time").alias("usage_date"))
         .agg(
             F.count("*").alias("node_hours"),
-            F.avg("cpu_utilization_percent").alias("avg_cpu_util"),
-            F.max("cpu_utilization_percent").alias("peak_cpu_util"),
+            F.avg("cpu_user_percent").alias("avg_cpu_util"),
+            F.max("cpu_user_percent").alias("peak_cpu_util"),
             F.avg("memory_utilization_percent").alias("avg_memory_util"),
             F.max("memory_utilization_percent").alias("peak_memory_util"),
             F.countDistinct("node_id").alias("num_nodes_used")

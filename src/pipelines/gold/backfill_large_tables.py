@@ -11,9 +11,12 @@
 # MAGIC - fact_query_history (68M+ records)
 # MAGIC 
 # MAGIC **Strategy:**
-# MAGIC - Get MIN date from Gold (earliest data we have)
-# MAGIC - Process data in monthly chunks going backwards
+# MAGIC - Get MIN/MAX date from Gold table (what's already been processed)
+# MAGIC - Process data in 1-week chunks going backwards
 # MAGIC - Uses MERGE to avoid duplicates if chunks overlap
+# MAGIC - **RESUMABLE**: Queries Gold table to find what's already processed - if job times out, it resumes automatically
+# MAGIC 
+# MAGIC **No checkpoint table needed** - the Gold table itself is the source of truth!
 
 # COMMAND ----------
 
@@ -54,6 +57,7 @@ def get_gold_date_range(spark: SparkSession, gold_table: str, date_column: str):
     except Exception as e:
         print(f"  ⚠️ Could not get Gold date range: {str(e)[:100]}")
         return None, None, 0
+
 
 # COMMAND ----------
 
@@ -302,14 +306,28 @@ def backfill_fact_query_history_chunk(
 ) -> int:
     """
     Backfill a single 1-week chunk of fact_query_history.
+    
+    Bronze columns (system.query.history):
+      - account_id, workspace_id, statement_id, executed_by, session_id
+      - execution_status, executed_by_user_id, statement_text, statement_type
+      - error_message, client_application, client_driver
+      - total_duration_ms, waiting_for_compute_duration_ms, waiting_at_capacity_duration_ms
+      - execution_duration_ms, compilation_duration_ms, total_task_duration_ms
+      - result_fetch_duration_ms, start_time, end_time, update_time
+      - read_partitions, pruned_files, read_files, read_rows, produced_rows
+      - read_bytes, read_io_cache_percent, from_result_cache
+      - spilled_local_bytes, written_bytes, shuffle_read_bytes
+      - executed_as_user_id, executed_as, written_rows, written_files
+      - cache_origin_statement_id, compute (struct), query_source (struct)
+      - query_parameters (struct), query_tags (map)
     """
-    from merge_helpers import deduplicate_bronze, flatten_struct_fields, merge_fact_table
+    from merge_helpers import deduplicate_bronze, merge_fact_table
     
     bronze_table = f"{catalog}.{bronze_schema}.query_history"
     
     print(f"\n  Processing: {start_date} to {end_date}")
     
-    # Read Bronze for this date range (use end_time for filtering - Bronze column name)
+    # Read Bronze for this date range (use end_time for filtering)
     bronze_raw = spark.table(bronze_table).filter(
         f"DATE(end_time) >= '{start_date}' AND DATE(end_time) < '{end_date}'"
     )
@@ -328,20 +346,29 @@ def backfill_fact_query_history_chunk(
         order_by_column="bronze_ingestion_timestamp"
     )
     
-    # Prepare updates (simplified - match Gold schema)
+    # Prepare updates - flatten structs and match Gold schema
     updates_df = (
         bronze_df
-        .withColumn("query_tags_json",
-                    when(col("query_tags").isNotNull(), to_json(col("query_tags")))
-                    .otherwise(lit(None)))
+        # Flatten compute struct
+        .withColumn("compute_type", col("compute").getField("type"))
+        .withColumn("compute_cluster_id", col("compute").getField("cluster_id"))
+        .withColumn("compute_warehouse_id", col("compute").getField("warehouse_id"))
+        # Flatten query_source struct (JSON for complex nested fields)
         .withColumn("query_source_job_info",
                     when(col("query_source").getField("job_info").isNotNull(), 
                          to_json(col("query_source").getField("job_info")))
                     .otherwise(lit(None)))
+        .withColumn("query_source_legacy_dashboard_id", col("query_source").getField("legacy_dashboard_id"))
+        .withColumn("query_source_dashboard_id", col("query_source").getField("dashboard_id"))
+        .withColumn("query_source_alert_id", col("query_source").getField("alert_id"))
+        .withColumn("query_source_notebook_id", col("query_source").getField("notebook_id"))
+        .withColumn("query_source_sql_query_id", col("query_source").getField("sql_query_id"))
+        .withColumn("query_source_genie_space_id", col("query_source").getField("genie_space_id"))
         .withColumn("query_source_pipeline_info",
                     when(col("query_source").getField("pipeline_info").isNotNull(),
                          to_json(col("query_source").getField("pipeline_info")))
                     .otherwise(lit(None)))
+        # Flatten query_parameters struct
         .withColumn("query_parameters_named_parameters",
                     when(col("query_parameters").getField("named_parameters").isNotNull(),
                          to_json(col("query_parameters").getField("named_parameters")))
@@ -350,16 +377,73 @@ def backfill_fact_query_history_chunk(
                     when(col("query_parameters").getField("pos_parameters").isNotNull(),
                          to_json(col("query_parameters").getField("pos_parameters")))
                     .otherwise(lit(None)))
+        .withColumn("query_parameters_truncated", col("query_parameters").getField("truncated"))
+        # Cast read_io_cache_percent to STRING (Bronze has it as TINYINT)
         .withColumn("read_io_cache_percent", col("read_io_cache_percent").cast("string"))
+        # Select columns matching Gold schema
         .select(
-            "account_id", "workspace_id", "statement_id", "executed_as_user_id",
-            "executed_as_user_name", "execution_status", "query_text",
-            "query_start_time", "execution_end_time", "compute_time",
-            "total_cpu_time_ms", "total_time_ms", "read_bytes", "produced_rows",
-            "read_io_cache_percent", "spilled_local_bytes", "written_bytes",
-            "warehouse_id", "statement_type",
-            "query_tags_json", "query_source_job_info", "query_source_pipeline_info",
-            "query_parameters_named_parameters", "query_parameters_pos_parameters"
+            # Core identifiers
+            "account_id", "workspace_id", "statement_id",
+            # User info (correct Bronze column names)
+            "executed_by",           # Bronze: executed_by (not executed_as_user_name)
+            "session_id",
+            "execution_status",
+            "executed_by_user_id",
+            "statement_text",        # Bronze: statement_text (not query_text)
+            "statement_type",
+            "error_message",
+            "client_application",
+            "client_driver",
+            # Duration metrics (correct Bronze column names)
+            "total_duration_ms",     # Bronze: total_duration_ms (not total_time_ms)
+            "waiting_for_compute_duration_ms",
+            "waiting_at_capacity_duration_ms",
+            "execution_duration_ms",
+            "compilation_duration_ms",
+            "total_task_duration_ms", # Bronze: total_task_duration_ms (not total_cpu_time_ms)
+            "result_fetch_duration_ms",
+            # Timestamps (correct Bronze column names)
+            "start_time",            # Bronze: start_time (not query_start_time)
+            "end_time",              # Bronze: end_time (not execution_end_time)
+            "update_time",
+            # IO metrics
+            "read_partitions",
+            "pruned_files",
+            "read_files",
+            "read_rows",
+            "produced_rows",
+            "read_bytes",
+            "read_io_cache_percent",
+            "from_result_cache",
+            "spilled_local_bytes",
+            "written_bytes",
+            "shuffle_read_bytes",
+            # Additional user info
+            "executed_as_user_id",
+            "executed_as",
+            # Write metrics
+            "written_rows",
+            "written_files",
+            "cache_origin_statement_id",
+            # Flattened compute struct
+            "compute_type",
+            "compute_cluster_id",
+            "compute_warehouse_id",
+            # Flattened query_source struct
+            "query_source_job_info",
+            "query_source_legacy_dashboard_id",
+            "query_source_dashboard_id",
+            "query_source_alert_id",
+            "query_source_notebook_id",
+            "query_source_sql_query_id",
+            "query_source_genie_space_id",
+            "query_source_pipeline_info",
+            # Flattened query_parameters struct
+            "query_parameters_named_parameters",
+            "query_parameters_pos_parameters",
+            "query_parameters_truncated",
+            # Native query_tags map (keep as-is for Gold)
+            "query_tags"
         )
     )
     
@@ -420,14 +504,19 @@ def generate_weekly_chunks(end_date, months_back: int):
 # COMMAND ----------
 
 def main():
-    """Main entry point for historical backfill."""
+    """
+    Main entry point for historical backfill.
+    
+    RESUMABLE: Queries the Gold table itself to find what's already been processed.
+    If job times out, just rerun it - it will automatically skip already-processed date ranges.
+    """
     
     catalog, bronze_schema, gold_schema, table_name, months_to_backfill = get_parameters()
     
     spark = SparkSession.builder.appName(f"Gold Backfill - {table_name}").getOrCreate()
     
     print("\n" + "=" * 80)
-    print(f"HISTORICAL BACKFILL: {table_name}")
+    print(f"HISTORICAL BACKFILL: {table_name} (RESUMABLE)")
     print("=" * 80)
     print(f"Catalog: {catalog}")
     print(f"Bronze Schema: {bronze_schema}")
@@ -446,7 +535,7 @@ def main():
             "backfill_func": backfill_fact_usage_chunk
         },
         "fact_query_history": {
-            "date_column": "DATE(end_time)",  # Bronze column name is end_time
+            "date_column": "DATE(end_time)",  # Gold uses end_time
             "backfill_func": backfill_fact_query_history_chunk
         }
     }
@@ -457,31 +546,73 @@ def main():
     config = table_config[table_name]
     gold_table = f"{catalog}.{gold_schema}.{table_name}"
     
-    # Get current Gold date range (for informational purposes)
-    min_date, max_date, record_count = get_gold_date_range(spark, gold_table, config["date_column"])
+    # === QUERY GOLD TABLE TO FIND WHAT'S ALREADY PROCESSED ===
+    print("\n📍 Checking Gold table for existing data (auto-resume)...")
+    gold_min_date, gold_max_date, record_count = get_gold_date_range(spark, gold_table, config["date_column"])
     
     print(f"\nCurrent Gold table status:")
     print(f"  Records: {record_count:,}")
-    print(f"  Min date: {min_date}")
-    print(f"  Max date: {max_date}")
+    print(f"  Min date: {gold_min_date}")
+    print(f"  Max date: {gold_max_date}")
     
-    # CORRECT: Start from TODAY and go back X months
-    # This ensures we backfill the last N months of data
+    # Calculate backfill date range
     today = datetime.now().date()
     backfill_end = today
+    backfill_start = today - timedelta(days=months_to_backfill * 30)
     
-    print(f"\n  → Backfilling last {months_to_backfill} months in 1-week chunks (from {backfill_end} going back)")
-    print(f"     Note: MERGE ensures no duplicates with existing data")
+    print(f"\n  → Requested backfill: {backfill_start} to {backfill_end} ({months_to_backfill} months)")
     
     # Generate 1-week chunks going backwards FROM TODAY
-    chunks = generate_weekly_chunks(backfill_end, months_to_backfill)
+    all_chunks = generate_weekly_chunks(backfill_end, months_to_backfill)
     
-    print(f"\nProcessing {len(chunks)} 1-week chunks:")
-    for start, end in chunks:
+    # === FILTER CHUNKS BASED ON WHAT'S ALREADY IN GOLD ===
+    if gold_min_date and gold_max_date:
+        # Gold has data - skip chunks that are already covered
+        # A chunk is "done" if its date range falls within Gold's date range
+        remaining_chunks = []
+        skipped_chunks = []
+        
+        for start, end in all_chunks:
+            chunk_start_date = datetime.strptime(start, "%Y-%m-%d").date()
+            chunk_end_date = datetime.strptime(end, "%Y-%m-%d").date()
+            
+            # Convert gold dates to date objects for comparison
+            gold_min = gold_min_date.date() if hasattr(gold_min_date, 'date') else gold_min_date
+            gold_max = gold_max_date.date() if hasattr(gold_max_date, 'date') else gold_max_date
+            
+            # Skip chunks that are FULLY within Gold's existing date range
+            # (Both start AND end are within gold_min to gold_max)
+            if chunk_start_date >= gold_min and chunk_end_date <= gold_max:
+                skipped_chunks.append((start, end))
+            else:
+                remaining_chunks.append((start, end))
+        
+        if skipped_chunks:
+            print(f"\n📍 Auto-resume: Skipping {len(skipped_chunks)} chunks already in Gold table")
+            print(f"   (Gold has data from {gold_min} to {gold_max})")
+        
+        chunks = remaining_chunks
+    else:
+        # Gold is empty - process all chunks
+        print(f"\n📍 Gold table is empty - processing all {len(all_chunks)} chunks")
+        chunks = all_chunks
+    
+    if not chunks:
+        print(f"\n✓ All chunks already processed! Gold table has data for entire requested period.")
+        print(f"  Gold: {gold_min_date} to {gold_max_date}")
+        print(f"  Requested: {backfill_start} to {backfill_end}")
+        return
+    
+    print(f"\nProcessing {len(chunks)} remaining 1-week chunks:")
+    for start, end in chunks[:10]:  # Show first 10
         print(f"  • {start} to {end}")
+    if len(chunks) > 10:
+        print(f"  ... and {len(chunks) - 10} more")
     
     # Process each chunk
     total_merged = 0
+    chunks_completed = 0
+    
     try:
         for i, (start_date, end_date) in enumerate(chunks):
             print(f"\n[{i+1}/{len(chunks)}] Processing chunk...")
@@ -489,15 +620,19 @@ def main():
                 spark, catalog, bronze_schema, gold_schema, start_date, end_date
             )
             total_merged += merged
+            chunks_completed += 1
+            print(f"    ✓ Progress: {chunks_completed}/{len(chunks)} chunks done")
             
     except Exception as e:
         print(f"\n❌ Error during backfill: {str(e)}")
+        print(f"\n💾 Progress saved in Gold table! Completed {chunks_completed} of {len(chunks)} chunks")
+        print(f"   Rerun the job to automatically resume from where it left off.")
         raise
     
     print("\n" + "=" * 80)
     print(f"✓ BACKFILL COMPLETED")
     print(f"  Total records merged: {total_merged:,}")
-    print(f"  Chunks processed: {len(chunks)}")
+    print(f"  Chunks processed: {chunks_completed}")
     print("=" * 80)
 
 # COMMAND ----------

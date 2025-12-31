@@ -12,6 +12,7 @@ Orchestrates monitor creation across all domains.
 from monitor_utils import (
     check_monitoring_available,
     wait_for_monitor_tables,
+    document_all_monitor_tables,
     MONITORING_AVAILABLE
 )
 
@@ -129,8 +130,22 @@ def main():
         print("Waiting for Monitor Tables")
         print("=" * 60)
         wait_for_monitor_tables(minutes=15)
+        
+        # Document monitoring tables for Genie after tables are ready
+        print("\n" + "=" * 60)
+        print("Documenting Monitor Tables for Genie")
+        print("=" * 60)
+        doc_results = document_all_monitor_tables(spark, catalog, gold_schema)
+        
+        # Count documented tables
+        doc_success = sum(
+            1 for table_results in doc_results.values()
+            for status in table_results.values()
+            if "SUCCESS" in status
+        )
+        print(f"\n  Documented {doc_success} monitoring tables for Genie")
 
-    # Create monitoring schema
+    # Create monitoring schema (if not already exists)
     monitoring_schema = f"{gold_schema}_monitoring"
     print(f"\nMonitoring output schema: {catalog}.{monitoring_schema}")
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{monitoring_schema}")
@@ -143,5 +158,5 @@ def main():
 
 # COMMAND ----------
 
-if __name__ == "__main__":
-    main()
+# Call main() directly - __name__ check doesn't work in Databricks job notebooks
+main()

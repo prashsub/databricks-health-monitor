@@ -1,0 +1,362 @@
+---
+description: MLflow 3.0 GenAI patterns for tracing, evaluation, prompt registry, and agent logging in Databricks
+globs: src/agents/**/*.py, src/ml/**/*.py
+alwaysApply: false
+---
+# MLflow 3.0 GenAI Patterns
+
+## Overview
+
+This rule defines patterns for using MLflow 3.0 GenAI features in Databricks applications including tracing, evaluation with LLM judges, prompt registry, and agent logging.
+
+## Tracing Patterns
+
+### Enable Automatic Tracing
+
+Always enable autolog at the module level for LangChain applications:
+
+```python
+# At the TOP of your main module
+import mlflow
+
+mlflow.langchain.autolog(
+    log_models=True,
+    log_input_examples=True,
+    log_model_signatures=True,
+    log_inputs=True
+)
+```
+
+### Manual Tracing with Decorators
+
+Use `@mlflow.trace` for custom functions:
+
+```python
+import mlflow
+
+@mlflow.trace(name="my_function", span_type="AGENT")
+def my_agent_function(query: str) -> dict:
+    """Function is automatically traced."""
+    result = process(query)
+    return result
+```
+
+**Span Types:**
+- `AGENT`: Agent-level operations
+- `LLM`: LLM calls
+- `TOOL`: Tool invocations
+- `RETRIEVER`: RAG/memory retrieval
+- `CLASSIFIER`: Classification operations
+- `MEMORY`: Memory operations
+
+### Manual Span Creation
+
+For fine-grained control:
+
+```python
+import mlflow
+
+def complex_operation(data):
+    with mlflow.start_span(name="outer_operation") as span:
+        span.set_inputs({"data": data})
+        
+        with mlflow.start_span(name="inner_step", span_type="LLM") as inner:
+            inner.set_inputs({"prompt": "..."})
+            result = llm.invoke(...)
+            inner.set_outputs({"response": result})
+        
+        span.set_outputs({"result": result})
+        span.set_attributes({"custom_metric": 0.95})
+        
+    return result
+```
+
+### Trace Tagging
+
+Always tag traces for filtering:
+
+```python
+mlflow.update_current_trace(tags={
+    "user_id": user_id,
+    "session_id": session_id,
+    "environment": os.environ.get("ENVIRONMENT", "dev"),
+    "domains": ",".join(domains),
+    "confidence": str(confidence)
+})
+```
+
+## Evaluation Patterns
+
+### Built-in Scorers
+
+```python
+from mlflow.genai.scorers import Relevance, Safety, Correctness, GuidelinesAdherence
+
+results = mlflow.genai.evaluate(
+    model=agent,
+    data=evaluation_data,
+    scorers=[
+        Relevance(),
+        Safety(),
+        Correctness(),
+        GuidelinesAdherence(guidelines=[
+            "Include time context",
+            "Format costs as USD",
+            "Cite sources"
+        ])
+    ]
+)
+```
+
+### Custom LLM Judges
+
+Use the `@scorer` decorator:
+
+```python
+from mlflow.genai import scorer, Score
+
+@scorer
+def domain_accuracy_judge(inputs: dict, outputs: dict, expectations: dict = None) -> Score:
+    """Custom judge for domain-specific accuracy."""
+    from langchain_databricks import ChatDatabricks
+    
+    llm = ChatDatabricks(endpoint="databricks-dbrx-instruct", temperature=0)
+    
+    prompt = f"""Evaluate the response accuracy (0-1):
+Query: {inputs.get('query')}
+Response: {outputs.get('response')}
+
+Return JSON: {{"score": <float>, "rationale": "<reason>"}}"""
+    
+    import json
+    result = json.loads(llm.invoke(prompt).content)
+    
+    return Score(
+        value=result["score"],
+        rationale=result["rationale"]
+    )
+```
+
+### Production Monitoring
+
+Use `mlflow.genai.assess()` for real-time assessment:
+
+```python
+assessment = mlflow.genai.assess(
+    inputs={"query": query},
+    outputs={"response": response},
+    scorers=[Relevance(), Safety()]
+)
+
+if assessment.scores["relevance"] < 0.6:
+    trigger_quality_alert()
+```
+
+## Prompt Registry Patterns
+
+### Log Prompts
+
+```python
+import mlflow.genai
+
+mlflow.genai.log_prompt(
+    prompt="""You are a helpful assistant.
+    
+User context: {user_context}
+Query: {query}""",
+    artifact_path="prompts/assistant",
+    registered_model_name="my_app_assistant_prompt"
+)
+```
+
+### Load Prompts by Alias
+
+```python
+# Load production prompt
+prompt = mlflow.genai.load_prompt(
+    "prompts:/my_app_assistant_prompt/production"
+)
+
+# Load by version
+prompt_v1 = mlflow.genai.load_prompt(
+    "prompts:/my_app_assistant_prompt/1"
+)
+```
+
+### Set Aliases
+
+```python
+from mlflow import MlflowClient
+
+client = MlflowClient()
+
+client.set_registered_model_alias(
+    name="my_app_assistant_prompt",
+    alias="production",
+    version="2"
+)
+```
+
+## Agent Logging Patterns
+
+### ChatAgent Implementation
+
+```python
+from mlflow.pyfunc import ChatAgent
+from mlflow.types.agent import ChatAgentMessage, ChatAgentResponse
+
+class MyAgent(ChatAgent):
+    def __init__(self):
+        self.model = create_model()
+    
+    @mlflow.trace(name="agent_predict", span_type="AGENT")
+    def predict(
+        self,
+        context,
+        messages: list[ChatAgentMessage],
+        params: dict = None
+    ) -> ChatAgentResponse:
+        query = messages[-1].content
+        result = self.model.invoke(query)
+        
+        return ChatAgentResponse(
+            messages=[ChatAgentMessage(role="assistant", content=result)],
+            metadata={"confidence": 0.9}
+        )
+```
+
+### Log Agent to Registry
+
+```python
+import mlflow
+
+# Set model for logging
+mlflow.models.set_model(MyAgent())
+
+with mlflow.start_run():
+    mlflow.log_params({"agent_type": "multi_agent"})
+    
+    mlflow.langchain.log_model(
+        lc_model=agent.graph,
+        artifact_path="agent",
+        registered_model_name="my_agent",
+        pip_requirements=[
+            "mlflow>=3.0.0",
+            "langchain>=0.3.0",
+            "langgraph>=0.2.0"
+        ]
+    )
+```
+
+### Promote to Production
+
+```python
+from mlflow import MlflowClient
+
+client = MlflowClient()
+
+# Get latest version
+latest = client.get_latest_versions("my_agent")[0]
+
+# Set production alias
+client.set_registered_model_alias(
+    name="my_agent",
+    alias="production",
+    version=latest.version
+)
+```
+
+## Common Mistakes
+
+### Tracing
+
+```python
+# WRONG: Missing span type
+@mlflow.trace(name="my_func")  # No span_type
+
+# CORRECT: Include span type
+@mlflow.trace(name="my_func", span_type="AGENT")
+```
+
+```python
+# WRONG: Not setting inputs/outputs
+with mlflow.start_span("operation"):
+    result = process()
+
+# CORRECT: Set inputs and outputs
+with mlflow.start_span("operation") as span:
+    span.set_inputs({"data": data})
+    result = process()
+    span.set_outputs({"result": result})
+```
+
+### Evaluation
+
+```python
+# WRONG: Custom judge without Score return type
+@scorer
+def my_judge(inputs, outputs):
+    return 0.9  # Just a float
+
+# CORRECT: Return Score object
+@scorer
+def my_judge(inputs, outputs) -> Score:
+    return Score(value=0.9, rationale="Good response")
+```
+
+### Prompt Registry
+
+```python
+# WRONG: Loading by name only
+prompt = mlflow.genai.load_prompt("my_prompt")
+
+# CORRECT: Use full URI with alias
+prompt = mlflow.genai.load_prompt("prompts:/my_prompt/production")
+```
+
+### Agent Logging
+
+```python
+# WRONG: Forgetting set_model before log_model
+with mlflow.start_run():
+    mlflow.langchain.log_model(agent, "agent")  # May fail
+
+# CORRECT: Set model first
+mlflow.models.set_model(agent)
+with mlflow.start_run():
+    mlflow.langchain.log_model(agent.graph, "agent")
+```
+
+## Validation Checklist
+
+### Tracing
+- [ ] `mlflow.langchain.autolog()` enabled at module level
+- [ ] All custom functions decorated with `@mlflow.trace`
+- [ ] Span types specified (AGENT, LLM, TOOL, etc.)
+- [ ] Inputs and outputs set for manual spans
+- [ ] Traces tagged with user_id, session_id, environment
+
+### Evaluation
+- [ ] Built-in scorers used where appropriate
+- [ ] Custom judges return `Score` objects
+- [ ] Evaluation metrics logged to MLflow
+- [ ] Production monitoring with `assess()` implemented
+
+### Prompts
+- [ ] All prompts logged to registry
+- [ ] Production alias set for deployment
+- [ ] Prompts loaded by alias in production code
+
+### Agent Logging
+- [ ] `ChatAgent` interface implemented
+- [ ] `set_model()` called before `log_model()`
+- [ ] Model registered with proper name
+- [ ] Aliases set for dev/staging/production
+
+## References
+
+- [MLflow GenAI Concepts](https://docs.databricks.com/aws/en/mlflow3/genai/concepts/)
+- [MLflow Tracing](https://docs.databricks.com/aws/en/mlflow3/genai/tracing/)
+- [MLflow Scorers](https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/concepts/scorers)
+- [Prompt Registry](https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/)
+- [Log Agent](https://docs.databricks.com/aws/en/generative-ai/agent-framework/log-agent)

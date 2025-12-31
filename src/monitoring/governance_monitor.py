@@ -358,8 +358,8 @@ def main():
 
 # COMMAND ----------
 
-if __name__ == "__main__":
-    main()
+# Call main() directly - __name__ check doesn't work in Databricks job notebooks
+main()
 
 
 

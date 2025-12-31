@@ -1,0 +1,12 @@
+https://docs.databricks.com/aws/en/generative-ai/agent-framework/author-agent
+https://docs.databricks.com/aws/en/mlflow3/genai/tracing/app-instrumentation/automatic
+
+https://docs.databricks.com/aws/en/generative-ai/agent-framework/multi-agent-genie
+
+https://docs.databricks.com/aws/en/notebooks/source/generative-ai/short-term-memory-agent-lakebase.html
+
+https://docs.databricks.com/aws/en/notebooks/source/generative-ai/long-term-memory-agent-lakebase.html
+
+https://docs.databricks.com/aws/en/generative-ai/agent-framework/log-agent
+
+

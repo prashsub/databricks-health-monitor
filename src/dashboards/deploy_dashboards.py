@@ -155,7 +155,7 @@ def add_global_filters_page(unified: dict) -> dict:
     workspace_filter_ds = {
         "name": "ds_workspace_filter",
         "displayName": "ds_workspace_filter",
-        "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE is_current = TRUE ORDER BY workspace_name"
+        "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace ORDER BY workspace_name"
     }
     
     unified['pages'].append(global_filters_page)
@@ -168,31 +168,41 @@ def build_unified_dashboard(dashboards_dir: str) -> dict:
     """Build a unified dashboard from individual dashboard files."""
     
     # Dashboard configuration: (file_name, page_name, display_name, prefix)
+    # 
+    # NOTE: Some dashboards excluded until their required Gold tables are created:
+    # - commit_tracking: requires commit_configurations table
+    # - table_health: requires fact_information_schema_table_storage table
+    # - query_performance: requires fact_query_history table (may not be populated)
+    # - cluster_utilization: requires fact_node_timeline table (may not be populated)
+    # - security_audit: requires fact_audit_logs table (may not be populated)
+    # - governance_hub: requires fact_table_lineage table (may not be populated)
+    #
     DASHBOARD_CONFIG = [
-        # 💰 Cost Agent
+        # 💰 Cost Agent - Uses fact_usage (confirmed working)
         ("executive_overview.lvdash.json", "page_exec", "🏠 Executive Overview", "exec"),
         ("cost_management.lvdash.json", "page_cost", "💰 Cost Management", "cost"),
-        ("commit_tracking.lvdash.json", "page_commit", "💰 Commit Tracking", "commit"),
         
-        # 🔄 Reliability Agent
+        # 🔄 Reliability Agent - Uses fact_job_run_timeline, dim_job (confirmed working)
         ("job_reliability.lvdash.json", "page_reliability", "🔄 Job Reliability", "rel"),
         ("job_optimization.lvdash.json", "page_optimization", "🔄 Job Optimization", "opt"),
         
-        # ⚡ Performance Agent
-        ("query_performance.lvdash.json", "page_query", "⚡ Query Performance", "query"),
-        ("cluster_utilization.lvdash.json", "page_cluster", "⚡ Cluster Utilization", "cluster"),
+        # ⚡ Performance Agent - Uses dim_cluster, fact_job_run_timeline (partial)
         ("dbr_migration.lvdash.json", "page_dbr", "⚡ DBR Migration", "dbr"),
         
-        # 🔒 Security Agent
-        ("security_audit.lvdash.json", "page_security", "🔒 Security Audit", "sec"),
-        ("governance_hub.lvdash.json", "page_governance", "🔒 Governance Hub", "gov"),
-        
-        # ✅ Quality Agent
-        ("table_health.lvdash.json", "page_quality", "✅ Table Health", "qual"),
+        # The following dashboards require tables that may not be populated yet:
+        # ("query_performance.lvdash.json", "page_query", "⚡ Query Performance", "query"),
+        # ("cluster_utilization.lvdash.json", "page_cluster", "⚡ Cluster Utilization", "cluster"),
+        # ("security_audit.lvdash.json", "page_security", "🔒 Security Audit", "sec"),
+        # ("governance_hub.lvdash.json", "page_governance", "🔒 Governance Hub", "gov"),
+        # ("table_health.lvdash.json", "page_quality", "✅ Table Health", "qual"),
     ]
     
+    # Add version to avoid "already exists" conflicts with stale dashboards
+    from datetime import datetime
+    version_ts = datetime.now().strftime("%Y%m%d_%H%M")
+    
     unified = {
-        "displayName": "Databricks Health Monitor",
+        "displayName": f"[Health Monitor v{version_ts}] Databricks Platform",
         "warehouse_id": "${warehouse_id}",
         "pages": [],
         "datasets": []
@@ -237,34 +247,42 @@ def substitute_variables(content: str, catalog: str, gold_schema: str, warehouse
     return content
 
 
-def find_existing_dashboard(workspace_client, display_name: str) -> str:
-    """Find a specific dashboard by name without listing all dashboards.
+def find_and_delete_dashboard(workspace_client, display_name: str) -> bool:
+    """Find a dashboard by name and delete it.
     
-    Uses a limited iteration with early exit to avoid timeout on large workspaces.
-    Returns dashboard_id if found, None otherwise.
+    Searches through dashboards up to a limit.
+    Returns True if found and deleted, False otherwise.
     """
     try:
-        # Only check first 100 dashboards (most recent) to find our dashboard
-        # This avoids iterating through 17,000+ dashboards
         count = 0
-        max_check = 100
+        max_check = 500  # Increased limit
+        print(f"  Searching for dashboard in first {max_check} results...")
         for dash in workspace_client.lakeview.list():
-            if dash.display_name == display_name:
-                return dash.dashboard_id
+            # Check for exact match or partial match (in case of name changes)
+            if dash.display_name == display_name or (
+                'Health Monitor' in str(dash.display_name) and 
+                'Platform Overview' in str(dash.display_name)
+            ):
+                print(f"  Found existing dashboard: {dash.display_name}")
+                print(f"  Dashboard ID: {dash.dashboard_id}")
+                workspace_client.lakeview.trash(dashboard_id=dash.dashboard_id)
+                print(f"  ✓ Old dashboard deleted")
+                return True
             count += 1
             if count >= max_check:
+                print(f"  Searched {count} dashboards, not found")
                 break
-        return None
+        return False
     except Exception as e:
-        print(f"  Warning: Could not search for existing dashboard: {str(e)}")
-        return None
+        print(f"  Warning: Could not search/delete dashboard: {str(e)}")
+        return False
 
 
 def deploy_dashboard_sdk(workspace_client, dashboard_config: dict) -> str:
     """Deploy dashboard using Databricks SDK.
     
-    Uses "try create, catch and update" pattern to avoid listing all dashboards.
-    Dashboard is created in user's default workspace location.
+    Strategy: Just try to create. With 17,000+ dashboards, searching is too slow.
+    Use a unique name that includes a version to avoid conflicts.
     
     Reference: https://databricks-sdk-py.readthedocs.io/en/latest/workspace/dashboards/lakeview.html
     """
@@ -272,7 +290,7 @@ def deploy_dashboard_sdk(workspace_client, dashboard_config: dict) -> str:
     serialized_dashboard = json.dumps(dashboard_config)
     warehouse_id_from_config = dashboard_config.get('warehouse_id')
     
-    # First, try to create the dashboard (no parent_path = user's default location)
+    # Just try to create the dashboard directly
     try:
         print(f"  Creating dashboard: {display_name}")
         dashboard_obj = Dashboard(
@@ -285,36 +303,15 @@ def deploy_dashboard_sdk(workspace_client, dashboard_config: dict) -> str:
         return result.dashboard_id if hasattr(result, 'dashboard_id') else "SUCCESS"
         
     except Exception as create_error:
-        error_str = str(create_error).lower()
+        error_str = str(create_error)
         
-        # If dashboard already exists, try to find and update it
-        if "already exists" in error_str or "conflict" in error_str:
-            print(f"  Dashboard exists, searching for it to update...")
-            
-            existing_id = find_existing_dashboard(workspace_client, display_name)
-            
-            if existing_id:
-                try:
-                    print(f"  Updating existing dashboard (ID: {existing_id})")
-                    dashboard_obj = Dashboard(
-                        display_name=display_name,
-                        serialized_dashboard=serialized_dashboard,
-                        warehouse_id=warehouse_id_from_config
-                    )
-                    result = workspace_client.lakeview.update(
-                        dashboard_id=existing_id,
-                        dashboard=dashboard_obj
-                    )
-                    print(f"  ✓ Dashboard updated successfully")
-                    return result.dashboard_id if hasattr(result, 'dashboard_id') else "SUCCESS"
-                except Exception as update_error:
-                    print(f"  ✗ Update failed: {str(update_error)}")
-                    raise
-            else:
-                print(f"  ✗ Could not find existing dashboard to update")
-                raise create_error
+        if "already exists" in error_str.lower() or "resourcealreadyexists" in error_str.lower():
+            print(f"  ⚠ Dashboard already exists")
+            print(f"  Please manually delete any existing '[Health Monitor]' dashboard and re-run")
+            print(f"  Error details: {error_str}")
+            raise
         else:
-            print(f"  ✗ Create failed: {str(create_error)}")
+            print(f"  ✗ Create failed: {error_str}")
             raise
 
 

@@ -156,7 +156,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     - In production, would come from actual optimization outcomes
     
     Schema-grounded:
-    - fact_query_history.yaml: duration_ms, read_bytes, bytes_written,
+    - fact_query_history.yaml: total_duration_ms, read_bytes, bytes_written,
       rows_returned, spill_to_disk_bytes, statement_type
     """
     print("\nPreparing training data for query optimization recommendation...")
@@ -171,7 +171,7 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         .filter(F.col("statement_type") == "SELECT")
         # Safe division helpers
         .withColumn("read_bytes_safe", F.greatest(F.col("read_bytes"), F.lit(1)))
-        .withColumn("duration_safe", F.greatest(F.col("duration_ms"), F.lit(1)))
+        .withColumn("duration_safe", F.greatest(F.col("total_duration_ms"), F.lit(1)))
         # Performance indicators
         .withColumn("bytes_per_ms", F.col("read_bytes_safe") / F.col("duration_safe"))
         .withColumn("rows_per_ms", F.col("rows_returned") / F.col("duration_safe"))
@@ -180,13 +180,13 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         .withColumn("has_spill", F.when(F.col("spill_bytes") > 0, 1).otherwise(0))
         # Size categorization
         .withColumn("is_large_scan", F.when(F.col("read_bytes_safe") > 1e10, 1).otherwise(0))  # >10GB
-        .withColumn("is_slow_query", F.when(F.col("duration_ms") > 60000, 1).otherwise(0))  # >1min
+        .withColumn("is_slow_query", F.when(F.col("total_duration_ms") > 60000, 1).otherwise(0))  # >1min
         .withColumn("is_wide_result", F.when(F.col("rows_returned") > 1000000, 1).otherwise(0))  # >1M rows
         # Time features
         .withColumn("hour_of_day", F.hour("start_time"))
         .withColumn("is_peak_hours", F.when(F.col("hour_of_day").between(9, 17), 1).otherwise(0))
         # Log transforms
-        .withColumn("duration_log", F.log1p(F.col("duration_ms")))
+        .withColumn("duration_log", F.log1p(F.col("total_duration_ms")))
         .withColumn("bytes_log", F.log1p(F.col("read_bytes_safe")))
         .withColumn("rows_log", F.log1p(F.col("rows_returned")))
         .withColumn("spill_log", F.log1p(F.col("spill_bytes")))
@@ -198,11 +198,11 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
         query_data
         # PARTITION_PRUNING: Large scans with high duration
         .withColumn("needs_partition_pruning", F.when(
-            (F.col("is_large_scan") == 1) & (F.col("duration_ms") > 30000), 1
+            (F.col("is_large_scan") == 1) & (F.col("total_duration_ms") > 30000), 1
         ).otherwise(0))
         # CACHING: Frequently run queries with moderate size
         .withColumn("needs_caching", F.when(
-            (F.col("read_bytes_safe") < 1e9) & (F.col("duration_ms") > 5000), 1
+            (F.col("read_bytes_safe") < 1e9) & (F.col("total_duration_ms") > 5000), 1
         ).otherwise(0))
         # BROADCAST_JOIN: Small table joins (detected by row/byte ratio)
         .withColumn("needs_broadcast_join", F.when(

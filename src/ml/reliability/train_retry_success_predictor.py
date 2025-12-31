@@ -146,12 +146,16 @@ def prepare_training_data(spark: SparkSession, catalog: str, gold_schema: str):
     fact_job = f"{catalog}.{gold_schema}.fact_job_run_timeline"
     
     # Get failed jobs
-    # Note: compute_ids is an array, extract first cluster_id
+    # Note: compute_ids is an array, extract first cluster_id safely
     failed_jobs = (
         spark.table(fact_job)
         .filter(F.col("result_state") == "FAILED")
         .filter(F.col("period_start_time").isNotNull())
-        .withColumn("cluster_id", F.element_at(F.col("compute_ids"), 1))  # Get first cluster
+        # Safely extract first cluster_id - use null if array is empty
+        .withColumn("cluster_id", 
+            F.when(F.size(F.col("compute_ids")) > 0, F.element_at(F.col("compute_ids"), 1))
+            .otherwise(F.lit(None))
+        )
         .select(
             "run_id",
             "job_id",

@@ -201,7 +201,7 @@ def add_global_filters_page(unified: Dict[str, Any]) -> Dict[str, Any]:
     # Add workspace filter dataset
     workspace_filter_ds = {
         "name": "ds_workspace_filter",
-        "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE is_current = TRUE ORDER BY workspace_name"
+        "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace ORDER BY workspace_name"
     }
     
     # Insert filters page at the end

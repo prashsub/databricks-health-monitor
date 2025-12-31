@@ -136,6 +136,46 @@ resources:
         compute_type: serverless
 
     # ================================================================
+    # DOCUMENTATION JOB - Adds Genie-friendly descriptions (Run after init)
+    # ================================================================
+    lakehouse_monitoring_document_job:
+      name: "[${bundle.target}] Health Monitor - Document Monitoring Tables"
+      description: "Adds detailed descriptions to Lakehouse Monitor output tables for Genie/LLM understanding. Run ~15 min after monitor creation."
+
+      # ✅ MANDATORY: Serverless environment configuration
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "databricks-sdk>=0.28.0"
+
+      tasks:
+        - task_key: document_all_monitors
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/monitoring/document_monitors.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              verbose: "true"
+
+      # No schedule - run on demand after monitors initialize
+      # Timeout: 15 minutes
+      timeout_seconds: 900
+
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: monitoring
+        job_type: documentation
+        compute_type: serverless
+
+    # ================================================================
     # REFRESH JOB - Triggers manual refresh of all monitors (Scheduled)
     # ================================================================
     lakehouse_monitoring_refresh_job:
