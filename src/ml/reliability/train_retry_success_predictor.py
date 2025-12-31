@@ -269,12 +269,26 @@ def train_retry_predictor(X_train, y_train, X_val, y_val):
     print("\nTraining XGBoost Retry Success Predictor...")
     print(f"  Training samples: {len(X_train)}")
     print(f"  Validation samples: {len(X_val)}")
-    print(f"  Class balance (train): {y_train.mean():.2%} success rate")
     
-    # Calculate scale_pos_weight for imbalanced data
+    # Validate we have enough data and class diversity
+    if len(X_train) < 10:
+        raise ValueError(f"Insufficient training data: {len(X_train)} samples (need at least 10)")
+    
+    # Calculate class balance
     neg_count = (y_train == 0).sum()
     pos_count = (y_train == 1).sum()
+    
+    if pos_count == 0 or neg_count == 0:
+        raise ValueError(f"Need both classes in training data. Got {pos_count} successes, {neg_count} failures")
+    
+    class_balance = y_train.mean()
+    print(f"  Class balance (train): {class_balance:.2%} success rate ({pos_count} success, {neg_count} failure)")
+    
+    # Calculate scale_pos_weight for imbalanced data
     scale_pos_weight = neg_count / pos_count if pos_count > 0 else 1.0
+    
+    # Calculate base_score (must be in (0, 1) for logistic loss)
+    base_score = max(0.01, min(0.99, class_balance))
     
     model = XGBClassifier(
         n_estimators=200,
@@ -284,6 +298,7 @@ def train_retry_predictor(X_train, y_train, X_val, y_val):
         subsample=0.8,
         colsample_bytree=0.8,
         scale_pos_weight=scale_pos_weight,
+        base_score=base_score,  # Explicitly set based on class balance
         random_state=42,
         use_label_encoder=False,
         eval_metric='logloss'
