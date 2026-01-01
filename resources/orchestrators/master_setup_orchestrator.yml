@@ -16,14 +16,18 @@
 #   1. Bronze Setup (atomic) - Non-streaming tables + DQ rules
 #   2. Gold Setup (atomic) - 39 tables + constraints
 #   3. Semantic Layer Setup (composite) → TVF + Metric View jobs
-#   4. Monitoring Layer Setup (composite) → Lakehouse Monitoring job
-#   5. ML Layer Setup (composite) → Feature + Training jobs
+#   4. Monitoring Layer Setup (atomic) → Lakehouse Monitoring job
+#   5. Wait for Monitor Tables (20 min) → Allow async table creation
+#   6. Monitoring Documentation (atomic) → Add Genie-friendly descriptions
+#   7. Alerting Layer Setup (composite) → Alert tables + deployment
+#   8. ML Layer Setup (composite) → Feature + Training jobs
 #
 # Total Infrastructure:
 #   - Bronze: 8 non-streaming tables + DQ rules
 #   - Gold: 39 domain tables + constraints
 #   - Semantic: 60 TVFs + 10 Metric Views
-#   - Monitoring: 8 Lakehouse Monitors
+#   - Monitoring: 8 Lakehouse Monitors + Genie-friendly descriptions
+#   - Alerting: 56 SQL Alerts
 #   - ML: Feature tables + 25 trained models
 #
 # Usage:
@@ -36,7 +40,13 @@ resources:
   jobs:
     master_setup_orchestrator:
       name: "[${bundle.target}] Health Monitor - Master Setup Orchestrator"
-      description: "Complete setup: Bronze → Gold → Semantic → Monitoring → ML (references composite jobs, no direct notebooks)"
+      description: "Complete setup: Bronze → Gold → Semantic → Monitoring → Alerting → ML (references composite jobs)"
+      
+      # Environment for wait task (only task that needs notebook_task)
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
       
       tasks:
         # ================================================================
@@ -76,11 +86,31 @@ resources:
             - task_key: gold_setup
           run_job_task:
             job_id: ${resources.jobs.lakehouse_monitoring_setup_job.id}
+        
+        # Step 5: Wait for Monitor Tables (20 min conservative delay)
+        # Lakehouse Monitors create output tables asynchronously
+        # Documentation job needs these tables to exist before adding descriptions
+        - task_key: wait_for_monitor_tables
+          depends_on:
+            - task_key: monitoring_layer_setup
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/monitoring/wait_for_monitors.py
+            base_parameters:
+              wait_minutes: "20"
+        
+        # Step 6: Document Monitoring Tables (atomic job - adds Genie descriptions)
+        - task_key: monitoring_documentation
+          depends_on:
+            - task_key: wait_for_monitor_tables
+          run_job_task:
+            job_id: ${resources.jobs.lakehouse_monitoring_document_job.id}
 
         # ================================================================
-        # PHASE 3.5: ALERTING LAYER SETUP (requires Gold tables)
+        # PHASE 4: ALERTING LAYER SETUP (requires Gold tables)
         # ================================================================
 
+        # Step 7: Alerting Layer (composite job → Alert tables + deployment)
         - task_key: alerting_layer_setup
           depends_on:
             - task_key: gold_setup
@@ -88,10 +118,10 @@ resources:
             job_id: ${resources.jobs.alerting_layer_setup_job.id}
         
         # ================================================================
-        # PHASE 4: ML LAYER SETUP (requires Gold data)
+        # PHASE 5: ML LAYER SETUP (requires Gold data)
         # ================================================================
         
-        # Step 5: ML Layer (composite job → Feature + Training jobs)
+        # Step 8: ML Layer (composite job → Feature + Training jobs)
         - task_key: ml_layer_setup
           depends_on:
             - task_key: gold_setup
