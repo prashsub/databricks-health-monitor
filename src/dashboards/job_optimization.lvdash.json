@@ -424,7 +424,7 @@
     },
     {
       "name": "ds_no_autoscale",
-      "query": "SELECT j.name AS job_name, w.workspace_name, ROUND(COALESCE(u.total_cost, 0), 2) AS cost_30d FROM ${catalog}.${gold_schema}.dim_job j LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON j.workspace_id = w.workspace_id LEFT JOIN (SELECT usage_metadata_job_id AS job_id, SUM(list_cost) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND usage_metadata_job_id IS NOT NULL GROUP BY usage_metadata_job_id) u ON j.job_id = u.job_id WHERE j.delete_time IS NULL ORDER BY cost_30d DESC LIMIT 20"
+      "query": "SELECT j.name AS job_name, w.workspace_name, ROUND(COALESCE(u.total_cost, 0), 2) AS cost_30d FROM ${catalog}.${gold_schema}.dim_job j LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON j.workspace_id = w.workspace_id LEFT JOIN (SELECT usage_metadata_job_id AS job_id, SUM(list_cost) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND usage_metadata_job_id IS NOT NULL GROUP BY usage_metadata_job_id) u ON j.job_id = u.job_id AND j.delete_time IS NULL ORDER BY cost_30d DESC LIMIT 20"
     },
     {
       "name": "ds_stale_datasets",

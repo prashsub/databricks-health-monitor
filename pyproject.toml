@@ -106,3 +106,45 @@ python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+
+[tool.pyright]
+# Configuration for basedpyright/pyright
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
+
+# Databricks notebooks use packages only available in the runtime environment
+# These imports cannot be resolved locally but work correctly when deployed
+reportMissingImports = "none"
+
+# dbutils is a Databricks-provided global, not available locally
+reportUndefinedVariable = "warning"
+
+# These packages are available in Databricks runtime
+extraPaths = []
+
+# Exclude generated files
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    "build",
+    "dist",
+]
+
+[tool.basedpyright]
+# Configuration for basedpyright (same as pyright)
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
+
+# Databricks-specific: Suppress missing import errors for runtime packages
+# pyspark, mlflow, sklearn, xgboost, databricks.* are only available on Databricks
+reportMissingImports = "none"
+
+# dbutils is a Databricks global variable injected at runtime
+reportUndefinedVariable = "warning"
+
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    "build",
+    "dist",
+]

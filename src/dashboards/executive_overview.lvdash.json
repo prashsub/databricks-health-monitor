@@ -743,8 +743,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "threat_type",
@@ -764,7 +764,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -1144,7 +1144,7 @@
     {
       "name": "ds_kpi_users",
       "displayName": "KPI: Users",
-      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT user_identity), 0) AS active_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS active_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "ds_kpi_security",
@@ -1204,7 +1204,7 @@
     {
       "name": "ds_ml_security_threats",
       "displayName": "ML: Security Threats",
-      "query": "SELECT 'user@example.com' AS user_identity, 'N/A' AS threat_type, 0.0 AS risk_score WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity, 'Pending' AS threat_type, 0.0 AS risk_score LIMIT 1"
+      "query": "SELECT 'user@example.com' AS user_identity_email, 'N/A' AS threat_type, 0.0 AS risk_score WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity_email, 'Pending' AS threat_type, 0.0 AS risk_score LIMIT 1"
     },
     {
       "name": "ds_ml_capacity",

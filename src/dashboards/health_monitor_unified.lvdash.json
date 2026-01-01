@@ -5035,12 +5035,12 @@
     {
       "name": "exec_ds_kpi_query",
       "displayName": "KPI: Query",
-      "query": "SELECT ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration FROM ${catalog}.${gold_schema}.fact_query_history WHERE execution_start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "exec_ds_kpi_users",
       "displayName": "KPI: Users",
-      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT user_identity), 0) AS active_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS active_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "exec_ds_kpi_security",
@@ -5238,12 +5238,12 @@
     {
       "name": "rel_ds_kpi_duration",
       "displayName": "KPI: Duration",
-      "query": "SELECT ROUND(PERCENTILE(duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND termination_code = 'SUCCESS' AND duration_seconds IS NOT NULL"
+      "query": "SELECT ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND termination_code = 'SUCCESS' AND run_duration_seconds IS NOT NULL"
     },
     {
       "name": "rel_ds_kpi_mttr",
       "displayName": "KPI: MTTR",
-      "query": "SELECT COALESCE(ROUND(AVG(duration_seconds / 60.0), 1), 0) AS mttr_minutes FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND termination_code IS NOT NULL AND termination_code != 'SUCCESS'"
+      "query": "SELECT COALESCE(ROUND(AVG(run_duration_seconds / 60.0), 1), 0) AS mttr_minutes FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND termination_code IS NOT NULL AND termination_code != 'SUCCESS'"
     },
     {
       "name": "rel_ds_success_trend",
@@ -5258,7 +5258,7 @@
     {
       "name": "rel_ds_duration_trend",
       "displayName": "Duration Trend",
-      "query": "SELECT DATE(run_date) AS run_date, ROUND(AVG(duration_seconds / 60.0), 1) AS avg_duration, ROUND(PERCENTILE(duration_seconds / 60.0, 0.5), 1) AS p50_duration, ROUND(PERCENTILE(duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND termination_code = 'SUCCESS' AND duration_seconds IS NOT NULL GROUP BY 1 ORDER BY 1"
+      "query": "SELECT DATE(run_date) AS run_date, ROUND(AVG(run_duration_seconds / 60.0), 1) AS avg_duration, ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.5), 1) AS p50_duration, ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND termination_code = 'SUCCESS' AND run_duration_seconds IS NOT NULL GROUP BY 1 ORDER BY 1"
     },
     {
       "name": "opt_ds_no_autoscale_count",
@@ -5277,7 +5277,7 @@
     },
     {
       "name": "opt_ds_no_autoscale",
-      "query": "SELECT j.name AS job_name, w.workspace_name, ROUND(COALESCE(u.total_cost, 0), 2) AS cost_30d FROM ${catalog}.${gold_schema}.dim_job j LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON j.workspace_id = w.workspace_id LEFT JOIN (SELECT usage_metadata_job_id AS job_id, SUM(list_cost) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND usage_metadata_job_id IS NOT NULL GROUP BY usage_metadata_job_id) u ON j.job_id = u.job_id WHERE j.delete_time IS NULL ORDER BY cost_30d DESC LIMIT 20",
+      "query": "SELECT j.name AS job_name, w.workspace_name, ROUND(COALESCE(u.total_cost, 0), 2) AS cost_30d FROM ${catalog}.${gold_schema}.dim_job j LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON j.workspace_id = w.workspace_id LEFT JOIN (SELECT usage_metadata_job_id AS job_id, SUM(list_cost) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND usage_metadata_job_id IS NOT NULL GROUP BY usage_metadata_job_id) u ON j.job_id = u.job_id AND j.delete_time IS NULL ORDER BY cost_30d DESC LIMIT 20",
       "displayName": "opt_ds_no_autoscale"
     },
     {
@@ -5298,27 +5298,27 @@
     {
       "name": "query_ds_kpi_queries",
       "displayName": "KPI: Queries",
-      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, FORMAT_NUMBER(COUNT(DISTINCT executed_by_user_id), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history WHERE execution_start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, FORMAT_NUMBER(COUNT(DISTINCT executed_by_user_id), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "query_ds_kpi_slow",
       "displayName": "KPI: Slow",
-      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS slow_queries_pct FROM ${catalog}.${gold_schema}.fact_query_history WHERE execution_start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS slow_queries_pct FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "query_ds_kpi_failed",
       "displayName": "KPI: Failed",
-      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS failed_queries_pct FROM ${catalog}.${gold_schema}.fact_query_history WHERE execution_start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS failed_queries_pct FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "query_ds_duration_trend",
       "displayName": "Duration Trend",
-      "query": "SELECT DATE(execution_start_time) AS day, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_query_history WHERE execution_start_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
+      "query": "SELECT DATE(start_time) AS day, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
     },
     {
       "name": "cluster_ds_kpi_utilization",
       "displayName": "KPI: Utilization",
-      "query": "SELECT CONCAT(ROUND(AVG(cpu_user_percent + cpu_system_percent), 1), '%') AS avg_cpu, CONCAT(ROUND(AVG(mem_used_percent), 1), '%') AS avg_memory, FORMAT_NUMBER(COUNT(DISTINCT node_id), 0) AS total_nodes, FORMAT_NUMBER(COUNT(DISTINCT cluster_id), 0) AS total_clusters FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT CONCAT(ROUND(AVG(cpu_user_percent + cpu_system_percent), 1), '%') AS avg_cpu, CONCAT(ROUND(AVG(mem_used_percent), 1), '%') AS avg_memory, FORMAT_NUMBER(COUNT(DISTINCT cluster_id), 0) AS total_nodes, FORMAT_NUMBER(COUNT(DISTINCT cluster_id), 0) AS total_clusters FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "cluster_ds_kpi_underutilized",
@@ -5347,7 +5347,7 @@
     },
     {
       "name": "dbr_ds_legacy_count",
-      "query": "WITH exploded AS (SELECT f.job_id, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT COUNT(DISTINCT e.job_id) AS count FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id WHERE CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15",
+      "query": "WITH exploded AS (SELECT f.job_id, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT COUNT(DISTINCT e.job_id) AS count FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15",
       "displayName": "dbr_ds_legacy_count"
     },
     {
@@ -5367,13 +5367,13 @@
     },
     {
       "name": "dbr_ds_legacy_jobs",
-      "query": "WITH exploded AS (SELECT f.job_id, f.workspace_id, f.period_end_time, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT COALESCE(j.name, e.job_id) AS job_name, w.workspace_name, c.dbr_version, MAX(e.period_end_time) AS last_run FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON e.job_id = j.job_id AND e.workspace_id = j.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON e.workspace_id = w.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id WHERE CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15 GROUP BY COALESCE(j.name, e.job_id), w.workspace_name, c.dbr_version ORDER BY last_run DESC LIMIT 30",
+      "query": "WITH exploded AS (SELECT f.job_id, f.workspace_id, f.period_end_time, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT COALESCE(j.name, e.job_id) AS job_name, w.workspace_name, c.dbr_version, MAX(e.period_end_time) AS last_run FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON e.job_id = j.job_id AND e.workspace_id = j.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON e.workspace_id = w.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15 GROUP BY COALESCE(j.name, e.job_id), w.workspace_name, c.dbr_version ORDER BY last_run DESC LIMIT 30",
       "displayName": "dbr_ds_legacy_jobs"
     },
     {
       "name": "sec_ds_kpi_events",
       "displayName": "KPI: Events",
-      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events, FORMAT_NUMBER(COUNT(DISTINCT user_identity), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events, FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "sec_ds_kpi_high_risk",
@@ -5398,7 +5398,7 @@
     {
       "name": "sec_ds_event_trend",
       "displayName": "Event Trend",
-      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS event_count, COUNT(DISTINCT user_identity) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
+      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS event_count, COUNT(DISTINCT user_identity_email) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
     },
     {
       "name": "sec_ds_risk_trend",

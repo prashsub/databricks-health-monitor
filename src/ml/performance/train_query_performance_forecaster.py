@@ -124,8 +124,8 @@ def prepare_and_train(training_df, feature_names):
     X_train = pdf[available_features].fillna(0).replace([np.inf, -np.inf], 0)
     
     # CRITICAL: Cast to float64 (MLflow doesn't support DECIMAL)
-    for col in X.columns:
-        X[col] = X[col].astype('float64')
+    for col in X_train.columns:
+        X_train[col] = X_train[col].astype('float64')
     y = pdf["target_duration_ms"].fillna(0).replace([np.inf, -np.inf], 0)
     
     print(f"  Samples: {len(X_train)}, Features: {len(available_features)}")

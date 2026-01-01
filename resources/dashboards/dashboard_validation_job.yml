@@ -1,0 +1,49 @@
+# Dashboard SQL Query Validation Job
+# 
+# Pre-deployment validation of all dashboard SQL queries.
+# Run this BEFORE dashboard_deployment_job to catch errors early.
+#
+# Usage:
+#   databricks bundle run -t dev dashboard_validation_job
+#
+# If validation passes, then run:
+#   databricks bundle run -t dev dashboard_deployment_job
+
+resources:
+  jobs:
+    dashboard_validation_job:
+      name: "[${bundle.target}] Health Monitor - Dashboard SQL Validation"
+      description: |
+        Pre-deployment validation of all dashboard SQL queries.
+        Catches column resolution, syntax, and ambiguous reference errors.
+        Run this before dashboard deployment to save debugging time.
+      
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+      
+      tasks:
+        - task_key: validate_dashboard_queries
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/dashboards/validate_dashboard_queries.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+      
+      # Short timeout since validation should be fast
+      timeout_seconds: 600  # 10 minutes
+      
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - prashanth.subrahmanyam@databricks.com
+      
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: dashboard
+        job_type: validation
+        job_level: atomic
+

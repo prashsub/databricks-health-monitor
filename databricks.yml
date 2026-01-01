@@ -47,6 +47,8 @@ targets:
   dev:
     mode: development
     default: true
+    workspace:
+      host: https://e2-demo-field-eng.cloud.databricks.com/
     variables:
       catalog: prashanth_subrahmanyam_catalog
       system_bronze_schema: dev_${workspace.current_user.short_name}_system_bronze

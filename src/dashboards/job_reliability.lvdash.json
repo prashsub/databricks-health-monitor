@@ -2278,12 +2278,12 @@
     {
       "name": "ds_kpi_duration",
       "displayName": "KPI: Duration",
-      "query": "SELECT ROUND(PERCENTILE(duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND termination_code = 'SUCCESS' AND duration_seconds IS NOT NULL"
+      "query": "SELECT ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND termination_code = 'SUCCESS' AND run_duration_seconds IS NOT NULL"
     },
     {
       "name": "ds_kpi_mttr",
       "displayName": "KPI: MTTR",
-      "query": "SELECT COALESCE(ROUND(AVG(duration_seconds / 60.0), 1), 0) AS mttr_minutes FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND termination_code IS NOT NULL AND termination_code != 'SUCCESS'"
+      "query": "SELECT COALESCE(ROUND(AVG(run_duration_seconds / 60.0), 1), 0) AS mttr_minutes FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND termination_code IS NOT NULL AND termination_code != 'SUCCESS'"
     },
     {
       "name": "ds_success_trend",
@@ -2298,7 +2298,7 @@
     {
       "name": "ds_duration_trend",
       "displayName": "Duration Trend",
-      "query": "SELECT DATE(run_date) AS run_date, ROUND(AVG(duration_seconds / 60.0), 1) AS avg_duration, ROUND(PERCENTILE(duration_seconds / 60.0, 0.5), 1) AS p50_duration, ROUND(PERCENTILE(duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND termination_code = 'SUCCESS' AND duration_seconds IS NOT NULL GROUP BY 1 ORDER BY 1"
+      "query": "SELECT DATE(run_date) AS run_date, ROUND(AVG(run_duration_seconds / 60.0), 1) AS avg_duration, ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.5), 1) AS p50_duration, ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND termination_code = 'SUCCESS' AND run_duration_seconds IS NOT NULL GROUP BY 1 ORDER BY 1"
     },
     {
       "name": "ds_failed_today",
@@ -2333,17 +2333,17 @@
     {
       "name": "ds_slowest_jobs",
       "displayName": "Slowest Jobs",
-      "query": "SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, ROUND(AVG(f.duration_seconds / 60.0), 1) AS avg_duration, ROUND(PERCENTILE(f.duration_seconds / 60.0, 0.95), 1) AS p95_duration, ROUND(MAX(f.duration_seconds / 60.0), 1) AS max_duration, COUNT(*) AS runs FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND f.termination_code = 'SUCCESS' AND f.duration_seconds IS NOT NULL GROUP BY 1 HAVING COUNT(*) >= 3 ORDER BY avg_duration DESC LIMIT 20"
+      "query": "SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, ROUND(AVG(f.run_duration_seconds / 60.0), 1) AS avg_duration, ROUND(PERCENTILE(f.run_duration_seconds / 60.0, 0.95), 1) AS p95_duration, ROUND(MAX(f.run_duration_seconds / 60.0), 1) AS max_duration, COUNT(*) AS runs FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND f.termination_code = 'SUCCESS' AND f.run_duration_seconds IS NOT NULL GROUP BY 1 HAVING COUNT(*) >= 3 ORDER BY avg_duration DESC LIMIT 20"
     },
     {
       "name": "ds_duration_regression",
       "displayName": "Duration Regression",
-      "query": "WITH job_duration AS (SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, AVG(CASE WHEN f.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN f.duration_seconds / 60.0 END) AS last_7d_avg, AVG(CASE WHEN f.run_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 8 DAYS THEN f.duration_seconds / 60.0 END) AS prev_7d_avg FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND f.termination_code = 'SUCCESS' AND f.duration_seconds IS NOT NULL GROUP BY 1) SELECT job_name, ROUND(last_7d_avg, 1) AS last_7d_avg, ROUND(prev_7d_avg, 1) AS prev_7d_avg, ROUND((last_7d_avg - prev_7d_avg) * 100.0 / NULLIF(prev_7d_avg, 0), 1) AS increase_pct FROM job_duration WHERE prev_7d_avg > 0 AND last_7d_avg > prev_7d_avg * 1.2 ORDER BY increase_pct DESC LIMIT 15"
+      "query": "WITH job_duration AS (SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, AVG(CASE WHEN f.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN f.run_duration_seconds / 60.0 END) AS last_7d_avg, AVG(CASE WHEN f.run_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 8 DAYS THEN f.run_duration_seconds / 60.0 END) AS prev_7d_avg FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND f.termination_code = 'SUCCESS' AND f.run_duration_seconds IS NOT NULL GROUP BY 1) SELECT job_name, ROUND(last_7d_avg, 1) AS last_7d_avg, ROUND(prev_7d_avg, 1) AS prev_7d_avg, ROUND((last_7d_avg - prev_7d_avg) * 100.0 / NULLIF(prev_7d_avg, 0), 1) AS increase_pct FROM job_duration WHERE prev_7d_avg > 0 AND last_7d_avg > prev_7d_avg * 1.2 ORDER BY increase_pct DESC LIMIT 15"
     },
     {
       "name": "ds_duration_outliers",
       "displayName": "Duration Outliers",
-      "query": "WITH job_stats AS (SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, AVG(f.duration_seconds / 60.0) AS avg_duration, MAX(f.duration_seconds / 60.0) AS max_duration, PERCENTILE(f.duration_seconds / 60.0, 0.9) AS p90 FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND f.termination_code = 'SUCCESS' AND f.duration_seconds IS NOT NULL GROUP BY 1 HAVING COUNT(*) >= 5) SELECT job_name, ROUND(avg_duration, 1) AS avg_duration, ROUND(max_duration, 1) AS max_duration, ROUND(p90, 1) AS p90, ROUND(max_duration - p90, 1) AS deviation FROM job_stats WHERE max_duration > p90 * 1.5 ORDER BY deviation DESC LIMIT 15"
+      "query": "WITH job_stats AS (SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, AVG(f.run_duration_seconds / 60.0) AS avg_duration, MAX(f.run_duration_seconds / 60.0) AS max_duration, PERCENTILE(f.run_duration_seconds / 60.0, 0.9) AS p90 FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND f.termination_code = 'SUCCESS' AND f.run_duration_seconds IS NOT NULL GROUP BY 1 HAVING COUNT(*) >= 5) SELECT job_name, ROUND(avg_duration, 1) AS avg_duration, ROUND(max_duration, 1) AS max_duration, ROUND(p90, 1) AS p90, ROUND(max_duration - p90, 1) AS deviation FROM job_stats WHERE max_duration > p90 * 1.5 ORDER BY deviation DESC LIMIT 15"
     },
     {
       "name": "ds_runs_by_hour",

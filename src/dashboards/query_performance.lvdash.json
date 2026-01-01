@@ -394,8 +394,8 @@
                       "expression": "`query_id`"
                     },
                     {
-                      "name": "user_name",
-                      "expression": "`user_name`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "warehouse_name",
@@ -424,7 +424,7 @@
                     "type": "string"
                   },
                   {
-                    "fieldName": "user_name",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -469,8 +469,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_name",
-                      "expression": "`user_name`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "slow_queries",
@@ -494,7 +494,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_name",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -681,8 +681,8 @@
                       "expression": "`query_id`"
                     },
                     {
-                      "name": "user_name",
-                      "expression": "`user_name`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "warehouse_name",
@@ -711,7 +711,7 @@
                     "type": "string"
                   },
                   {
-                    "fieldName": "user_name",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -1725,12 +1725,12 @@
     {
       "name": "ds_slowest_queries",
       "displayName": "Slowest Queries",
-      "query": "SELECT query_id, executed_by_user_id AS user_name, warehouse_name, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, status FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY total_duration_ms DESC LIMIT 20"
+      "query": "SELECT query_id, executed_by_user_id AS user_identity_email, warehouse_name, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, status FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY total_duration_ms DESC LIMIT 20"
     },
     {
       "name": "ds_slow_by_user",
       "displayName": "Slow by User",
-      "query": "SELECT executed_by_user_id AS user_name, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15"
+      "query": "SELECT executed_by_user_id AS user_identity_email, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15"
     },
     {
       "name": "ds_slow_by_warehouse",
@@ -1745,7 +1745,7 @@
     {
       "name": "ds_failed_queries",
       "displayName": "Failed Queries",
-      "query": "SELECT query_id, executed_by_user_id AS user_name, warehouse_name, error_message, start_time AS execution_time FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND status = 'FAILED' ORDER BY start_time DESC LIMIT 30"
+      "query": "SELECT query_id, executed_by_user_id AS user_identity_email, warehouse_name, error_message, start_time AS execution_time FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND status = 'FAILED' ORDER BY start_time DESC LIMIT 30"
     },
     {
       "name": "ds_failed_by_error",

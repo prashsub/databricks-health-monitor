@@ -460,7 +460,7 @@
     },
     {
       "name": "ds_optimization_needed",
-      "query": "SELECT COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=0 -- fact_information_schema_table_storage not available WHERE file_count > 100 AND COALESCE(avg_file_size_bytes, 0) < 32*1024*1024"
+      "query": "SELECT COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=0 -- fact_information_schema_table_storage not available AND file_count > 100 AND COALESCE(avg_file_size_bytes, 0) < 32*1024*1024"
     },
     {
       "name": "ds_size_buckets",
@@ -476,11 +476,11 @@
     },
     {
       "name": "ds_needs_compaction",
-      "query": "SELECT table_name, table_schema AS schema_name, ROUND(storage_size_bytes / (1024*1024*1024), 2) AS size_gb, file_count AS num_files, CASE WHEN file_count > 1000 AND COALESCE(avg_file_size_bytes, 0) < 32*1024*1024 THEN 'NEEDS_COMPACTION' WHEN file_count > 100 AND COALESCE(avg_file_size_bytes, 0) < 16*1024*1024 THEN 'CONSIDER_COMPACTION' ELSE 'OK' END AS optimization_status FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=0 -- fact_information_schema_table_storage not available WHERE file_count > 50 AND COALESCE(avg_file_size_bytes, 0) < 64*1024*1024 ORDER BY file_count DESC LIMIT 25"
+      "query": "SELECT table_name, table_schema AS schema_name, ROUND(storage_size_bytes / (1024*1024*1024), 2) AS size_gb, file_count AS num_files, CASE WHEN file_count > 1000 AND COALESCE(avg_file_size_bytes, 0) < 32*1024*1024 THEN 'NEEDS_COMPACTION' WHEN file_count > 100 AND COALESCE(avg_file_size_bytes, 0) < 16*1024*1024 THEN 'CONSIDER_COMPACTION' ELSE 'OK' END AS optimization_status FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=0 -- fact_information_schema_table_storage not available AND file_count > 50 AND COALESCE(avg_file_size_bytes, 0) < 64*1024*1024 ORDER BY file_count DESC LIMIT 25"
     },
     {
       "name": "ds_empty_tables",
-      "query": "SELECT table_name, table_schema AS schema_name, last_modified_time AS created_at FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=0 -- fact_information_schema_table_storage not available WHERE row_count = 0 OR row_count IS NULL ORDER BY table_name LIMIT 30"
+      "query": "SELECT table_name, table_schema AS schema_name, last_modified_time AS created_at FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=0 -- fact_information_schema_table_storage not available AND row_count = 0 OR row_count IS NULL ORDER BY table_name LIMIT 30"
     }
   ]
 }

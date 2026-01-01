@@ -1743,7 +1743,7 @@
     {
       "name": "ds_kpi_utilization",
       "displayName": "KPI: Utilization",
-      "query": "SELECT CONCAT(ROUND(AVG(cpu_user_percent + cpu_system_percent), 1), '%') AS avg_cpu, CONCAT(ROUND(AVG(mem_used_percent), 1), '%') AS avg_memory, FORMAT_NUMBER(COUNT(DISTINCT node_id), 0) AS total_nodes, FORMAT_NUMBER(COUNT(DISTINCT cluster_id), 0) AS total_clusters FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT CONCAT(ROUND(AVG(cpu_user_percent + cpu_system_percent), 1), '%') AS avg_cpu, CONCAT(ROUND(AVG(mem_used_percent), 1), '%') AS avg_memory, FORMAT_NUMBER(COUNT(DISTINCT cluster_id), 0) AS total_nodes, FORMAT_NUMBER(COUNT(DISTINCT cluster_id), 0) AS total_clusters FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "ds_kpi_underutilized",

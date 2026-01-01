@@ -389,8 +389,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "action_name",
@@ -418,7 +418,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -468,8 +468,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "action_name",
@@ -493,7 +493,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -591,8 +591,8 @@
                   "datasetName": "ds_denied_by_user",
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "denial_count",
@@ -608,7 +608,7 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "user_identity",
+                  "fieldName": "user_identity_email",
                   "displayName": "User",
                   "scale": {
                     "type": "categorical"
@@ -652,8 +652,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "action_name",
@@ -681,7 +681,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity",
+                    "fieldName": "user_identity_email",
                     "title": "Admin",
                     "type": "string"
                   },
@@ -731,8 +731,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "action_name",
@@ -756,7 +756,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -861,8 +861,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "action_name",
@@ -886,7 +886,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -1039,8 +1039,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "threat_type",
@@ -1068,7 +1068,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -1119,8 +1119,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "data_volume",
@@ -1144,7 +1144,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -1190,8 +1190,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "user_identity",
-                      "expression": "`user_identity`"
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
                     },
                     {
                       "name": "current_role",
@@ -1215,7 +1215,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity",
+                    "fieldName": "user_identity_email",
                     "title": "User",
                     "type": "string"
                   },
@@ -1657,7 +1657,7 @@
     {
       "name": "ds_kpi_events",
       "displayName": "KPI: Events",
-      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events, FORMAT_NUMBER(COUNT(DISTINCT user_identity), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
+      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events, FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "ds_kpi_high_risk",
@@ -1682,7 +1682,7 @@
     {
       "name": "ds_event_trend",
       "displayName": "Event Trend",
-      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS event_count, COUNT(DISTINCT user_identity) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
+      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS event_count, COUNT(DISTINCT user_identity_email) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
     },
     {
       "name": "ds_risk_trend",
@@ -1692,12 +1692,12 @@
     {
       "name": "ds_denied_access",
       "displayName": "Denied Access",
-      "query": "SELECT user_identity, action_name, service_name, event_time, source_ip_address AS source_ip FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND response_status_code >= 400 ORDER BY event_time DESC LIMIT 30"
+      "query": "SELECT user_identity_email, action_name, service_name, event_time, source_ip_address AS source_ip FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND response_status_code >= 400 ORDER BY event_time DESC LIMIT 30"
     },
     {
       "name": "ds_permission_changes",
       "displayName": "Permission Changes",
-      "query": "SELECT user_identity, action_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%grant%' OR action_name LIKE '%revoke%' OR action_name LIKE '%permission%') ORDER BY event_time DESC LIMIT 30"
+      "query": "SELECT user_identity_email, action_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%grant%' OR action_name LIKE '%revoke%' OR action_name LIKE '%permission%') ORDER BY event_time DESC LIMIT 30"
     },
     {
       "name": "ds_denied_by_service",
@@ -1707,17 +1707,17 @@
     {
       "name": "ds_denied_by_user",
       "displayName": "Denied by User",
-      "query": "SELECT user_identity, COUNT(*) AS denial_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND response_status_code >= 400 GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+      "query": "SELECT user_identity_email, COUNT(*) AS denial_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND response_status_code >= 400 GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
     },
     {
       "name": "ds_admin_actions",
       "displayName": "Admin Actions",
-      "query": "SELECT user_identity, action_name, service_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%') ORDER BY event_time DESC LIMIT 30"
+      "query": "SELECT user_identity_email, action_name, service_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%') ORDER BY event_time DESC LIMIT 30"
     },
     {
       "name": "ds_sensitive_actions",
       "displayName": "Sensitive Actions",
-      "query": "SELECT user_identity, action_name, service_name, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%delete%' OR action_name LIKE '%drop%' OR action_name LIKE '%revoke%') ORDER BY event_time DESC LIMIT 30"
+      "query": "SELECT user_identity_email, action_name, service_name, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND (action_name LIKE '%delete%' OR action_name LIKE '%drop%' OR action_name LIKE '%revoke%') ORDER BY event_time DESC LIMIT 30"
     },
     {
       "name": "ds_admin_by_action",
@@ -1727,7 +1727,7 @@
     {
       "name": "ds_data_access",
       "displayName": "Data Access",
-      "query": "SELECT user_identity, action_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_table, COUNT(*) AS access_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND service_name = 'unityCatalog' GROUP BY 1, 2, 3 ORDER BY 4 DESC LIMIT 30"
+      "query": "SELECT user_identity_email, action_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_table, COUNT(*) AS access_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time >= CURRENT_DATE() - INTERVAL 7 DAYS AND service_name = 'unityCatalog' GROUP BY 1, 2, 3 ORDER BY 4 DESC LIMIT 30"
     },
     {
       "name": "ds_access_by_service",
@@ -1742,17 +1742,17 @@
     {
       "name": "ds_ml_threats",
       "displayName": "ML: Threats",
-      "query": "SELECT 'user@example.com' AS user_identity, 'N/A' AS threat_type, 0.0 AS risk_score, 0.0 AS confidence, CURRENT_DATE() AS prediction_date WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity, 'Pending' AS threat_type, 0.0 AS risk_score, 0.0 AS confidence, CURRENT_DATE() AS prediction_date LIMIT 1"
+      "query": "SELECT 'user@example.com' AS user_identity_email, 'N/A' AS threat_type, 0.0 AS risk_score, 0.0 AS confidence, CURRENT_DATE() AS prediction_date WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity_email, 'Pending' AS threat_type, 0.0 AS risk_score, 0.0 AS confidence, CURRENT_DATE() AS prediction_date LIMIT 1"
     },
     {
       "name": "ds_ml_exfiltration",
       "displayName": "ML: Exfiltration",
-      "query": "SELECT 'user@example.com' AS user_identity, 0.0 AS data_volume, 'N/A' AS risk_level, 0.0 AS anomaly_score WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity, 0.0 AS data_volume, 'Pending' AS risk_level, 0.0 AS anomaly_score LIMIT 1"
+      "query": "SELECT 'user@example.com' AS user_identity_email, 0.0 AS data_volume, 'N/A' AS risk_level, 0.0 AS anomaly_score WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity_email, 0.0 AS data_volume, 'Pending' AS risk_level, 0.0 AS anomaly_score LIMIT 1"
     },
     {
       "name": "ds_ml_privilege",
       "displayName": "ML: Privilege",
-      "query": "SELECT 'user@example.com' AS user_identity, 'N/A' AS current_role, 'N/A' AS escalation_risk, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity, 'N/A' AS current_role, 'Pending' AS escalation_risk, 0.0 AS confidence LIMIT 1"
+      "query": "SELECT 'user@example.com' AS user_identity_email, 'N/A' AS current_role, 'N/A' AS escalation_risk, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity_email, 'N/A' AS current_role, 'Pending' AS escalation_risk, 0.0 AS confidence LIMIT 1"
     },
     {
       "name": "ds_monitor_latest",

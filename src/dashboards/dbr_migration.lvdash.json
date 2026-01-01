@@ -327,7 +327,7 @@
   "datasets": [
     {
       "name": "ds_legacy_count",
-      "query": "WITH exploded AS (SELECT f.job_id, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT COUNT(DISTINCT e.job_id) AS count FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id WHERE CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15"
+      "query": "WITH exploded AS (SELECT f.job_id, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT COUNT(DISTINCT e.job_id) AS count FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15"
     },
     {
       "name": "ds_serverless_adoption",
@@ -339,7 +339,7 @@
     },
     {
       "name": "ds_dbr_dist",
-      "query": "WITH exploded AS (SELECT f.job_id, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)') AS dbr_version, COUNT(DISTINCT e.job_id) AS job_count, CASE WHEN CAST(SPLIT(REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)'), '\\\\.')[0] AS INT) >= 15 THEN 'Current' WHEN CAST(SPLIT(REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)'), '\\\\.')[0] AS INT) >= 13 THEN 'LTS' ELSE 'Legacy' END AS version_status FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id WHERE c.dbr_version IS NOT NULL GROUP BY REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)') ORDER BY dbr_version DESC"
+      "query": "WITH exploded AS (SELECT f.job_id, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)') AS dbr_version, COUNT(DISTINCT e.job_id) AS job_count, CASE WHEN CAST(SPLIT(REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)'), '\\\\.')[0] AS INT) >= 15 THEN 'Current' WHEN CAST(SPLIT(REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)'), '\\\\.')[0] AS INT) >= 13 THEN 'LTS' ELSE 'Legacy' END AS version_status FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND c.dbr_version IS NOT NULL GROUP BY REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)') ORDER BY dbr_version DESC"
     },
     {
       "name": "ds_compute_type",
@@ -347,7 +347,7 @@
     },
     {
       "name": "ds_legacy_jobs",
-      "query": "WITH exploded AS (SELECT f.job_id, f.workspace_id, f.period_end_time, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT COALESCE(j.name, e.job_id) AS job_name, w.workspace_name, c.dbr_version, MAX(e.period_end_time) AS last_run FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON e.job_id = j.job_id AND e.workspace_id = j.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON e.workspace_id = w.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id WHERE CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15 GROUP BY COALESCE(j.name, e.job_id), w.workspace_name, c.dbr_version ORDER BY last_run DESC LIMIT 30"
+      "query": "WITH exploded AS (SELECT f.job_id, f.workspace_id, f.period_end_time, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS) SELECT COALESCE(j.name, e.job_id) AS job_name, w.workspace_name, c.dbr_version, MAX(e.period_end_time) AS last_run FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON e.job_id = j.job_id AND e.workspace_id = j.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON e.workspace_id = w.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15 GROUP BY COALESCE(j.name, e.job_id), w.workspace_name, c.dbr_version ORDER BY last_run DESC LIMIT 30"
     }
   ]
 }

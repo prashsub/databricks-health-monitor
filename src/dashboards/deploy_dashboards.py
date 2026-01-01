@@ -684,37 +684,78 @@ def find_and_delete_dashboard(workspace_client, display_name: str) -> bool:
 def deploy_dashboard_sdk(workspace_client, dashboard_config: dict) -> str:
     """Deploy dashboard using Databricks SDK.
     
-    Strategy: Just try to create. With 17,000+ dashboards, searching is too slow.
-    Use a unique name that includes a version to avoid conflicts.
+    Strategy: Try to create first. If already exists, create with versioned name.
     
     Reference: https://databricks-sdk-py.readthedocs.io/en/latest/workspace/dashboards/lakeview.html
     """
+    import re
+    from datetime import datetime
+    
     display_name = dashboard_config.get('displayName')
     serialized_dashboard = json.dumps(dashboard_config)
     warehouse_id_from_config = dashboard_config.get('warehouse_id')
     
-    # Just try to create the dashboard directly
-    try:
-        print(f"  Creating dashboard: {display_name}")
-        dashboard_obj = Dashboard(
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            print(f"  Creating dashboard: {display_name} (attempt {attempt + 1})")
+            dashboard_obj = Dashboard(
                 display_name=display_name,
-            serialized_dashboard=serialized_dashboard,
-            warehouse_id=warehouse_id_from_config
-        )
-        result = workspace_client.lakeview.create(dashboard=dashboard_obj)
-        print(f"  ✓ Dashboard created successfully")
-        return result.dashboard_id if hasattr(result, 'dashboard_id') else "SUCCESS"
+                serialized_dashboard=serialized_dashboard,
+                warehouse_id=warehouse_id_from_config
+            )
+            result = workspace_client.lakeview.create(dashboard=dashboard_obj)
+            print(f"  ✓ Dashboard created successfully")
+            return result.dashboard_id if hasattr(result, 'dashboard_id') else "SUCCESS"
 
-    except Exception as create_error:
-        error_str = str(create_error)
-        
-        if "already exists" in error_str.lower() or "resourcealreadyexists" in error_str.lower():
-            print(f"  ⚠ Dashboard already exists")
-            print(f"  Please manually delete any existing '[Health Monitor]' dashboard and re-run")
-            print(f"  Error details: {error_str}")
-        else:
-            print(f"  ✗ Create failed: {error_str}")
-        raise
+        except Exception as create_error:
+            error_str = str(create_error)
+            
+            if "already exists" not in error_str.lower() and "resourcealreadyexists" not in error_str.lower():
+                print(f"  ✗ Create failed: {error_str}")
+                raise
+            
+            # Dashboard exists - try to update it
+            print(f"  ℹ Dashboard already exists...")
+            
+            # Extract dashboard ID from error message
+            id_match = re.search(r'dashboards/([a-f0-9]+)', error_str)
+            
+            if id_match:
+                existing_id = id_match.group(1)
+                print(f"  Found dashboard ID: {existing_id}, attempting update...")
+                
+                try:
+                    dashboard_obj = Dashboard(
+                        display_name=display_name,
+                        serialized_dashboard=serialized_dashboard,
+                        warehouse_id=warehouse_id_from_config
+                    )
+                    workspace_client.lakeview.update(
+                        dashboard_id=existing_id,
+                        dashboard=dashboard_obj
+                    )
+                    print(f"  ✓ Dashboard updated successfully")
+                    return existing_id
+                except Exception as update_error:
+                    print(f"  ⚠ Update failed: {str(update_error)[:200]}")
+                    # Add version to name and retry
+                    version = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    display_name = f"{dashboard_config.get('displayName')} v{version}"
+                    dashboard_config['displayName'] = display_name
+                    serialized_dashboard = json.dumps(dashboard_config)
+                    print(f"  Retrying with new name: {display_name}")
+                    continue
+            else:
+                # Can't extract ID, add version and retry
+                version = datetime.now().strftime("%Y%m%d_%H%M%S")
+                display_name = f"{dashboard_config.get('displayName')} v{version}"
+                dashboard_config['displayName'] = display_name
+                serialized_dashboard = json.dumps(dashboard_config)
+                print(f"  Retrying with new name: {display_name}")
+                continue
+    
+    raise RuntimeError(f"Failed to deploy dashboard after {max_attempts} attempts")
 
 
 # COMMAND ----------
