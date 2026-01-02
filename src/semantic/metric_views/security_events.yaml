@@ -14,30 +14,23 @@
 #   - Event trend over time
 
 version: "1.1"
-comment: >
-  PURPOSE: Security and audit event analytics for compliance and access monitoring.
-  
-  BEST FOR: Who accessed this resource | Security events by user | Failed access attempts | 
-  Sensitive actions in last 24 hours | Event trend over time | High-risk event analysis
-  
-  NOT FOR: Real-time security alerts (use get_security_events TVF) | Data lineage (use governance_analytics)
-  
-  DIMENSIONS: event_date, service_name, action_name, user_identity, risk_level, response_status, audit_level
-  
-  MEASURES: total_events, failed_events, success_rate, events_24h, events_7d, high_risk_events, unique_users
-  
-  SOURCE: fact_audit_logs (security domain)
-  
-  JOINS: dim_workspace (workspace details)
-  
-  NOTE: Excludes system service accounts. For complete audit trail, query fact_audit_logs directly.
+comment: '
+- PURPOSE: Security and audit event analytics for compliance and access monitoring
+- BEST FOR: "Who accessed this resource" "Security events by user" "Failed access attempts" "Sensitive actions in last 24 hours" "High-risk event analysis"
+- NOT FOR: Real-time security alerts (use get_security_events TVF), data lineage (use governance_analytics)
+- DIMENSIONS: event_date, service_name, action_name, user_identity, risk_level, response_status, audit_level
+- MEASURES: total_events, failed_events, success_rate, events_24h, events_7d, high_risk_events, unique_users
+- SOURCE: fact_audit_logs (security domain)
+- JOINS: dim_workspace (workspace details)
+- NOTE: Excludes system service accounts. For complete audit trail, query fact_audit_logs directly.
+'
 
 source: ${catalog}.${gold_schema}.fact_audit_logs
 
 joins:
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id
+    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
 
 dimensions:
   # === Primary Dimensions ===

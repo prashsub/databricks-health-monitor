@@ -13,10 +13,30 @@ Output Tables Documented:
 - {table}_profile_metrics: Contains AGGREGATE and DERIVED custom metrics as columns
 - {table}_drift_metrics: Contains DRIFT metrics comparing periods
 
+CRITICAL QUERY PATTERNS FOR GENIE:
+==================================
+
+1. PROFILE_METRICS - Business KPIs:
+   WHERE column_name = ':table' AND log_type = 'INPUT'
+   - Overall: WHERE slice_key IS NULL
+   - By dimension: WHERE slice_key = 'workspace_id' AND slice_value = 'value'
+
+2. DRIFT_METRICS - Period Comparisons:
+   WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+   - Overall: WHERE slice_key IS NULL
+   - By dimension: WHERE slice_key = 'workspace_id' AND slice_value = 'value'
+
+3. TIME FILTERING:
+   WHERE window.start >= 'date' AND window.end <= 'date'
+
+4. NO SLICING (Overall Metrics):
+   COALESCE(slice_key, 'No Slice') = 'No Slice'
+   COALESCE(slice_value, 'No Slice') = 'No Slice'
+
 Genie Integration:
-- Table comments explain overall purpose and usage
+- Table comments explain query patterns and available metrics
 - Column comments describe business meaning and technical calculation
-- Use column_name=':table' filter for table-level business KPIs
+- Slicing dimensions enable "show by workspace", "show by SKU" type queries
 """
 
 # COMMAND ----------
@@ -26,6 +46,7 @@ from monitor_utils import (
     document_monitor_output_tables,
     METRIC_DESCRIPTIONS,
     MONITOR_TABLE_DESCRIPTIONS,
+    MONITORING_QUERY_GUIDE,
 )
 
 # COMMAND ----------
@@ -54,7 +75,23 @@ def main():
     print("-" * 70)
     
     if verbose:
-        print("\n📊 Tables to Document:")
+        print("\n📋 QUERY PATTERNS FOR GENIE:")
+        print("-" * 40)
+        print("  PROFILE_METRICS (business KPIs):")
+        print("    WHERE column_name = ':table'")
+        print("    AND log_type = 'INPUT'")
+        print("    AND slice_key IS NULL  -- for overall metrics")
+        print()
+        print("  DRIFT_METRICS (period comparisons):")
+        print("    WHERE drift_type = 'CONSECUTIVE'")
+        print("    AND column_name = ':table'")
+        print()
+        print("  SLICING (dimensional analysis):")
+        print("    WHERE slice_key = 'workspace_id'")
+        print("    AND slice_value = 'your_value'")
+        print()
+        
+        print("📊 Tables to Document:")
         for table_name in MONITOR_TABLE_DESCRIPTIONS.keys():
             print(f"    • {table_name}_profile_metrics")
             print(f"    • {table_name}_drift_metrics")
@@ -87,6 +124,27 @@ def main():
                 icon = "✓" if "SUCCESS" in status else "⚠" if status == "NOT_READY" else "✗"
                 print(f"    [{icon}] {table_type}: {status}")
     
+    # Print query guide summary
+    print("\n📖 GENIE QUERY GUIDE SUMMARY:")
+    print("-" * 50)
+    print("  Example queries Genie can now understand:")
+    print()
+    print("  'What is the total cost this month?'")
+    print("  → Query fact_usage_profile_metrics")
+    print("    WHERE column_name=':table' AND log_type='INPUT'")
+    print()
+    print("  'Show cost breakdown by workspace'")
+    print("  → Query fact_usage_profile_metrics")
+    print("    WHERE slice_key='workspace_id'")
+    print()
+    print("  'Which jobs failed yesterday?'")
+    print("  → Query fact_job_run_timeline_profile_metrics")
+    print("    WHERE slice_key='result_state' AND slice_value='FAILED'")
+    print()
+    print("  'How has cost changed compared to last period?'")
+    print("  → Query fact_usage_drift_metrics")
+    print("    WHERE drift_type='CONSECUTIVE'")
+    
     # Exit with appropriate status
     if not_ready_count > 0 and success_count == 0:
         print(f"\n[⚠ NOT READY] Monitoring tables not yet created.")
@@ -98,6 +156,7 @@ def main():
     else:
         print(f"\n[✓ SUCCESS] All {success_count} monitoring tables documented!")
         print("    Genie can now understand custom metrics for natural language queries.")
+        print("    Query patterns documented in table comments for LLM understanding.")
         dbutils.notebook.exit(f"SUCCESS: {success_count} tables documented for Genie")
 
 # COMMAND ----------

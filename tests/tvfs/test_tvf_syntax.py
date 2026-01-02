@@ -17,7 +17,7 @@ from pathlib import Path
 
 
 # Path to TVF SQL files
-TVF_DIR = Path(__file__).parent.parent.parent / "src" / "tvfs"
+TVF_DIR = Path(__file__).parent.parent.parent / "src" / "semantic" / "tvfs"
 
 
 def get_tvf_files():
@@ -187,15 +187,13 @@ class TestTVFSyntaxRules:
     @pytest.mark.unit
     @pytest.mark.parametrize("tvf_file", get_tvf_files(), ids=lambda x: x.name)
     def test_llm_friendly_comments(self, tvf_file):
-        """Verify functions have LLM-friendly COMMENT metadata."""
-        content = read_tvf_file(tvf_file)
+        """Verify functions have LLM-friendly COMMENT metadata.
 
-        # Find all function COMMENTs
-        function_comments = re.findall(
-            r"COMMENT\s+'LLM:[^']+",
-            content,
-            re.IGNORECASE
-        )
+        Accepts either:
+        - COMMENT 'LLM: ...' format
+        - Structured format with PURPOSE/BEST FOR/NOT FOR sections
+        """
+        content = read_tvf_file(tvf_file)
 
         # Count CREATE FUNCTION statements
         function_count = len(re.findall(
@@ -204,12 +202,69 @@ class TestTVFSyntaxRules:
             re.IGNORECASE
         ))
 
-        # Should have LLM comment for each function
-        assert len(function_comments) >= function_count * 0.8, (
-            f"Missing LLM-friendly COMMENTs in {tvf_file.name}: "
-            f"Found {len(function_comments)} LLM comments for {function_count} functions. "
-            "Add COMMENT 'LLM: ...' with use cases and example questions."
+        # Find function-level COMMENTs with LLM-friendly content
+        # Accept either 'LLM:' prefix OR structured format with PURPOSE/BEST FOR
+        llm_comments = re.findall(
+            r"COMMENT\s+'LLM:[^']+",
+            content,
+            re.IGNORECASE
         )
+
+        # Also accept structured format: COMMENT '\n- PURPOSE:...- BEST FOR:...'
+        structured_comments = re.findall(
+            r"COMMENT\s+'\s*\n?\s*-\s*PURPOSE:",
+            content,
+            re.IGNORECASE
+        )
+
+        total_llm_comments = len(llm_comments) + len(structured_comments)
+
+        # Should have LLM-friendly comment for each function
+        assert total_llm_comments >= function_count * 0.8, (
+            f"Missing LLM-friendly COMMENTs in {tvf_file.name}: "
+            f"Found {total_llm_comments} LLM comments for {function_count} functions. "
+            "Add COMMENT with 'LLM: ...' or structured '- PURPOSE: ... - BEST FOR: ...' format."
+        )
+
+    @pytest.mark.unit
+    @pytest.mark.parametrize("tvf_file", get_tvf_files(), ids=lambda x: x.name)
+    def test_comment_structure_consistency(self, tvf_file):
+        """Verify all functions have consistent comment structure with required sections.
+
+        Required sections:
+        - PURPOSE: What the function does
+        - BEST FOR: Example questions (in quotes)
+        - NOT FOR: What to use instead for disambiguation
+        - RETURNS: Description of output
+        - PARAMS: Parameter documentation
+        - SYNTAX: Example function call
+        """
+        content = read_tvf_file(tvf_file)
+
+        # Count functions
+        function_count = len(re.findall(
+            r'CREATE\s+OR\s+REPLACE\s+FUNCTION',
+            content,
+            re.IGNORECASE
+        ))
+
+        # Required sections in function comments
+        required_sections = {
+            'PURPOSE': r'-\s*PURPOSE:',
+            'BEST FOR': r'-\s*BEST\s+FOR:',
+            'NOT FOR': r'-\s*NOT\s+FOR:',
+            'RETURNS': r'-\s*RETURNS:',
+            'PARAMS': r'-\s*PARAMS:',
+            'SYNTAX': r'-\s*SYNTAX:',
+        }
+
+        for section_name, pattern in required_sections.items():
+            count = len(re.findall(pattern, content, re.IGNORECASE))
+            assert count >= function_count, (
+                f"Missing '{section_name}' in {tvf_file.name}: "
+                f"Found {count} but expected {function_count} (one per function). "
+                f"Each function COMMENT should include '- {section_name}: ...'."
+            )
 
     @pytest.mark.unit
     @pytest.mark.parametrize("tvf_file", get_tvf_files(), ids=lambda x: x.name)

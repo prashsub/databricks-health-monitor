@@ -165,12 +165,16 @@ def test_normalize_aggregation_valid_types():
 
 
 @pytest.mark.unit
-def test_normalize_aggregation_rejects_first():
-    """Test that FIRST raises ValueError (not supported in Alerts v2)."""
-    # Note: While the cursor rule mentions FIRST, the Alerts v2 API only supports:
-    # SUM, COUNT, COUNT_DISTINCT, AVG, MEDIAN, MIN, MAX, STDDEV
-    with pytest.raises(ValueError, match="Unsupported aggregation_type"):
-        normalize_aggregation("FIRST")
+def test_normalize_aggregation_first_returns_none():
+    """Test that FIRST returns None (maps to no aggregation in Alerts v2).
+    
+    Note: FIRST is not a valid V2 API aggregation, but it's commonly used
+    to mean 'use the first/only value'. The implementation maps FIRST → None,
+    which tells the API to use the first result row value without aggregation.
+    See cursor rule: '| First value | - (null/omit) | FIRST maps to null in API |'
+    """
+    assert normalize_aggregation("FIRST") is None
+    assert normalize_aggregation("first") is None
 
 
 @pytest.mark.unit

@@ -12,23 +12,16 @@
 #   - What's our overall data freshness rate?
 
 version: "1.1"
-comment: >
-  PURPOSE: Data quality and freshness metrics for Gold layer tables.
-  
-  BEST FOR: Stale tables analysis | Table freshness rate | Tables not updated in 24h | 
-  Domain freshness issues | Fact vs dimension table counts | Update frequency
-  
-  NOT FOR: Detailed table metadata (use information_schema directly) | Data lineage (use governance_analytics)
-  
-  DIMENSIONS: table_catalog, table_schema, table_name, table_category, domain, freshness_status, is_stale
-  
-  MEASURES: total_tables, fresh_tables, stale_tables, freshness_rate, staleness_rate, avg_hours_since_update
-  
-  SOURCE: information_schema.tables (system catalog)
-  
-  JOINS: None (uses information_schema directly)
-  
-  NOTE: Freshness threshold is 24 hours. STALE > 24h, CRITICAL > 48h. Domain inferred from table name patterns.
+comment: '
+- PURPOSE: Data quality and freshness metrics for Gold layer tables
+- BEST FOR: "Stale tables analysis" "Table freshness rate" "Tables not updated in 24h" "Domain freshness issues" "Fact vs dimension table counts"
+- NOT FOR: Detailed table metadata (use information_schema directly), data lineage (use governance_analytics)
+- DIMENSIONS: table_catalog, table_schema, table_name, table_category, domain, freshness_status, is_stale
+- MEASURES: total_tables, fresh_tables, stale_tables, freshness_rate, staleness_rate, avg_hours_since_update
+- SOURCE: information_schema.tables (system catalog)
+- JOINS: None (uses information_schema directly)
+- NOTE: Freshness threshold is 24 hours. STALE > 24h, CRITICAL > 48h. Domain inferred from table name patterns.
+'
 
 source: ${catalog}.information_schema.tables
 

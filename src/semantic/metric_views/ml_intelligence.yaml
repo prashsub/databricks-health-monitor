@@ -12,30 +12,23 @@
 #   - What's our overall anomaly rate?
 
 version: "1.1"
-comment: >
-  PURPOSE: ML-powered intelligence metrics for anomaly detection and predictive insights.
-  
-  BEST FOR: Cost anomalies detected today | Workspaces with highest anomaly scores | 
-  Anomaly rate this week | Anomaly trend over 30 days | Cost associated with anomalies
-  
-  NOT FOR: Real-time anomaly alerts (use alerting framework) | Raw cost data (use cost_analytics)
-  
-  DIMENSIONS: prediction_date, workspace_name, sku_name, is_anomaly, risk_level, model_version
-  
-  MEASURES: total_predictions, anomaly_count, anomaly_rate, avg_anomaly_score, high_risk_count, anomaly_cost
-  
-  SOURCE: cost_anomaly_predictions (ML inference output)
-  
-  JOINS: dim_workspace (workspace details), dim_sku (SKU metadata), fact_usage (cost correlation)
-  
-  NOTE: Requires ML inference pipeline to have run. Risk levels: CRITICAL >=0.9, HIGH >=0.7, MEDIUM >=0.5.
+comment: '
+- PURPOSE: ML-powered intelligence metrics for anomaly detection and predictive insights
+- BEST FOR: "Cost anomalies detected today" "Workspaces with highest anomaly scores" "Anomaly rate this week" "Anomaly trend over 30 days"
+- NOT FOR: Real-time anomaly alerts (use alerting framework), raw cost data (use cost_analytics)
+- DIMENSIONS: prediction_date, workspace_name, sku_name, is_anomaly, risk_level, model_version
+- MEASURES: total_predictions, anomaly_count, anomaly_rate, avg_anomaly_score, high_risk_count, anomaly_cost
+- SOURCE: cost_anomaly_predictions (ML inference output)
+- JOINS: dim_workspace (workspace details), fact_usage (cost correlation)
+- NOTE: Requires ML inference pipeline to have run. Risk levels: CRITICAL >=0.9, HIGH >=0.7, MEDIUM >=0.5.
+'
 
 source: ${catalog}.${feature_schema}.cost_anomaly_predictions
 
 joins:
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id
+    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
 
   - name: fact_usage
     source: ${catalog}.${gold_schema}.fact_usage

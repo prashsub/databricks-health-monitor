@@ -2424,22 +2424,40 @@
     {
       "name": "ds_daily_cost",
       "displayName": "Daily Cost",
-      "query": "SELECT DATE(usage_date) AS usage_date, SUM(list_cost) AS daily_cost, SUM(CASE WHEN product_features_is_serverless THEN list_cost ELSE 0 END) AS serverless_cost, SUM(CASE WHEN NOT product_features_is_serverless THEN list_cost ELSE 0 END) AS classic_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY 1"
+      "query": "SELECT DATE(usage_date) AS usage_date, SUM(list_cost) AS daily_cost, SUM(CASE WHEN product_features_is_serverless THEN list_cost ELSE 0 END) AS serverless_cost, SUM(CASE WHEN NOT product_features_is_serverless THEN list_cost ELSE 0 END) AS classic_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE usage_date >= CASE :time_window WHEN 'Last 7 Days' THEN CURRENT_DATE() - INTERVAL 7 DAYS WHEN 'Last 30 Days' THEN CURRENT_DATE() - INTERVAL 30 DAYS WHEN 'Last 90 Days' THEN CURRENT_DATE() - INTERVAL 90 DAYS WHEN 'Last 6 Months' THEN CURRENT_DATE() - INTERVAL 180 DAYS WHEN 'Last Year' THEN CURRENT_DATE() - INTERVAL 365 DAYS ELSE DATE('2020-01-01') END AND IF(:workspace_name = 'All', TRUE, w.workspace_name = :workspace_name) AND IF(:sku_category = 'All', TRUE, f.billing_origin_product = :sku_category) GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {"displayName": "Time Window", "keyword": "time_window", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "Last 30 Days"}]}}},
+        {"displayName": "Workspace", "keyword": "workspace_name", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "All"}]}}},
+        {"displayName": "SKU Type", "keyword": "sku_category", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "All"}]}}}
+      ]
     },
     {
       "name": "ds_top_workspaces",
       "displayName": "Top Workspaces",
-      "query": "SELECT COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, ROUND(SUM(f.list_cost), 2) AS total_cost, COUNT(DISTINCT f.identity_metadata_run_as) AS unique_users, COUNT(DISTINCT f.usage_metadata_job_id) AS job_count, COUNT(DISTINCT f.usage_metadata_job_run_id) AS job_runs FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY 1 ORDER BY total_cost DESC LIMIT 15"
+      "query": "SELECT COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, ROUND(SUM(f.list_cost), 2) AS total_cost, COUNT(DISTINCT f.identity_metadata_run_as) AS unique_users, COUNT(DISTINCT f.usage_metadata_job_id) AS job_count, COUNT(DISTINCT f.usage_metadata_job_run_id) AS job_runs FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.usage_date >= CASE :time_window WHEN 'Last 7 Days' THEN CURRENT_DATE() - INTERVAL 7 DAYS WHEN 'Last 30 Days' THEN CURRENT_DATE() - INTERVAL 30 DAYS WHEN 'Last 90 Days' THEN CURRENT_DATE() - INTERVAL 90 DAYS WHEN 'Last 6 Months' THEN CURRENT_DATE() - INTERVAL 180 DAYS WHEN 'Last Year' THEN CURRENT_DATE() - INTERVAL 365 DAYS ELSE DATE('2020-01-01') END AND IF(:sku_category = 'All', TRUE, f.billing_origin_product = :sku_category) GROUP BY 1 ORDER BY total_cost DESC LIMIT 15",
+      "parameters": [
+        {"displayName": "Time Window", "keyword": "time_window", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "Last 30 Days"}]}}},
+        {"displayName": "SKU Type", "keyword": "sku_category", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "All"}]}}}
+      ]
     },
     {
       "name": "ds_sku_breakdown",
       "displayName": "SKU Breakdown",
-      "query": "SELECT sku_name, ROUND(SUM(list_cost), 2) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY sku_name ORDER BY total_cost DESC LIMIT 10"
+      "query": "SELECT sku_name, ROUND(SUM(f.list_cost), 2) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.usage_date >= CASE :time_window WHEN 'Last 7 Days' THEN CURRENT_DATE() - INTERVAL 7 DAYS WHEN 'Last 30 Days' THEN CURRENT_DATE() - INTERVAL 30 DAYS WHEN 'Last 90 Days' THEN CURRENT_DATE() - INTERVAL 90 DAYS WHEN 'Last 6 Months' THEN CURRENT_DATE() - INTERVAL 180 DAYS WHEN 'Last Year' THEN CURRENT_DATE() - INTERVAL 365 DAYS ELSE DATE('2020-01-01') END AND IF(:workspace_name = 'All', TRUE, w.workspace_name = :workspace_name) GROUP BY sku_name ORDER BY total_cost DESC LIMIT 10",
+      "parameters": [
+        {"displayName": "Time Window", "keyword": "time_window", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "Last 30 Days"}]}}},
+        {"displayName": "Workspace", "keyword": "workspace_name", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "All"}]}}}
+      ]
     },
     {
       "name": "ds_top_owners",
       "displayName": "Top Owners",
-      "query": "SELECT identity_metadata_run_as AS owner, ROUND(SUM(list_cost), 2) AS total_cost, ROUND(SUM(CASE WHEN sku_name LIKE '%JOBS%' THEN list_cost ELSE 0 END), 2) AS job_cost, ROUND(SUM(CASE WHEN usage_metadata_notebook_id IS NOT NULL THEN list_cost ELSE 0 END), 2) AS notebook_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS AND identity_metadata_run_as IS NOT NULL GROUP BY 1 ORDER BY total_cost DESC LIMIT 20"
+      "query": "SELECT f.identity_metadata_run_as AS owner, ROUND(SUM(f.list_cost), 2) AS total_cost, ROUND(SUM(CASE WHEN f.sku_name LIKE '%JOBS%' THEN f.list_cost ELSE 0 END), 2) AS job_cost, ROUND(SUM(CASE WHEN f.usage_metadata_notebook_id IS NOT NULL THEN f.list_cost ELSE 0 END), 2) AS notebook_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.usage_date >= CASE :time_window WHEN 'Last 7 Days' THEN CURRENT_DATE() - INTERVAL 7 DAYS WHEN 'Last 30 Days' THEN CURRENT_DATE() - INTERVAL 30 DAYS WHEN 'Last 90 Days' THEN CURRENT_DATE() - INTERVAL 90 DAYS WHEN 'Last 6 Months' THEN CURRENT_DATE() - INTERVAL 180 DAYS WHEN 'Last Year' THEN CURRENT_DATE() - INTERVAL 365 DAYS ELSE DATE('2020-01-01') END AND IF(:workspace_name = 'All', TRUE, w.workspace_name = :workspace_name) AND IF(:sku_category = 'All', TRUE, f.billing_origin_product = :sku_category) AND f.identity_metadata_run_as IS NOT NULL GROUP BY 1 ORDER BY total_cost DESC LIMIT 20",
+      "parameters": [
+        {"displayName": "Time Window", "keyword": "time_window", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "Last 30 Days"}]}}},
+        {"displayName": "Workspace", "keyword": "workspace_name", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "All"}]}}},
+        {"displayName": "SKU Type", "keyword": "sku_category", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "All"}]}}}
+      ]
     },
     {
       "name": "ds_spend_by_tag",
@@ -2534,7 +2552,7 @@
     {
       "name": "ds_ml_tag_recs",
       "displayName": "ML: Tag Recommendations",
-      "query": "SELECT 'job-001' AS job_name, 'team:data-eng' AS recommended_tag, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 'Pending' AS recommended_tag, 0.0 AS confidence LIMIT 1"
+      "query": "SELECT 'job-001' AS job_name, 'team_data-eng' AS recommended_tag, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 'Pending' AS recommended_tag, 0.0 AS confidence LIMIT 1"
     },
     {
       "name": "ds_ml_user_behavior",

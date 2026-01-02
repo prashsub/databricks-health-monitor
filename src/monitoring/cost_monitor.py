@@ -254,13 +254,25 @@ def create_cost_monitor(workspace_client, catalog: str, gold_schema: str, spark=
     delete_monitor_if_exists(workspace_client, table_name, spark)
 
     # Create monitor (pass spark to create monitoring schema if needed)
+    # Slicing enables dimensional analysis in Genie queries:
+    #   - workspace_id: "Show cost by workspace"
+    #   - sku_name: "Cost breakdown by SKU"
+    #   - cloud: "Compare AWS vs Azure spend"
+    #   - is_tagged: "Tagged vs untagged cost analysis"
+    #   - product_features_is_serverless: "Serverless vs classic cost"
     monitor = create_time_series_monitor(
         workspace_client=workspace_client,
         table_name=table_name,
         timestamp_col="usage_date",
         granularities=["1 day"],
         custom_metrics=get_cost_custom_metrics(),
-        slicing_exprs=["workspace_id", "sku_name", "cloud"],
+        slicing_exprs=[
+            "workspace_id",
+            "sku_name",
+            "cloud",
+            "is_tagged",
+            "product_features_is_serverless"
+        ],
         schedule_cron="0 0 6 * * ?",  # Daily at 6 AM UTC
         spark=spark,  # Pass spark to create monitoring schema
     )
@@ -284,7 +296,7 @@ def main():
     print(f"  Custom Metrics:  {num_metrics}")
     print(f"  Timestamp Col:   usage_date")
     print(f"  Granularity:     1 day")
-    print(f"  Slicing:         workspace_id, sku_name, cloud")
+    print(f"  Slicing:         workspace_id, sku_name, cloud, is_tagged, product_features_is_serverless")
     print(f"  Schedule:        Daily at 6 AM UTC")
     print("-" * 70)
     

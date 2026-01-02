@@ -1189,7 +1189,7 @@
     {
       "name": "ds_health_trend",
       "displayName": "Health Trend",
-      "query": "SELECT DATE_ADD(CURRENT_DATE(), INTERVAL -seq DAYS) AS day, 80 + (seq % 10) AS health_score FROM (SELECT EXPLODE(SEQUENCE(0, 29)) AS seq)"
+      "query": "SELECT DATE_ADD(CURRENT_DATE(), -seq) AS day, 80 + (seq % 10) AS health_score FROM (SELECT EXPLODE(SEQUENCE(0, 29)) AS seq)"
     },
     {
       "name": "ds_ml_cost_anomalies",

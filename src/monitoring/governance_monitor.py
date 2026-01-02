@@ -287,7 +287,17 @@ def create_governance_monitor(workspace_client, catalog: str, gold_schema: str, 
             timestamp_col="event_date",
             granularities=["1 day"],
             custom_metrics=get_governance_custom_metrics(),
-            slicing_exprs=["workspace_id", "entity_type"],
+            # Slicing enables dimensional analysis in Genie queries:
+            #   - workspace_id: "Lineage by workspace"
+            #   - entity_type: "Lineage by entity type (TABLE/NOTEBOOK/JOB)"
+            #   - created_by: "Lineage events by user"
+            #   - source_catalog_name: "Lineage by source catalog"
+            slicing_exprs=[
+                "workspace_id",
+                "entity_type",
+                "created_by",
+                "source_catalog_name"
+            ],
             schedule_cron="0 0 6 * * ?",  # Daily at 6 AM UTC
             spark=spark,  # Pass spark to create monitoring schema
         )
@@ -317,7 +327,7 @@ def main():
     print(f"  Custom Metrics:  {num_metrics}")
     print(f"  Timestamp Col:   event_date")
     print(f"  Granularity:     1 day")
-    print(f"  Slicing:         workspace_id, entity_type")
+    print(f"  Slicing:         workspace_id, entity_type, created_by, source_catalog_name")
     print(f"  Schedule:        Daily at 6 AM UTC")
     print("-" * 70)
     

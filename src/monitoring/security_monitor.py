@@ -340,13 +340,25 @@ def create_security_monitor(workspace_client, catalog: str, gold_schema: str, sp
     delete_monitor_if_exists(workspace_client, table_name, spark)
 
     # Create monitor (pass spark to create monitoring schema if needed)
+    # Slicing enables dimensional analysis in Genie queries:
+    #   - workspace_id: "Security events by workspace"
+    #   - service_name: "Which service has most activity?"
+    #   - audit_level: "Account vs workspace level events"
+    #   - action_name: "What actions are being performed?"
+    #   - user_identity_email: "Activity by user"
     monitor = create_time_series_monitor(
         workspace_client=workspace_client,
         table_name=table_name,
         timestamp_col="event_date",
         granularities=["1 day"],
         custom_metrics=get_security_custom_metrics(),
-        slicing_exprs=["workspace_id", "service_name", "audit_level"],
+        slicing_exprs=[
+            "workspace_id",
+            "service_name",
+            "audit_level",
+            "action_name",
+            "user_identity_email"
+        ],
         schedule_cron="0 0 6 * * ?",  # Daily at 6 AM UTC
         spark=spark,  # Pass spark to create monitoring schema
     )
@@ -370,7 +382,7 @@ def main():
     print(f"  Custom Metrics:  {num_metrics}")
     print(f"  Timestamp Col:   event_date")
     print(f"  Granularity:     1 day")
-    print(f"  Slicing:         workspace_id, service_name, audit_level")
+    print(f"  Slicing:         workspace_id, service_name, audit_level, action_name, user_identity_email")
     print(f"  Schedule:        Daily at 6 AM UTC")
     print("-" * 70)
     

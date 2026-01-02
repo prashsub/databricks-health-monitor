@@ -13,6 +13,9 @@ import pytest
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+
+# Skip this module if pyspark is not installed (for unit tests without Spark)
+pyspark = pytest.importorskip("pyspark", reason="PySpark required for integration tests")
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 

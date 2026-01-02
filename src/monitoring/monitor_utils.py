@@ -499,39 +499,368 @@ METRIC_DESCRIPTIONS = {
     "error_rate_drift": "Change in error rate. Business: ML reliability trend. Technical: current - baseline error_rate.",
 }
 
+# ============================================================================
+# LAKEHOUSE MONITORING QUERY GUIDE
+# ============================================================================
+# This guide explains how to query Lakehouse Monitoring output tables.
+# Essential for Genie natural language query understanding.
+
+MONITORING_QUERY_GUIDE = """
+LAKEHOUSE MONITORING QUERY GUIDE FOR GENIE
+==========================================
+
+Lakehouse Monitoring creates two output tables per monitored table:
+- {table}_profile_metrics: Contains AGGREGATE and DERIVED custom metrics
+- {table}_drift_metrics: Contains DRIFT metrics comparing periods
+
+CRITICAL QUERY PATTERNS:
+========================
+
+1. PROFILE_METRICS TABLE - Business KPIs
+----------------------------------------
+Filter for table-level KPIs (custom metrics):
+  WHERE column_name = ':table'
+  AND log_type = 'INPUT'
+
+Filter for time window:
+  WHERE window.start >= '2024-01-01'
+  AND window.end <= '2024-12-31'
+
+Get overall metrics (no slicing):
+  WHERE slice_key IS NULL OR slice_key = 'No Slice'
+  -- Alternative: COALESCE(slice_key, 'No Slice') = 'No Slice'
+
+Get metrics by dimension (sliced):
+  WHERE slice_key = 'workspace_id'
+  AND slice_value = 'your_workspace_id'
+
+Example - Get daily cost metrics:
+  SELECT window.start, total_daily_cost, tag_coverage_pct
+  FROM fact_usage_profile_metrics
+  WHERE column_name = ':table'
+    AND log_type = 'INPUT'
+    AND slice_key IS NULL
+  ORDER BY window.start DESC
+
+Example - Get cost by workspace:
+  SELECT slice_value AS workspace_id, total_daily_cost
+  FROM fact_usage_profile_metrics
+  WHERE column_name = ':table'
+    AND log_type = 'INPUT'
+    AND slice_key = 'workspace_id'
+  ORDER BY total_daily_cost DESC
+
+
+2. DRIFT_METRICS TABLE - Period Comparisons
+-------------------------------------------
+Filter for consecutive period comparison:
+  WHERE drift_type = 'CONSECUTIVE'
+  AND column_name = ':table'
+
+Filter by time window:
+  WHERE window.start >= '2024-01-01'
+
+Get overall drift (no slicing):
+  WHERE slice_key IS NULL OR slice_key = 'No Slice'
+
+Get drift by dimension:
+  WHERE slice_key = 'workspace_id'
+  AND slice_value = 'your_workspace_id'
+
+Example - Get cost drift over time:
+  SELECT window.start, cost_drift_pct, dbu_drift_pct
+  FROM fact_usage_drift_metrics
+  WHERE drift_type = 'CONSECUTIVE'
+    AND column_name = ':table'
+    AND slice_key IS NULL
+  ORDER BY window.start
+
+
+3. SLICING DIMENSIONS BY MONITOR
+--------------------------------
+Cost Monitor (fact_usage):
+  - workspace_id: Cost by workspace
+  - sku_name: Cost by SKU type
+  - cloud: AWS vs Azure vs GCP
+  - is_tagged: Tagged vs untagged spend
+  - product_features_is_serverless: Serverless vs classic
+
+Job Monitor (fact_job_run_timeline):
+  - workspace_id: Jobs by workspace
+  - result_state: SUCCESS, FAILED, ERROR, CANCELED
+  - trigger_type: SCHEDULE, MANUAL, RETRY
+  - job_name: By specific job
+  - termination_code: USER_CANCELED, DRIVER_ERROR, etc.
+
+Query Monitor (fact_query_history):
+  - workspace_id: Queries by workspace
+  - compute_warehouse_id: By warehouse
+  - execution_status: FINISHED, FAILED, CANCELED
+  - statement_type: SELECT, INSERT, UPDATE, etc.
+  - executed_by: By user
+
+Cluster Monitor (fact_node_timeline):
+  - workspace_id: Clusters by workspace
+  - cluster_id: By specific cluster
+  - node_type: Instance type
+  - cluster_name: By named cluster
+  - driver: TRUE/FALSE for driver vs worker
+
+Security Monitor (fact_audit_logs):
+  - workspace_id: Events by workspace
+  - service_name: clusters, databrickssql, workspace, unityCatalog
+  - audit_level: ACCOUNT_LEVEL, WORKSPACE_LEVEL
+  - action_name: By specific action
+  - user_identity_email: By user
+
+
+4. KEY COLUMNS EXPLAINED
+------------------------
+window.start: Start of the time window (use for time series)
+window.end: End of the time window
+column_name: ':table' for custom metrics, column name for built-in stats
+log_type: 'INPUT' for source data metrics
+slice_key: The dimension being sliced (NULL for overall)
+slice_value: The value of the slice dimension
+drift_type: 'CONSECUTIVE' for period-over-period
+
+
+5. EXAMPLE GENIE QUERIES
+------------------------
+"What is the total cost this month?"
+→ Query fact_usage_profile_metrics, filter column_name=':table', sum total_daily_cost
+
+"Show cost breakdown by workspace"
+→ Query fact_usage_profile_metrics, filter slice_key='workspace_id'
+
+"Which jobs failed yesterday?"
+→ Query fact_job_run_timeline_profile_metrics, filter slice_key='result_state', 
+   slice_value='FAILED'
+
+"How has cost changed compared to last period?"
+→ Query fact_usage_drift_metrics, select cost_drift_pct
+
+"Show query performance by warehouse"
+→ Query fact_query_history_profile_metrics, filter slice_key='compute_warehouse_id'
+"""
+
 # Table-level descriptions for monitoring output tables
+# These descriptions are added as table comments for Genie understanding
 MONITOR_TABLE_DESCRIPTIONS = {
     "fact_usage": {
-        "profile_table": "Lakehouse Monitoring profile metrics for fact_usage (billing/cost data). Contains daily cost aggregations, tag coverage metrics, SKU breakdowns, and derived business ratios. Use column_name=':table' for table-level KPIs. Business: Primary source for FinOps dashboards tracking spend, efficiency, and cost attribution.",
-        "drift_table": "Lakehouse Monitoring drift metrics for fact_usage (billing/cost data). Contains period-over-period comparisons for cost, DBU consumption, and tag coverage. Business: Alert source for budget variance and FinOps trend monitoring."
+        "profile_table": """Lakehouse Monitoring profile metrics for fact_usage (billing/cost data). 
+
+QUERY GUIDE:
+- For table-level KPIs: WHERE column_name = ':table' AND log_type = 'INPUT'
+- For overall metrics: WHERE slice_key IS NULL (or COALESCE(slice_key, 'No Slice') = 'No Slice')
+- For dimensional analysis: WHERE slice_key = 'workspace_id' (or 'sku_name', 'cloud', 'is_tagged', 'product_features_is_serverless')
+- Time filter: WHERE window.start >= 'date' AND window.end <= 'date'
+
+AVAILABLE METRICS: total_daily_cost, total_daily_dbu, tag_coverage_pct, serverless_ratio, jobs_cost_share, sql_cost_share, all_purpose_cost_ratio, dlt_cost_share, model_serving_cost_share
+
+SLICING DIMENSIONS: workspace_id (by workspace), sku_name (by SKU), cloud (AWS/Azure/GCP), is_tagged (tagged vs untagged), product_features_is_serverless (serverless vs classic)
+
+Business: Primary source for FinOps dashboards tracking spend, efficiency, and cost attribution.""",
+        
+        "drift_table": """Lakehouse Monitoring drift metrics for fact_usage (billing/cost data).
+
+QUERY GUIDE:
+- Filter for period comparison: WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+- For overall drift: WHERE slice_key IS NULL
+- For dimensional drift: WHERE slice_key = 'workspace_id' AND slice_value = 'value'
+- Time filter: WHERE window.start >= 'date'
+
+AVAILABLE DRIFT METRICS: cost_drift_pct (% change in cost), dbu_drift_pct (% change in DBU), tag_coverage_drift (change in tag coverage %)
+
+Business: Alert source for budget variance and FinOps trend monitoring. Positive drift = cost increase."""
     },
     "fact_job_run_timeline": {
-        "profile_table": "Lakehouse Monitoring profile metrics for fact_job_run_timeline (job execution data). Contains success rates, duration percentiles, failure counts, and trigger breakdowns. Use column_name=':table' for table-level KPIs. Business: Primary source for reliability dashboards tracking job health and SLA compliance.",
-        "drift_table": "Lakehouse Monitoring drift metrics for fact_job_run_timeline (job execution data). Contains period-over-period comparisons for success rates, failure counts, and duration changes. Business: Alert source for reliability degradation and performance regression detection."
+        "profile_table": """Lakehouse Monitoring profile metrics for fact_job_run_timeline (job execution data).
+
+QUERY GUIDE:
+- For table-level KPIs: WHERE column_name = ':table' AND log_type = 'INPUT'
+- For overall metrics: WHERE slice_key IS NULL
+- For dimensional analysis: WHERE slice_key = 'result_state' (or 'trigger_type', 'job_name', 'termination_code', 'workspace_id')
+- Time filter: WHERE window.start >= 'date' AND window.end <= 'date'
+
+AVAILABLE METRICS: total_runs, success_count, failure_count, success_rate, failure_rate, avg_duration_minutes, p95_duration_minutes, p99_duration_minutes, timeout_rate, cancellation_rate
+
+SLICING DIMENSIONS: workspace_id, result_state (SUCCESS/FAILED/ERROR/CANCELED), trigger_type (SCHEDULE/MANUAL/RETRY), job_name, termination_code
+
+Business: Primary source for reliability dashboards tracking job health and SLA compliance.""",
+        
+        "drift_table": """Lakehouse Monitoring drift metrics for fact_job_run_timeline (job execution data).
+
+QUERY GUIDE:
+- Filter: WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+- For overall drift: WHERE slice_key IS NULL
+- For dimensional drift: WHERE slice_key = 'result_state' AND slice_value = 'FAILED'
+
+AVAILABLE DRIFT METRICS: success_rate_drift (change in success %), failure_count_drift (change in failures), duration_drift_pct (% change in duration), p99_duration_drift_pct
+
+Business: Alert source for reliability degradation. Negative success_rate_drift = degradation."""
     },
     "fact_query_history": {
-        "profile_table": "Lakehouse Monitoring profile metrics for fact_query_history (SQL query execution data). Contains query duration percentiles, success rates, and data access volumes. Use column_name=':table' for table-level KPIs. Business: Primary source for query performance dashboards.",
-        "drift_table": "Lakehouse Monitoring drift metrics for fact_query_history (SQL query execution data). Contains period-over-period comparisons for query performance. Business: Alert source for query performance degradation."
+        "profile_table": """Lakehouse Monitoring profile metrics for fact_query_history (SQL query execution data).
+
+QUERY GUIDE:
+- For table-level KPIs: WHERE column_name = ':table' AND log_type = 'INPUT'
+- For overall metrics: WHERE slice_key IS NULL
+- For dimensional analysis: WHERE slice_key = 'compute_warehouse_id' (or 'execution_status', 'statement_type', 'executed_by', 'workspace_id')
+- Time filter: WHERE window.start >= 'date' AND window.end <= 'date'
+
+AVAILABLE METRICS: query_count, successful_queries, failed_queries, query_success_rate, avg_duration_sec, p95_duration_sec, p99_duration_sec, sla_breach_rate, cache_hit_rate, spill_rate
+
+SLICING DIMENSIONS: workspace_id, compute_warehouse_id (by warehouse), execution_status (FINISHED/FAILED/CANCELED), statement_type (SELECT/INSERT/etc), executed_by (by user)
+
+Business: Primary source for query performance dashboards and warehouse sizing.""",
+        
+        "drift_table": """Lakehouse Monitoring drift metrics for fact_query_history (SQL query execution data).
+
+QUERY GUIDE:
+- Filter: WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+- For overall drift: WHERE slice_key IS NULL
+- For warehouse drift: WHERE slice_key = 'compute_warehouse_id'
+
+AVAILABLE DRIFT METRICS: p95_duration_drift_pct, query_volume_drift_pct, failure_rate_drift, sla_breach_rate_drift
+
+Business: Alert source for query performance degradation."""
+    },
+    "fact_node_timeline": {
+        "profile_table": """Lakehouse Monitoring profile metrics for fact_node_timeline (cluster utilization data).
+
+QUERY GUIDE:
+- For table-level KPIs: WHERE column_name = ':table' AND log_type = 'INPUT'
+- For overall metrics: WHERE slice_key IS NULL
+- For dimensional analysis: WHERE slice_key = 'cluster_id' (or 'node_type', 'cluster_name', 'driver', 'workspace_id')
+- Time filter: WHERE window.start >= 'date' AND window.end <= 'date'
+
+AVAILABLE METRICS: node_hour_count, avg_cpu_total_pct, avg_memory_pct, underutilization_rate, overutilization_rate, efficiency_score, rightsizing_opportunity_pct
+
+SLICING DIMENSIONS: workspace_id, cluster_id, node_type (instance type), cluster_name, driver (TRUE=driver node, FALSE=worker)
+
+Business: Primary source for compute optimization and right-sizing dashboards.""",
+        
+        "drift_table": """Lakehouse Monitoring drift metrics for fact_node_timeline (cluster utilization data).
+
+QUERY GUIDE:
+- Filter: WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+
+AVAILABLE DRIFT METRICS: cpu_utilization_drift, memory_utilization_drift, efficiency_score_drift, rightsizing_opportunity_drift
+
+Business: Alert source for compute efficiency changes."""
     },
     "fact_cluster_timeline": {
-        "profile_table": "Lakehouse Monitoring profile metrics for fact_cluster_timeline (cluster utilization data). Contains cluster hours, utilization rates, and idle time metrics. Use column_name=':table' for table-level KPIs. Business: Primary source for compute optimization dashboards.",
-        "drift_table": "Lakehouse Monitoring drift metrics for fact_cluster_timeline (cluster utilization data). Contains period-over-period comparisons for utilization and idle time. Business: Alert source for compute efficiency changes."
+        "profile_table": """Lakehouse Monitoring profile metrics for fact_cluster_timeline (cluster utilization data).
+
+QUERY GUIDE:
+- For table-level KPIs: WHERE column_name = ':table' AND log_type = 'INPUT'
+- For overall metrics: WHERE slice_key IS NULL
+- For dimensional analysis: WHERE slice_key = 'cluster_id' (or 'node_type', 'cluster_name', 'driver', 'workspace_id')
+- Time filter: WHERE window.start >= 'date' AND window.end <= 'date'
+
+AVAILABLE METRICS: node_hour_count, avg_cpu_total_pct, avg_memory_pct, underutilization_rate, overutilization_rate, efficiency_score, rightsizing_opportunity_pct
+
+SLICING DIMENSIONS: workspace_id, cluster_id, node_type (instance type), cluster_name, driver (TRUE=driver node, FALSE=worker)
+
+Business: Primary source for compute optimization and right-sizing dashboards.""",
+        
+        "drift_table": """Lakehouse Monitoring drift metrics for fact_cluster_timeline (cluster utilization data).
+
+QUERY GUIDE:
+- Filter: WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+
+AVAILABLE DRIFT METRICS: cpu_utilization_drift, memory_utilization_drift, efficiency_score_drift, rightsizing_opportunity_drift
+
+Business: Alert source for compute efficiency changes."""
     },
     "fact_audit_logs": {
-        "profile_table": "Lakehouse Monitoring profile metrics for fact_audit_logs (security audit data). Contains authentication metrics, sensitive action counts, and user activity. Use column_name=':table' for table-level KPIs. Business: Primary source for security dashboards and compliance reporting.",
-        "drift_table": "Lakehouse Monitoring drift metrics for fact_audit_logs (security audit data). Contains period-over-period comparisons for security events. Business: Alert source for security anomaly detection."
+        "profile_table": """Lakehouse Monitoring profile metrics for fact_audit_logs (security audit data).
+
+QUERY GUIDE:
+- For table-level KPIs: WHERE column_name = ':table' AND log_type = 'INPUT'
+- For overall metrics: WHERE slice_key IS NULL
+- For dimensional analysis: WHERE slice_key = 'service_name' (or 'audit_level', 'action_name', 'user_identity_email', 'workspace_id')
+- Time filter: WHERE window.start >= 'date' AND window.end <= 'date'
+
+AVAILABLE METRICS: total_events, distinct_users, sensitive_action_count, failed_action_count, unauthorized_count, off_hours_rate, human_user_ratio, service_principal_ratio
+
+SLICING DIMENSIONS: workspace_id, service_name (clusters/databrickssql/workspace/unityCatalog), audit_level (ACCOUNT_LEVEL/WORKSPACE_LEVEL), action_name, user_identity_email
+
+Business: Primary source for security dashboards and compliance reporting.""",
+        
+        "drift_table": """Lakehouse Monitoring drift metrics for fact_audit_logs (security audit data).
+
+QUERY GUIDE:
+- Filter: WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+- For user drift: WHERE slice_key = 'user_identity_email'
+
+AVAILABLE DRIFT METRICS: event_volume_drift_pct, sensitive_action_drift, failure_rate_drift, off_hours_drift, user_count_drift
+
+Business: Alert source for security anomaly detection. Spike in sensitive_action_drift = investigation needed."""
     },
     "fact_table_quality": {
-        "profile_table": "Lakehouse Monitoring profile metrics for fact_table_quality (data quality metrics). Contains quality scores, violation counts, and freshness metrics. Use column_name=':table' for table-level KPIs. Business: Primary source for data quality dashboards.",
-        "drift_table": "Lakehouse Monitoring drift metrics for fact_table_quality (data quality metrics). Contains period-over-period comparisons for quality scores. Business: Alert source for data quality degradation."
+        "profile_table": """Lakehouse Monitoring profile metrics for fact_table_quality (data quality metrics).
+
+QUERY GUIDE:
+- For table-level KPIs: WHERE column_name = ':table' AND log_type = 'INPUT'
+- For overall metrics: WHERE slice_key IS NULL
+- Time filter: WHERE window.start >= 'date' AND window.end <= 'date'
+
+AVAILABLE METRICS: total_tables, tables_with_issues, avg_quality_score, null_violation_count, schema_drift_count, freshness_violations, quality_issue_rate
+
+Business: Primary source for data quality dashboards.""",
+        
+        "drift_table": """Lakehouse Monitoring drift metrics for fact_table_quality (data quality metrics).
+
+QUERY GUIDE:
+- Filter: WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+
+AVAILABLE DRIFT METRICS: quality_drift (change in avg_quality_score)
+
+Business: Alert source for data quality degradation. Negative quality_drift = quality declining."""
     },
     "fact_governance_metrics": {
-        "profile_table": "Lakehouse Monitoring profile metrics for fact_governance_metrics (governance coverage data). Contains documentation, tagging, and lineage coverage rates. Use column_name=':table' for table-level KPIs. Business: Primary source for governance maturity dashboards.",
-        "drift_table": "Lakehouse Monitoring drift metrics for fact_governance_metrics (governance coverage data). Contains period-over-period comparisons for governance scores. Business: Alert source for governance improvement tracking."
+        "profile_table": """Lakehouse Monitoring profile metrics for fact_governance_metrics (governance coverage data).
+
+QUERY GUIDE:
+- For table-level KPIs: WHERE column_name = ':table' AND log_type = 'INPUT'
+- For overall metrics: WHERE slice_key IS NULL
+- Time filter: WHERE window.start >= 'date' AND window.end <= 'date'
+
+AVAILABLE METRICS: total_assets, documented_assets, tagged_assets, documentation_rate, tagging_rate, access_control_rate, lineage_coverage_rate, governance_score
+
+Business: Primary source for governance maturity dashboards.""",
+        
+        "drift_table": """Lakehouse Monitoring drift metrics for fact_governance_metrics (governance coverage data).
+
+QUERY GUIDE:
+- Filter: WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+
+AVAILABLE DRIFT METRICS: governance_drift (change in governance_score)
+
+Business: Alert source for governance improvement tracking. Positive governance_drift = improving."""
     },
     "fact_model_serving": {
-        "profile_table": "Lakehouse Monitoring profile metrics for fact_model_serving (ML inference data). Contains latency percentiles, success rates, and throughput metrics. Use column_name=':table' for table-level KPIs. Business: Primary source for ML performance dashboards.",
-        "drift_table": "Lakehouse Monitoring drift metrics for fact_model_serving (ML inference data). Contains period-over-period comparisons for latency and error rates. Business: Alert source for ML model degradation."
+        "profile_table": """Lakehouse Monitoring profile metrics for fact_model_serving (ML inference data).
+
+QUERY GUIDE:
+- For table-level KPIs: WHERE column_name = ':table' AND log_type = 'INPUT'
+- For overall metrics: WHERE slice_key IS NULL
+- Time filter: WHERE window.start >= 'date' AND window.end <= 'date'
+
+AVAILABLE METRICS: total_requests, successful_requests, failed_requests, request_success_rate, error_rate, avg_latency_ms, p50_latency_ms, p95_latency_ms, p99_latency_ms, throughput_per_second
+
+Business: Primary source for ML performance dashboards.""",
+        
+        "drift_table": """Lakehouse Monitoring drift metrics for fact_model_serving (ML inference data).
+
+QUERY GUIDE:
+- Filter: WHERE drift_type = 'CONSECUTIVE' AND column_name = ':table'
+
+AVAILABLE DRIFT METRICS: latency_drift_pct (% change in latency), error_rate_drift (change in error %)
+
+Business: Alert source for ML model degradation. Positive latency_drift_pct = latency increasing."""
     },
 }
 

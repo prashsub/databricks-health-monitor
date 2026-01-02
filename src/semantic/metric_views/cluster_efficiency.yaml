@@ -14,30 +14,23 @@
 #   - What would we save with serverless?
 
 version: "1.1"
-comment: >
-  PURPOSE: Advanced cluster efficiency and optimization analytics for cost reduction.
-  
-  BEST FOR: Right-sizing opportunities | ALL_PURPOSE to jobs cluster migration | 
-  Underutilized clusters | Idle node hours | Overprovisioned clusters | Potential cost savings
-  
-  NOT FOR: Basic utilization metrics (use cluster_utilization) | Cluster cost (use cost_analytics)
-  
-  DIMENSIONS: cluster_name, workspace_name, node_type, cluster_type, cpu_utilization_tier, is_underutilized, is_overprovisioned
-  
-  MEASURES: efficiency_score, idle_percentage, underutilized_percentage, idle_node_hours, underutilized_cluster_count
-  
-  SOURCE: fact_node_timeline (compute domain)
-  
-  JOINS: dim_workspace (workspace details), dim_cluster (cluster metadata)
-  
-  NOTE: Underutilized = CPU and memory both below 30%. Overprovisioned = both below 50%.
+comment: '
+- PURPOSE: Advanced cluster efficiency and optimization analytics for cost reduction
+- BEST FOR: "Right-sizing opportunities" "Underutilized clusters" "Idle node hours" "Overprovisioned clusters" "Potential cost savings"
+- NOT FOR: Basic utilization metrics (use cluster_utilization), cluster cost (use cost_analytics)
+- DIMENSIONS: cluster_name, workspace_name, node_type, cluster_type, cpu_utilization_tier, is_underutilized, is_overprovisioned
+- MEASURES: efficiency_score, idle_percentage, underutilized_percentage, idle_node_hours, underutilized_cluster_count
+- SOURCE: fact_node_timeline (compute domain)
+- JOINS: dim_workspace (workspace details), dim_cluster (cluster metadata)
+- NOTE: Underutilized = CPU and memory both below 30%. Overprovisioned = both below 50%.
+'
 
 source: ${catalog}.${gold_schema}.fact_node_timeline
 
 joins:
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id
+    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
   - name: dim_cluster
     source: ${catalog}.${gold_schema}.dim_cluster
     'on': source.workspace_id = dim_cluster.workspace_id AND source.cluster_id = dim_cluster.cluster_id AND dim_cluster.delete_time IS NULL

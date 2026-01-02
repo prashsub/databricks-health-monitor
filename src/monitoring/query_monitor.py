@@ -309,13 +309,25 @@ def create_query_monitor(workspace_client, catalog: str, gold_schema: str, spark
     delete_monitor_if_exists(workspace_client, table_name, spark)
 
     # Create monitor (pass spark to create monitoring schema if needed)
+    # Slicing enables dimensional analysis in Genie queries:
+    #   - workspace_id: "Query performance by workspace"
+    #   - compute_warehouse_id: "Which warehouse is slowest?"
+    #   - execution_status: "Failed vs successful queries"
+    #   - statement_type: "SELECT vs INSERT performance"
+    #   - executed_by: "Queries by user"
     monitor = create_time_series_monitor(
         workspace_client=workspace_client,
         table_name=table_name,
         timestamp_col="start_time",
         granularities=["1 hour", "1 day"],
         custom_metrics=get_query_custom_metrics(),
-        slicing_exprs=["workspace_id", "compute_warehouse_id", "execution_status", "statement_type"],
+        slicing_exprs=[
+            "workspace_id",
+            "compute_warehouse_id",
+            "execution_status",
+            "statement_type",
+            "executed_by"
+        ],
         schedule_cron="0 0 * * * ?",  # Hourly
         spark=spark,  # Pass spark to create monitoring schema
     )
@@ -339,7 +351,7 @@ def main():
     print(f"  Custom Metrics:  {num_metrics}")
     print(f"  Timestamp Col:   start_time")
     print(f"  Granularity:     1 hour, 1 day")
-    print(f"  Slicing:         workspace_id, compute_warehouse_id, execution_status, statement_type")
+    print(f"  Slicing:         workspace_id, compute_warehouse_id, execution_status, statement_type, executed_by")
     print(f"  Schedule:        Hourly")
     print("-" * 70)
     

@@ -55,7 +55,7 @@ DANGEROUS_PATTERNS = [
     (r"\bALTER\s+TABLE\b", "ALTER TABLE detected - schema modification", False),
     (r"\bCREATE\s+OR\s+REPLACE\b", "CREATE OR REPLACE detected", False),
     (r"\bINSERT\s+INTO\b", "INSERT INTO detected - data modification", False),
-    (r"\bUPDATE\s+\w+\s+SET\b", "UPDATE SET detected - data modification", True),
+    (r"\bUPDATE\s+\S+\s+SET\b", "UPDATE SET detected - data modification", True),
     (r"\bMERGE\s+INTO\b", "MERGE INTO detected - data modification", False),
 ]
 

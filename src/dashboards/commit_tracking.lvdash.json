@@ -90,6 +90,7 @@
               "encodings": {
                 "value": {
                   "fieldName": "ytd_spend",
+                  "displayName": "YTD Spend",
                   "format": {
                     "type": "number-currency",
                     "currencyCode": "USD",
@@ -129,13 +130,7 @@
                       "expression": "`utilization_pct`"
                     }
                   ],
-                  "parameters": [
-                    {
-                      "name": "annual_commit",
-                      "keyword": "annual_commit"
-                    }
-                  ],
-                  "disaggregated": false
+                  "disaggregated": true
                 }
               }
             ],
@@ -144,7 +139,8 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "utilization_pct"
+                  "fieldName": "utilization_pct",
+                  "displayName": "Utilization %"
                 }
               },
               "frame": {
@@ -185,6 +181,7 @@
               "encodings": {
                 "value": {
                   "fieldName": "forecasted_annual",
+                  "displayName": "Forecasted Annual",
                   "format": {
                     "type": "number-currency",
                     "currencyCode": "USD",
@@ -224,13 +221,7 @@
                       "expression": "`projected_variance`"
                     }
                   ],
-                  "parameters": [
-                    {
-                      "name": "annual_commit",
-                      "keyword": "annual_commit"
-                    }
-                  ],
-                  "disaggregated": false
+                  "disaggregated": true
                 }
               }
             ],
@@ -240,6 +231,7 @@
               "encodings": {
                 "value": {
                   "fieldName": "projected_variance",
+                  "displayName": "Projected Variance",
                   "format": {
                     "type": "number-currency",
                     "currencyCode": "USD",
@@ -289,6 +281,7 @@
               "encodings": {
                 "value": {
                   "fieldName": "daily_run_rate",
+                  "displayName": "Run Rate",
                   "format": {
                     "type": "number-currency",
                     "currencyCode": "USD",
@@ -407,12 +400,6 @@
                       "expression": "`target_line`"
                     }
                   ],
-                  "parameters": [
-                    {
-                      "name": "annual_commit",
-                      "keyword": "annual_commit"
-                    }
-                  ],
                   "disaggregated": true
                 }
               }
@@ -475,12 +462,6 @@
                     {
                       "name": "monthly_target",
                       "expression": "`monthly_target`"
-                    }
-                  ],
-                  "parameters": [
-                    {
-                      "name": "annual_commit",
-                      "keyword": "annual_commit"
                     }
                   ],
                   "disaggregated": true
@@ -553,12 +534,6 @@
                     {
                       "name": "variance_pct",
                       "expression": "`variance_pct`"
-                    }
-                  ],
-                  "parameters": [
-                    {
-                      "name": "annual_commit",
-                      "keyword": "annual_commit"
                     }
                   ],
                   "disaggregated": true

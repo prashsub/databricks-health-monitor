@@ -14,30 +14,23 @@
 #   - Show cost by team/project tag
 
 version: "1.1"
-comment: >
-  PURPOSE: Comprehensive cost analytics for Databricks billing and usage analysis.
-  
-  BEST FOR: Total spend by workspace | Cost trend over time | SKU cost breakdown | 
-  Tagged vs untagged spend | Serverless vs classic cost | Week-over-week growth
-  
-  NOT FOR: Commit/contract tracking (use commit_tracking) | Real-time cost alerts (use get_daily_cost_summary TVF)
-  
-  DIMENSIONS: usage_date, workspace_name, sku_name, owner, tag_team, tag_project, is_serverless, billing_origin_product
-  
-  MEASURES: total_cost, total_dbu, cost_7d, cost_30d, tag_coverage_pct, serverless_pct, wow_growth, mom_growth
-  
-  SOURCE: fact_usage (billing domain)
-  
-  JOINS: dim_workspace (workspace details)
-  
-  NOTE: Cost values are list prices. Custom tags accessed via custom_tags MAP column.
+comment: '
+- PURPOSE: Comprehensive cost analytics for Databricks billing and usage analysis
+- BEST FOR: "Total spend by workspace" "Cost trend over time" "SKU cost breakdown" "Tagged vs untagged spend" "Serverless vs classic cost"
+- NOT FOR: Commit/contract tracking (use commit_tracking), real-time cost alerts (use get_daily_cost_summary TVF)
+- DIMENSIONS: usage_date, workspace_name, sku_name, owner, tag_team, tag_project, is_serverless, billing_origin_product
+- MEASURES: total_cost, total_dbu, cost_7d, cost_30d, tag_coverage_pct, serverless_pct, wow_growth, mom_growth
+- SOURCE: fact_usage (billing domain)
+- JOINS: dim_workspace (workspace details)
+- NOTE: Cost values are list prices. Custom tags accessed via custom_tags MAP column.
+'
 
 source: ${catalog}.${gold_schema}.fact_usage
 
 joins:
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id
+    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
 
 dimensions:
   # === Primary Dimensions ===

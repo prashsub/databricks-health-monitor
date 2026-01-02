@@ -1,0 +1,754 @@
+{
+  "datasets": [
+    {
+      "name": "sales_aggregate_core",
+      "displayName": "Sales Core Aggregate Metrics",
+      "queryLines": [
+        "SELECT \n",
+        "  window.start AS window_start,\n",
+        "  window.end AS window_end,\n",
+        "  total_gross_revenue,\n",
+        "  total_net_revenue,\n",
+        "  total_return_amount,\n",
+        "  avg_daily_revenue,\n",
+        "  total_units_sold,\n",
+        "  total_units_returned,\n",
+        "  total_net_units,\n",
+        "  total_transactions,\n",
+        "  total_loyalty_transactions,\n",
+        "  total_all_discounts,\n",
+        "  total_multi_unit_discount,\n",
+        "  total_coupon_discount,\n",
+        "  total_loyalty_discount,\n",
+        "  revenue_volatility,\n",
+        "  transaction_volatility,\n",
+        "  revenue_range\n",
+        "FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "WHERE window.start >= :`Time Window Start`\n",
+        "  AND window.end <= :`Time Window End`\n",
+        "  AND log_type = 'INPUT'\n",
+        "  AND column_name = ':table'\n",
+        "  AND COALESCE(slice_key, 'No Slice') = :slice_key\n",
+        "  AND COALESCE(slice_value, 'No Slice') = :slice_value\n",
+        "ORDER BY window.start DESC\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}},
+        {"displayName": "slice_value", "keyword": "slice_value", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    },
+    {
+      "name": "sales_derived_kpis",
+      "displayName": "Sales Derived KPIs and Ratios",
+      "queryLines": [
+        "SELECT \n",
+        "  window.start AS window_start,\n",
+        "  window.end AS window_end,\n",
+        "  overall_return_rate,\n",
+        "  units_per_transaction,\n",
+        "  revenue_per_unit,\n",
+        "  discount_per_transaction,\n",
+        "  multi_unit_discount_share,\n",
+        "  coupon_discount_share,\n",
+        "  loyalty_discount_share,\n",
+        "  avg_items_per_transaction,\n",
+        "  discount_intensity,\n",
+        "  avg_discount_per_transaction,\n",
+        "  loyalty_member_avg_spend,\n",
+        "  loyalty_transaction_frequency\n",
+        "FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "WHERE window.start >= :`Time Window Start`\n",
+        "  AND window.end <= :`Time Window End`\n",
+        "  AND log_type = 'INPUT'\n",
+        "  AND column_name = ':table'\n",
+        "  AND COALESCE(slice_key, 'No Slice') = :slice_key\n",
+        "  AND COALESCE(slice_value, 'No Slice') = :slice_value\n",
+        "ORDER BY window.start DESC\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}},
+        {"displayName": "slice_value", "keyword": "slice_value", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    },
+    {
+      "name": "sales_data_quality",
+      "displayName": "Sales Data Quality Metrics",
+      "queryLines": [
+        "SELECT \n",
+        "  window.start AS window_start,\n",
+        "  window.end AS window_end,\n",
+        "  total_records,\n",
+        "  null_rate_loyalty_customers,\n",
+        "  zero_revenue_records,\n",
+        "  negative_revenue_records,\n",
+        "  high_value_transaction_pct\n",
+        "FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "WHERE window.start >= :`Time Window Start`\n",
+        "  AND window.end <= :`Time Window End`\n",
+        "  AND log_type = 'INPUT'\n",
+        "  AND column_name = ':table'\n",
+        "  AND COALESCE(slice_key, 'No Slice') = :slice_key\n",
+        "  AND COALESCE(slice_value, 'No Slice') = :slice_value\n",
+        "ORDER BY window.start DESC\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}},
+        {"displayName": "slice_value", "keyword": "slice_value", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    },
+    {
+      "name": "sales_drift_metrics",
+      "displayName": "Sales Drift Metrics (Period-over-Period)",
+      "queryLines": [
+        "SELECT \n",
+        "  window.start AS window_start,\n",
+        "  drift_type,\n",
+        "  revenue_drift_pct,\n",
+        "  gross_revenue_drift_pct,\n",
+        "  unit_sales_drift_pct,\n",
+        "  transaction_volume_drift_pct,\n",
+        "  return_rate_drift,\n",
+        "  discount_intensity_drift,\n",
+        "  discount_penetration_drift,\n",
+        "  loyalty_penetration_drift,\n",
+        "  avg_transaction_amount_drift_pct\n",
+        "FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_drift_metrics`\n",
+        "WHERE window.start >= :`Time Window Start`\n",
+        "  AND window.start <= :`Time Window End`\n",
+        "  AND drift_type = 'CONSECUTIVE'\n",
+        "  AND column_name = ':table'\n",
+        "  AND COALESCE(slice_key, 'No Slice') = :slice_key\n",
+        "  AND COALESCE(slice_value, 'No Slice') = :slice_value\n",
+        "ORDER BY window.start\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}},
+        {"displayName": "slice_value", "keyword": "slice_value", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    },
+    {
+      "name": "sales_revenue_trend",
+      "displayName": "Sales Revenue Trend (Time Series)",
+      "queryLines": [
+        "SELECT \n",
+        "  window.start AS window_start,\n",
+        "  total_gross_revenue,\n",
+        "  total_net_revenue,\n",
+        "  total_return_amount\n",
+        "FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "WHERE window.start >= :`Time Window Start`\n",
+        "  AND window.end <= :`Time Window End`\n",
+        "  AND log_type = 'INPUT'\n",
+        "  AND column_name = ':table'\n",
+        "  AND COALESCE(slice_key, 'No Slice') = :slice_key\n",
+        "  AND COALESCE(slice_value, 'No Slice') = :slice_value\n",
+        "ORDER BY window.start\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}},
+        {"displayName": "slice_value", "keyword": "slice_value", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    },
+    {
+      "name": "sales_volume_trend",
+      "displayName": "Sales Volume Trend (Time Series)",
+      "queryLines": [
+        "SELECT \n",
+        "  window.start AS window_start,\n",
+        "  total_units_sold,\n",
+        "  total_transactions\n",
+        "FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "WHERE window.start >= :`Time Window Start`\n",
+        "  AND window.end <= :`Time Window End`\n",
+        "  AND log_type = 'INPUT'\n",
+        "  AND column_name = ':table'\n",
+        "  AND COALESCE(slice_key, 'No Slice') = :slice_key\n",
+        "  AND COALESCE(slice_value, 'No Slice') = :slice_value\n",
+        "ORDER BY window.start\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}},
+        {"displayName": "slice_value", "keyword": "slice_value", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    },
+    {
+      "name": "sales_discount_trend",
+      "displayName": "Sales Discount Trend (Time Series)",
+      "queryLines": [
+        "SELECT \n",
+        "  window.start AS window_start,\n",
+        "  total_all_discounts,\n",
+        "  total_multi_unit_discount,\n",
+        "  total_coupon_discount,\n",
+        "  total_loyalty_discount\n",
+        "FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "WHERE window.start >= :`Time Window Start`\n",
+        "  AND window.end <= :`Time Window End`\n",
+        "  AND log_type = 'INPUT'\n",
+        "  AND column_name = ':table'\n",
+        "  AND COALESCE(slice_key, 'No Slice') = :slice_key\n",
+        "  AND COALESCE(slice_value, 'No Slice') = :slice_value\n",
+        "ORDER BY window.start\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}},
+        {"displayName": "slice_value", "keyword": "slice_value", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    },
+    {
+      "name": "sales_loyalty_trend",
+      "displayName": "Sales Loyalty Metrics Trend (Time Series)",
+      "queryLines": [
+        "SELECT \n",
+        "  window.start AS window_start,\n",
+        "  loyalty_member_avg_spend,\n",
+        "  loyalty_transaction_frequency,\n",
+        "  total_loyalty_transactions\n",
+        "FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "WHERE window.start >= :`Time Window Start`\n",
+        "  AND window.end <= :`Time Window End`\n",
+        "  AND log_type = 'INPUT'\n",
+        "  AND column_name = ':table'\n",
+        "  AND COALESCE(slice_key, 'No Slice') = :slice_key\n",
+        "  AND COALESCE(slice_value, 'No Slice') = :slice_value\n",
+        "ORDER BY window.start\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}},
+        {"displayName": "slice_value", "keyword": "slice_value", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    },
+    {
+      "name": "sales_kpi_trend",
+      "displayName": "Sales KPI Trend (Time Series)",
+      "queryLines": [
+        "SELECT \n",
+        "  window.start AS window_start,\n",
+        "  overall_return_rate,\n",
+        "  discount_intensity,\n",
+        "  units_per_transaction,\n",
+        "  revenue_per_unit\n",
+        "FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "WHERE window.start >= :`Time Window Start`\n",
+        "  AND window.end <= :`Time Window End`\n",
+        "  AND log_type = 'INPUT'\n",
+        "  AND column_name = ':table'\n",
+        "  AND COALESCE(slice_key, 'No Slice') = :slice_key\n",
+        "  AND COALESCE(slice_value, 'No Slice') = :slice_value\n",
+        "ORDER BY window.start\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}},
+        {"displayName": "slice_value", "keyword": "slice_value", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    },
+    {
+      "name": "distinct_slice_key",
+      "displayName": "Distinct Slice Keys",
+      "queryLines": [
+        "WITH profile_metrics_inspected AS (\n",
+        "  SELECT *\n",
+        "  FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "  WHERE window.start >= :`Time Window Start` \n",
+        "    AND window.end <= :`Time Window End`\n",
+        "    AND slice_key IS NOT NULL\n",
+        ")\n",
+        "SELECT 'No Slice' AS `Slice Key`\n",
+        "UNION ALL\n",
+        "SELECT DISTINCT slice_key AS `Slice Key`\n",
+        "FROM profile_metrics_inspected\n",
+        "ORDER BY `Slice Key`\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}}
+      ]
+    },
+    {
+      "name": "distinct_slice_value",
+      "displayName": "Distinct Slice Values",
+      "queryLines": [
+        "WITH profile_metrics_inspected AS (\n",
+        "  SELECT *,\n",
+        "  COALESCE(slice_key, 'No Slice') AS `Slice key`\n",
+        "  FROM `prashanth_subrahmanyam_catalog`.`dev_prashanth_subrahmanyam_altria_gold_monitoring`.`fact_sales_daily_profile_metrics`\n",
+        "  WHERE window.start >= :`Time Window Start` \n",
+        "    AND window.end <= :`Time Window End`\n",
+        "    AND slice_value IS NOT NULL\n",
+        ")\n",
+        "SELECT 'No Slice' AS `Slice Value`\n",
+        "UNION ALL\n",
+        "SELECT DISTINCT slice_value AS `Slice Value`\n",
+        "FROM profile_metrics_inspected\n",
+        "WHERE `Slice key` = :slice_key\n",
+        "ORDER BY `Slice Value`\n"
+      ],
+      "parameters": [
+        {"displayName": "Time Window Start", "keyword": "Time Window Start", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}}},
+        {"displayName": "Time Window End", "keyword": "Time Window End", "dataType": "DATETIME", "defaultSelection": {"values": {"dataType": "DATETIME", "values": [{"value": "now/s"}]}}},
+        {"displayName": "slice_key", "keyword": "slice_key", "dataType": "STRING", "defaultSelection": {"values": {"dataType": "STRING", "values": [{"value": "No Slice"}]}}}
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "sales_page",
+      "displayName": "Sales Monitoring - fact_sales_daily",
+      "layout": [
+        {
+          "widget": {
+            "name": "time_start_filter",
+            "queries": [
+              {"name": "param_sales_aggregate_core", "query": {"datasetName": "sales_aggregate_core", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_sales_derived_kpis", "query": {"datasetName": "sales_derived_kpis", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_sales_data_quality", "query": {"datasetName": "sales_data_quality", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_sales_drift_metrics", "query": {"datasetName": "sales_drift_metrics", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_sales_revenue_trend", "query": {"datasetName": "sales_revenue_trend", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_sales_volume_trend", "query": {"datasetName": "sales_volume_trend", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_sales_discount_trend", "query": {"datasetName": "sales_discount_trend", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_sales_loyalty_trend", "query": {"datasetName": "sales_loyalty_trend", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_sales_kpi_trend", "query": {"datasetName": "sales_kpi_trend", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_distinct_slice_key", "query": {"datasetName": "distinct_slice_key", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}},
+              {"name": "param_distinct_slice_value", "query": {"datasetName": "distinct_slice_value", "parameters": [{"name": "Time Window Start", "keyword": "Time Window Start"}], "disaggregated": false}}
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {"parameterName": "Time Window Start", "queryName": "param_sales_aggregate_core"},
+                  {"parameterName": "Time Window Start", "queryName": "param_sales_derived_kpis"},
+                  {"parameterName": "Time Window Start", "queryName": "param_sales_data_quality"},
+                  {"parameterName": "Time Window Start", "queryName": "param_sales_drift_metrics"},
+                  {"parameterName": "Time Window Start", "queryName": "param_sales_revenue_trend"},
+                  {"parameterName": "Time Window Start", "queryName": "param_sales_volume_trend"},
+                  {"parameterName": "Time Window Start", "queryName": "param_sales_discount_trend"},
+                  {"parameterName": "Time Window Start", "queryName": "param_sales_loyalty_trend"},
+                  {"parameterName": "Time Window Start", "queryName": "param_sales_kpi_trend"},
+                  {"parameterName": "Time Window Start", "queryName": "param_distinct_slice_key"},
+                  {"parameterName": "Time Window Start", "queryName": "param_distinct_slice_value"}
+                ]
+              },
+              "frame": {"showTitle": true, "title": "Start Time:"},
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 3, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "time_end_filter",
+            "queries": [
+              {"name": "param_sales_aggregate_core", "query": {"datasetName": "sales_aggregate_core", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_sales_derived_kpis", "query": {"datasetName": "sales_derived_kpis", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_sales_data_quality", "query": {"datasetName": "sales_data_quality", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_sales_drift_metrics", "query": {"datasetName": "sales_drift_metrics", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_sales_revenue_trend", "query": {"datasetName": "sales_revenue_trend", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_sales_volume_trend", "query": {"datasetName": "sales_volume_trend", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_sales_discount_trend", "query": {"datasetName": "sales_discount_trend", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_sales_loyalty_trend", "query": {"datasetName": "sales_loyalty_trend", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_sales_kpi_trend", "query": {"datasetName": "sales_kpi_trend", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_distinct_slice_key", "query": {"datasetName": "distinct_slice_key", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}},
+              {"name": "param_distinct_slice_value", "query": {"datasetName": "distinct_slice_value", "parameters": [{"name": "Time Window End", "keyword": "Time Window End"}], "disaggregated": false}}
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {"parameterName": "Time Window End", "queryName": "param_sales_aggregate_core"},
+                  {"parameterName": "Time Window End", "queryName": "param_sales_derived_kpis"},
+                  {"parameterName": "Time Window End", "queryName": "param_sales_data_quality"},
+                  {"parameterName": "Time Window End", "queryName": "param_sales_drift_metrics"},
+                  {"parameterName": "Time Window End", "queryName": "param_sales_revenue_trend"},
+                  {"parameterName": "Time Window End", "queryName": "param_sales_volume_trend"},
+                  {"parameterName": "Time Window End", "queryName": "param_sales_discount_trend"},
+                  {"parameterName": "Time Window End", "queryName": "param_sales_loyalty_trend"},
+                  {"parameterName": "Time Window End", "queryName": "param_sales_kpi_trend"},
+                  {"parameterName": "Time Window End", "queryName": "param_distinct_slice_key"},
+                  {"parameterName": "Time Window End", "queryName": "param_distinct_slice_value"}
+                ]
+              },
+              "frame": {"showTitle": true, "title": "End Time:"},
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {"x": 3, "y": 0, "width": 3, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "slice_key_filter",
+            "queries": [
+              {"name": "source_query", "query": {"datasetName": "distinct_slice_key", "fields": [{"name": "Slice Key", "expression": "`Slice Key`"}], "disaggregated": true}},
+              {"name": "param_sales_aggregate_core", "query": {"datasetName": "sales_aggregate_core", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}},
+              {"name": "param_sales_derived_kpis", "query": {"datasetName": "sales_derived_kpis", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}},
+              {"name": "param_sales_data_quality", "query": {"datasetName": "sales_data_quality", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}},
+              {"name": "param_sales_drift_metrics", "query": {"datasetName": "sales_drift_metrics", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}},
+              {"name": "param_sales_revenue_trend", "query": {"datasetName": "sales_revenue_trend", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}},
+              {"name": "param_sales_volume_trend", "query": {"datasetName": "sales_volume_trend", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}},
+              {"name": "param_sales_discount_trend", "query": {"datasetName": "sales_discount_trend", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}},
+              {"name": "param_sales_loyalty_trend", "query": {"datasetName": "sales_loyalty_trend", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}},
+              {"name": "param_sales_kpi_trend", "query": {"datasetName": "sales_kpi_trend", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}},
+              {"name": "param_distinct_slice_value", "query": {"datasetName": "distinct_slice_value", "parameters": [{"name": "slice_key", "keyword": "slice_key"}], "disaggregated": false}}
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {"displayName": "Slice Key", "fieldName": "Slice Key", "queryName": "source_query"},
+                  {"parameterName": "slice_key", "queryName": "param_sales_aggregate_core"},
+                  {"parameterName": "slice_key", "queryName": "param_sales_derived_kpis"},
+                  {"parameterName": "slice_key", "queryName": "param_sales_data_quality"},
+                  {"parameterName": "slice_key", "queryName": "param_sales_drift_metrics"},
+                  {"parameterName": "slice_key", "queryName": "param_sales_revenue_trend"},
+                  {"parameterName": "slice_key", "queryName": "param_sales_volume_trend"},
+                  {"parameterName": "slice_key", "queryName": "param_sales_discount_trend"},
+                  {"parameterName": "slice_key", "queryName": "param_sales_loyalty_trend"},
+                  {"parameterName": "slice_key", "queryName": "param_sales_kpi_trend"},
+                  {"parameterName": "slice_key", "queryName": "param_distinct_slice_value"}
+                ]
+              },
+              "frame": {"showTitle": true, "title": "Slice Key:"},
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {"x": 6, "y": 0, "width": 3, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "slice_value_filter",
+            "queries": [
+              {"name": "source_query", "query": {"datasetName": "distinct_slice_value", "fields": [{"name": "Slice Value", "expression": "`Slice Value`"}], "disaggregated": true}},
+              {"name": "param_sales_aggregate_core", "query": {"datasetName": "sales_aggregate_core", "parameters": [{"name": "slice_value", "keyword": "slice_value"}], "disaggregated": false}},
+              {"name": "param_sales_derived_kpis", "query": {"datasetName": "sales_derived_kpis", "parameters": [{"name": "slice_value", "keyword": "slice_value"}], "disaggregated": false}},
+              {"name": "param_sales_data_quality", "query": {"datasetName": "sales_data_quality", "parameters": [{"name": "slice_value", "keyword": "slice_value"}], "disaggregated": false}},
+              {"name": "param_sales_drift_metrics", "query": {"datasetName": "sales_drift_metrics", "parameters": [{"name": "slice_value", "keyword": "slice_value"}], "disaggregated": false}},
+              {"name": "param_sales_revenue_trend", "query": {"datasetName": "sales_revenue_trend", "parameters": [{"name": "slice_value", "keyword": "slice_value"}], "disaggregated": false}},
+              {"name": "param_sales_volume_trend", "query": {"datasetName": "sales_volume_trend", "parameters": [{"name": "slice_value", "keyword": "slice_value"}], "disaggregated": false}},
+              {"name": "param_sales_discount_trend", "query": {"datasetName": "sales_discount_trend", "parameters": [{"name": "slice_value", "keyword": "slice_value"}], "disaggregated": false}},
+              {"name": "param_sales_loyalty_trend", "query": {"datasetName": "sales_loyalty_trend", "parameters": [{"name": "slice_value", "keyword": "slice_value"}], "disaggregated": false}},
+              {"name": "param_sales_kpi_trend", "query": {"datasetName": "sales_kpi_trend", "parameters": [{"name": "slice_value", "keyword": "slice_value"}], "disaggregated": false}}
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {"displayName": "Slice Value", "fieldName": "Slice Value", "queryName": "source_query"},
+                  {"parameterName": "slice_value", "queryName": "param_sales_aggregate_core"},
+                  {"parameterName": "slice_value", "queryName": "param_sales_derived_kpis"},
+                  {"parameterName": "slice_value", "queryName": "param_sales_data_quality"},
+                  {"parameterName": "slice_value", "queryName": "param_sales_drift_metrics"},
+                  {"parameterName": "slice_value", "queryName": "param_sales_revenue_trend"},
+                  {"parameterName": "slice_value", "queryName": "param_sales_volume_trend"},
+                  {"parameterName": "slice_value", "queryName": "param_sales_discount_trend"},
+                  {"parameterName": "slice_value", "queryName": "param_sales_loyalty_trend"},
+                  {"parameterName": "slice_value", "queryName": "param_sales_kpi_trend"}
+                ]
+              },
+              "frame": {"showTitle": true, "title": "Slice Value:"},
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {"x": 9, "y": 0, "width": 3, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "revenue_chart",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "sales_revenue_trend", "fields": [
+                {"name": "window_start", "expression": "`window_start`"},
+                {"name": "total_gross_revenue", "expression": "`total_gross_revenue`"},
+                {"name": "total_net_revenue", "expression": "`total_net_revenue`"},
+                {"name": "total_return_amount", "expression": "`total_return_amount`"}
+              ], "disaggregated": true}}
+            ],
+            "spec": {
+              "encodings": {
+                "x": {"axis": {"title": "Time"}, "displayName": "Window", "fieldName": "window_start", "scale": {"type": "temporal"}},
+                "y": {"fields": [
+                  {"displayName": "Gross Revenue", "fieldName": "total_gross_revenue"},
+                  {"displayName": "Net Revenue", "fieldName": "total_net_revenue"},
+                  {"displayName": "Returns", "fieldName": "total_return_amount"}
+                ], "scale": {"type": "quantitative"}}
+              },
+              "frame": {"description": "Track revenue trends over time", "showDescription": true, "showTitle": true, "title": "Revenue Metrics Over Time"},
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "volume_chart",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "sales_volume_trend", "fields": [
+                {"name": "window_start", "expression": "`window_start`"},
+                {"name": "total_units_sold", "expression": "`total_units_sold`"},
+                {"name": "total_transactions", "expression": "`total_transactions`"}
+              ], "disaggregated": true}}
+            ],
+            "spec": {
+              "encodings": {
+                "x": {"axis": {"title": "Time"}, "displayName": "Window", "fieldName": "window_start", "scale": {"type": "temporal"}},
+                "y": {"fields": [
+                  {"displayName": "Units Sold", "fieldName": "total_units_sold"},
+                  {"displayName": "Transactions", "fieldName": "total_transactions"}
+                ], "scale": {"type": "quantitative"}}
+              },
+              "frame": {"description": "Track volume and transaction trends", "showDescription": true, "showTitle": true, "title": "Volume Metrics Over Time"},
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {"x": 6, "y": 2, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "kpi_chart",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "sales_kpi_trend", "fields": [
+                {"name": "window_start", "expression": "`window_start`"},
+                {"name": "overall_return_rate", "expression": "`overall_return_rate`"},
+                {"name": "discount_intensity", "expression": "`discount_intensity`"},
+                {"name": "units_per_transaction", "expression": "`units_per_transaction`"}
+              ], "disaggregated": true}}
+            ],
+            "spec": {
+              "encodings": {
+                "x": {"axis": {"title": "Time"}, "displayName": "Window", "fieldName": "window_start", "scale": {"type": "temporal"}},
+                "y": {"fields": [
+                  {"displayName": "Return Rate %", "fieldName": "overall_return_rate"},
+                  {"displayName": "Discount Intensity %", "fieldName": "discount_intensity"},
+                  {"displayName": "Units/Transaction", "fieldName": "units_per_transaction"}
+                ], "scale": {"type": "quantitative"}}
+              },
+              "frame": {"description": "Track key performance indicators", "showDescription": true, "showTitle": true, "title": "KPI Trends Over Time"},
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {"x": 0, "y": 8, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "drift_chart",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "sales_drift_metrics", "fields": [
+                {"name": "window_start", "expression": "`window_start`"},
+                {"name": "revenue_drift_pct", "expression": "`revenue_drift_pct`"},
+                {"name": "unit_sales_drift_pct", "expression": "`unit_sales_drift_pct`"},
+                {"name": "transaction_volume_drift_pct", "expression": "`transaction_volume_drift_pct`"}
+              ], "disaggregated": true}}
+            ],
+            "spec": {
+              "encodings": {
+                "x": {"axis": {"title": "Time"}, "displayName": "Window", "fieldName": "window_start", "scale": {"type": "temporal"}},
+                "y": {"fields": [
+                  {"displayName": "Revenue Drift %", "fieldName": "revenue_drift_pct"},
+                  {"displayName": "Unit Sales Drift %", "fieldName": "unit_sales_drift_pct"},
+                  {"displayName": "Transaction Drift %", "fieldName": "transaction_volume_drift_pct"}
+                ], "scale": {"type": "quantitative"}}
+              },
+              "frame": {"description": "Track period-over-period changes", "showDescription": true, "showTitle": true, "title": "Drift Metrics (Consecutive Period Comparison)"},
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {"x": 6, "y": 8, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "discount_chart",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "sales_discount_trend", "fields": [
+                {"name": "window_start", "expression": "`window_start`"},
+                {"name": "total_all_discounts", "expression": "`total_all_discounts`"},
+                {"name": "total_multi_unit_discount", "expression": "`total_multi_unit_discount`"},
+                {"name": "total_coupon_discount", "expression": "`total_coupon_discount`"},
+                {"name": "total_loyalty_discount", "expression": "`total_loyalty_discount`"}
+              ], "disaggregated": true}}
+            ],
+            "spec": {
+              "encodings": {
+                "x": {"axis": {"title": "Time"}, "displayName": "Window", "fieldName": "window_start", "scale": {"type": "temporal"}},
+                "y": {"fields": [
+                  {"displayName": "Total Discounts", "fieldName": "total_all_discounts"},
+                  {"displayName": "Multi-Unit Discounts", "fieldName": "total_multi_unit_discount"},
+                  {"displayName": "Coupon Discounts", "fieldName": "total_coupon_discount"},
+                  {"displayName": "Loyalty Discounts", "fieldName": "total_loyalty_discount"}
+                ], "scale": {"type": "quantitative"}}
+              },
+              "frame": {"description": "Track discount trends by type", "showDescription": true, "showTitle": true, "title": "Discount Metrics Over Time"},
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {"x": 0, "y": 14, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "loyalty_chart",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "sales_loyalty_trend", "fields": [
+                {"name": "window_start", "expression": "`window_start`"},
+                {"name": "loyalty_member_avg_spend", "expression": "`loyalty_member_avg_spend`"},
+                {"name": "loyalty_transaction_frequency", "expression": "`loyalty_transaction_frequency`"},
+                {"name": "total_loyalty_transactions", "expression": "`total_loyalty_transactions`"}
+              ], "disaggregated": true}}
+            ],
+            "spec": {
+              "encodings": {
+                "x": {"axis": {"title": "Time"}, "displayName": "Window", "fieldName": "window_start", "scale": {"type": "temporal"}},
+                "y": {"fields": [
+                  {"displayName": "Member Avg Spend", "fieldName": "loyalty_member_avg_spend"},
+                  {"displayName": "Transaction Frequency", "fieldName": "loyalty_transaction_frequency"},
+                  {"displayName": "Loyalty Transactions", "fieldName": "total_loyalty_transactions"}
+                ], "scale": {"type": "quantitative"}}
+              },
+              "frame": {"description": "Track loyalty program performance", "showDescription": true, "showTitle": true, "title": "Loyalty Metrics Over Time"},
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {"x": 6, "y": 14, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "sales_aggregate_table",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "sales_aggregate_core", "disaggregated": true}}
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {"fieldName": "window_start", "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS", "type": "datetime", "displayAs": "datetime", "visible": true, "order": 0, "title": "Window Start"},
+                  {"fieldName": "window_end", "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS", "type": "datetime", "displayAs": "datetime", "visible": true, "order": 1, "title": "Window End"},
+                  {"fieldName": "total_gross_revenue", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 2, "title": "Gross Revenue"},
+                  {"fieldName": "total_net_revenue", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 3, "title": "Net Revenue"},
+                  {"fieldName": "total_return_amount", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 4, "title": "Return Amount"},
+                  {"fieldName": "avg_daily_revenue", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 5, "title": "Avg Daily Revenue"},
+                  {"fieldName": "total_units_sold", "numberFormat": "0", "type": "integer", "displayAs": "number", "visible": true, "order": 6, "title": "Units Sold"},
+                  {"fieldName": "total_units_returned", "numberFormat": "0", "type": "integer", "displayAs": "number", "visible": true, "order": 7, "title": "Units Returned"},
+                  {"fieldName": "total_net_units", "numberFormat": "0", "type": "integer", "displayAs": "number", "visible": true, "order": 8, "title": "Net Units"},
+                  {"fieldName": "total_transactions", "numberFormat": "0", "type": "integer", "displayAs": "number", "visible": true, "order": 9, "title": "Transactions"},
+                  {"fieldName": "total_loyalty_transactions", "numberFormat": "0", "type": "integer", "displayAs": "number", "visible": true, "order": 10, "title": "Loyalty Transactions"},
+                  {"fieldName": "total_all_discounts", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 11, "title": "Total Discounts"},
+                  {"fieldName": "total_multi_unit_discount", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 12, "title": "Multi-Unit Discounts"},
+                  {"fieldName": "total_coupon_discount", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 13, "title": "Coupon Discounts"},
+                  {"fieldName": "total_loyalty_discount", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 14, "title": "Loyalty Discounts"},
+                  {"fieldName": "revenue_volatility", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 15, "title": "Revenue Volatility"},
+                  {"fieldName": "transaction_volatility", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 16, "title": "Transaction Volatility"},
+                  {"fieldName": "revenue_range", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 17, "title": "Revenue Range"}
+                ]
+              },
+              "invisibleColumns": [],
+              "allowHTMLByDefault": false,
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": false
+            }
+          },
+          "position": {"x": 0, "y": 20, "width": 12, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "sales_kpi_table",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "sales_derived_kpis", "disaggregated": true}}
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {"fieldName": "window_start", "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS", "type": "datetime", "displayAs": "datetime", "visible": true, "order": 0, "title": "Window Start"},
+                  {"fieldName": "window_end", "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS", "type": "datetime", "displayAs": "datetime", "visible": true, "order": 1, "title": "Window End"},
+                  {"fieldName": "overall_return_rate", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 2, "title": "Return Rate %"},
+                  {"fieldName": "units_per_transaction", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 3, "title": "Units/Transaction"},
+                  {"fieldName": "revenue_per_unit", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 4, "title": "Revenue/Unit"},
+                  {"fieldName": "discount_per_transaction", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 5, "title": "Discount/Transaction"},
+                  {"fieldName": "multi_unit_discount_share", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 6, "title": "Multi-Unit Share %"},
+                  {"fieldName": "coupon_discount_share", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 7, "title": "Coupon Share %"},
+                  {"fieldName": "loyalty_discount_share", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 8, "title": "Loyalty Share %"},
+                  {"fieldName": "avg_items_per_transaction", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 9, "title": "Avg Items/Txn"},
+                  {"fieldName": "discount_intensity", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 10, "title": "Discount Intensity %"},
+                  {"fieldName": "avg_discount_per_transaction", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 11, "title": "Avg Discount/Txn"},
+                  {"fieldName": "loyalty_member_avg_spend", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 12, "title": "Loyalty Avg Spend"},
+                  {"fieldName": "loyalty_transaction_frequency", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 13, "title": "Loyalty Txn Frequency"}
+                ]
+              },
+              "invisibleColumns": [],
+              "allowHTMLByDefault": false,
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": false
+            }
+          },
+          "position": {"x": 0, "y": 26, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "sales_drift_table",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "sales_drift_metrics", "disaggregated": true}}
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {"fieldName": "window_start", "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS", "type": "datetime", "displayAs": "datetime", "visible": true, "order": 0, "title": "Window Start"},
+                  {"fieldName": "drift_type", "type": "string", "displayAs": "string", "visible": true, "order": 1, "title": "Drift Type"},
+                  {"fieldName": "revenue_drift_pct", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 2, "title": "Revenue Drift %"},
+                  {"fieldName": "gross_revenue_drift_pct", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 3, "title": "Gross Revenue Drift %"},
+                  {"fieldName": "unit_sales_drift_pct", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 4, "title": "Unit Sales Drift %"},
+                  {"fieldName": "transaction_volume_drift_pct", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 5, "title": "Transaction Drift %"},
+                  {"fieldName": "return_rate_drift", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 6, "title": "Return Rate Drift"},
+                  {"fieldName": "discount_intensity_drift", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 7, "title": "Discount Intensity Drift"},
+                  {"fieldName": "discount_penetration_drift", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 8, "title": "Discount Penetration Drift"},
+                  {"fieldName": "loyalty_penetration_drift", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 9, "title": "Loyalty Penetration Drift"},
+                  {"fieldName": "avg_transaction_amount_drift_pct", "numberFormat": "0.00", "type": "float", "displayAs": "number", "visible": true, "order": 10, "title": "Avg Txn Amount Drift %"}
+                ]
+              },
+              "invisibleColumns": [],
+              "allowHTMLByDefault": false,
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": false
+            }
+          },
+          "position": {"x": 6, "y": 26, "width": 6, "height": 6}
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}
+

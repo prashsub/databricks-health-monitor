@@ -264,7 +264,17 @@ def create_quality_monitor(workspace_client, catalog: str, gold_schema: str, spa
             timestamp_col="evaluation_time",
             granularities=["1 day"],
             custom_metrics=get_quality_custom_metrics(),
-            slicing_exprs=["catalog_name", "schema_name"],
+            # Slicing enables dimensional analysis in Genie queries:
+            #   - catalog_name: "Quality by catalog"
+            #   - schema_name: "Quality by schema"
+            #   - table_name: "Quality score for specific table"
+            #   - has_critical_violations: "Tables with critical violations"
+            slicing_exprs=[
+                "catalog_name",
+                "schema_name",
+                "table_name",
+                "has_critical_violations"
+            ],
             schedule_cron="0 0 7 * * ?",  # Daily at 7 AM UTC
             spark=spark,  # Pass spark to create monitoring schema
         )
@@ -294,7 +304,7 @@ def main():
     print(f"  Custom Metrics:  {num_metrics}")
     print(f"  Timestamp Col:   evaluation_time")
     print(f"  Granularity:     1 day")
-    print(f"  Slicing:         catalog_name, schema_name")
+    print(f"  Slicing:         catalog_name, schema_name, table_name, has_critical_violations")
     print(f"  Schedule:        Daily at 7 AM UTC")
     print(f"  Note:            Requires DQX integration")
     print("-" * 70)

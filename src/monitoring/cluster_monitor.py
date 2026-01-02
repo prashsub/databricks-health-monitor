@@ -349,13 +349,25 @@ def create_cluster_monitor(workspace_client, catalog: str, gold_schema: str, spa
     delete_monitor_if_exists(workspace_client, table_name, spark)
 
     # Create monitor (pass spark to create monitoring schema if needed)
+    # Slicing enables dimensional analysis in Genie queries:
+    #   - workspace_id: "Cluster utilization by workspace"
+    #   - cluster_id: "Which cluster is underutilized?"
+    #   - node_type: "Driver vs worker node metrics"
+    #   - cluster_name: "Named cluster analysis"
+    #   - driver: "Driver node vs worker comparison"
     monitor = create_time_series_monitor(
         workspace_client=workspace_client,
         table_name=table_name,
         timestamp_col="start_time",
         granularities=["1 hour", "1 day"],
         custom_metrics=get_cluster_custom_metrics(),
-        slicing_exprs=["workspace_id", "cluster_id", "node_type"],
+        slicing_exprs=[
+            "workspace_id",
+            "cluster_id",
+            "node_type",
+            "cluster_name",
+            "driver"
+        ],
         schedule_cron="0 0 * * * ?",  # Hourly
         spark=spark,  # Pass spark to create monitoring schema
     )
@@ -379,7 +391,7 @@ def main():
     print(f"  Custom Metrics:  {num_metrics}")
     print(f"  Timestamp Col:   start_time")
     print(f"  Granularity:     1 hour, 1 day")
-    print(f"  Slicing:         workspace_id, cluster_id, node_type")
+    print(f"  Slicing:         workspace_id, cluster_id, node_type, cluster_name, driver")
     print(f"  Schedule:        Hourly")
     print("-" * 70)
     

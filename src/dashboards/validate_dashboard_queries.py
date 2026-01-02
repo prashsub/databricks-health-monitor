@@ -77,14 +77,18 @@ def extract_queries_from_dashboard(dashboard_path: Path, catalog: str, gold_sche
         
         # Replace parameters with default values for validation
         # :param_name -> 'All' or default value
-        query = re.sub(r':time_window', "'Last 30 Days'", query)
-        query = re.sub(r':workspace_filter', "'All'", query)
-        query = re.sub(r':sku_type', "'All'", query)
-        query = re.sub(r':compute_type', "'All'", query)
-        query = re.sub(r':job_status', "'All'", query)
-        query = re.sub(r':annual_commit', "1000000", query)
-        query = re.sub(r':time_key', "'Day'", query)
-        query = re.sub(r':\w+', "'All'", query)  # Catch any remaining parameters
+        # IMPORTANT: Do NOT replace :table - it's a literal value in Lakehouse Monitoring, not a parameter
+        # Parameters are typically preceded by = or space (e.g., WHERE x = :param or AND :param)
+        query = re.sub(r':time_window\b', "'Last 30 Days'", query)
+        query = re.sub(r':workspace_filter\b', "'All'", query)
+        query = re.sub(r':sku_type\b', "'All'", query)
+        query = re.sub(r':compute_type\b', "'All'", query)
+        query = re.sub(r':job_status\b', "'All'", query)
+        query = re.sub(r':annual_commit\b', "1000000", query)
+        query = re.sub(r':time_key\b', "'Day'", query)
+        # Catch remaining parameters only when preceded by = or whitespace (avoid :xxx inside strings)
+        # Skip :table (Lakehouse Monitoring literal) and patterns inside quoted strings
+        query = re.sub(r'(?<=[=\s]):(?!table\b)([a-z_]+)\b', "'All'", query, flags=re.IGNORECASE)
         
         queries.append({
             'dashboard': dashboard_name,

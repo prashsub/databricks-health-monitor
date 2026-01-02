@@ -309,13 +309,25 @@ def create_job_monitor(workspace_client, catalog: str, gold_schema: str, spark=N
     delete_monitor_if_exists(workspace_client, table_name, spark)
 
     # Create monitor (pass spark to create monitoring schema if needed)
+    # Slicing enables dimensional analysis in Genie queries:
+    #   - workspace_id: "Show job failures by workspace"
+    #   - result_state: "Success vs failure breakdown"
+    #   - trigger_type: "Scheduled vs manual run analysis"
+    #   - job_name: "Which job is failing most?"
+    #   - termination_code: "Failure reason analysis"
     monitor = create_time_series_monitor(
         workspace_client=workspace_client,
         table_name=table_name,
         timestamp_col="run_date",
         granularities=["1 hour", "1 day"],
         custom_metrics=get_job_custom_metrics(),
-        slicing_exprs=["workspace_id", "result_state", "trigger_type"],
+        slicing_exprs=[
+            "workspace_id",
+            "result_state",
+            "trigger_type",
+            "job_name",
+            "termination_code"
+        ],
         schedule_cron="0 0 * * * ?",  # Hourly
         spark=spark,  # Pass spark to create monitoring schema
     )
@@ -339,7 +351,7 @@ def main():
     print(f"  Custom Metrics:  {num_metrics}")
     print(f"  Timestamp Col:   run_date")
     print(f"  Granularity:     1 hour, 1 day")
-    print(f"  Slicing:         workspace_id, result_state, trigger_type")
+    print(f"  Slicing:         workspace_id, result_state, trigger_type, job_name, termination_code")
     print(f"  Schedule:        Hourly")
     print("-" * 70)
     

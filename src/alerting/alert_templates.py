@@ -76,7 +76,7 @@ SELECT
     {threshold_usd} as threshold,
     'WARNING: Daily cost $' || ROUND(SUM(list_cost), 2) || 
         ' exceeds threshold $' || {threshold_usd} as alert_message
-FROM ${{catalog}}.${{gold_schema}}.fact_usage
+FROM ${catalog}.${gold_schema}.fact_usage
 WHERE usage_date >= CURRENT_DATE() - INTERVAL {lookback_days} DAYS
   AND usage_date < CURRENT_DATE()
 GROUP BY usage_date
@@ -105,7 +105,7 @@ WITH tagged_analysis AS (
             ELSE 'TAGGED'
         END AS tag_status,
         SUM(list_cost) AS cost
-    FROM ${{catalog}}.${{gold_schema}}.fact_usage
+    FROM ${catalog}.${gold_schema}.fact_usage
     WHERE usage_date >= CURRENT_DATE() - INTERVAL {lookback_days} DAYS
     GROUP BY 1
 )
@@ -140,7 +140,7 @@ WITH weekly AS (
     SELECT
         DATE_TRUNC('week', usage_date) as week_start,
         SUM(list_cost) as weekly_cost
-    FROM ${{catalog}}.${{gold_schema}}.fact_usage
+    FROM ${catalog}.${gold_schema}.fact_usage
     WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS
     GROUP BY 1
 ),
@@ -193,7 +193,7 @@ SELECT
               NULLIF(COUNT(*), 0), 1) || 
         '% (' || SUM(CASE WHEN result_state = 'FAILED' THEN 1 ELSE 0 END) || 
         ' of ' || COUNT(*) || ' jobs)' as alert_message
-FROM ${{catalog}}.${{gold_schema}}.fact_job_run_timeline
+FROM ${catalog}.${gold_schema}.fact_job_run_timeline
 WHERE start_time >= CURRENT_TIMESTAMP() - INTERVAL {lookback_hours} HOURS
 HAVING SUM(CASE WHEN result_state = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / 
        NULLIF(COUNT(*), 0) > {threshold_pct}
@@ -219,7 +219,7 @@ SELECT
     CONCAT_WS(', ', COLLECT_LIST(job_name)) as job_names,
     'WARNING: ' || COUNT(*) || ' jobs running longer than ' || 
         {threshold_minutes} || ' minutes' as alert_message
-FROM ${{catalog}}.${{gold_schema}}.fact_job_run_timeline
+FROM ${catalog}.${gold_schema}.fact_job_run_timeline
 WHERE start_time >= CURRENT_TIMESTAMP() - INTERVAL {lookback_hours} HOURS
   AND duration_seconds > ({threshold_minutes} * 60)
   AND result_state = 'RUNNING'
@@ -252,7 +252,7 @@ SELECT
     'CRITICAL: ' || COUNT(*) || ' failed access attempts from ' || 
         COUNT(DISTINCT user_identity) || ' users in last ' || 
         {lookback_hours} || ' hours' as alert_message
-FROM ${{catalog}}.${{gold_schema}}.fact_audit_logs
+FROM ${catalog}.${gold_schema}.fact_audit_logs
 WHERE event_date >= CURRENT_DATE() - INTERVAL {lookback_hours} HOURS
   AND response_status_code >= 400
   AND action_name IN ('accessTable', 'accessCatalog', 'accessSchema', 'query')
@@ -278,7 +278,7 @@ SELECT
     COUNT(*) as access_count,
     COUNT(DISTINCT user_identity) as unique_users,
     'WARNING: ' || COUNT(*) || ' sensitive data accesses outside business hours' as alert_message
-FROM ${{catalog}}.${{gold_schema}}.fact_audit_logs
+FROM ${catalog}.${gold_schema}.fact_audit_logs
 WHERE event_date = CURRENT_DATE()
   AND (HOUR(event_time) < {start_hour} OR HOUR(event_time) > {end_hour})
   AND request_params LIKE '%{sensitive_schema}%'
@@ -312,7 +312,7 @@ SELECT
     'WARNING: Table {table_name} not updated in ' || 
         TIMESTAMPDIFF(HOUR, MAX(record_updated_timestamp), CURRENT_TIMESTAMP()) || 
         ' hours (threshold: ' || {threshold_hours} || 'h)' as alert_message
-FROM ${{catalog}}.${{gold_schema}}.{table_name}
+FROM ${catalog}.${gold_schema}.{table_name}
 HAVING TIMESTAMPDIFF(HOUR, MAX(record_updated_timestamp), CURRENT_TIMESTAMP()) > {threshold_hours}
 """,
     threshold_column="hours_since_update",
@@ -339,7 +339,7 @@ SELECT
         ROUND(SUM(CASE WHEN {column_name} IS NULL THEN 1 ELSE 0 END) * 100.0 / 
               COUNT(*), 2) || 
         '% (threshold: ' || {threshold_pct} || '%)' as alert_message
-FROM ${{catalog}}.${{gold_schema}}.{table_name}
+FROM ${catalog}.${gold_schema}.{table_name}
 WHERE record_updated_timestamp >= CURRENT_DATE() - INTERVAL 1 DAY
 HAVING SUM(CASE WHEN {column_name} IS NULL THEN 1 ELSE 0 END) * 100.0 / 
        COUNT(*) > {threshold_pct}
@@ -371,7 +371,7 @@ SELECT
     ROUND(MAX(duration_ms) / 1000, 2) as max_duration_seconds,
     'WARNING: Avg query duration ' || ROUND(AVG(duration_ms) / 1000, 2) || 
         's exceeds threshold ' || {threshold_seconds} || 's' as alert_message
-FROM ${{catalog}}.${{gold_schema}}.fact_query_history
+FROM ${catalog}.${gold_schema}.fact_query_history
 WHERE start_time >= CURRENT_TIMESTAMP() - INTERVAL {lookback_hours} HOURS
 HAVING AVG(duration_ms) / 1000 > {threshold_seconds}
 """,

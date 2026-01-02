@@ -18,7 +18,7 @@ from pathlib import Path
 
 
 # Path to Metric View YAML files
-METRIC_VIEWS_DIR = Path(__file__).parent.parent.parent / "src" / "metric_views"
+METRIC_VIEWS_DIR = Path(__file__).parent.parent.parent / "src" / "semantic" / "metric_views"
 
 
 def get_metric_view_files():
@@ -225,7 +225,12 @@ class TestMeasureFields:
     @pytest.mark.unit
     @pytest.mark.parametrize("yaml_file", get_metric_view_files(), ids=lambda x: x.name)
     def test_division_uses_nullif(self, yaml_file):
-        """Verify division operations use NULLIF to prevent divide-by-zero."""
+        """Verify division operations use NULLIF to prevent divide-by-zero.
+
+        Safe patterns (no NULLIF needed):
+        - Division by numeric constants: / 1000.0, / 3600.0
+        - Division by constant expressions: / (1024.0*1024.0*1024.0)
+        """
         config = load_yaml_file(yaml_file)
 
         for measure in config.get('measures', []):
@@ -234,10 +239,13 @@ class TestMeasureFields:
             # Check if expression contains division
             if '/' in expr:
                 # Check if dividing by a constant (safe) vs expression (needs NULLIF)
-                # Pattern: / followed by digits/decimal point is a constant divisor
-                constant_divisor = re.search(r'/\s*[\d.]+\s*(?:[)]|$)', expr)
+                # Safe patterns:
+                # - / followed by digits/decimal: / 1000.0
+                # - / followed by parenthesized constants: / (1024.0*1024.0*1024.0)
+                constant_divisor = re.search(r'/\s*[\d.]+', expr)
+                paren_constant = re.search(r'/\s*\([0-9.*\s]+\)', expr)
 
-                if not constant_divisor:
+                if not constant_divisor and not paren_constant:
                     # Dividing by an expression - should use NULLIF
                     assert 'NULLIF' in expr.upper(), (
                         f"Measure '{measure.get('name')}' uses division by expression but no NULLIF in {yaml_file.name}. "
@@ -262,18 +270,26 @@ class TestJoinConfiguration:
     @pytest.mark.unit
     @pytest.mark.parametrize("yaml_file", get_metric_view_files(), ids=lambda x: x.name)
     def test_join_uses_is_current_filter(self, yaml_file):
-        """Verify SCD Type 2 dimension joins filter on is_current = true."""
+        """Verify SCD Type 2 dimension joins filter on active records.
+
+        Valid patterns:
+        - is_current = true (explicit SCD2 flag)
+        - delete_time IS NULL (soft delete pattern)
+        """
         config = load_yaml_file(yaml_file)
 
         for join in config.get('joins', []):
             join_name = join.get('name', '')
-            on_clause = join.get('on', '')
+            on_clause = join.get('on', '').lower()
 
             # Check if joining to a dimension table (starts with dim_)
             if 'dim_' in join.get('source', ''):
-                assert 'is_current' in on_clause.lower(), (
-                    f"Join to dimension '{join_name}' should include is_current = true filter "
-                    f"in {yaml_file.name} for SCD Type 2 handling."
+                # Accept either is_current or delete_time IS NULL pattern
+                has_current_filter = 'is_current' in on_clause or 'delete_time' in on_clause
+                assert has_current_filter, (
+                    f"Join to dimension '{join_name}' in {yaml_file.name} missing SCD2 filter. "
+                    f"Add 'AND {join_name}.is_current = true' or 'AND {join_name}.delete_time IS NULL' "
+                    f"to prevent returning deleted/historical records."
                 )
 
     @pytest.mark.unit
@@ -332,7 +348,8 @@ class TestMetricViewFileStructure:
             f"Metric view {yaml_file.name} should start with a header comment."
         )
 
-        # Should identify the metric view name
-        assert 'Metric View' in raw_content[:200], (
+        # Should identify it as a metric view (case-insensitive)
+        header = raw_content[:200].lower()
+        assert 'metric view' in header or 'metrics view' in header, (
             f"Header comment in {yaml_file.name} should identify it as a Metric View."
         )

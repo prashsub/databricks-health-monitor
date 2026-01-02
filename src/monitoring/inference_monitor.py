@@ -260,7 +260,15 @@ def create_cost_anomaly_inference_monitor(workspace_client, catalog: str, gold_s
             timestamp_col="prediction_date",
             granularities=["1 day"],
             custom_metrics=get_cost_anomaly_inference_metrics(),
-            slicing_exprs=["workspace_id"],
+            # Slicing enables dimensional analysis in Genie queries:
+            #   - workspace_id: "Anomalies by workspace"
+            #   - is_anomaly: "Anomaly vs normal distribution"
+            #   - anomaly_category: "Anomaly breakdown by category"
+            slicing_exprs=[
+                "workspace_id",
+                "is_anomaly",
+                "anomaly_category"
+            ],
             schedule_cron="0 0 8 * * ?",  # Daily at 8 AM UTC (after predictions run)
             spark=spark,  # Pass spark to create monitoring schema
         )
@@ -416,7 +424,15 @@ def create_failure_predictor_inference_monitor(workspace_client, catalog: str, g
             timestamp_col="prediction_date",
             granularities=["1 day"],
             custom_metrics=get_failure_predictor_inference_metrics(),
-            slicing_exprs=["workspace_id"],
+            # Slicing enables dimensional analysis in Genie queries:
+            #   - workspace_id: "Predictions by workspace"
+            #   - predicted_result: "By prediction outcome"
+            #   - risk_level: "High vs low risk jobs"
+            slicing_exprs=[
+                "workspace_id",
+                "predicted_result",
+                "risk_level"
+            ],
             schedule_cron="0 0 8 * * ?",
             spark=spark,  # Pass spark to create monitoring schema
         )

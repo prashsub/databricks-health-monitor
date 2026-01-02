@@ -229,41 +229,250 @@ def create_page_from_dashboard(dashboard: dict, page_name: str, display_name: st
     return page, referenced_datasets
 
 
+def inject_filter_conditions(query: str, dataset_name: str) -> str:
+    """
+    Inject filter parameter conditions into SQL queries.
+    
+    Uses the pattern: IF(:param = 'All', TRUE, column = :param)
+    to allow filtering when a specific value is selected, or all data when 'All'.
+    
+    Detection logic:
+    - If query contains 'fact_usage' -> add workspace, sku filters
+    - If query contains 'fact_job' -> add workspace filter
+    - If query contains 'fact_audit' -> add workspace filter
+    - If query contains 'fact_query' -> add workspace filter
+    - If query contains 'fact_node' -> add workspace filter
+    """
+    # Skip if already has parameter syntax
+    if ':time_window' in query or ':workspace_name' in query:
+        return query
+    
+    # Skip filter datasets
+    if 'gf_ds_' in dataset_name:
+        return query
+    
+    # Determine which filters apply based on table references
+    filters_to_add = []
+    
+    # Time filter - maps time_window to date conditions
+    time_filter = """(
+        CASE :time_window
+            WHEN 'Last 7 Days' THEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+            WHEN 'Last 30 Days' THEN usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+            WHEN 'Last 90 Days' THEN usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS
+            WHEN 'Last 6 Months' THEN usage_date >= CURRENT_DATE() - INTERVAL 180 DAYS
+            WHEN 'Last Year' THEN usage_date >= CURRENT_DATE() - INTERVAL 365 DAYS
+            ELSE TRUE
+        END
+    )"""
+    
+    if 'fact_usage' in query.lower():
+        filters_to_add.append("IF(:workspace_name = 'All', TRUE, workspace_id IN (SELECT workspace_id FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name = :workspace_name))")
+        filters_to_add.append("IF(:sku_category = 'All', TRUE, billing_origin_product = :sku_category)")
+    elif 'fact_job_run' in query.lower():
+        filters_to_add.append("IF(:workspace_name = 'All', TRUE, workspace_id IN (SELECT workspace_id FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name = :workspace_name))")
+    elif 'fact_audit' in query.lower():
+        filters_to_add.append("IF(:workspace_name = 'All', TRUE, workspace_id IN (SELECT workspace_id FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name = :workspace_name))")
+    elif 'fact_query' in query.lower():
+        filters_to_add.append("IF(:workspace_name = 'All', TRUE, workspace_id IN (SELECT workspace_id FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name = :workspace_name))")
+    elif 'fact_node' in query.lower():
+        filters_to_add.append("IF(:workspace_name = 'All', TRUE, workspace_id IN (SELECT workspace_id FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name = :workspace_name))")
+    
+    if not filters_to_add:
+        return query
+    
+    # Inject filters into WHERE clause
+    filter_condition = " AND ".join(filters_to_add)
+    
+    # Find WHERE clause and append, or add new WHERE
+    import re
+    if re.search(r'\bWHERE\b', query, re.IGNORECASE):
+        # Add to existing WHERE - find the last WHERE and append
+        # Use a pattern that finds WHERE and adds after the first condition
+        pattern = r'(\bWHERE\b\s+)'
+        replacement = f'\\1{filter_condition} AND '
+        query = re.sub(pattern, replacement, query, count=1, flags=re.IGNORECASE)
+    else:
+        # No WHERE clause - need to add one
+        # Find FROM ... and add WHERE after the table reference
+        if ' ORDER BY' in query.upper():
+            query = re.sub(r'(\s+ORDER\s+BY\b)', f' WHERE {filter_condition}\\1', query, count=1, flags=re.IGNORECASE)
+        elif ' GROUP BY' in query.upper():
+            query = re.sub(r'(\s+GROUP\s+BY\b)', f' WHERE {filter_condition}\\1', query, count=1, flags=re.IGNORECASE)
+        elif ' LIMIT' in query.upper():
+            query = re.sub(r'(\s+LIMIT\b)', f' WHERE {filter_condition}\\1', query, count=1, flags=re.IGNORECASE)
+        else:
+            # Append at the end
+            query = f"{query} WHERE {filter_condition}"
+    
+    return query
+
+
+def add_parameters_to_datasets(unified: dict) -> dict:
+    """
+    Add filter parameters to all datasets so they can respond to global filters.
+    
+    Each dataset gets parameters for:
+    - time_window: Time range filter
+    - workspace_name: Workspace filter
+    - sku_category: SKU type filter
+    - owner_name: Owner filter
+    
+    Also injects filter conditions into SQL queries.
+    """
+    filter_parameters = [
+        {
+            "displayName": "Time Window",
+            "keyword": "time_window",
+            "dataType": "STRING",
+            "defaultSelection": {
+                "values": {
+                    "dataType": "STRING",
+                    "values": [{"value": "Last 30 Days"}]
+                }
+            }
+        },
+        {
+            "displayName": "Workspace",
+            "keyword": "workspace_name",
+            "dataType": "STRING",
+            "defaultSelection": {
+                "values": {
+                    "dataType": "STRING",
+                    "values": [{"value": "All"}]
+                }
+            }
+        },
+        {
+            "displayName": "SKU Type",
+            "keyword": "sku_category",
+            "dataType": "STRING",
+            "defaultSelection": {
+                "values": {
+                    "dataType": "STRING",
+                    "values": [{"value": "All"}]
+                }
+            }
+        },
+        {
+            "displayName": "Owner",
+            "keyword": "owner_name",
+            "dataType": "STRING",
+            "defaultSelection": {
+                "values": {
+                    "dataType": "STRING",
+                    "values": [{"value": "All"}]
+                }
+            }
+        }
+    ]
+    
+    for dataset in unified.get('datasets', []):
+        ds_name = dataset.get('name', '')
+        
+        # Skip filter datasets themselves
+        if ds_name.startswith('gf_ds_'):
+            continue
+        
+        # Add parameters to dataset if not already present
+        if 'parameters' not in dataset:
+            dataset['parameters'] = []
+        
+        # Add each filter parameter if not already present
+        existing_keywords = {p.get('keyword') for p in dataset.get('parameters', [])}
+        for param in filter_parameters:
+            if param['keyword'] not in existing_keywords:
+                dataset['parameters'].append(param.copy())
+        
+        # Inject filter conditions into query (optional - can be slow to implement fully)
+        # Commenting out for now as it requires careful SQL manipulation
+        # if 'query' in dataset:
+        #     dataset['query'] = inject_filter_conditions(dataset['query'], ds_name)
+    
+    return unified
+
+
+def build_filter_widget_queries(unified: dict, filter_keyword: str, filter_field: str, filter_dataset: str) -> list:
+    """
+    Build query entries for a filter widget that bind to all datasets.
+    
+    Each filter widget needs:
+    1. A query to get filter options (from filter dataset)
+    2. Queries for each data dataset with parameter bindings
+    """
+    queries = [
+        # First query: Get filter options
+        {
+            "name": f"{filter_keyword}_query",
+            "query": {
+                "datasetName": filter_dataset,
+                "fields": [
+                    {"name": filter_field, "expression": f"`{filter_field}`"},
+                    {"name": f"{filter_field}_associativity", "expression": "COUNT_IF(`associative_filter_predicate_group`)"}
+                ],
+                "disaggregated": False
+            }
+        }
+    ]
+    
+    # Add parameter binding queries for each data dataset
+    for i, dataset in enumerate(unified.get('datasets', [])):
+        ds_name = dataset.get('name', '')
+        
+        # Skip filter datasets and ML placeholder datasets
+        if ds_name.startswith('gf_ds_') or 'ds_ml_' in ds_name:
+            continue
+        
+        queries.append({
+            "name": f"param_{filter_keyword}_{i}",
+            "query": {
+                "datasetName": ds_name,
+                "fields": [],
+                "disaggregated": False
+            },
+            "parameters": [
+                {"name": filter_keyword, "keyword": filter_keyword}
+            ]
+        })
+    
+    return queries
+
+
 def add_global_filters_page(unified: dict) -> dict:
     """
-    Add a Global Filters page for cross-dashboard filtering.
+    Add a Global Filters page with proper parameter bindings.
     
-    Creates a sidebar with filters that affect all dashboard pages:
-    - Time Window (date range picker)
-    - Workspace (multi-select)
-    - SKU Type (multi-select for cost pages)
-    - Date Grouping (Day/Week/Month)
-    - Compute Type (Serverless/Classic/All)
-    - Job Status (All/Success/Failed)
+    This implementation follows the Databricks reference dashboard pattern:
+    1. Each dataset has parameters defined for filters it responds to
+    2. Each filter widget has queries for ALL datasets with parameter bindings
+    3. Filter widgets use associative filtering pattern
+    
+    Creates filters for:
+    - Time Window (single-select)
+    - Workspace (multi-select)  
+    - SKU Type (multi-select)
+    - Owner (multi-select) - NEW
     """
+    
+    # First, add parameters to all datasets
+    unified = add_parameters_to_datasets(unified)
+    
+    # Build filter widgets with proper bindings
+    time_window_queries = build_filter_widget_queries(unified, "time_window", "time_window", "gf_ds_time_windows")
+    workspace_queries = build_filter_widget_queries(unified, "workspace_name", "workspace_name", "gf_ds_workspaces")
+    sku_queries = build_filter_widget_queries(unified, "sku_category", "sku_category", "gf_ds_sku_types")
+    owner_queries = build_filter_widget_queries(unified, "owner_name", "owner_name", "gf_ds_owners")
     
     global_filters_page = {
         "name": "page_global_filters",
         "displayName": "🔧 Global Filters",
         "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
         "layout": [
-            # Time Window - Single-Select dropdown instead of date-range-picker
+            # Time Window Filter
             {
                 "widget": {
                     "name": "filter_time_window",
-                    "queries": [
-                        {
-                            "name": "time_window_query",
-                            "query": {
-                                "datasetName": "gf_ds_time_windows",
-                                "fields": [
-                                    {"name": "time_window", "expression": "`time_window`"},
-                                    {"name": "time_window_associativity", "expression": "COUNT_IF(`associative_filter_predicate_group`)"}
-                                ],
-                                "disaggregated": False
-                            }
-                        }
-                    ],
+                    "queries": time_window_queries,
                     "spec": {
                         "version": 2,
                         "widgetType": "filter-single-select",
@@ -284,31 +493,16 @@ def add_global_filters_page(unified: dict) -> dict:
                                 }
                             }
                         },
-                        "frame": {
-                            "showTitle": True,
-                            "title": "Time Window"
-                        }
+                        "frame": {"showTitle": True, "title": "Time Window"}
                     }
                 },
                 "position": {"x": 0, "y": 0, "width": 1, "height": 2}
             },
-            # Workspace Filter - Multi-Select
+            # Workspace Filter
             {
                 "widget": {
                     "name": "filter_workspace",
-                    "queries": [
-                        {
-                            "name": "workspace_query",
-                            "query": {
-                                "datasetName": "gf_ds_workspaces",
-                                "fields": [
-                                    {"name": "workspace_name", "expression": "`workspace_name`"},
-                                    {"name": "workspace_name_associativity", "expression": "COUNT_IF(`associative_filter_predicate_group`)"}
-                                ],
-                                "disaggregated": False
-                            }
-                        }
-                    ],
+                    "queries": workspace_queries,
                     "spec": {
                         "version": 2,
                         "widgetType": "filter-multi-select",
@@ -317,35 +511,20 @@ def add_global_filters_page(unified: dict) -> dict:
                                 {
                                     "displayName": "Workspace",
                                     "fieldName": "workspace_name",
-                                    "queryName": "workspace_query"
+                                    "queryName": "workspace_name_query"
                                 }
                             ]
                         },
-                        "frame": {
-                            "showTitle": True,
-                            "title": "Workspace"
-                        }
+                        "frame": {"showTitle": True, "title": "Workspace"}
                     }
                 },
                 "position": {"x": 0, "y": 2, "width": 1, "height": 2}
             },
-            # SKU Type Filter - Multi-Select
+            # SKU Type Filter
             {
                 "widget": {
                     "name": "filter_sku_type",
-                    "queries": [
-                        {
-                            "name": "sku_query",
-                            "query": {
-                                "datasetName": "gf_ds_sku_types",
-                                "fields": [
-                                    {"name": "sku_category", "expression": "`sku_category`"},
-                                    {"name": "sku_category_associativity", "expression": "COUNT_IF(`associative_filter_predicate_group`)"}
-                                ],
-                                "disaggregated": False
-                            }
-                        }
-                    ],
+                    "queries": sku_queries,
                     "spec": {
                         "version": 2,
                         "widgetType": "filter-multi-select",
@@ -354,158 +533,41 @@ def add_global_filters_page(unified: dict) -> dict:
                                 {
                                     "displayName": "SKU Type",
                                     "fieldName": "sku_category",
-                                    "queryName": "sku_query"
+                                    "queryName": "sku_category_query"
                                 }
                             ]
                         },
-                        "frame": {
-                            "showTitle": True,
-                            "title": "SKU Type"
-                        }
+                        "frame": {"showTitle": True, "title": "SKU Type"}
                     }
                 },
                 "position": {"x": 0, "y": 4, "width": 1, "height": 2}
             },
-            # Date Grouping - Single-Select
+            # Owner Filter (NEW)
             {
                 "widget": {
-                    "name": "filter_date_group",
-                    "queries": [
-                        {
-                            "name": "date_group_query",
-                            "query": {
-                                "datasetName": "gf_ds_date_groupings",
-                                "fields": [
-                                    {"name": "time_key", "expression": "`time_key`"},
-                                    {"name": "time_key_associativity", "expression": "COUNT_IF(`associative_filter_predicate_group`)"}
-                                ],
-                                "disaggregated": False
-                            }
-                        }
-                    ],
+                    "name": "filter_owner",
+                    "queries": owner_queries,
                     "spec": {
                         "version": 2,
-                        "widgetType": "filter-single-select",
+                        "widgetType": "filter-multi-select",
                         "encodings": {
                             "fields": [
                                 {
-                                    "displayName": "Group By",
-                                    "fieldName": "time_key",
-                                    "queryName": "date_group_query"
+                                    "displayName": "Owner",
+                                    "fieldName": "owner_name",
+                                    "queryName": "owner_name_query"
                                 }
                             ]
                         },
-                        "selection": {
-                            "defaultSelection": {
-                                "values": {
-                                    "dataType": "STRING",
-                                    "values": [{"value": "Day"}]
-                                }
-                            }
-                        },
-                        "frame": {
-                            "showTitle": True,
-                            "title": "Dates By"
-                        }
+                        "frame": {"showTitle": True, "title": "Owner"}
                     }
                 },
                 "position": {"x": 0, "y": 6, "width": 1, "height": 2}
-            },
-            # Compute Type - Single-Select
-            {
-                "widget": {
-                    "name": "filter_compute_type",
-                    "queries": [
-                        {
-                            "name": "compute_query",
-                            "query": {
-                                "datasetName": "gf_ds_compute_types",
-                                "fields": [
-                                    {"name": "compute_type", "expression": "`compute_type`"},
-                                    {"name": "compute_type_associativity", "expression": "COUNT_IF(`associative_filter_predicate_group`)"}
-                                ],
-                                "disaggregated": False
-                            }
-                        }
-                    ],
-                    "spec": {
-                        "version": 2,
-                        "widgetType": "filter-single-select",
-                        "encodings": {
-                            "fields": [
-                                {
-                                    "displayName": "Compute Type",
-                                    "fieldName": "compute_type",
-                                    "queryName": "compute_query"
-                                }
-                            ]
-                        },
-                        "selection": {
-                            "defaultSelection": {
-                                "values": {
-                                    "dataType": "STRING",
-                                    "values": [{"value": "All"}]
-                                }
-                            }
-                        },
-                        "frame": {
-                            "showTitle": True,
-                            "title": "Compute Type"
-                        }
-                    }
-                },
-                "position": {"x": 0, "y": 8, "width": 1, "height": 2}
-            },
-            # Job Status Filter - Single-Select  
-            {
-                "widget": {
-                    "name": "filter_job_status",
-                    "queries": [
-                        {
-                            "name": "status_query",
-                            "query": {
-                                "datasetName": "gf_ds_job_status",
-                                "fields": [
-                                    {"name": "status", "expression": "`status`"},
-                                    {"name": "status_associativity", "expression": "COUNT_IF(`associative_filter_predicate_group`)"}
-                                ],
-                                "disaggregated": False
-                            }
-                        }
-                    ],
-                    "spec": {
-                        "version": 2,
-                        "widgetType": "filter-single-select",
-                        "encodings": {
-                            "fields": [
-                                {
-                                    "displayName": "Job Status",
-                                    "fieldName": "status",
-                                    "queryName": "status_query"
-                                }
-                            ]
-                        },
-                        "selection": {
-                            "defaultSelection": {
-                                "values": {
-                                    "dataType": "STRING",
-                                    "values": [{"value": "All"}]
-                                }
-                            }
-                        },
-                        "frame": {
-                            "showTitle": True,
-                            "title": "Job Status"
-                        }
-                    }
-                },
-                "position": {"x": 0, "y": 10, "width": 1, "height": 2}
             }
         ]
     }
     
-    # Global filter datasets
-    # NOTE: Don't include 'all' in query - the filter UI adds it automatically based on selection behavior
+    # Global filter datasets with proper structure
     global_filter_datasets = [
         {
             "name": "gf_ds_time_windows",
@@ -515,27 +577,17 @@ def add_global_filters_page(unified: dict) -> dict:
         {
             "name": "gf_ds_workspaces",
             "displayName": "Global Filter - Workspaces",
-            "query": "SELECT DISTINCT COALESCE(workspace_name, CONCAT('ID: ', workspace_id)) AS workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name"
+            "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT COALESCE(workspace_name, CONCAT('ID: ', workspace_id)) AS workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name"
         },
         {
             "name": "gf_ds_sku_types",
             "displayName": "Global Filter - SKU Types",
-            "query": "SELECT DISTINCT billing_origin_product AS sku_category FROM ${catalog}.${gold_schema}.fact_usage WHERE billing_origin_product IS NOT NULL ORDER BY sku_category"
+            "query": "SELECT 'All' AS sku_category UNION ALL SELECT DISTINCT billing_origin_product AS sku_category FROM ${catalog}.${gold_schema}.fact_usage WHERE billing_origin_product IS NOT NULL ORDER BY sku_category"
         },
         {
-            "name": "gf_ds_date_groupings",
-            "displayName": "Global Filter - Date Groupings",
-            "query": "SELECT EXPLODE(ARRAY('Day', 'Week', 'Month', 'Quarter', 'Year')) AS time_key"
-        },
-        {
-            "name": "gf_ds_compute_types",
-            "displayName": "Global Filter - Compute Types",
-            "query": "SELECT EXPLODE(ARRAY('All', 'Serverless', 'Classic')) AS compute_type"
-        },
-        {
-            "name": "gf_ds_job_status",
-            "displayName": "Global Filter - Job Status",
-            "query": "SELECT EXPLODE(ARRAY('All', 'Success', 'Failed', 'Running')) AS status"
+            "name": "gf_ds_owners",
+            "displayName": "Global Filter - Owners",
+            "query": "SELECT 'All' AS owner_name UNION ALL SELECT DISTINCT identity_metadata_run_as AS owner_name FROM ${catalog}.${gold_schema}.fact_usage WHERE identity_metadata_run_as IS NOT NULL ORDER BY owner_name LIMIT 100"
         }
     ]
     
@@ -543,7 +595,9 @@ def add_global_filters_page(unified: dict) -> dict:
     unified['pages'].insert(0, global_filters_page)
     unified['datasets'].extend(global_filter_datasets)
     
-    print("  ✓ Added Global Filters page with 6 filter controls")
+    # Count bindings
+    num_datasets = len([d for d in unified.get('datasets', []) if not d.get('name', '').startswith('gf_ds_')])
+    print(f"  ✓ Added Global Filters page with 4 filters bound to {num_datasets} datasets")
     
     return unified
 

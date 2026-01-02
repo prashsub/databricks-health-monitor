@@ -14,30 +14,23 @@
 #   - Show read/write activity by user
 
 version: "1.1"
-comment: >
-  PURPOSE: Data lineage and governance analytics for compliance and impact analysis.
-  
-  BEST FOR: Who accessed this table | Most frequently accessed tables | Jobs reading from table | 
-  Tables not accessed in 30 days | Read vs write operations | Data consumers analysis
-  
-  NOT FOR: Security audit events (use security_events) | Real-time lineage (use get_table_lineage TVF)
-  
-  DIMENSIONS: source_table_full_name, target_table_full_name, entity_type, created_by, workspace_name, activity_status
-  
-  MEASURES: total_events, read_events, write_events, read_write_ratio, active_table_count, inactive_table_count, unique_users
-  
-  SOURCE: fact_table_lineage (governance domain)
-  
-  JOINS: dim_workspace (workspace details)
-  
-  NOTE: Activity status based on recency (ACTIVE if accessed in 30 days). Uses entity_metadata for job/pipeline details.
+comment: '
+- PURPOSE: Data lineage and governance analytics for compliance and impact analysis
+- BEST FOR: "Who accessed this table" "Most frequently accessed tables" "Jobs reading from table" "Tables not accessed in 30 days"
+- NOT FOR: Security audit events (use security_events), real-time lineage (use get_table_lineage TVF)
+- DIMENSIONS: source_table_full_name, target_table_full_name, entity_type, created_by, workspace_name, activity_status
+- MEASURES: total_events, read_events, write_events, read_write_ratio, active_table_count, inactive_table_count, unique_users
+- SOURCE: fact_table_lineage (governance domain)
+- JOINS: dim_workspace (workspace details)
+- NOTE: Activity status based on recency (ACTIVE if accessed in 30 days). Uses entity_metadata for job/pipeline details.
+'
 
 source: ${catalog}.${gold_schema}.fact_table_lineage
 
 joins:
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id
+    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
 
 dimensions:
   # === Source Table Dimensions ===
