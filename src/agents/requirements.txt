@@ -1,0 +1,27 @@
+# Health Monitor Agent Framework Requirements
+# ============================================
+
+# MLflow 3.0 for GenAI features
+mlflow>=3.0.0
+
+# LangChain ecosystem
+langchain>=0.3.0
+langgraph>=0.2.0
+langchain-databricks>=0.1.0
+
+# Databricks SDK
+databricks-sdk>=0.30.0
+databricks-langchain>=0.1.0
+
+# Data validation
+pydantic>=2.0.0
+
+# Web search (optional)
+tavily-python>=0.3.0
+
+# Frontend (optional)
+streamlit>=1.30.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
