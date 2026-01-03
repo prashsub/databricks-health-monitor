@@ -76,8 +76,58 @@
 
 | Table Name | Purpose |
 |------------|---------|
-| `fact_audit_logs_profile_metrics` | Custom security metrics (sensitive_rate, failure_rate, off_hours_rate) |
+| `fact_audit_logs_profile_metrics` | Custom security metrics (sensitive_access_rate, failure_rate, off_hours_rate) |
 | `fact_audit_logs_drift_metrics` | Security drift (event_volume_drift, sensitive_action_drift) |
+
+#### ⚠️ CRITICAL: Custom Metrics Query Patterns
+
+**Always include these filters when querying Lakehouse Monitoring tables:**
+
+```sql
+-- ✅ CORRECT: Get security metrics
+SELECT 
+  window.start AS window_start,
+  total_events,
+  sensitive_access_rate,
+  failure_rate,
+  off_hours_rate
+FROM ${catalog}.${gold_schema}.fact_audit_logs_profile_metrics
+WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
+  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
+  AND slice_key IS NULL          -- For overall metrics
+ORDER BY window.start DESC;
+
+-- ✅ CORRECT: Get events by user (sliced)
+SELECT 
+  slice_value AS user_identity,
+  SUM(total_events) AS event_count
+FROM ${catalog}.${gold_schema}.fact_audit_logs_profile_metrics
+WHERE column_name = ':table'
+  AND log_type = 'INPUT'
+  AND slice_key = 'user_identity_email'
+GROUP BY slice_value
+ORDER BY event_count DESC;
+
+-- ✅ CORRECT: Get security drift
+SELECT 
+  window.start AS window_start,
+  event_volume_drift,
+  sensitive_action_drift
+FROM ${catalog}.${gold_schema}.fact_audit_logs_drift_metrics
+WHERE drift_type = 'CONSECUTIVE'
+  AND column_name = ':table'
+ORDER BY window.start DESC;
+```
+
+#### Available Slicing Dimensions (Security Monitor)
+
+| Slice Key | Use Case |
+|-----------|----------|
+| `workspace_id` | Events by workspace |
+| `service_name` | Events by service |
+| `audit_level` | By audit level |
+| `action_name` | By action type |
+| `user_identity_email` | Events by user |
 
 ### Dimension Tables (from gold_layer_design/yaml/shared/)
 
@@ -98,29 +148,71 @@
 
 ---
 
-## ████ SECTION E: GENERAL INSTRUCTIONS (≤20 Lines) ████
+## ████ SECTION E: ASSET SELECTION FRAMEWORK ████
+
+### Semantic Layer Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ASSET SELECTION DECISION TREE                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  USER QUERY PATTERN                → USE THIS ASSET             │
+│  ─────────────────────────────────────────────────────────────  │
+│  "Total audit events today"        → Metric View (security_events)│
+│  "Failed events count"             → Metric View (security_events)│
+│  ─────────────────────────────────────────────────────────────  │
+│  "Is auth failure increasing?"     → Custom Metrics (_drift_metrics)│
+│  "Security event trend"            → Custom Metrics (_profile_metrics)│
+│  ─────────────────────────────────────────────────────────────  │
+│  "Who accessed sensitive data?"    → TVF (get_sensitive_table_access)│
+│  "Failed actions today"            → TVF (get_failed_actions)    │
+│  "User activity for X"             → TVF (get_user_activity_summary)│
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Asset Selection Rules
+
+| Query Intent | Asset Type | Example |
+|--------------|-----------|---------|
+| **Total events count** | Metric View | "Audit events today" → `security_events` |
+| **Auth failure trend** | Custom Metrics | "Is failure increasing?" → `_drift_metrics` |
+| **User activity list** | TVF | "Activity for user X" → `get_user_activity_summary` |
+| **Anomaly detection** | ML Tables | "Security anomalies" → `access_anomaly_predictions` |
+| **Risk assessment** | TVF/ML | "User risk scores" → `get_user_risk_scores` |
+
+### Priority Order
+
+1. **If user asks for a LIST** → TVF
+2. **If user asks about TREND** → Custom Metrics
+3. **If user asks for CURRENT VALUE** → Metric View
+4. **If user asks for ANOMALY/RISK** → ML Tables
+
+---
+
+## ████ SECTION F: GENERAL INSTRUCTIONS (≤20 Lines) ████
 
 ```
 You are a Databricks security and compliance analyst. Follow these rules:
 
-1. **Primary Source:** Use security_events metric view first
-2. **TVFs:** Use TVFs for user-specific or time-bounded queries
-3. **Date Default:** If no date specified, default to last 24 hours
-4. **User Types:** HUMAN_USER, SERVICE_PRINCIPAL, SYSTEM
-5. **Risk Levels:** LOW (0-25), MEDIUM (26-50), HIGH (51-75), CRITICAL (76-100)
-6. **Sorting:** Sort by risk_score DESC for security queries
-7. **Limits:** Top 20 for activity lists
-8. **Synonyms:** user=identity=principal, access=event=action
-9. **Off-Hours:** Before 7am or after 7pm local time
-10. **Sensitive:** Tables with pii/personal/sensitive in name
+1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends
+2. **Primary Source:** Use security_events metric view for dashboard KPIs
+3. **TVFs for Lists:** Use TVFs for user-specific or "who accessed" queries
+4. **Trends:** For "is failure rate increasing?" check _drift_metrics tables
+5. **Date Default:** If no date specified, default to last 24 hours
+6. **User Types:** HUMAN_USER, SERVICE_PRINCIPAL, SYSTEM
+7. **Risk Levels:** LOW (0-25), MEDIUM (26-50), HIGH (51-75), CRITICAL (76-100)
+8. **Sorting:** Sort by risk_score DESC for security queries
+9. **Limits:** Top 20 for activity lists
+10. **Synonyms:** user=identity=principal, access=event=action
 11. **ML Anomaly:** For "anomalies" → query access_anomaly_predictions
 12. **Risk Score:** For "risk score" → query user_risk_scores
-13. **Failed Actions:** For "failed" → use get_failed_actions TVF
-14. **User Activity:** For "user activity" → use get_user_activity_summary TVF
-15. **Service Accounts:** For "service accounts" → use get_service_account_audit TVF
-16. **Context:** Explain READ vs WRITE vs DDL actions
-17. **Compliance:** Never expose PII in responses
-18. **Performance:** Never scan Bronze/Silver tables
+13. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
+14. **Context:** Explain READ vs WRITE vs DDL actions
+15. **Compliance:** Never expose PII in responses
+16. **Performance:** Never scan Bronze/Silver tables
 ```
 
 ---
@@ -159,7 +251,70 @@ You are a Databricks security and compliance analyst. Follow these rules:
 
 ---
 
-## ████ SECTION G: BENCHMARK QUESTIONS WITH SQL ████
+## ████ SECTION G: ML MODEL INTEGRATION (4 Models) ████
+
+### Security ML Models Quick Reference
+
+| ML Model | Prediction Table | Key Columns | Use When |
+|----------|-----------------|-------------|----------|
+| `security_threat_detector` | `access_anomaly_predictions` | `threat_score`, `is_threat` | "Detect threats" |
+| `access_pattern_analyzer` | `access_classifications` | `pattern_class`, `probability` | "Classify access" |
+| `compliance_risk_classifier` | `user_risk_scores` | `risk_level` (1-5) | "User risk score" |
+| `permission_recommender` | — | `recommended_action` | "Permission changes" |
+
+### ML Model Usage Patterns
+
+#### security_threat_detector (Threat Detection)
+- **Question Triggers:** "threat", "anomaly", "suspicious", "unusual access", "security risk"
+- **Query Pattern:**
+```sql
+SELECT user_identity, event_date, threat_score, is_threat, threat_indicators
+FROM ${catalog}.${gold_schema}.access_anomaly_predictions
+WHERE prediction_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  AND is_threat = TRUE
+ORDER BY threat_score ASC;
+```
+- **Interpretation:** `is_threat = TRUE` or `threat_score < -0.5` = Security concern
+
+#### compliance_risk_classifier (User Risk Scores)
+- **Question Triggers:** "risk score", "risky users", "compliance risk", "high risk"
+- **Query Pattern:**
+```sql
+SELECT user_identity, risk_level, risk_category, risk_factors
+FROM ${catalog}.${gold_schema}.user_risk_scores
+WHERE risk_level >= 4
+ORDER BY risk_level DESC, last_activity DESC;
+```
+- **Interpretation:** `risk_level >= 4` = High risk, requires attention
+
+#### access_pattern_analyzer (Access Classification)
+- **Question Triggers:** "access pattern", "behavior", "classify user", "normal access"
+- **Query Pattern:**
+```sql
+SELECT user_identity, pattern_class, probability, pattern_description
+FROM ${catalog}.${gold_schema}.access_classifications
+WHERE pattern_class != 'NORMAL'
+ORDER BY probability DESC;
+```
+
+### ML vs Other Methods Decision Tree
+
+```
+USER QUESTION                           → USE THIS
+────────────────────────────────────────────────────
+"Who are the risky users?"              → ML: user_risk_scores
+"Any security threats?"                 → ML: access_anomaly_predictions
+"Classify access patterns"              → ML: access_classifications
+"Permission recommendations"            → ML: permission_recommender
+────────────────────────────────────────────────────
+"How many security events?"             → Metric View: security_events
+"Is event volume increasing?"           → Custom Metrics: _drift_metrics
+"Show failed access attempts"           → TVF: get_failed_access_attempts
+```
+
+---
+
+## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
 
 ### Question 1: "Who are the most active users this week?"
 **Expected SQL:**
@@ -333,4 +488,26 @@ LIMIT 10;
 ## Agent Domain Tag
 
 **Agent Domain:** 🔒 **Security**
+
+---
+
+## References
+
+### 📊 Semantic Layer Framework (Essential Reading)
+- [**Metrics Inventory**](../../docs/reference/metrics-inventory.md) - **START HERE**: Complete inventory of 277 measurements across TVFs, Metric Views, and Custom Metrics
+- [**Semantic Layer Rationalization**](../../docs/reference/semantic-layer-rationalization.md) - Design rationale: why overlaps are intentional and complementary
+- [**Genie Asset Selection Guide**](../../docs/reference/genie-asset-selection-guide.md) - Quick decision tree for choosing correct asset type
+
+### 📈 Lakehouse Monitoring Documentation
+- [Monitor Catalog](../../docs/lakehouse-monitoring-design/04-monitor-catalog.md) - Complete metric definitions for Security Monitor
+- [Genie Integration](../../docs/lakehouse-monitoring-design/05-genie-integration.md) - Critical query patterns and required filters
+- [Custom Metrics Reference](../../docs/lakehouse-monitoring-design/03-custom-metrics.md) - 13 security-specific custom metrics
+
+### 📁 Asset Inventories
+- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md) - 10 Security TVFs
+- [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md) - 2 Security Metric Views
+- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md) - 4 Security ML Models
+
+### 🚀 Deployment Guides
+- [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup and troubleshooting
 

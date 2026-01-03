@@ -260,11 +260,24 @@ def merge_pipeline_update_timeline(spark: SparkSession, catalog: str, schema: st
     
     Note: This table has Deletion Vectors enabled, which is incompatible with 
     Delta Sharing streaming. We ingest it via non-streaming MERGE instead.
+    
+    Deduplication: Source may have multiple rows per (workspace_id, update_id).
+    We keep the latest record by period_end_time.
     """
     print("Merging pipeline_update_timeline...")
     
+    from pyspark.sql import Window
+    
+    # Deduplicate source by composite key, keeping latest record by period_end_time
+    window_spec = Window.partitionBy(
+        "workspace_id", "update_id"
+    ).orderBy(col("period_end_time").desc())
+    
     source_df = (
         spark.table("system.lakeflow.pipeline_update_timeline")
+        .withColumn("_row_num", row_number().over(window_spec))
+        .filter(col("_row_num") == 1)  # Keep only most recent per key
+        .drop("_row_num")
         .withColumn("bronze_ingestion_timestamp", current_timestamp())
     )
     
@@ -280,7 +293,7 @@ def merge_pipeline_update_timeline(spark: SparkSession, catalog: str, schema: st
     ).execute()
     
     record_count = source_df.count()
-    print(f"✓ Merged {record_count} records into pipeline_update_timeline")
+    print(f"✓ Merged {record_count} records into pipeline_update_timeline (deduplicated)")
     return record_count
 
 # COMMAND ----------

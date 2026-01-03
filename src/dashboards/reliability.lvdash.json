@@ -1,0 +1,3396 @@
+{
+  "pages": [
+    {
+      "name": "page_reliability_overview",
+      "displayName": "\ud83d\udd04 Reliability Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_success_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_success_rate",
+                  "fields": [
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "success_rate",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Success Rate (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_runs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_totals",
+                  "fields": [
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_runs",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Runs (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_failures",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_totals",
+                  "fields": [
+                    {
+                      "name": "total_failures",
+                      "expression": "`total_failures`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_failures",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failures (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_p95_duration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_duration",
+                  "fields": [
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "p95_duration",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "P95 Duration (min)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_mttr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_mttr",
+                  "fields": [
+                    {
+                      "name": "mttr_minutes",
+                      "expression": "`mttr_minutes`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "mttr_minutes",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "MTTR (min)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_unique_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_totals",
+                  "fields": [
+                    {
+                      "name": "unique_jobs",
+                      "expression": "`unique_jobs`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unique_jobs",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Jobs (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_success_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_success_trend",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    },
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    },
+                    {
+                      "name": "failure_rate",
+                      "expression": "`failure_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "success_rate",
+                      "displayName": "Success %"
+                    },
+                    {
+                      "fieldName": "failure_rate",
+                      "displayName": "Failure %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Success & Failure Rate Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_runs_by_status",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs_by_status",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    },
+                    {
+                      "name": "successful",
+                      "expression": "`successful`"
+                    },
+                    {
+                      "name": "failed",
+                      "expression": "`failed`"
+                    },
+                    {
+                      "name": "timed_out",
+                      "expression": "`timed_out`"
+                    },
+                    {
+                      "name": "cancelled",
+                      "expression": "`cancelled`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "successful",
+                      "displayName": "Success"
+                    },
+                    {
+                      "fieldName": "failed",
+                      "displayName": "Failed"
+                    },
+                    {
+                      "fieldName": "timed_out",
+                      "displayName": "Timeout"
+                    },
+                    {
+                      "fieldName": "cancelled",
+                      "displayName": "Cancelled"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Daily Runs by Status"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_duration_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_duration_trend",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "p50_duration",
+                      "expression": "`p50_duration`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_duration",
+                      "displayName": "Avg"
+                    },
+                    {
+                      "fieldName": "p50_duration",
+                      "displayName": "P50"
+                    },
+                    {
+                      "fieldName": "p95_duration",
+                      "displayName": "P95"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u23f1\ufe0f Duration Percentiles Trend (min)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_failures",
+      "displayName": "\u274c Failure Analysis",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_failed_today",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failed_today",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "termination_code",
+                      "expression": "`termination_code`"
+                    },
+                    {
+                      "name": "run_time",
+                      "expression": "`run_time`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "termination_code",
+                    "title": "Reason",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "run_time",
+                    "title": "Time",
+                    "type": "datetime"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd34 Failed Jobs Today"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_low_success",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_low_success_jobs",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    },
+                    {
+                      "name": "failures",
+                      "expression": "`failures`"
+                    },
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "total_runs",
+                    "title": "Runs",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "failures",
+                    "title": "Fails",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "success_rate",
+                    "title": "Success %",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc9 Jobs with Lowest Success Rate (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_highest_failures",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_highest_failure_jobs",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "failures",
+                      "expression": "`failures`"
+                    },
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    },
+                    {
+                      "name": "failure_cost",
+                      "expression": "`failure_cost`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "failures",
+                    "title": "Failures",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "success_rate",
+                    "title": "Success %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "failure_cost",
+                    "title": "Fail Cost ($)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd25 Jobs with Most Failures (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_failure_by_type",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failure_by_type",
+                  "fields": [
+                    {
+                      "name": "termination_code",
+                      "expression": "`termination_code`"
+                    },
+                    {
+                      "name": "count",
+                      "expression": "`count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "color": {
+                  "fieldName": "termination_code",
+                  "displayName": "Reason"
+                },
+                "angle": {
+                  "fieldName": "count",
+                  "displayName": "Count"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Failures by Termination Type (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_failure_trend_by_type",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failure_trend_by_type",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    },
+                    {
+                      "name": "internal_error",
+                      "expression": "`internal_error`"
+                    },
+                    {
+                      "name": "timeout",
+                      "expression": "`timeout`"
+                    },
+                    {
+                      "name": "cancelled",
+                      "expression": "`cancelled`"
+                    },
+                    {
+                      "name": "other",
+                      "expression": "`other`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "internal_error",
+                      "displayName": "Internal Error"
+                    },
+                    {
+                      "fieldName": "timeout",
+                      "displayName": "Timeout"
+                    },
+                    {
+                      "fieldName": "cancelled",
+                      "displayName": "Cancelled"
+                    },
+                    {
+                      "fieldName": "other",
+                      "displayName": "Other"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Failure Types Over Time"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_most_repaired",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_most_repaired",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "repairs",
+                      "expression": "`repairs`"
+                    },
+                    {
+                      "name": "repair_cost",
+                      "expression": "`repair_cost`"
+                    },
+                    {
+                      "name": "repair_time_min",
+                      "expression": "`repair_time_min`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "repairs",
+                    "title": "Repairs",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "repair_cost",
+                    "title": "Repair Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "repair_time_min",
+                    "title": "Repair Time (min)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd27 Most Repaired Jobs (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_performance",
+      "displayName": "\u26a1 Performance Analysis",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_slowest_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_slowest_jobs",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    },
+                    {
+                      "name": "max_duration",
+                      "expression": "`max_duration`"
+                    },
+                    {
+                      "name": "runs",
+                      "expression": "`runs`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "avg_duration",
+                    "title": "Avg (min)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "p95_duration",
+                    "title": "P95 (min)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "max_duration",
+                    "title": "Max (min)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "runs",
+                    "title": "Runs",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udc22 Slowest Jobs (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_duration_regression",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_duration_regression",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "last_7d_avg",
+                      "expression": "`last_7d_avg`"
+                    },
+                    {
+                      "name": "prev_7d_avg",
+                      "expression": "`prev_7d_avg`"
+                    },
+                    {
+                      "name": "increase_pct",
+                      "expression": "`increase_pct`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_7d_avg",
+                    "title": "Last 7d Avg",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "prev_7d_avg",
+                    "title": "Prev 7d Avg",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "increase_pct",
+                    "title": "Increase %",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Jobs with Duration Regression"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_duration_outliers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_duration_outliers",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "max_duration",
+                      "expression": "`max_duration`"
+                    },
+                    {
+                      "name": "p90",
+                      "expression": "`p90`"
+                    },
+                    {
+                      "name": "deviation",
+                      "expression": "`deviation`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "avg_duration",
+                    "title": "Avg (min)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "max_duration",
+                    "title": "Max (min)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "p90",
+                    "title": "P90 (min)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "deviation",
+                    "title": "Deviation",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Jobs with Duration Outliers (Max >> P90)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_runs_by_hour",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs_by_hour",
+                  "fields": [
+                    {
+                      "name": "hour",
+                      "expression": "`hour`"
+                    },
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    },
+                    {
+                      "name": "failures",
+                      "expression": "`failures`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "hour",
+                  "displayName": "Hour of Day",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "total_runs",
+                      "displayName": "Total Runs"
+                    },
+                    {
+                      "fieldName": "failures",
+                      "displayName": "Failures"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd50 Job Runs by Hour of Day"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_runs_by_day",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs_by_day",
+                  "fields": [
+                    {
+                      "name": "day_name",
+                      "expression": "`day_name`"
+                    },
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    },
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "day_name",
+                  "displayName": "Day",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "total_runs",
+                      "displayName": "Runs"
+                    },
+                    {
+                      "fieldName": "success_rate",
+                      "displayName": "Success %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc5 Job Runs by Day of Week"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_ml_predictions",
+      "displayName": "\ud83e\udd16 ML Predictions",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_ml_failure_risk",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_failure_risk",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "failure_probability",
+                      "expression": "`failure_probability`"
+                    },
+                    {
+                      "name": "risk_level",
+                      "expression": "`risk_level`"
+                    },
+                    {
+                      "name": "contributing_factors",
+                      "expression": "`contributing_factors`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "failure_probability",
+                    "title": "Fail Prob %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "risk_level",
+                    "title": "Risk Level",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "contributing_factors",
+                    "title": "Factors",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Jobs at Risk of Failure",
+                "description": "XGBoost failure prediction model"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_pipeline_health",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_pipeline_health",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "health_score",
+                      "expression": "`health_score`"
+                    },
+                    {
+                      "name": "health_category",
+                      "expression": "`health_category`"
+                    },
+                    {
+                      "name": "trend",
+                      "expression": "`trend`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "health_score",
+                    "title": "Health Score",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "health_category",
+                    "title": "Category",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "trend",
+                    "title": "Trend",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Pipeline Health Scores",
+                "description": "Gradient Boosting health scoring model"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_retry_success",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_retry_success",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "retry_success_prob",
+                      "expression": "`retry_success_prob`"
+                    },
+                    {
+                      "name": "recommendation",
+                      "expression": "`recommendation`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "retry_success_prob",
+                    "title": "Retry Success %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "recommendation",
+                    "title": "Recommendation",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Retry Success Predictions",
+                "description": "XGBoost retry outcome predictor"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_incident_impact",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_incident_impact",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "blast_radius",
+                      "expression": "`blast_radius`"
+                    },
+                    {
+                      "name": "downstream_jobs",
+                      "expression": "`downstream_jobs`"
+                    },
+                    {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "blast_radius",
+                    "title": "Blast Radius",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "downstream_jobs",
+                    "title": "Downstream Jobs",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "severity",
+                    "title": "Severity",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Incident Impact Estimates",
+                "description": "Random Forest blast radius estimator"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_self_healing",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_self_healing",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "error_pattern",
+                      "expression": "`error_pattern`"
+                    },
+                    {
+                      "name": "healing_action",
+                      "expression": "`healing_action`"
+                    },
+                    {
+                      "name": "confidence",
+                      "expression": "`confidence`"
+                    },
+                    {
+                      "name": "historical_success",
+                      "expression": "`historical_success`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "error_pattern",
+                    "title": "Error Pattern",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "healing_action",
+                    "title": "Recommended Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "confidence",
+                    "title": "Confidence",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "historical_success",
+                    "title": "Historical Success %",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Self-Healing Recommendations",
+                "description": "Thompson Sampling action recommender"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_ml_duration_forecast",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_duration_forecast",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "predicted_duration",
+                      "expression": "`predicted_duration`"
+                    },
+                    {
+                      "name": "historical_avg",
+                      "expression": "`historical_avg`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "job_name",
+                  "displayName": "Job",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "predicted_duration",
+                      "displayName": "Predicted (min)"
+                    },
+                    {
+                      "fieldName": "historical_avg",
+                      "displayName": "Historical Avg (min)"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Duration Predictions vs Historical",
+                "description": "Gradient Boosting duration predictor"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_monitoring",
+      "displayName": "\ud83d\udcca Lakehouse Monitoring",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_monitor_success",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "success_rate_pct",
+                      "expression": "`success_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "success_rate_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Success Rate"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_monitor_runs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_runs",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Total Runs"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_monitor_p95",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "p95_duration",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: P95 Duration"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_rates",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_trend",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    },
+                    {
+                      "name": "failure_rate",
+                      "expression": "`failure_rate`"
+                    },
+                    {
+                      "name": "timeout_rate",
+                      "expression": "`timeout_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "success_rate",
+                      "displayName": "Success %"
+                    },
+                    {
+                      "fieldName": "failure_rate",
+                      "displayName": "Failure %"
+                    },
+                    {
+                      "fieldName": "timeout_rate",
+                      "displayName": "Timeout %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Rate Metrics Trend"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_duration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_duration",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "p50_duration",
+                      "expression": "`p50_duration`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    },
+                    {
+                      "name": "p99_duration",
+                      "expression": "`p99_duration`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_duration",
+                      "displayName": "Avg"
+                    },
+                    {
+                      "fieldName": "p50_duration",
+                      "displayName": "P50"
+                    },
+                    {
+                      "fieldName": "p95_duration",
+                      "displayName": "P95"
+                    },
+                    {
+                      "fieldName": "p99_duration",
+                      "displayName": "P99"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Duration Percentiles"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_run_types",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_run_types",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "scheduled_runs",
+                      "expression": "`scheduled_runs`"
+                    },
+                    {
+                      "name": "manual_runs",
+                      "expression": "`manual_runs`"
+                    },
+                    {
+                      "name": "retry_runs",
+                      "expression": "`retry_runs`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "scheduled_runs",
+                      "displayName": "Scheduled"
+                    },
+                    {
+                      "fieldName": "manual_runs",
+                      "displayName": "Manual"
+                    },
+                    {
+                      "fieldName": "retry_runs",
+                      "displayName": "Retry"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Run Types Over Time"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_errors",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_errors",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "timeout_count",
+                      "expression": "`timeout_count`"
+                    },
+                    {
+                      "name": "cancelled_count",
+                      "expression": "`cancelled_count`"
+                    },
+                    {
+                      "name": "internal_error_count",
+                      "expression": "`internal_error_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "timeout_count",
+                      "displayName": "Timeout"
+                    },
+                    {
+                      "fieldName": "cancelled_count",
+                      "displayName": "Cancelled"
+                    },
+                    {
+                      "fieldName": "internal_error_count",
+                      "displayName": "Internal Error"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Error Types Breakdown"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 14,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_drift",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_drift",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "success_rate_drift",
+                      "expression": "`success_rate_drift`"
+                    },
+                    {
+                      "name": "duration_drift",
+                      "expression": "`duration_drift`"
+                    },
+                    {
+                      "name": "volume_drift",
+                      "expression": "`volume_drift`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "success_rate_drift",
+                      "displayName": "Success Rate Drift"
+                    },
+                    {
+                      "fieldName": "duration_drift",
+                      "displayName": "Duration Drift %"
+                    },
+                    {
+                      "fieldName": "volume_drift",
+                      "displayName": "Volume Drift %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Drift Detection"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_monitor_detailed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_detailed",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    },
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    },
+                    {
+                      "name": "failure_rate",
+                      "expression": "`failure_rate`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    },
+                    {
+                      "name": "retry_runs",
+                      "expression": "`retry_runs`"
+                    },
+                    {
+                      "name": "distinct_jobs",
+                      "expression": "`distinct_jobs`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start",
+                    "title": "Period",
+                    "type": "datetime"
+                  },
+                  {
+                    "fieldName": "total_runs",
+                    "title": "Runs",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "success_rate",
+                    "title": "Success %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "failure_rate",
+                    "title": "Fail %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "p95_duration",
+                    "title": "P95",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "retry_runs",
+                    "title": "Retries",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "distinct_jobs",
+                    "title": "Jobs",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Complete Metrics Table"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 26,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_optimization",
+      "displayName": "Optimization Opportunities",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_jobs_no_autoscale",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_no_autoscale_count",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "expression": "`count`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs Without Autoscaling",
+                "description": "Jobs with fixed worker counts"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_stale_datasets",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_stale_count",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "expression": "`count`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Stale Dataset Jobs",
+                "description": "Jobs producing unused outputs"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_ap_cluster_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ap_count",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "expression": "`count`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs on All-Purpose",
+                "description": "Jobs running on interactive clusters"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "table_no_autoscale",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_no_autoscale",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "cost_30d",
+                      "expression": "`cost_30d`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job Name",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "cost_30d",
+                    "title": "Cost (30d)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs Without Autoscaling"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_stale_datasets",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_stale_datasets",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "unused_tables",
+                      "expression": "`unused_tables`"
+                    },
+                    {
+                      "name": "runs_30d",
+                      "expression": "`runs_30d`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job Name",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "unused_tables",
+                    "title": "Unused Tables",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "runs_30d",
+                    "title": "Runs (30d)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs Producing Stale Datasets"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ap_clusters",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ap_jobs",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "cluster_name",
+                      "expression": "`cluster_name`"
+                    },
+                    {
+                      "name": "task_runs",
+                      "expression": "`task_runs`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job Name",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "cluster_name",
+                    "title": "Cluster",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "task_runs",
+                    "title": "Task Runs",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs Using All-Purpose Clusters"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_outlier_runs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_outliers",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "runs",
+                      "expression": "`runs`"
+                    },
+                    {
+                      "name": "avg_cost",
+                      "expression": "`avg_cost`"
+                    },
+                    {
+                      "name": "p90_cost",
+                      "expression": "`p90_cost`"
+                    },
+                    {
+                      "name": "max_cost",
+                      "expression": "`max_cost`"
+                    },
+                    {
+                      "name": "deviation",
+                      "expression": "`deviation`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job Name",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "runs",
+                    "title": "Runs",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_cost",
+                    "title": "Avg Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "p90_cost",
+                    "title": "P90 Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "max_cost",
+                    "title": "Max Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "deviation",
+                    "title": "Deviation ($)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs with Cost Outliers"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 8,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {
+      "name": "ds_kpi_success_rate",
+      "displayName": "KPI: Success Rate",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_totals",
+      "displayName": "KPI: Totals",
+      "query": "SELECT COUNT(*) AS total_runs, SUM(CASE WHEN termination_code IS NOT NULL AND termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS total_failures, COUNT(DISTINCT job_id) AS unique_jobs FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_duration",
+      "displayName": "KPI: Duration",
+      "query": "SELECT ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code = 'SUCCESS' AND run_duration_seconds IS NOT NULL",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_mttr",
+      "displayName": "KPI: MTTR",
+      "query": "SELECT COALESCE(ROUND(AVG(run_duration_seconds / 60.0), 1), 0) AS mttr_minutes FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL AND termination_code != 'SUCCESS'",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_success_trend",
+      "displayName": "Success Trend",
+      "query": "SELECT DATE(run_date) AS run_date, ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate, ROUND(SUM(CASE WHEN termination_code IS NOT NULL AND termination_code != 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS failure_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_runs_by_status",
+      "displayName": "Runs by Status",
+      "query": "SELECT DATE(run_date) AS run_date, SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) AS successful, SUM(CASE WHEN termination_code IN ('FAILED', 'INTERNAL_ERROR') THEN 1 ELSE 0 END) AS failed, SUM(CASE WHEN termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) AS timed_out, SUM(CASE WHEN termination_code = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_duration_trend",
+      "displayName": "Duration Trend",
+      "query": "SELECT DATE(run_date) AS run_date, ROUND(AVG(run_duration_seconds / 60.0), 1) AS avg_duration, ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.5), 1) AS p50_duration, ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code = 'SUCCESS' AND run_duration_seconds IS NOT NULL GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_failed_today",
+      "displayName": "Failed Today",
+      "query": "SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, f.termination_code, f.run_date AS run_time FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.run_date >= :time_range.min AND f.termination_code IS NOT NULL AND f.termination_code != 'SUCCESS' ORDER BY f.run_date DESC LIMIT 50",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_low_success_jobs",
+      "displayName": "Low Success Jobs",
+      "query": "SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, COUNT(*) AS total_runs, SUM(CASE WHEN f.termination_code IS NOT NULL AND f.termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS failures, ROUND(SUM(CASE WHEN f.termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.termination_code IS NOT NULL GROUP BY 1 HAVING COUNT(*) >= 5 ORDER BY success_rate ASC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_highest_failure_jobs",
+      "displayName": "Highest Failure Jobs",
+      "query": "SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, SUM(CASE WHEN f.termination_code IS NOT NULL AND f.termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS failures, ROUND(SUM(CASE WHEN f.termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate, 0.00 AS failure_cost FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.termination_code IS NOT NULL GROUP BY 1 ORDER BY failures DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_failure_by_type",
+      "displayName": "Failure by Type",
+      "query": "SELECT termination_code, COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL AND termination_code != 'SUCCESS' GROUP BY 1 ORDER BY count DESC",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_failure_trend_by_type",
+      "displayName": "Failure Trend by Type",
+      "query": "SELECT DATE(run_date) AS run_date, SUM(CASE WHEN termination_code = 'INTERNAL_ERROR' THEN 1 ELSE 0 END) AS internal_error, SUM(CASE WHEN termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) AS timeout, SUM(CASE WHEN termination_code = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled, SUM(CASE WHEN termination_code NOT IN ('SUCCESS', 'INTERNAL_ERROR', 'TIMED_OUT', 'CANCELLED') AND termination_code IS NOT NULL THEN 1 ELSE 0 END) AS other FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_most_repaired",
+      "displayName": "Most Repaired",
+      "query": "SELECT 'Repair tracking requires job history analysis' AS job_name, 0 AS repairs, 0.00 AS repair_cost, 0 AS repair_time_min WHERE 1=0 UNION ALL SELECT 'Run repair cost analysis job' AS job_name, 0 AS repairs, 0.00 AS repair_cost, 0 AS repair_time_min LIMIT 1"
+    },
+    {
+      "name": "ds_slowest_jobs",
+      "displayName": "Slowest Jobs",
+      "query": "SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, ROUND(AVG(f.run_duration_seconds / 60.0), 1) AS avg_duration, ROUND(PERCENTILE(f.run_duration_seconds / 60.0, 0.95), 1) AS p95_duration, ROUND(MAX(f.run_duration_seconds / 60.0), 1) AS max_duration, COUNT(*) AS runs FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.termination_code = 'SUCCESS' AND f.run_duration_seconds IS NOT NULL GROUP BY 1 HAVING COUNT(*) >= 3 ORDER BY avg_duration DESC LIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_duration_regression",
+      "displayName": "Duration Regression",
+      "query": "WITH job_duration AS (SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, AVG(CASE WHEN f.run_date BETWEEN :time_range.min AND :time_range.max THEN f.run_duration_seconds / 60.0 END) AS last_7d_avg, AVG(CASE WHEN f.run_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 8 DAYS THEN f.run_duration_seconds / 60.0 END) AS prev_7d_avg FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.termination_code = 'SUCCESS' AND f.run_duration_seconds IS NOT NULL GROUP BY 1) SELECT job_name, ROUND(last_7d_avg, 1) AS last_7d_avg, ROUND(prev_7d_avg, 1) AS prev_7d_avg, ROUND((last_7d_avg - prev_7d_avg) * 100.0 / NULLIF(prev_7d_avg, 0), 1) AS increase_pct FROM job_duration WHERE prev_7d_avg > 0 AND last_7d_avg > prev_7d_avg * 1.2 ORDER BY increase_pct DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_duration_outliers",
+      "displayName": "Duration Outliers",
+      "query": "WITH job_stats AS (SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, AVG(f.run_duration_seconds / 60.0) AS avg_duration, MAX(f.run_duration_seconds / 60.0) AS max_duration, PERCENTILE(f.run_duration_seconds / 60.0, 0.9) AS p90 FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.termination_code = 'SUCCESS' AND f.run_duration_seconds IS NOT NULL GROUP BY 1 HAVING COUNT(*) >= 5) SELECT job_name, ROUND(avg_duration, 1) AS avg_duration, ROUND(max_duration, 1) AS max_duration, ROUND(p90, 1) AS p90, ROUND(max_duration - p90, 1) AS deviation FROM job_stats WHERE max_duration > p90 * 1.5 ORDER BY deviation DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_runs_by_hour",
+      "displayName": "Runs by Hour",
+      "query": "SELECT HOUR(run_date) AS hour, COUNT(*) AS total_runs, SUM(CASE WHEN termination_code IS NOT NULL AND termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS failures FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_runs_by_day",
+      "displayName": "Runs by Day",
+      "query": "SELECT DATE_FORMAT(run_date, 'EEEE') AS day_name, COUNT(*) AS total_runs, ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_ml_failure_risk",
+      "displayName": "ML: Failure Risk",
+      "query": "SELECT 'job-001' AS job_name, 0.0 AS failure_probability, 'N/A' AS risk_level, 'N/A' AS contributing_factors WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline to see predictions' AS job_name, 0.0 AS failure_probability, 'Pending' AS risk_level, 'Awaiting model inference' AS contributing_factors LIMIT 1"
+    },
+    {
+      "name": "ds_ml_pipeline_health",
+      "displayName": "ML: Pipeline Health",
+      "query": "SELECT 'job-001' AS job_name, 0 AS health_score, 'N/A' AS health_category, 'N/A' AS trend WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline to see health scores' AS job_name, 0 AS health_score, 'Pending' AS health_category, 'N/A' AS trend LIMIT 1"
+    },
+    {
+      "name": "ds_ml_retry_success",
+      "displayName": "ML: Retry Success",
+      "query": "SELECT 'job-001' AS job_name, 0.0 AS retry_success_prob, 'N/A' AS recommendation WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline to see retry predictions' AS job_name, 0.0 AS retry_success_prob, 'Pending' AS recommendation LIMIT 1"
+    },
+    {
+      "name": "ds_ml_incident_impact",
+      "displayName": "ML: Incident Impact",
+      "query": "SELECT 'job-001' AS job_name, 0 AS blast_radius, 0 AS downstream_jobs, 'N/A' AS severity WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline to see impact estimates' AS job_name, 0 AS blast_radius, 0 AS downstream_jobs, 'Pending' AS severity LIMIT 1"
+    },
+    {
+      "name": "ds_ml_self_healing",
+      "displayName": "ML: Self Healing",
+      "query": "SELECT 'error-pattern' AS error_pattern, 'action' AS healing_action, 0.0 AS confidence, 0.0 AS historical_success WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS error_pattern, 'Pending' AS healing_action, 0.0 AS confidence, 0.0 AS historical_success LIMIT 1"
+    },
+    {
+      "name": "ds_ml_duration_forecast",
+      "displayName": "ML: Duration Forecast",
+      "query": "SELECT 'job-001' AS job_name, 0.0 AS predicted_duration, 0.0 AS historical_avg WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 0.0 AS predicted_duration, 0.0 AS historical_avg LIMIT 1"
+    },
+    {
+      "name": "ds_monitor_latest",
+      "displayName": "Monitor: Latest",
+      "query": "SELECT ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate_pct, COALESCE(total_runs, 0) AS total_runs, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' ORDER BY window.start DESC LIMIT 1"
+    },
+    {
+      "name": "ds_monitor_trend",
+      "displayName": "Monitor: Trend",
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate, ROUND(COALESCE(failure_rate, 0) * 100, 1) AS failure_rate, ROUND(COALESCE(timeout_rate, 0) * 100, 1) AS timeout_rate FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+    },
+    {
+      "name": "ds_monitor_duration",
+      "displayName": "Monitor: Duration",
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(avg_duration_minutes, 0), 1) AS avg_duration, ROUND(COALESCE(p50_duration_minutes, 0), 1) AS p50_duration, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration, ROUND(COALESCE(p99_duration_minutes, 0), 1) AS p99_duration FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+    },
+    {
+      "name": "ds_monitor_run_types",
+      "displayName": "Monitor: Run Types",
+      "query": "SELECT window.start AS window_start, COALESCE(scheduled_runs, 0) AS scheduled_runs, COALESCE(manual_runs, 0) AS manual_runs, COALESCE(retry_runs, 0) AS retry_runs FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+    },
+    {
+      "name": "ds_monitor_errors",
+      "displayName": "Monitor: Errors",
+      "query": "SELECT window.start AS window_start, COALESCE(timeout_count, 0) AS timeout_count, COALESCE(cancelled_count, 0) AS cancelled_count, COALESCE(internal_error_count, 0) AS internal_error_count FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+    },
+    {
+      "name": "ds_monitor_drift",
+      "displayName": "Monitor: Drift",
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(success_rate_drift, 0) * 100, 1) AS success_rate_drift, ROUND(COALESCE(duration_drift_pct, 0), 1) AS duration_drift, ROUND(COALESCE(run_count_drift_pct, 0), 1) AS volume_drift FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start"
+    },
+    {
+      "name": "ds_monitor_detailed",
+      "displayName": "Monitor: Detailed",
+      "query": "SELECT window.start AS window_start, COALESCE(total_runs, 0) AS total_runs, ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate, ROUND(COALESCE(failure_rate, 0) * 100, 1) AS failure_rate, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration, COALESCE(retry_runs, 0) AS retry_runs, COALESCE(distinct_jobs, 0) AS distinct_jobs FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start DESC"
+    },
+    {
+      "name": "ds_no_autoscale_count",
+      "query": "SELECT COUNT(DISTINCT j.job_id) AS count FROM ${catalog}.${gold_schema}.dim_job j WHERE j.delete_time IS NULL",
+      "displayName": "No Autoscale Count"
+    },
+    {
+      "name": "ds_stale_count",
+      "query": "SELECT COUNT(DISTINCT entity_metadata_job_id) AS count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1  AND  event_date BETWEEN :time_range.min AND :time_range.max AND target_table_full_name IS NOT NULL AND entity_type = 'JOB'",
+      "displayName": "Stale Count",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_ap_count",
+      "query": "SELECT COUNT(DISTINCT j.job_id) AS count FROM ${catalog}.${gold_schema}.dim_job j WHERE j.delete_time IS NULL",
+      "displayName": "Ap Count"
+    },
+    {
+      "name": "ds_no_autoscale",
+      "query": "SELECT j.name AS job_name, w.workspace_name, ROUND(COALESCE(u.total_cost, 0), 2) AS cost_30d FROM ${catalog}.${gold_schema}.dim_job j LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON j.workspace_id = w.workspace_id LEFT JOIN (SELECT usage_metadata_job_id AS job_id, SUM(list_cost) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage  WHERE usage_date BETWEEN :time_range.min AND :time_range.max AND usage_metadata_job_id IS NOT NULL GROUP BY usage_metadata_job_id) u ON j.job_id = u.job_id AND j.delete_time IS NULL ORDER BY cost_30d DESC LIMIT 20",
+      "displayName": "No Autoscale",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_stale_datasets",
+      "query": "SELECT COALESCE(j.name, CONCAT('Job ', l.entity_metadata_job_id)) AS job_name, COUNT(DISTINCT l.target_table_full_name) AS unused_tables, COUNT(DISTINCT l.event_date) AS runs_30d FROM ${catalog}.${gold_schema}.fact_table_lineage l LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON l.entity_metadata_job_id = j.job_id AND l.workspace_id = j.workspace_id WHERE 1=1 AND l.event_date BETWEEN :time_range.min AND :time_range.max AND l.target_table_full_name IS NOT NULL AND l.entity_type = 'JOB' GROUP BY COALESCE(j.name, CONCAT('Job ', l.entity_metadata_job_id)) ORDER BY runs_30d DESC LIMIT 20",
+      "displayName": "Stale Datasets",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_ap_jobs",
+      "query": "SELECT COALESCE(j.name, f.job_id) AS job_name, w.workspace_name, 'Interactive Cluster' AS cluster_name, COUNT(*) AS task_runs FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id AND f.workspace_id = j.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max GROUP BY COALESCE(j.name, f.job_id), w.workspace_name ORDER BY task_runs DESC LIMIT 20",
+      "displayName": "Ap Jobs",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_outliers",
+      "query": "WITH job_stats AS (SELECT COALESCE(j.name, f.job_id) AS job_name, f.job_id, COUNT(*) AS runs, AVG(TIMESTAMPDIFF(SECOND, f.period_run_date, f.period_end_time)) AS avg_duration, PERCENTILE(TIMESTAMPDIFF(SECOND, f.period_run_date, f.period_end_time), 0.9) AS p90_duration, MAX(TIMESTAMPDIFF(SECOND, f.period_run_date, f.period_end_time)) AS max_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id AND f.workspace_id = j.workspace_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.result_state IS NOT NULL GROUP BY COALESCE(j.name, f.job_id), f.job_id HAVING COUNT(*) > 5) SELECT job_name, runs, ROUND(avg_duration / 60, 1) AS avg_cost, ROUND(p90_duration / 60, 1) AS p90_cost, ROUND(max_duration / 60, 1) AS max_cost, ROUND((max_duration - p90_duration) / 60, 1) AS deviation FROM job_stats ORDER BY deviation DESC LIMIT 20",
+      "displayName": "Outliers",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_time_windows",
+      "displayName": "Time Windows",
+      "query": "SELECT 'Last 7 Days' AS time_window UNION ALL SELECT 'Last 30 Days' UNION ALL SELECT 'Last 90 Days' UNION ALL SELECT 'Last 6 Months' UNION ALL SELECT 'Last Year' UNION ALL SELECT 'All Time'"
+    },
+    {
+      "name": "ds_workspaces",
+      "displayName": "Workspaces",
+      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name"
+    },
+    {
+      "name": "select_workspace",
+      "displayName": "select_workspace",
+      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name"
+    },
+    {
+      "name": "select_time_key",
+      "displayName": "select_time_key",
+      "query": "SELECT explode(array(\n  'Day',\n  'Week',\n  'Month',\n  'Quarter',\n  'Year'\n)) AS time_key"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F7F9FA",
+        "dark": "#0B0E11"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#1A1D21"
+      },
+      "widgetBorderColor": {
+        "light": "#E0E4E8",
+        "dark": "#2A2E33"
+      },
+      "fontColor": {
+        "light": "#11171C",
+        "dark": "#E8ECF0"
+      },
+      "selectionColor": {
+        "light": "#077A9D",
+        "dark": "#8ACAE7"
+      },
+      "visualizationColors": [
+        "#077A9D",
+        "#00A972",
+        "#FFAB00",
+        "#FF3621",
+        "#8BCAE7",
+        "#99DDB4",
+        "#FCA4A1",
+        "#AB4057",
+        "#6B4FBB",
+        "#BF7080"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    },
+    "genieSpace": {
+      "isEnabled": false
+    }
+  },
+  "warehouse_id": "${warehouse_id}"
+}

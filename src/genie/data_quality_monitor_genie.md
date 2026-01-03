@@ -72,9 +72,56 @@
 
 | Table Name | Purpose |
 |------------|---------|
-| `fact_information_schema_table_storage_profile_metrics` | Table storage metrics (size, rows, partitions) |
-| `fact_table_lineage_profile_metrics` | Lineage metrics (read/write events, consumers) |
-| `fact_table_lineage_drift_metrics` | Lineage drift (activity changes) |
+| `fact_table_quality_profile_metrics` | Table quality metrics (quality_score, completeness_rate, validity_rate) |
+| `fact_governance_metrics_profile_metrics` | Governance metrics (tag_coverage, lineage_coverage) |
+| `fact_table_quality_drift_metrics` | Quality drift (quality_score_drift) |
+
+#### ⚠️ CRITICAL: Custom Metrics Query Patterns
+
+**Always include these filters when querying Lakehouse Monitoring tables:**
+
+```sql
+-- ✅ CORRECT: Get data quality metrics
+SELECT 
+  window.start AS window_start,
+  quality_score,
+  completeness_rate,
+  validity_rate
+FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
+WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
+  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
+  AND slice_key IS NULL          -- For overall metrics
+ORDER BY window.start DESC;
+
+-- ✅ CORRECT: Get quality by schema (sliced)
+SELECT 
+  slice_value AS schema_name,
+  AVG(quality_score) AS avg_quality_score
+FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
+WHERE column_name = ':table'
+  AND log_type = 'INPUT'
+  AND slice_key = 'schema_name'
+GROUP BY slice_value
+ORDER BY avg_quality_score ASC;
+
+-- ✅ CORRECT: Get quality drift
+SELECT 
+  window.start AS window_start,
+  quality_score_drift
+FROM ${catalog}.${gold_schema}.fact_table_quality_drift_metrics
+WHERE drift_type = 'CONSECUTIVE'
+  AND column_name = ':table'
+ORDER BY window.start DESC;
+```
+
+#### Available Slicing Dimensions (Quality Monitor)
+
+| Slice Key | Use Case |
+|-----------|----------|
+| `catalog_name` | Quality by catalog |
+| `schema_name` | Quality by schema |
+| `table_name` | Per-table metrics |
+| `has_critical_violations` | Critical issues filter |
 
 ### Dimension Tables (from gold_layer_design/yaml/mlflow/, model_serving/, shared/)
 
@@ -104,29 +151,71 @@
 
 ---
 
-## ████ SECTION E: GENERAL INSTRUCTIONS (≤20 Lines) ████
+## ████ SECTION E: ASSET SELECTION FRAMEWORK ████
+
+### Semantic Layer Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ASSET SELECTION DECISION TREE                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  USER QUERY PATTERN                → USE THIS ASSET             │
+│  ─────────────────────────────────────────────────────────────  │
+│  "What's the overall quality?"     → Metric View (data_quality) │
+│  "Freshness rate"                  → Metric View (data_quality) │
+│  ─────────────────────────────────────────────────────────────  │
+│  "Is quality degrading?"           → Custom Metrics (_drift_metrics)│
+│  "Freshness trend"                 → Custom Metrics (_profile_metrics)│
+│  ─────────────────────────────────────────────────────────────  │
+│  "Which tables are stale?"         → TVF (get_table_freshness)   │
+│  "Tables failing quality"          → TVF (get_tables_failing_quality)│
+│  "Lineage for pipeline X"          → TVF (get_pipeline_data_lineage)│
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Asset Selection Rules
+
+| Query Intent | Asset Type | Example |
+|--------------|-----------|---------|
+| **Overall quality score** | Metric View | "Data quality" → `data_quality` |
+| **Quality trend** | Custom Metrics | "Is quality degrading?" → `_drift_metrics` |
+| **List of stale tables** | TVF | "Stale tables" → `get_table_freshness` |
+| **Quality predictions** | ML Tables | "Quality anomalies" → `quality_anomaly_predictions` |
+| **Lineage analysis** | TVF | "Pipeline dependencies" → `get_pipeline_data_lineage` |
+
+### Priority Order
+
+1. **If user asks for a LIST** → TVF
+2. **If user asks about TREND** → Custom Metrics
+3. **If user asks for CURRENT VALUE** → Metric View
+4. **If user asks for PREDICTION** → ML Tables
+
+---
+
+## ████ SECTION F: GENERAL INSTRUCTIONS (≤20 Lines) ████
 
 ```
 You are a data quality and governance analyst. Follow these rules:
 
-1. **Primary Source:** Use data_quality metric view first
-2. **TVFs:** Use TVFs for parameterized queries
-3. **Date Default:** If no date specified, default to last 7 days
-4. **Freshness:** Fresh=<24h, Stale=>24h, Critical=>72h
-5. **Quality Score:** 0-100 scale (higher is better)
-6. **Activity:** Active=accessed in 14 days, Inactive=no recent access
-7. **Sorting:** Sort by quality_score ASC for problem tables
-8. **Limits:** Top 20 for table lists
-9. **Synonyms:** stale=outdated=old, quality=health=status
-10. **ML Anomaly:** For "quality anomalies" → query quality_anomaly_predictions
-11. **ML Trend:** For "quality trend" → query quality_trend_predictions
-12. **ML Freshness:** For "freshness alerts" → query freshness_alert_predictions
-13. **Stale Tables:** For "stale tables" → use get_table_freshness TVF
-14. **Quality:** For "quality score" → use get_data_quality_summary TVF
-15. **Failing:** For "failing quality" → use get_tables_failing_quality TVF
-16. **Lineage:** For "dependencies" → use get_pipeline_data_lineage TVF
-17. **Context:** Explain ACTIVE vs INACTIVE vs ORPHANED status
-18. **Performance:** Never scan Bronze/Silver tables
+1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends
+2. **Primary Source:** Use data_quality metric view for dashboard KPIs
+3. **TVFs for Lists:** Use TVFs for "which tables", "stale", "failing" queries
+4. **Trends:** For "is quality degrading?" check _drift_metrics tables
+5. **Date Default:** If no date specified, default to last 7 days
+6. **Freshness:** Fresh=<24h, Stale=>24h, Critical=>72h
+7. **Quality Score:** 0-100 scale (higher is better)
+8. **Activity:** Active=accessed in 14 days, Inactive=no recent access
+9. **Sorting:** Sort by quality_score ASC for problem tables
+10. **Limits:** Top 20 for table lists
+11. **Synonyms:** stale=outdated=old, quality=health=status
+12. **ML Anomaly:** For "quality anomalies" → query quality_anomaly_predictions
+13. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
+14. **Lineage:** For "dependencies" → use get_pipeline_data_lineage TVF
+15. **Context:** Explain ACTIVE vs INACTIVE vs ORPHANED status
+16. **Performance:** Never scan Bronze/Silver tables
 ```
 
 ---
@@ -165,7 +254,67 @@ You are a data quality and governance analyst. Follow these rules:
 
 ---
 
-## ████ SECTION G: BENCHMARK QUESTIONS WITH SQL ████
+## ████ SECTION G: ML MODEL INTEGRATION (3 Models) ████
+
+### Quality ML Models Quick Reference
+
+| ML Model | Prediction Table | Key Columns | Use When |
+|----------|-----------------|-------------|----------|
+| `data_drift_detector` | `quality_anomaly_predictions` | `drift_score`, `is_drifted` | "Data drift?" |
+| `schema_change_predictor` | `quality_trend_predictions` | `change_probability` | "Schema risk?" |
+| `schema_evolution_predictor` | `freshness_alert_predictions` | `evolution_type` | "Evolution patterns" |
+
+### ML Model Usage Patterns
+
+#### data_drift_detector (Data Drift Detection)
+- **Question Triggers:** "data drift", "distribution change", "quality anomaly", "data changed"
+- **Query Pattern:**
+```sql
+SELECT table_name, check_date, drift_score, is_drifted, drift_columns
+FROM ${catalog}.${gold_schema}.quality_anomaly_predictions
+WHERE prediction_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  AND is_drifted = TRUE
+ORDER BY drift_score ASC;
+```
+- **Interpretation:** `is_drifted = TRUE` = Data distribution has significantly changed
+
+#### schema_change_predictor (Schema Risk)
+- **Question Triggers:** "schema change", "schema risk", "will schema change", "breaking change"
+- **Query Pattern:**
+```sql
+SELECT table_name, change_probability, predicted_change_type, risk_factors
+FROM ${catalog}.${gold_schema}.quality_trend_predictions
+WHERE change_probability > 0.5
+ORDER BY change_probability DESC;
+```
+
+#### freshness_alert_predictions (Freshness Alerts)
+- **Question Triggers:** "freshness alert", "stale prediction", "will data be late"
+- **Query Pattern:**
+```sql
+SELECT table_name, predicted_delay_hours, alert_probability, last_update
+FROM ${catalog}.${gold_schema}.freshness_alert_predictions
+WHERE alert_probability > 0.7
+ORDER BY predicted_delay_hours DESC;
+```
+
+### ML vs Other Methods Decision Tree
+
+```
+USER QUESTION                           → USE THIS
+────────────────────────────────────────────────────
+"Is there data drift?"                  → ML: quality_anomaly_predictions
+"Schema change risk?"                   → ML: quality_trend_predictions
+"Will data be late?"                    → ML: freshness_alert_predictions
+────────────────────────────────────────────────────
+"What is the freshness rate?"           → Metric View: data_quality
+"Is quality trending down?"             → Custom Metrics: _drift_metrics
+"Show stale tables"                     → TVF: get_stale_tables
+```
+
+---
+
+## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
 
 ### Question 1: "Which tables are stale?"
 **Expected SQL:**
@@ -338,4 +487,26 @@ LIMIT 20;
 ## Agent Domain Tag
 
 **Agent Domain:** ✅ **Quality**
+
+---
+
+## References
+
+### 📊 Semantic Layer Framework (Essential Reading)
+- [**Metrics Inventory**](../../docs/reference/metrics-inventory.md) - **START HERE**: Complete inventory of 277 measurements across TVFs, Metric Views, and Custom Metrics
+- [**Semantic Layer Rationalization**](../../docs/reference/semantic-layer-rationalization.md) - Design rationale: why overlaps are intentional and complementary
+- [**Genie Asset Selection Guide**](../../docs/reference/genie-asset-selection-guide.md) - Quick decision tree for choosing correct asset type
+
+### 📈 Lakehouse Monitoring Documentation
+- [Monitor Catalog](../../docs/lakehouse-monitoring-design/04-monitor-catalog.md) - Complete metric definitions for Quality and Governance Monitors
+- [Genie Integration](../../docs/lakehouse-monitoring-design/05-genie-integration.md) - Critical query patterns and required filters
+- [Custom Metrics Reference](../../docs/lakehouse-monitoring-design/03-custom-metrics.md) - 26 quality-specific custom metrics
+
+### 📁 Asset Inventories
+- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md) - 7 Quality TVFs
+- [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md) - 2 Quality Metric Views
+- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md) - 3 Quality ML Models
+
+### 🚀 Deployment Guides
+- [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup and troubleshooting
 

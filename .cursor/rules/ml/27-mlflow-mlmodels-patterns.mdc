@@ -1,32 +1,82 @@
 ---
 description: MLflow and ML Model patterns for Databricks - experiment creation, model training, batch inference, and Unity Catalog integration
-globs: src/wanderbricks_ml/**/*.py, resources/ml/*.yml
+globs: src/wanderbricks_ml/**/*.py, src/ml/**/*.py, resources/ml/*.yml
 alwaysApply: false
 ---
 # MLflow and ML Model Patterns for Databricks
 
 ## Pattern Origin
 
-**Date:** December 2025  
-**Source:** Production ML pipeline implementation with 5 models, 20+ errors, 8 development phases  
+**Date:** December 2025 (Updated: January 2026)  
+**Source:** Production ML pipeline implementation with 25 models, 50+ errors across multiple development iterations  
 **Impact:** 93% reduction in deployment iterations, 90% reduction in debugging time  
 **Reference:** [Post-Mortem Documentation](../../docs/reference/rule-improvement-mlflow-mlmodels-patterns.md)
 
 ---
 
-## Quick Reference: 5 Non-Negotiable Rules
+## Quick Reference: 6 Non-Negotiable Rules
 
 | Rule | Pattern | Why It Fails Otherwise |
 |------|---------|----------------------|
-| 1. Experiment Path | `/Shared/wanderbricks_ml_{model_name}` | `/Users/...` fails silently if subfolder doesn't exist |
+| 1. Experiment Path | `/Shared/{project}_ml_{model_name}` | `/Users/...` fails silently if subfolder doesn't exist |
 | 2. Dataset Logging | Inside `mlflow.start_run()` context | Won't associate with run, invisible in UI |
 | 3. Helper Functions | ALWAYS inline (no imports) | `ModuleNotFoundError` in serverless |
 | 4. Exit Signal | `dbutils.notebook.exit("SUCCESS")` | Job status unclear, may show SUCCESS on failure |
-| 5. UC Signature | BOTH input AND output | Unity Catalog rejects models without output spec |
+| 5. UC Model Logging | Use `fe.log_model()` with `output_schema` | Unity Catalog rejects models without output spec |
+| 6. Feature Store | Use `FeatureEngineeringClient` for feature tables | Manual joins lose lineage, inference breaks |
+| 7. Pin MLflow Version | `mlflow==3.7.0` (exact version) | Version mismatch warnings during inference |
 
 ---
 
 ## ⚠️ Critical Rules (Non-Negotiable)
+
+### 0. Pin Package Versions Across All ML Pipelines
+
+```yaml
+# ✅ CORRECT: Pin MLflow to SAME version in training AND inference
+# resources/ml/ml_training_pipeline.yml
+environments:
+  - environment_key: default
+    spec:
+      environment_version: "4"
+      dependencies:
+        - "mlflow==3.7.0"        # Pin exact version
+        - "scikit-learn>=1.3.0"
+        - "xgboost>=2.0.0"
+
+# resources/ml/ml_inference_pipeline.yml
+environments:
+  - environment_key: ml_inference
+    spec:
+      environment_version: "4"
+      dependencies:
+        - "mlflow==3.7.0"        # MUST match training version
+        - "scikit-learn>=1.3.0"
+        - "xgboost>=2.0.0"       # Required for XGBoost models
+        - "databricks-feature-engineering"
+```
+
+```yaml
+# ❌ WRONG: Loose version constraints cause mismatches
+dependencies:
+  - "mlflow>=3.0.0"  # Training may get 3.7.0, inference may get 3.8.1
+```
+
+**Warnings you'll see if versions mismatch:**
+```
+WARNING mlflow.utils.requirements_utils: Detected one or more mismatches 
+between the model's dependencies and the current Python environment:
+ - mlflow (current: 3.8.1, required: mlflow==3.7.0)
+
+WARNING mlflow.pyfunc: Calling `spark_udf()` with `env_manager="local"` 
+does not recreate the same environment that was used during training
+```
+
+**Why pinning matters:**
+- Models are serialized with specific MLflow version metadata
+- Inference deserialization must match training serialization
+- `fe.score_batch()` uses `spark_udf()` internally, which checks versions
+- Serverless environments can't use `env_manager="conda"` (too slow/unsupported)
 
 ### 1. Experiment Path: ALWAYS Use `/Shared/`
 
@@ -157,27 +207,181 @@ def main():
 
 **Root Cause:** Databricks jobs need explicit exit signals. Without `dbutils.notebook.exit()`, the job may show SUCCESS even when code throws exceptions or fails silently.
 
-### 5. Unity Catalog Signature: BOTH Input AND Output
+### 5. Unity Catalog Model Logging with Feature Engineering Client
+
+**⚠️ CRITICAL: When using Feature Store, use `fe.log_model()` NOT direct MLflow logging**
+
+The `fe.log_model()` method embeds feature lookup metadata for automatic inference. Unity Catalog requires BOTH input and output schema specifications.
+
+#### Pattern by Model Type
 
 ```python
-# ✅ CORRECT: Include both sample_input AND prediction output
-sample_input = X_train.head(5)
-sample_output = model.predict(sample_input)  # Include this!
-signature = infer_signature(sample_input, sample_output)
+from databricks.feature_engineering import FeatureEngineeringClient
+from mlflow.types import ColSpec, DataType, Schema
+import mlflow
 
-mlflow.xgboost.log_model(
-    model,
+fe = FeatureEngineeringClient()
+mlflow.set_registry_uri("databricks-uc")
+
+# =============================================================================
+# PATTERN 1: REGRESSION MODELS (with labels, continuous output)
+# =============================================================================
+# Example: Budget Forecaster, Chargeback Attribution, Revenue Predictor
+# Output: double (floating point prediction)
+
+output_schema = Schema([ColSpec(DataType.double)])
+
+fe.log_model(
+    model=model,
     artifact_path="model",
-    signature=signature,  # Has both input and output
-    input_example=sample_input,
-    registered_model_name=f"{catalog}.{schema}.{model_name}"
+    flavor=mlflow.sklearn,  # REQUIRED: specify the ML flavor
+    training_set=training_set,
+    registered_model_name=f"{catalog}.{schema}.{model_name}",
+    infer_input_example=True,  # Automatically infers input schema
+    output_schema=output_schema  # Explicitly define output type
 )
 
-# ❌ WRONG: Only input, no output
-signature = infer_signature(sample_input)  # Missing output!
+# =============================================================================
+# PATTERN 2: CLASSIFICATION MODELS (with labels, discrete output)
+# =============================================================================
+# Example: Failure Predictor, Commitment Recommender, Threat Detector
+# Output: long (integer class label: 0, 1, 2, etc.)
+
+output_schema = Schema([ColSpec(DataType.long)])
+
+fe.log_model(
+    model=model,
+    artifact_path="model",
+    flavor=mlflow.sklearn,
+    training_set=training_set,
+    registered_model_name=f"{catalog}.{schema}.{model_name}",
+    infer_input_example=True,
+    output_schema=output_schema
+)
+
+# =============================================================================
+# PATTERN 3: ANOMALY DETECTION MODELS (NO labels - label=None in training_set)
+# =============================================================================
+# Example: Isolation Forest, One-Class SVM, Drift Detector
+# Output: long (anomaly indicator: -1 for anomaly, 1 for normal)
+# 
+# ⚠️ CRITICAL: Models trained WITHOUT labels MUST have output_schema!
+# The infer_input_example=True alone is NOT sufficient for unsupervised models.
+
+output_schema = Schema([ColSpec(DataType.long)])  # -1 or 1 for Isolation Forest
+
+fe.log_model(
+    model=model,
+    artifact_path="model",
+    flavor=mlflow.sklearn,
+    training_set=training_set,  # This has label=None for anomaly detection
+    registered_model_name=f"{catalog}.{schema}.{model_name}",
+    infer_input_example=True,
+    output_schema=output_schema  # REQUIRED for unsupervised models!
+)
 ```
 
-**Error if wrong:** `Model signature must contain both input and output type specifications`
+#### ❌ Common Mistakes That Cause Signature Errors
+
+```python
+# =============================================================================
+# ERROR: "Model passed for registration contained a signature that includes only inputs"
+# =============================================================================
+
+# ❌ MISTAKE 1: Using mlflow.sklearn.log_model instead of fe.log_model
+# This loses feature lineage and may have signature issues
+mlflow.sklearn.log_model(
+    model,
+    artifact_path="model",
+    registered_model_name=registered_name
+)
+
+# ❌ MISTAKE 2: Using signature parameter instead of output_schema
+# Per official docs, signature is NOT recommended for fe.log_model
+fe.log_model(
+    model=model,
+    artifact_path="model",
+    flavor=mlflow.sklearn,
+    training_set=training_set,
+    registered_model_name=registered_name,
+    signature=infer_signature(X_train, y_pred)  # NOT recommended!
+)
+
+# ❌ MISTAKE 3: Missing output_schema for unsupervised models
+# When training_set has label=None, output_schema is REQUIRED
+fe.log_model(
+    model=model,
+    artifact_path="model",
+    flavor=mlflow.sklearn,
+    training_set=training_set,  # label=None for anomaly detection
+    registered_model_name=registered_name,
+    infer_input_example=True
+    # Missing output_schema! Will fail with signature error
+)
+
+# ❌ MISTAKE 4: Missing flavor parameter
+fe.log_model(
+    model=model,
+    artifact_path="model",
+    training_set=training_set,
+    registered_model_name=registered_name
+    # Missing flavor=mlflow.sklearn! Will fail with "missing required argument"
+)
+
+# ❌ MISTAKE 5: Using pd.DataFrame() constructor instead of .head()
+# This can cause type issues
+input_example = pd.DataFrame(X_train[:5])  # May lose dtypes
+predictions = model.predict(X_train[:5])   # Different object!
+
+# ✅ CORRECT: Use .head() consistently
+input_example = X_train.head(5).astype('float64')
+predictions = model.predict(input_example)  # Same object
+```
+
+#### Alternative: Using infer_signature (Works but Less Reliable)
+
+```python
+# This pattern ALSO works but is less recommended per official docs
+# Use when you need compatibility with non-feature-store models
+
+input_example = X_train.head(5).astype('float64')
+predictions = model.predict(input_example)
+signature = infer_signature(input_example, predictions)
+
+# Must disable autolog to avoid conflicts
+mlflow.autolog(disable=True)
+
+with mlflow.start_run(run_name=run_name) as run:
+    fe.log_model(
+        model=model,
+        artifact_path="model",
+        flavor=mlflow.sklearn,
+        training_set=training_set,
+        registered_model_name=registered_name,
+        input_example=input_example,
+        signature=signature  # Both input AND output must be present
+    )
+```
+
+#### DataType Reference for output_schema
+
+| Model Type | Python Output | MLflow DataType | Example |
+|---|---|---|---|
+| Regression | float | `DataType.double` | Price prediction |
+| Binary Classification | int (0,1) | `DataType.long` | Churn prediction |
+| Multi-class Classification | int (0,1,2...) | `DataType.long` | Category prediction |
+| Anomaly Detection | int (-1,1) | `DataType.long` | Isolation Forest |
+| Probability | float [0,1] | `DataType.double` | predict_proba |
+
+#### Official Documentation Reference
+
+- [FeatureEngineeringClient.log_model API](https://api-docs.databricks.com/python/feature-engineering/latest/feature_engineering.client.html)
+- Key Parameters:
+  - `flavor`: REQUIRED - the MLflow model flavor (e.g., `mlflow.sklearn`)
+  - `training_set`: TrainingSet object from `create_training_set()`
+  - `output_schema`: REQUIRED for models without labels (unsupervised)
+  - `infer_input_example`: RECOMMENDED over manual `signature` parameter
+  - `registered_model_name`: 3-level UC name: `catalog.schema.model_name`
 
 ---
 
@@ -860,10 +1064,15 @@ model_uri = f"models:/{catalog}.{schema}.{model_name}/{latest.version}"
 - [ ] Convert DECIMAL columns: `pd.to_numeric(col, errors='coerce')`
 - [ ] Encode categorical columns: `pd.Categorical(col).codes`
 - [ ] Log dataset INSIDE `mlflow.start_run()` context
-- [ ] Create signature with BOTH input AND output
+- [ ] Use `fe.log_model()` NOT `mlflow.sklearn.log_model()` when using Feature Store
+- [ ] Include `flavor=mlflow.sklearn` in `fe.log_model()` call
+- [ ] Include `output_schema` for ALL models (regression: `DataType.double`, classification: `DataType.long`)
+- [ ] Use `infer_input_example=True` (preferred over manual `signature` parameter)
+- [ ] For anomaly detection (label=None): `output_schema` is REQUIRED
 - [ ] Register model with 3-level name: `catalog.schema.model_name`
 - [ ] Add `dbutils.notebook.exit("SUCCESS")` at end
 - [ ] Do NOT call `spark.stop()` (prevents exit signal)
+- [ ] Add `mlflow.autolog(disable=True)` before custom logging
 
 ### Batch Inference Checklist
 - [ ] Load model signature from registered model
@@ -884,21 +1093,64 @@ model_uri = f"models:/{catalog}.{schema}.{model_name}/{latest.version}"
 
 ## Common Errors and Solutions
 
+### Signature and Model Registration Errors
+
 | Error | Root Cause | Solution |
 |-------|------------|----------|
-| Experiment shows as "train" | `/Users/` path failed silently | Use `/Shared/wanderbricks_ml_{model_name}` |
+| `Model passed for registration contained a signature that includes only inputs` | Missing output schema for Unity Catalog | Add `output_schema=Schema([ColSpec(DataType.xxx)])` to `fe.log_model()` |
+| `Model passed for registration did not contain any signature metadata` | Neither signature nor output_schema provided | Add `output_schema` AND `infer_input_example=True` |
+| `Model signature must contain both input and output` | `infer_signature()` called without predictions | Use `infer_signature(input_example, model.predict(input_example))` |
+| `FeatureEngineeringClient.log_model() missing 1 required keyword-only argument: 'flavor'` | Missing flavor parameter | Add `flavor=mlflow.sklearn` (or appropriate flavor) |
+
+### Experiment and Logging Errors
+
+| Error | Root Cause | Solution |
+|-------|------------|----------|
+| Experiment shows as "train" | `/Users/` path failed silently | Use `/Shared/{project}_ml_{model_name}` |
 | Dataset not in LoggedModel view | `log_input()` outside run context | Move inside `mlflow.start_run()` |
-| `ModuleNotFoundError` | Import from local module | Inline all helper functions |
-| `Incompatible input types` | Type mismatch in inference | Match training preprocessing exactly |
-| Job SUCCESS but actually failed | No exit signal | Add `dbutils.notebook.exit("SUCCESS")` |
-| `Column 'X' cannot be resolved` | Assumed column name | Verify against Gold YAML schema |
-| `Parent directory does not exist` | User experiment path | Use `/Shared/` path instead |
-| Duplicate experiments | Asset Bundle + script both create | Remove Asset Bundle experiment definitions |
-| `Model signature must contain both input and output` | Only input in signature | Add `model.predict(sample_input)` to `infer_signature` |
-| `DataFrame contains column names that match feature output names` | Column conflict in FeatureLookup | Remove conflicting columns from input DataFrame |
+| Duplicate experiments with `[dev username]` prefix | Asset Bundle experiment definitions | Remove experiments from Asset Bundle YAML |
+| `Parent directory does not exist` | User experiment path missing folder | Use `/Shared/` path instead |
+
+### Module and Import Errors
+
+| Error | Root Cause | Solution |
+|-------|------------|----------|
+| `ModuleNotFoundError: No module named 'src'` | Serverless path resolution | Add `sys.path` setup block to notebook |
+| `ModuleNotFoundError` for helpers | Import from local module | Inline all helper functions in each script |
+| `NameError: name 'X' is not defined` | Variable scope issue after refactoring | Ensure all variables are defined before use |
+
+### Feature Store Errors
+
+| Error | Root Cause | Solution |
+|-------|------------|----------|
+| `Unable to find feature '{column}'` | Feature name mismatch | Check actual column names in feature table with `DESCRIBE TABLE` |
+| `DataFrame contains column names that match feature output names` | Column conflict in FeatureLookup | Remove conflicting columns from input DataFrame before lookup |
+| `create_training_set() missing required argument` | API signature changed | Verify correct parameters: `df`, `feature_lookups`, `label` |
+
+### Data Type Errors
+
+| Error | Root Cause | Solution |
+|-------|------------|----------|
 | `unsupported operand type(s) for -: 'decimal.Decimal' and 'float'` | Spark DECIMAL not converted | Use `pd.to_numeric(col, errors='coerce')` |
-| `'Prophet' object has no attribute 'stan_backend'` | Missing Prophet dependencies | Add `pystan`, `cmdstanpy` to environment |
-| `Can only use .dt accessor with datetimelike values` | Column not datetime | Add `pd.to_datetime()` conversion |
+| `Incompatible input types` | Type mismatch between training and inference | Use signature-driven preprocessing |
+| `Cannot safely convert bool to float64` | Boolean needs explicit conversion | `df[col].astype('float64')` |
+| `Cannot safely convert int64 to float64` | Integer needs explicit conversion | `df[col].astype('float64')` |
+
+### Schema and Column Errors
+
+| Error | Root Cause | Solution |
+|-------|------------|----------|
+| `UNRESOLVED_COLUMN: Column 'X' cannot be resolved` | Column name doesn't exist | Verify against Gold YAML schema before coding |
+| `Column 'is_current' cannot be resolved` | Assumed SCD2 table but isn't | Check if table actually has `is_current` column |
+| `Label column 'X' was not found in DataFrame` | Label column mismatch | Verify label column exists in training data |
+
+### Job Execution Errors
+
+| Error | Root Cause | Solution |
+|-------|------------|----------|
+| Job SUCCESS but actually failed | No exit signal | Add `dbutils.notebook.exit("SUCCESS")` |
+| Job timeout | Long-running training | Increase `timeout_seconds` in job YAML |
+| `TypeError: get_standard_tags() missing argument` | Function signature changed | Update all calls to match new signature |
 
 ---
 
@@ -947,11 +1199,64 @@ model_uri = f"models:/{catalog}.{schema}.{model_name}/{latest.version}"
 
 ---
 
+## Version History
+
+### v2.0 (January 2026) - fe.log_model and output_schema Patterns
+
+**Trigger:** Persistent `MlflowException: Model passed for registration contained a signature that includes only inputs` errors across 25 training scripts despite multiple fix attempts.
+
+**Learnings Documented:**
+
+1. **`output_schema` is REQUIRED for all Unity Catalog models:**
+   - Initial attempts with `infer_input_example=True` alone failed
+   - `signature` parameter is NOT recommended per official docs
+   - `output_schema=Schema([ColSpec(DataType.xxx)])` is the reliable solution
+
+2. **Model type to DataType mapping:**
+   - Regression → `DataType.double`
+   - Classification → `DataType.long`
+   - Anomaly Detection (Isolation Forest) → `DataType.long` (-1 or 1)
+
+3. **`flavor` parameter is REQUIRED:**
+   - Missing `flavor=mlflow.sklearn` causes immediate failure
+   - Must match the model type being logged
+
+4. **Anomaly detection models (label=None) have stricter requirements:**
+   - `infer_input_example=True` is NOT sufficient
+   - MUST explicitly provide `output_schema`
+   - Supervised models (with labels) are more forgiving but `output_schema` is still recommended
+
+**Scripts Fixed:** 25 training scripts across 5 domains (cost, performance, quality, reliability, security)
+
+**Impact:** 
+- Reduced signature errors from 10+ per run to 0
+- All 25 models now train successfully
+- Pattern documented prevents future errors
+
+**Key Reference:** [FeatureEngineeringClient.log_model API Documentation](https://api-docs.databricks.com/python/feature-engineering/latest/feature_engineering.client.html)
+
+### v1.0 (December 2025) - Initial Rule
+
+- Initial patterns from 5 model implementation
+- Experiment path, dataset logging, helper functions, exit signals documented
+- 20+ errors documented with solutions
+
+---
+
 ## References
 
+### Official Documentation
+- [FeatureEngineeringClient.log_model API](https://api-docs.databricks.com/python/feature-engineering/latest/feature_engineering.client.html) - **CRITICAL: output_schema requirements**
 - [MLflow Experiments - Databricks](https://learn.microsoft.com/en-us/azure/databricks/mlflow/experiments)
 - [MLflow 3.1 LoggedModel](https://docs.databricks.com/aws/en/mlflow/logged-model)
 - [Unity Catalog Model Registry](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/manage-model-lifecycle/)
 - [Databricks Feature Store](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/)
 - [Feature Engineering Client API](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/uc/feature-tables-uc)
+- [MLflow Model Signatures](https://mlflow.org/docs/latest/model/signatures.html) - Input/output specification requirements
+
+### Internal Documentation
 - [Post-Mortem: ML Pipeline Implementation](../../docs/reference/rule-improvement-mlflow-mlmodels-patterns.md)
+
+### Related Cursor Rules
+- [databricks-python-imports.mdc](../common/09-databricks-python-imports.mdc) - sys.path setup for Asset Bundles
+- [mlflow-genai-patterns.mdc](./28-mlflow-genai-patterns.mdc) - GenAI/LLM patterns

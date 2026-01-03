@@ -192,11 +192,39 @@
 | `fact_node_timeline_drift_metrics` | Performance | Drift |
 | `fact_audit_logs_profile_metrics` | Security | 14 metrics |
 | `fact_audit_logs_drift_metrics` | Security | Drift |
-| `fact_information_schema_table_storage_profile_metrics` | Quality | 10 metrics |
-| `fact_table_lineage_profile_metrics` | Quality | 12 metrics |
-| `fact_table_lineage_drift_metrics` | Quality | Drift |
-| `cost_anomaly_predictions_profile_metrics` | ML | Inference metrics |
-| `cost_anomaly_predictions_drift_metrics` | ML | Drift |
+| `fact_table_quality_profile_metrics` | Quality | 10 metrics |
+| `fact_governance_metrics_profile_metrics` | Quality | 12 metrics |
+| `fact_table_quality_drift_metrics` | Quality | Drift |
+| `fact_model_serving_profile_metrics` | ML | Inference metrics |
+| `fact_model_serving_drift_metrics` | ML | Drift |
+
+#### ⚠️ CRITICAL: Custom Metrics Query Patterns
+
+**ALL Lakehouse Monitoring tables require these filters:**
+
+```sql
+-- ✅ REQUIRED for ALL _profile_metrics tables
+WHERE column_name = ':table'     -- Table-level custom metrics
+  AND log_type = 'INPUT'         -- Input data statistics
+  AND slice_key IS NULL          -- For overall metrics (or specify for slicing)
+
+-- ✅ REQUIRED for ALL _drift_metrics tables  
+WHERE drift_type = 'CONSECUTIVE' -- Period-over-period comparison
+  AND column_name = ':table'     -- Table-level drift
+```
+
+#### Slicing Dimensions by Monitor
+
+| Monitor | Slice Keys |
+|---------|------------|
+| **Cost** | `workspace_id`, `sku_name`, `cloud`, `is_tagged`, `product_features_is_serverless` |
+| **Job** | `workspace_id`, `job_name`, `result_state`, `trigger_type`, `termination_code` |
+| **Query** | `workspace_id`, `compute_warehouse_id`, `execution_status`, `statement_type`, `executed_by` |
+| **Cluster** | `workspace_id`, `cluster_id`, `node_type`, `cluster_name`, `driver` |
+| **Security** | `workspace_id`, `service_name`, `audit_level`, `action_name`, `user_identity_email` |
+| **Quality** | `catalog_name`, `schema_name`, `table_name`, `has_critical_violations` |
+| **Governance** | `workspace_id`, `entity_type`, `created_by`, `source_catalog_name` |
+| **Inference** | `workspace_id`, `is_anomaly`, `anomaly_category` |
 
 ### Gold Layer Tables (38 Total - from gold_layer_design/yaml/)
 
@@ -263,27 +291,86 @@
 
 ---
 
-## ████ SECTION E: GENERAL INSTRUCTIONS (≤20 Lines) ████
+## ████ SECTION E: ASSET SELECTION FRAMEWORK ████
+
+### Semantic Layer Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SEMANTIC LAYER ASSET SELECTION                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  USER QUERY PATTERN                      → USE THIS ASSET                   │
+│  ───────────────────────────────────────────────────────────────────────    │
+│  "What's the current X?"                 → Metric View (mv_*)               │
+│  "Show me total X by Y"                  → Metric View (mv_*)               │
+│  "Dashboard of X"                        → Metric View (mv_*)               │
+│  ───────────────────────────────────────────────────────────────────────    │
+│  "Is X increasing/decreasing over time?" → Custom Metrics (_drift_metrics)  │
+│  "How has X changed since last week?"    → Custom Metrics (_drift_metrics)  │
+│  "Alert me when X exceeds threshold"     → Custom Metrics (for alerting)    │
+│  ───────────────────────────────────────────────────────────────────────    │
+│  "Which specific items have X?"          → TVF (get_*)                      │
+│  "List the top N items with X"           → TVF (get_*)                      │
+│  "Show me items from DATE to DATE"       → TVF (get_*)                      │
+│  "What failed/what's slow/what's stale?" → TVF (get_*)                      │
+│  ───────────────────────────────────────────────────────────────────────    │
+│  "Predict/Forecast X"                    → ML Tables (*_predictions)        │
+│  "Anomalies detected"                    → ML Tables (*_anomaly_predictions)│
+│  ───────────────────────────────────────────────────────────────────────    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Asset Selection Rules
+
+| Query Intent | Asset Type | Example |
+|--------------|-----------|---------|
+| **Current state aggregates** | Metric View | "What's success rate?" → `mv_job_performance` |
+| **Trend over time** | Custom Metrics | "Is cost increasing?" → `_drift_metrics` |
+| **List of specific items** | TVF | "Which jobs failed?" → `get_failed_jobs` |
+| **Predictions/Forecasts** | ML Tables | "Cost forecast" → `cost_forecast_predictions` |
+
+### Priority Order
+
+1. **If user asks for a LIST** → TVF
+2. **If user asks about TREND** → Custom Metrics
+3. **If user asks for CURRENT VALUE** → Metric View
+4. **If user asks for PREDICTION** → ML Tables
+
+### Domain Routing
+
+| User Question Contains | Domain | Primary Asset |
+|------------------------|--------|---------------|
+| "cost", "spend", "billing" | Cost | `cost_analytics` + cost TVFs |
+| "job", "failure", "success rate" | Reliability | `job_performance` + job TVFs |
+| "query", "slow", "warehouse" | Performance | `query_performance` + query TVFs |
+| "cluster", "utilization", "cpu" | Performance | `cluster_utilization` + cluster TVFs |
+| "security", "access", "audit" | Security | `security_events` + security TVFs |
+| "quality", "freshness", "stale" | Quality | `data_quality` + quality TVFs |
+| "anomaly", "predict", "forecast" | ML | ML prediction tables |
+
+---
+
+## ████ SECTION F: GENERAL INSTRUCTIONS (≤20 Lines) ████
 
 ```
 You are a comprehensive Databricks platform health analyst. Follow these rules:
 
-1. **Route by Domain:** Cost→cost_analytics, Jobs→job_performance, Query→query_performance, Cluster→cluster_utilization, Security→security_events, Quality→data_quality
-2. **TVFs for Specific:** Use TVFs for parameterized queries
-3. **ML for Predictions:** Use ML tables for forecasts, anomalies, risk scores
-4. **Date Default:** Cost=30 days, Jobs/Queries=7 days, Security=24 hours
-5. **Aggregation:** SUM for totals, AVG for averages, COUNT for volumes
-6. **Sorting:** DESC by primary metric unless specified
-7. **Limits:** Top 10-20 for ranking queries
-8. **Currency:** USD with 2 decimals
-9. **Percentages:** Show as % with 1 decimal
-10. **Health Score:** 0-25=Critical, 26-50=Poor, 51-75=Fair, 76-90=Good, 91-100=Excellent
-11. **Anomalies:** For "anomalies" → query *_anomaly_predictions tables
-12. **Forecasts:** For "forecast/predict" → query *_forecast_predictions tables
-13. **Risk:** For "risk score" → query *_risk_scores tables
-14. **Context:** Explain results in business terms
-15. **Cross-Domain:** Start with metric view, drill down with TVFs
-16. **Performance:** Never scan Bronze/Silver tables
+1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends
+2. **Route by Domain:** Cost→cost_analytics, Jobs→job_performance, Query→query_performance
+3. **TVFs for Lists:** Use TVFs for "which", "top N", "list" queries
+4. **Trends:** For "is X increasing?" check _drift_metrics tables
+5. **Date Default:** Cost=30 days, Jobs/Queries=7 days, Security=24 hours
+6. **Aggregation:** SUM for totals, AVG for averages, COUNT for volumes
+7. **Sorting:** DESC by primary metric unless specified
+8. **Limits:** Top 10-20 for ranking queries
+9. **Health Score:** 0-25=Critical, 26-50=Poor, 51-75=Fair, 76-90=Good, 91-100=Excellent
+10. **Anomalies:** For "anomalies" → query *_anomaly_predictions tables
+11. **Forecasts:** For "forecast/predict" → query *_forecast_predictions tables
+12. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
+13. **Context:** Explain results in business terms
+14. **Performance:** Never scan Bronze/Silver tables
 ```
 
 ---
@@ -319,7 +406,117 @@ You are a comprehensive Databricks platform health analyst. Follow these rules:
 
 ---
 
-## ████ SECTION G: BENCHMARK QUESTIONS WITH SQL ████
+## ████ SECTION G: ML MODEL INTEGRATION (25 Models) ████
+
+### All ML Models by Domain
+
+#### 💰 Cost Domain (6 Models)
+| Model | Prediction Table | Question Trigger |
+|-------|-----------------|------------------|
+| `cost_anomaly_detector` | `cost_anomaly_predictions` | "unusual spending" |
+| `budget_forecaster` | `cost_forecast_predictions` | "forecast cost" |
+| `job_cost_optimizer` | `migration_recommendations` | "reduce cost" |
+| `tag_recommender` | `tag_recommendations` | "suggest tags" |
+| `commitment_recommender` | `budget_alert_predictions` | "commit level" |
+| `chargeback_attribution` | — | "allocate cost" |
+
+#### 🔄 Reliability Domain (5 Models)
+| Model | Prediction Table | Question Trigger |
+|-------|-----------------|------------------|
+| `job_failure_predictor` | `job_failure_predictions` | "will fail" |
+| `job_duration_forecaster` | `job_duration_predictions` | "how long" |
+| `sla_breach_predictor` | `incident_impact_predictions` | "SLA breach" |
+| `pipeline_health_scorer` | `pipeline_health_scores` | "health score" |
+| `retry_success_predictor` | `retry_success_predictions` | "retry succeed" |
+
+#### ⚡ Performance Domain (7 Models)
+| Model | Prediction Table | Question Trigger |
+|-------|-----------------|------------------|
+| `query_performance_forecaster` | `query_optimization_recommendations` | "predict latency" |
+| `warehouse_optimizer` | `cluster_capacity_recommendations` | "warehouse size" |
+| `cache_hit_predictor` | `cache_hit_predictions` | "cache hit" |
+| `query_optimization_recommender` | `query_optimization_classifications` | "optimize query" |
+| `cluster_sizing_recommender` | `cluster_rightsizing_recommendations` | "right-size" |
+| `cluster_capacity_planner` | `cluster_capacity_recommendations` | "capacity" |
+| `regression_detector` | — | "regression" |
+
+#### 🔒 Security Domain (4 Models)
+| Model | Prediction Table | Question Trigger |
+|-------|-----------------|------------------|
+| `security_threat_detector` | `access_anomaly_predictions` | "threat" |
+| `access_pattern_analyzer` | `access_classifications` | "access pattern" |
+| `compliance_risk_classifier` | `user_risk_scores` | "risk score" |
+| `permission_recommender` | — | "permission" |
+
+#### 📋 Quality Domain (3 Models)
+| Model | Prediction Table | Question Trigger |
+|-------|-----------------|------------------|
+| `data_drift_detector` | `quality_anomaly_predictions` | "data drift" |
+| `schema_change_predictor` | `quality_trend_predictions` | "schema change" |
+| `schema_evolution_predictor` | `freshness_alert_predictions` | "freshness alert" |
+
+### Cross-Domain ML Query Patterns
+
+#### Unified Anomaly View
+```sql
+-- All anomalies across domains in one view
+SELECT 'COST' as domain, workspace_name as entity, anomaly_score, prediction_date
+FROM ${catalog}.${gold_schema}.cost_anomaly_predictions WHERE is_anomaly = TRUE
+UNION ALL
+SELECT 'SECURITY', user_identity, threat_score, prediction_date
+FROM ${catalog}.${gold_schema}.access_anomaly_predictions WHERE is_threat = TRUE
+UNION ALL
+SELECT 'QUALITY', table_name, drift_score, prediction_date
+FROM ${catalog}.${gold_schema}.quality_anomaly_predictions WHERE is_drifted = TRUE
+ORDER BY prediction_date DESC;
+```
+
+#### High-Risk Summary
+```sql
+-- All high-risk predictions across domains
+SELECT 'JOB_FAILURE' as risk_type, job_name as entity, failure_probability as risk_score
+FROM ${catalog}.${gold_schema}.job_failure_predictions WHERE will_fail = TRUE
+UNION ALL
+SELECT 'USER_RISK', user_identity, risk_level * 20 as risk_score
+FROM ${catalog}.${gold_schema}.user_risk_scores WHERE risk_level >= 4
+UNION ALL
+SELECT 'COST_ANOMALY', workspace_name, ABS(anomaly_score) * 100
+FROM ${catalog}.${gold_schema}.cost_anomaly_predictions WHERE is_anomaly = TRUE
+ORDER BY risk_score DESC LIMIT 20;
+```
+
+### ML Model Selection Guide
+
+```
+QUERY DOMAIN                    ML MODEL                    TRIGGER WORDS
+─────────────────────────────────────────────────────────────────────────
+💰 Cost:
+  Anomaly detection          → cost_anomaly_predictions      "unusual", "spike"
+  Forecasting                → cost_forecast_predictions     "forecast", "predict"
+  Optimization               → migration_recommendations     "save", "reduce"
+  
+🔄 Reliability:
+  Failure prediction         → job_failure_predictions       "fail", "at risk"
+  Duration forecasting       → job_duration_predictions      "how long", "estimate"
+  Health scoring             → pipeline_health_scores        "health", "score"
+  
+⚡ Performance:
+  Query optimization         → query_optimization_*          "optimize", "improve"
+  Right-sizing               → cluster_rightsizing_*         "right-size", "too big"
+  Capacity planning          → cluster_capacity_*            "capacity", "scale"
+  
+🔒 Security:
+  Threat detection           → access_anomaly_predictions    "threat", "suspicious"
+  Risk scoring               → user_risk_scores              "risky", "risk score"
+  
+📋 Quality:
+  Data drift                 → quality_anomaly_predictions   "drift", "changed"
+  Schema prediction          → quality_trend_predictions     "schema", "breaking"
+```
+
+---
+
+## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
 
 ### Question 1: "What is our overall platform health?"
 **Expected SQL:**
@@ -508,4 +705,24 @@ WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 | Lakehouse Monitoring Tables | 16 |
 | Custom Metrics | 87 |
 | **Total Semantic Assets** | 198 |
+
+---
+
+## References
+
+### Semantic Layer Documentation
+- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md)
+- [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md)
+- [Metrics Inventory](../../docs/reference/metrics-inventory.md) - Unified metrics (TVFs + MVs + Custom Metrics)
+- [Semantic Layer Rationalization](../../docs/reference/semantic-layer-rationalization.md) - Design rationale
+
+### Lakehouse Monitoring Documentation
+- [Monitor Catalog](../../docs/lakehouse-monitoring-design/04-monitor-catalog.md) - Complete metric definitions
+- [Genie Integration](../../docs/lakehouse-monitoring-design/05-genie-integration.md) - Critical query patterns
+- [Custom Metrics Reference](../../docs/lakehouse-monitoring-design/03-custom-metrics.md)
+
+### Deployment Guides
+- [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md)
+- [Genie Asset Selection Guide](../../docs/reference/genie-asset-selection-guide.md)
+- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md)
 

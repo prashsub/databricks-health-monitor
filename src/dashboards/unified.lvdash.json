@@ -1,0 +1,5053 @@
+{
+  "pages": [
+    {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_time_range",
+            "queries": [
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_query_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_query",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_events_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_events",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_wow_growth_time_range",
+                "query": {
+                  "datasetName": "ds_wow_growth",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_duration_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_duration",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_slow_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_slow",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_queries_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_top_workspaces_time_range",
+                "query": {
+                  "datasetName": "ds_top_workspaces",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_jobs_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_jobs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_unique_counts_time_range",
+                "query": {
+                  "datasetName": "ds_unique_counts",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_risk_trend_time_range",
+                "query": {
+                  "datasetName": "ds_risk_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_cost_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_cost",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_duration_trend_time_range",
+                "query": {
+                  "datasetName": "ds_duration_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_runs_by_status_time_range",
+                "query": {
+                  "datasetName": "ds_runs_by_status",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_job_trend_time_range",
+                "query": {
+                  "datasetName": "ds_job_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_daily_cost_time_range",
+                "query": {
+                  "datasetName": "ds_daily_cost",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_serverless_adoption_time_range",
+                "query": {
+                  "datasetName": "ds_serverless_adoption",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_mttr_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_mttr",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_event_trend_time_range",
+                "query": {
+                  "datasetName": "ds_event_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_success_rate_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_success_rate",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_cluster_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_cluster",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_totals_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_totals",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_30d_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_30d",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_denied_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_denied",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_tag_coverage_time_range",
+                "query": {
+                  "datasetName": "ds_tag_coverage",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_30_60_compare_time_range",
+                "query": {
+                  "datasetName": "ds_30_60_compare",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_admin_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_admin",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_users_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_users",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_cost_trend_time_range",
+                "query": {
+                  "datasetName": "ds_cost_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_permissions_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_permissions",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_high_risk_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_high_risk",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_success_trend_time_range",
+                "query": {
+                  "datasetName": "ds_success_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_failed_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_failed",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_query_volume_time_range",
+                "query": {
+                  "datasetName": "ds_query_volume",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_lineage_trend_time_range",
+                "query": {
+                  "datasetName": "ds_lineage_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_security_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_security",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_query_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_events_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_wow_growth_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_duration_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_slow_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_queries_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_top_workspaces_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_jobs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_unique_counts_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_risk_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_cost_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_duration_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_runs_by_status_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_job_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_daily_cost_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_serverless_adoption_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_mttr_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_event_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_success_rate_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_cluster_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_totals_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_30d_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_denied_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_tag_coverage_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_30_60_compare_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_admin_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_users_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_cost_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_permissions_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_high_risk_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_success_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_failed_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_query_volume_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_lineage_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/health_monitor_unified/datasets/ds_kpi_security_time_range"
+                  }
+                ]
+              },
+              "selection": {
+                "defaultSelection": {
+                  "range": {
+                    "dataType": "DATE",
+                    "min": {
+                      "value": "now-90d/d"
+                    },
+                    "max": {
+                      "value": "now/d"
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc5 Time Range"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_executive_summary",
+      "displayName": "\ud83d\udcca Executive Summary",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_cost",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_cost",
+                  "fields": [
+                    {
+                      "name": "total_cost",
+                      "expression": "`total_cost`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_cost",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcb0 Total Cost (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_job_success",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_jobs",
+                  "fields": [
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "success_rate",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u2705 Job Success Rate"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_query_perf",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_query",
+                  "fields": [
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_duration",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26a1 Avg Query (sec)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_active_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_users",
+                  "fields": [
+                    {
+                      "name": "active_users",
+                      "expression": "`active_users`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "active_users",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udc65 Active Users (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_security_events",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_security",
+                  "fields": [
+                    {
+                      "name": "high_risk",
+                      "expression": "`high_risk`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "high_risk",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd34 High Risk Events"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_cluster_util",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_cluster",
+                  "fields": [
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_cpu",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udda5\ufe0f Avg CPU Util %"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_cost_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_cost_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "daily_cost",
+                      "expression": "`daily_cost`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "daily_cost",
+                  "displayName": "Cost ($)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcb0 Daily Cost Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_job_success_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "success_rate",
+                  "displayName": "Success Rate %",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u2705 Job Success Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 4,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_platform_health",
+      "displayName": "\ud83c\udfe5 Platform Health",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_health_score",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_health_score",
+                  "fields": [
+                    {
+                      "name": "health_score",
+                      "expression": "`health_score`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "health_score",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83c\udfe5 Overall Health Score"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_cost_health",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_cost_health",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "status",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcb0 Cost Health"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_reliability_health",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_reliability_health",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "status",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u2705 Reliability Health"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "table_health_issues",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_health_issues",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "area",
+                      "expression": "`area`"
+                    },
+                    {
+                      "name": "issue",
+                      "expression": "`issue`"
+                    },
+                    {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    },
+                    {
+                      "name": "recommendation",
+                      "expression": "`recommendation`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "area",
+                    "title": "Area",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "issue",
+                    "title": "Issue",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "severity",
+                    "title": "Severity",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommendation",
+                    "title": "Recommendation",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26a0\ufe0f Top Health Issues"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_health_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_health_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "health_score",
+                      "expression": "`health_score`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "health_score",
+                  "displayName": "Health Score",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Health Score Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_ml_insights",
+      "displayName": "\ud83e\udd16 ML Insights",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_ml_cost_anomalies",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_cost_anomalies",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "workspace",
+                      "expression": "`workspace`"
+                    },
+                    {
+                      "name": "anomaly_score",
+                      "expression": "`anomaly_score`"
+                    },
+                    {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    },
+                    {
+                      "name": "prediction_date",
+                      "expression": "`prediction_date`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "workspace",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "anomaly_score",
+                    "title": "Anomaly Score",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "severity",
+                    "title": "Severity",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "prediction_date",
+                    "title": "Date",
+                    "type": "datetime"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Cost Anomalies Detected"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_job_risks",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_job_risks",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "failure_probability",
+                      "expression": "`failure_probability`"
+                    },
+                    {
+                      "name": "risk_level",
+                      "expression": "`risk_level`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "failure_probability",
+                    "title": "Fail Prob",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "risk_level",
+                    "title": "Risk",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Jobs at Risk"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_security_threats",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_security_threats",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
+                    },
+                    {
+                      "name": "threat_type",
+                      "expression": "`threat_type`"
+                    },
+                    {
+                      "name": "risk_score",
+                      "expression": "`risk_score`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity_email",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "threat_type",
+                    "title": "Threat",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "risk_score",
+                    "title": "Risk Score",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Security Threats"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_capacity",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_capacity",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "cluster_name",
+                      "expression": "`cluster_name`"
+                    },
+                    {
+                      "name": "current_size",
+                      "expression": "`current_size`"
+                    },
+                    {
+                      "name": "recommended",
+                      "expression": "`recommended`"
+                    },
+                    {
+                      "name": "potential_savings",
+                      "expression": "`potential_savings`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "cluster_name",
+                    "title": "Cluster",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "current_size",
+                    "title": "Current",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended",
+                    "title": "Recommended",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "potential_savings",
+                    "title": "Savings ($)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Capacity Recommendations"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_monitoring_alerts",
+      "displayName": "\ud83d\udcca Monitoring Alerts",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_cost_drift",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_cost_drift",
+                  "fields": [
+                    {
+                      "name": "drift_pct",
+                      "expression": "`drift_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "drift_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcb0 Cost Drift %"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_job_drift",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_job_drift",
+                  "fields": [
+                    {
+                      "name": "drift_pct",
+                      "expression": "`drift_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "drift_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u2705 Job Success Drift %"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_query_drift",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_query_drift",
+                  "fields": [
+                    {
+                      "name": "drift_pct",
+                      "expression": "`drift_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "drift_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26a1 Query Duration Drift %"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "table_drift_alerts",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_drift_alerts",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "area",
+                      "expression": "`area`"
+                    },
+                    {
+                      "name": "metric",
+                      "expression": "`metric`"
+                    },
+                    {
+                      "name": "drift_pct",
+                      "expression": "`drift_pct`"
+                    },
+                    {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "area",
+                    "title": "Area",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "metric",
+                    "title": "Metric",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "drift_pct",
+                    "title": "Drift %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "severity",
+                    "title": "Severity",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Active Drift Alerts (>10%)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_drift_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_drift_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "cost_drift",
+                      "expression": "`cost_drift`"
+                    },
+                    {
+                      "name": "job_drift",
+                      "expression": "`job_drift`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "cost_drift",
+                      "displayName": "Cost Drift %"
+                    },
+                    {
+                      "fieldName": "job_drift",
+                      "displayName": "Job Drift %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Drift Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_cost_overview",
+      "displayName": "\ud83d\udcb0 Cost Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_mtd_spend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_mtd",
+                  "fields": [
+                    {
+                      "name": "mtd_cost",
+                      "expression": "`mtd_cost`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "mtd_cost",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "MTD Spend",
+                "description": "Month-to-Date Total"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_30d_spend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_30d",
+                  "fields": [
+                    {
+                      "name": "total_cost",
+                      "expression": "`total_cost`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_cost",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "30-Day Spend"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_30d_growth",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_30_60_compare",
+                  "fields": [
+                    {
+                      "name": "growth_pct",
+                      "expression": "`growth_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "growth_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "30d vs 60d Growth %"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_tag_coverage",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_tag_coverage",
+                  "fields": [
+                    {
+                      "name": "coverage_pct",
+                      "expression": "`coverage_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "coverage_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Tag Coverage %"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_serverless",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_serverless_adoption",
+                  "fields": [
+                    {
+                      "name": "serverless_pct",
+                      "expression": "`serverless_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "serverless_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Serverless Adoption %"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_unique_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_unique_counts",
+                  "fields": [
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unique_users",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Users (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_wow_growth",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_wow_growth",
+                  "fields": [
+                    {
+                      "name": "week_start",
+                      "expression": "`week_start`"
+                    },
+                    {
+                      "name": "weekly_cost",
+                      "expression": "`weekly_cost`"
+                    },
+                    {
+                      "name": "wow_growth_pct",
+                      "expression": "`wow_growth_pct`"
+                    },
+                    {
+                      "name": "moving_avg",
+                      "expression": "`moving_avg`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "week_start",
+                  "displayName": "Week",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "weekly_cost",
+                      "displayName": "Weekly Cost ($)"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Week-over-Week Cost & Growth Trend"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_daily_cost",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_daily_cost",
+                  "fields": [
+                    {
+                      "name": "usage_date",
+                      "expression": "`usage_date`"
+                    },
+                    {
+                      "name": "daily_cost",
+                      "expression": "`daily_cost`"
+                    },
+                    {
+                      "name": "serverless_cost",
+                      "expression": "`serverless_cost`"
+                    },
+                    {
+                      "name": "classic_cost",
+                      "expression": "`classic_cost`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "usage_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "serverless_cost",
+                      "displayName": "Serverless ($)"
+                    },
+                    {
+                      "fieldName": "classic_cost",
+                      "displayName": "Classic ($)"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Daily Cost: Serverless vs Classic"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_top_workspaces",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_top_workspaces",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "total_cost",
+                      "expression": "`total_cost`"
+                    },
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    },
+                    {
+                      "name": "job_count",
+                      "expression": "`job_count`"
+                    },
+                    {
+                      "name": "job_runs",
+                      "expression": "`job_runs`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "total_cost",
+                    "title": "Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "unique_users",
+                    "title": "Users",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "job_count",
+                    "title": "Jobs",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "job_runs",
+                    "title": "Runs",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83c\udfe2 Top Workspaces (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_sku_breakdown",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_sku_breakdown",
+                  "fields": [
+                    {
+                      "name": "sku_name",
+                      "expression": "`sku_name`"
+                    },
+                    {
+                      "name": "total_cost",
+                      "expression": "`total_cost`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "color": {
+                  "fieldName": "sku_name",
+                  "displayName": "SKU"
+                },
+                "angle": {
+                  "fieldName": "total_cost",
+                  "displayName": "Cost ($)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udce6 Spend by SKU"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 16,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_performance_overview",
+      "displayName": "\u26a1 Performance Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "fields": [
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_queries",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Queries (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_duration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "fields": [
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_duration",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Duration (sec)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_p95_duration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "fields": [
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "p95_duration",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "P95 Duration (sec)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_slow_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_slow",
+                  "fields": [
+                    {
+                      "name": "slow_queries_pct",
+                      "expression": "`slow_queries_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "slow_queries_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slow Queries %",
+                "description": ">30 seconds"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_failed_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_failed",
+                  "fields": [
+                    {
+                      "name": "failed_queries_pct",
+                      "expression": "`failed_queries_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "failed_queries_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failed Queries %"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_unique_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "fields": [
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unique_users",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Unique Users (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_query_volume",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_query_volume",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "query_count",
+                      "expression": "`query_count`"
+                    },
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "query_count",
+                      "displayName": "Queries"
+                    },
+                    {
+                      "fieldName": "unique_users",
+                      "displayName": "Users"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Query Volume Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_duration_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_duration_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_duration",
+                      "displayName": "Avg Duration (s)"
+                    },
+                    {
+                      "fieldName": "p95_duration",
+                      "displayName": "P95 Duration (s)"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u23f1\ufe0f Query Duration Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_reliability_overview",
+      "displayName": "\ud83d\udd04 Reliability Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_success_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_success_rate",
+                  "fields": [
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "success_rate",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Success Rate (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_runs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_totals",
+                  "fields": [
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_runs",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Runs (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_failures",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_totals",
+                  "fields": [
+                    {
+                      "name": "total_failures",
+                      "expression": "`total_failures`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_failures",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failures (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_p95_duration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_duration",
+                  "fields": [
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "p95_duration",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "P95 Duration (min)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_mttr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_mttr",
+                  "fields": [
+                    {
+                      "name": "mttr_minutes",
+                      "expression": "`mttr_minutes`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "mttr_minutes",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "MTTR (min)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_unique_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_totals",
+                  "fields": [
+                    {
+                      "name": "unique_jobs",
+                      "expression": "`unique_jobs`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unique_jobs",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Jobs (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_success_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_success_trend",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    },
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    },
+                    {
+                      "name": "failure_rate",
+                      "expression": "`failure_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "success_rate",
+                      "displayName": "Success %"
+                    },
+                    {
+                      "fieldName": "failure_rate",
+                      "displayName": "Failure %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Success & Failure Rate Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_runs_by_status",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs_by_status",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    },
+                    {
+                      "name": "successful",
+                      "expression": "`successful`"
+                    },
+                    {
+                      "name": "failed",
+                      "expression": "`failed`"
+                    },
+                    {
+                      "name": "timed_out",
+                      "expression": "`timed_out`"
+                    },
+                    {
+                      "name": "cancelled",
+                      "expression": "`cancelled`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "successful",
+                      "displayName": "Success"
+                    },
+                    {
+                      "fieldName": "failed",
+                      "displayName": "Failed"
+                    },
+                    {
+                      "fieldName": "timed_out",
+                      "displayName": "Timeout"
+                    },
+                    {
+                      "fieldName": "cancelled",
+                      "displayName": "Cancelled"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Daily Runs by Status"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_duration_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_duration_trend",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "p50_duration",
+                      "expression": "`p50_duration`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_duration",
+                      "displayName": "Avg"
+                    },
+                    {
+                      "fieldName": "p50_duration",
+                      "displayName": "P50"
+                    },
+                    {
+                      "fieldName": "p95_duration",
+                      "displayName": "P95"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u23f1\ufe0f Duration Percentiles Trend (min)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_security_overview",
+      "displayName": "\ud83d\udd12 Security Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_events",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_events",
+                  "fields": [
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_events",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Audit Events (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_unique_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_events",
+                  "fields": [
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unique_users",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Unique Users (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_high_risk",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_high_risk",
+                  "fields": [
+                    {
+                      "name": "high_risk_events",
+                      "expression": "`high_risk_events`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "high_risk_events",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd34 High Risk Events (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_denied_access",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_denied",
+                  "fields": [
+                    {
+                      "name": "denied_access",
+                      "expression": "`denied_access`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "denied_access",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26d4 Access Denied (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_permission_changes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_permissions",
+                  "fields": [
+                    {
+                      "name": "permission_changes",
+                      "expression": "`permission_changes`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "permission_changes",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd10 Permission Changes (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_admin_actions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_admin",
+                  "fields": [
+                    {
+                      "name": "admin_actions",
+                      "expression": "`admin_actions`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "admin_actions",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udc51 Admin Actions (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_event_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_event_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "event_count",
+                      "expression": "`event_count`"
+                    },
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "event_count",
+                      "displayName": "Events"
+                    },
+                    {
+                      "fieldName": "unique_users",
+                      "displayName": "Users"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Audit Event Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_risk_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_risk_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "high_risk",
+                      "expression": "`high_risk`"
+                    },
+                    {
+                      "name": "medium_risk",
+                      "expression": "`medium_risk`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "high_risk",
+                      "displayName": "High Risk"
+                    },
+                    {
+                      "fieldName": "medium_risk",
+                      "displayName": "Medium Risk"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd34 Risk Event Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_governance_overview",
+      "displayName": "\ud83d\udcca Governance Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_tables",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_tables",
+                  "fields": [
+                    {
+                      "name": "total_tables",
+                      "expression": "`total_tables`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_tables",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Tables"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_tagged_tables",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_tagged",
+                  "fields": [
+                    {
+                      "name": "tagged_pct",
+                      "expression": "`tagged_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "tagged_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Tagged Tables %"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_documented_tables",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_documented",
+                  "fields": [
+                    {
+                      "name": "documented_pct",
+                      "expression": "`documented_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "documented_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Documented Tables %"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_lineage_coverage",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_lineage",
+                  "fields": [
+                    {
+                      "name": "lineage_pct",
+                      "expression": "`lineage_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "lineage_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Lineage Coverage %"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_jobs",
+                  "fields": [
+                    {
+                      "name": "total_jobs",
+                      "expression": "`total_jobs`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_jobs",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Jobs"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_workspaces",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_workspaces",
+                  "fields": [
+                    {
+                      "name": "total_workspaces",
+                      "expression": "`total_workspaces`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_workspaces",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Workspaces"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_tables_by_catalog",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_tables_by_catalog",
+                  "fields": [
+                    {
+                      "name": "catalog_name",
+                      "expression": "`catalog_name`"
+                    },
+                    {
+                      "name": "table_count",
+                      "expression": "`table_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "catalog_name",
+                  "displayName": "Catalog"
+                },
+                "y": {
+                  "fieldName": "table_count",
+                  "displayName": "Table Count"
+                }
+              },
+              "frame": {
+                "title": "Tables by Catalog",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_lineage_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_lineage_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "lineage_events",
+                      "expression": "`lineage_events`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "lineage_events",
+                  "displayName": "Events",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Lineage Events Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 4,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {
+      "name": "ds_kpi_query",
+      "displayName": "KPI: Query",
+      "query": "SELECT ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_ml_capacity",
+      "displayName": "ML: Capacity",
+      "query": "WITH cluster_util AS (\n  SELECT \n    n.cluster_id,\n    MAX(c.cluster_name) AS cluster_name,\n    AVG(n.cpu_user_percent + n.cpu_system_percent) AS avg_cpu,\n    AVG(n.mem_used_percent) AS avg_memory\n  FROM ${catalog}.${gold_schema}.fact_node_timeline n\n  LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON n.cluster_id = c.cluster_id\n  WHERE n.start_time BETWEEN :time_range.min AND :time_range.max\n  GROUP BY n.cluster_id\n)\nSELECT \n  COALESCE(cluster_name, cluster_id) AS cluster_name,\n  CONCAT(ROUND(avg_cpu, 0), '%') AS current_size,\n  CASE WHEN avg_cpu < 30 THEN 'Downsize' WHEN avg_cpu > 80 THEN 'Upsize' ELSE 'Optimal' END AS recommended,\n  CASE WHEN avg_cpu < 30 THEN ROUND((30 - avg_cpu) * 10, 2) ELSE 0 END AS potential_savings\nFROM cluster_util\nWHERE avg_cpu < 30 OR avg_cpu > 80\nORDER BY potential_savings DESC LIMIT 10"
+    },
+    {
+      "name": "ds_kpi_events",
+      "displayName": "KPI: Events",
+      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events, FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_wow_growth",
+      "displayName": "WoW Growth",
+      "query": "WITH weekly AS (SELECT DATE_TRUNC('week', usage_date) AS week_start, SUM(list_cost) AS weekly_cost, COUNT(DISTINCT DATE(usage_date)) AS days FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE \n usage_date BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING days = 7), with_growth AS (SELECT week_start, weekly_cost, 100 * (weekly_cost - LAG(weekly_cost) OVER (ORDER BY week_start)) / NULLIF(LAG(weekly_cost) OVER (ORDER BY week_start), 0) AS wow_growth_pct FROM weekly) SELECT week_start, ROUND(weekly_cost, 2) AS weekly_cost, ROUND(wow_growth_pct, 1) AS wow_growth_pct, ROUND(AVG(wow_growth_pct) OVER (ORDER BY week_start ROWS BETWEEN 12 PRECEDING AND CURRENT ROW), 1) AS moving_avg FROM with_growth ORDER BY week_start",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_duration",
+      "displayName": "KPI: Duration",
+      "query": "SELECT ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code = 'SUCCESS' AND run_duration_seconds IS NOT NULL",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_slow",
+      "displayName": "KPI: Slow",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS slow_queries_pct FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_queries",
+      "displayName": "KPI: Queries",
+      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, FORMAT_NUMBER(COUNT(DISTINCT executed_by_user_id), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_top_workspaces",
+      "displayName": "Top Workspaces",
+      "query": "SELECT COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, ROUND(SUM(f.list_cost), 2) AS total_cost, COUNT(DISTINCT f.identity_metadata_run_as) AS unique_users, COUNT(DISTINCT f.usage_metadata_job_id) AS job_count, COUNT(DISTINCT f.usage_metadata_job_run_id) AS job_runs FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE \n f.usage_date BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY total_cost DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_jobs",
+      "displayName": "KPI: Jobs",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_unique_counts",
+      "displayName": "Unique Counts",
+      "query": "SELECT COUNT(DISTINCT identity_metadata_run_as) AS unique_users, COUNT(DISTINCT usage_metadata_job_id) AS unique_jobs FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_query_drift",
+      "displayName": "Monitor: Query Drift",
+      "query": "SELECT \n  CONCAT(ROUND(COALESCE(avg_delta, 0) * 100, 1), '%') AS drift_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics \nWHERE column_name = ':table' AND drift_type = 'CONSECUTIVE'\nORDER BY window.start DESC LIMIT 1"
+    },
+    {
+      "name": "ds_risk_trend",
+      "displayName": "Risk Trend",
+      "query": "SELECT DATE(event_time) AS day, SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' THEN 1 ELSE 0 END) AS high_risk, SUM(CASE WHEN action_name LIKE '%update%' OR action_name LIKE '%modify%' THEN 1 ELSE 0 END) AS medium_risk FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_tables_by_catalog",
+      "displayName": "Tables by Catalog",
+      "query": "SELECT COALESCE(target_table_catalog, 'Unknown') AS catalog_name, COUNT(DISTINCT target_table_full_name) AS table_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE target_table_catalog IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+    },
+    {
+      "name": "ds_kpi_cost",
+      "displayName": "KPI: Cost",
+      "query": "SELECT CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_duration_trend",
+      "displayName": "Duration Trend",
+      "query": "SELECT DATE(start_time) AS day, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_ml_security_threats",
+      "displayName": "ML: Security Threats",
+      "query": "SELECT \n  a.user_identity_email,\n  CASE WHEN a.action_name LIKE '%drop%' OR a.action_name LIKE '%delete%' THEN 'Destructive Action'\n       WHEN a.action_name LIKE '%permission%' OR a.action_name LIKE '%grant%' THEN 'Permission Change'\n       ELSE 'Suspicious Activity' END AS threat_type,\n  COUNT(*) AS event_count\nFROM ${catalog}.${gold_schema}.fact_audit_logs a\nWHERE a.event_time BETWEEN :time_range.min AND :time_range.max\nAND (a.action_name LIKE '%drop%' OR a.action_name LIKE '%delete%' OR a.action_name LIKE '%permission%' OR a.action_name LIKE '%grant%' OR a.action_name LIKE '%revoke%')\nGROUP BY a.user_identity_email, \n  CASE WHEN a.action_name LIKE '%drop%' OR a.action_name LIKE '%delete%' THEN 'Destructive Action'\n       WHEN a.action_name LIKE '%permission%' OR a.action_name LIKE '%grant%' THEN 'Permission Change'\n       ELSE 'Suspicious Activity' END\nORDER BY event_count DESC LIMIT 10"
+    },
+    {
+      "name": "ds_runs_by_status",
+      "displayName": "Runs by Status",
+      "query": "SELECT DATE(run_date) AS run_date, SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) AS successful, SUM(CASE WHEN termination_code IN ('FAILED', 'INTERNAL_ERROR') THEN 1 ELSE 0 END) AS failed, SUM(CASE WHEN termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) AS timed_out, SUM(CASE WHEN termination_code = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_tagged",
+      "displayName": "KPI: Tagged",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 0), '%') AS tagged_pct\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date BETWEEN :time_range.min AND :time_range.max"
+    },
+    {
+      "name": "ds_job_trend",
+      "displayName": "Job Trend",
+      "query": "SELECT DATE(run_date) AS day, ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_health_score",
+      "displayName": "Health Score",
+      "query": "WITH metrics AS (\n  SELECT \n    COALESCE(AVG(CASE WHEN termination_code = 'SUCCESS' THEN 1.0 ELSE 0.0 END) * 100, 0) AS job_success_rate,\n    COALESCE((SELECT SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0) FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max), 0) AS tag_coverage\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date BETWEEN :time_range.min AND :time_range.max\n)\nSELECT CONCAT(ROUND((job_success_rate * 0.5 + tag_coverage * 0.5), 0), '%') AS health_score FROM metrics"
+    },
+    {
+      "name": "ds_health_trend",
+      "displayName": "Health Trend",
+      "query": "WITH daily_metrics AS (\n  SELECT \n    run_date AS day,\n    AVG(CASE WHEN termination_code = 'SUCCESS' THEN 1.0 ELSE 0.0 END) * 100 AS job_success\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL\n  GROUP BY run_date\n),\ncost_metrics AS (\n  SELECT \n    usage_date AS day,\n    SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0) AS tag_coverage\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date BETWEEN :time_range.min AND :time_range.max\n  GROUP BY usage_date\n)\nSELECT \n  COALESCE(d.day, c.day) AS day,\n  ROUND((COALESCE(d.job_success, 90) * 0.5 + COALESCE(c.tag_coverage, 70) * 0.5), 1) AS health_score\nFROM daily_metrics d\nFULL OUTER JOIN cost_metrics c ON d.day = c.day\nORDER BY day"
+    },
+    {
+      "name": "ds_reliability_health",
+      "displayName": "Reliability Health",
+      "query": "WITH reliability AS (\n  SELECT AVG(CASE WHEN termination_code = 'SUCCESS' THEN 1.0 ELSE 0.0 END) * 100 AS success_rate\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL\n)\nSELECT CASE \n  WHEN success_rate >= 95 THEN '\ud83d\udfe2 Good'\n  WHEN success_rate >= 80 THEN '\ud83d\udfe1 Warning'\n  ELSE '\ud83d\udd34 Critical'\nEND AS status FROM reliability"
+    },
+    {
+      "name": "ds_daily_cost",
+      "displayName": "Daily Cost",
+      "query": "SELECT DATE(usage_date) AS usage_date, SUM(list_cost) AS daily_cost, SUM(CASE WHEN product_features_is_serverless THEN list_cost ELSE 0 END) AS serverless_cost, SUM(CASE WHEN NOT product_features_is_serverless THEN list_cost ELSE 0 END) AS classic_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE \n usage_date BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_serverless_adoption",
+      "displayName": "Serverless Adoption",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN product_features_is_serverless THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1), '%') AS serverless_pct FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_cost_health",
+      "displayName": "Cost Health",
+      "query": "WITH cost_metrics AS (\n  SELECT \n    SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0) AS tag_coverage,\n    SUM(list_cost) AS total_cost\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date BETWEEN :time_range.min AND :time_range.max\n)\nSELECT CASE \n  WHEN tag_coverage >= 80 THEN '\ud83d\udfe2 Good'\n  WHEN tag_coverage >= 50 THEN '\ud83d\udfe1 Warning'\n  ELSE '\ud83d\udd34 Critical'\nEND AS status FROM cost_metrics"
+    },
+    {
+      "name": "ds_ml_job_risks",
+      "displayName": "ML: Job Risks",
+      "query": "SELECT \n  COALESCE(j.name, CAST(p.job_id AS STRING)) AS job_name,\n  ROUND(p.failure_probability * 100, 1) AS failure_probability,\n  CASE WHEN p.failure_probability > 0.5 THEN '\ud83d\udd34 High' WHEN p.failure_probability > 0.2 THEN '\ud83d\udfe1 Medium' ELSE '\ud83d\udfe2 Low' END AS risk_level\nFROM ${catalog}.${gold_schema}.job_failure_predictions p\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON p.job_id = j.job_id\nWHERE p.prediction_date BETWEEN :time_range.min AND :time_range.max\nORDER BY p.failure_probability DESC LIMIT 10"
+    },
+    {
+      "name": "ds_kpi_mttr",
+      "displayName": "KPI: MTTR",
+      "query": "SELECT COALESCE(ROUND(AVG(run_duration_seconds / 60.0), 1), 0) AS mttr_minutes FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL AND termination_code != 'SUCCESS'",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_lineage",
+      "displayName": "KPI: Lineage",
+      "query": "SELECT CONCAT(ROUND(COUNT(DISTINCT target_table_full_name) * 100.0 / NULLIF((SELECT COUNT(*) FROM ${catalog}.${gold_schema}.fact_table_lineage), 0), 0), '%') AS lineage_pct\nFROM ${catalog}.${gold_schema}.fact_table_lineage\nWHERE source_table_full_name IS NOT NULL"
+    },
+    {
+      "name": "ds_drift_trend",
+      "displayName": "Drift Trend",
+      "query": "SELECT window.start AS day, ROUND(COALESCE(cost_drift_pct, 0), 1) AS cost_drift, 0 AS job_drift FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start"
+    },
+    {
+      "name": "ds_event_trend",
+      "displayName": "Event Trend",
+      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS event_count, COUNT(DISTINCT user_identity_email) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_success_rate",
+      "displayName": "KPI: Success Rate",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_cluster",
+      "displayName": "KPI: Cluster",
+      "query": "SELECT CONCAT(ROUND(AVG(cpu_user_percent + cpu_system_percent), 1), '%') AS avg_cpu FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_totals",
+      "displayName": "KPI: Totals",
+      "query": "SELECT COUNT(*) AS total_runs, SUM(CASE WHEN termination_code IS NOT NULL AND termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS total_failures, COUNT(DISTINCT job_id) AS unique_jobs FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_tables",
+      "displayName": "KPI: Tables",
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT target_table_full_name), 0) AS total_tables FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1"
+    },
+    {
+      "name": "ds_monitor_cost_drift",
+      "displayName": "Monitor: Cost Drift",
+      "query": "SELECT CONCAT(ROUND(COALESCE(cost_drift_pct, 0), 1), '%') AS drift_pct FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' ORDER BY window.start DESC LIMIT 1"
+    },
+    {
+      "name": "ds_kpi_documented",
+      "displayName": "KPI: Documented",
+      "query": "SELECT CONCAT(ROUND(COUNT(DISTINCT CASE WHEN source_table_full_name IS NOT NULL THEN target_table_full_name END) * 100.0 / NULLIF(COUNT(DISTINCT target_table_full_name), 0), 0), '%') AS documented_pct\nFROM ${catalog}.${gold_schema}.fact_table_lineage"
+    },
+    {
+      "name": "ds_kpi_30d",
+      "displayName": "KPI: 30d Spend",
+      "query": "SELECT CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_denied",
+      "displayName": "KPI: Denied",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%denied%' OR action_name LIKE '%error%' OR action_name LIKE '%fail%' THEN 1 ELSE 0 END), 0) AS denied_access FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_tag_coverage",
+      "displayName": "Tag Coverage",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1), '%') AS coverage_pct FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_30_60_compare",
+      "displayName": "30 vs 60 Day Compare",
+      "query": "WITH periods AS (SELECT SUM(CASE WHEN usage_date BETWEEN :time_range.min AND :time_range.max THEN list_cost ELSE 0 END) AS last_30, SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 60 DAYS AND CURRENT_DATE() - INTERVAL 31 DAYS THEN list_cost ELSE 0 END) AS prev_30 FROM ${catalog}.${gold_schema}.fact_usage) SELECT CONCAT(ROUND((last_30 - prev_30) * 100.0 / NULLIF(prev_30, 0), 1), '%') AS growth_pct FROM periods",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_ml_cost_anomalies",
+      "displayName": "ML: Cost Anomalies",
+      "query": "SELECT \n  COALESCE(w.workspace_name, CAST(p.workspace_id AS STRING)) AS workspace,\n  ROUND(p.anomaly_score, 2) AS anomaly_score,\n  CASE WHEN p.anomaly_score > 0.8 THEN '\ud83d\udd34 High' WHEN p.anomaly_score > 0.5 THEN '\ud83d\udfe1 Medium' ELSE '\ud83d\udfe2 Low' END AS severity,\n  p.prediction_date\nFROM ${catalog}.${gold_schema}.cost_anomaly_predictions p\nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON p.workspace_id = w.workspace_id\nWHERE p.prediction_date BETWEEN :time_range.min AND :time_range.max\nORDER BY p.anomaly_score DESC LIMIT 10"
+    },
+    {
+      "name": "ds_health_issues",
+      "displayName": "Health Issues",
+      "query": "WITH issues AS (\n  SELECT \n    'Cost' AS area,\n    'Untagged spend: ' || CONCAT(ROUND((1 - SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) / NULLIF(SUM(list_cost), 0)) * 100, 0), '%') AS issue,\n    CASE WHEN SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) / NULLIF(SUM(list_cost), 0) >= 0.8 THEN '\ud83d\udfe2 Low'\n         WHEN SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) / NULLIF(SUM(list_cost), 0) >= 0.5 THEN '\ud83d\udfe1 Medium'\n         ELSE '\ud83d\udd34 High' END AS severity,\n    'Add team/project tags' AS recommendation\n  FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max\n  UNION ALL\n  SELECT \n    'Reliability' AS area,\n    'Job success rate: ' || CONCAT(ROUND(AVG(CASE WHEN termination_code = 'SUCCESS' THEN 1.0 ELSE 0.0 END) * 100, 0), '%') AS issue,\n    CASE WHEN AVG(CASE WHEN termination_code = 'SUCCESS' THEN 1.0 ELSE 0.0 END) >= 0.95 THEN '\ud83d\udfe2 Low'\n         WHEN AVG(CASE WHEN termination_code = 'SUCCESS' THEN 1.0 ELSE 0.0 END) >= 0.8 THEN '\ud83d\udfe1 Medium'\n         ELSE '\ud83d\udd34 High' END AS severity,\n    'Review failed jobs' AS recommendation\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL\n  UNION ALL\n  SELECT \n    'Performance' AS area,\n    'Slow queries (>30s): ' || CAST(COUNT(*) AS STRING) AS issue,\n    CASE WHEN COUNT(*) < 10 THEN '\ud83d\udfe2 Low'\n         WHEN COUNT(*) < 50 THEN '\ud83d\udfe1 Medium'\n         ELSE '\ud83d\udd34 High' END AS severity,\n    'Optimize slow queries' AS recommendation\n  FROM ${catalog}.${gold_schema}.fact_query_history WHERE total_duration_ms > 30000 AND start_time BETWEEN :time_range.min AND :time_range.max\n)\nSELECT * FROM issues ORDER BY CASE WHEN severity LIKE '%High%' THEN 1 WHEN severity LIKE '%Medium%' THEN 2 ELSE 3 END"
+    },
+    {
+      "name": "ds_sku_breakdown",
+      "displayName": "SKU Breakdown",
+      "query": "SELECT sku_name, ROUND(SUM(list_cost), 2) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id GROUP BY sku_name ORDER BY total_cost DESC LIMIT 10"
+    },
+    {
+      "name": "ds_kpi_admin",
+      "displayName": "KPI: Admin",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%' THEN 1 ELSE 0 END), 0) AS admin_actions FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_users",
+      "displayName": "KPI: Users",
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS active_users FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_cost_trend",
+      "displayName": "Cost Trend",
+      "query": "SELECT DATE(usage_date) AS day, ROUND(SUM(list_cost), 2) AS daily_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_job_drift",
+      "displayName": "Monitor: Job Drift",
+      "query": "SELECT CONCAT(ROUND(COALESCE(success_rate_drift, 0) * 100, 1), '%') AS drift_pct FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' ORDER BY window.start DESC LIMIT 1"
+    },
+    {
+      "name": "ds_kpi_mtd",
+      "displayName": "KPI: MTD Spend",
+      "query": "SELECT CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS mtd_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())"
+    },
+    {
+      "name": "ds_kpi_permissions",
+      "displayName": "KPI: Permissions",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%grant%' OR action_name LIKE '%revoke%' OR action_name LIKE '%permission%' THEN 1 ELSE 0 END), 0) AS permission_changes FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_high_risk",
+      "displayName": "KPI: High Risk",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' OR action_name LIKE '%revoke%' THEN 1 ELSE 0 END), 0) AS high_risk_events FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_success_trend",
+      "displayName": "Success Trend",
+      "query": "SELECT DATE(run_date) AS run_date, ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate, ROUND(SUM(CASE WHEN termination_code IS NOT NULL AND termination_code != 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS failure_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_workspaces",
+      "displayName": "KPI: Workspaces",
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT workspace_id), 0) AS total_workspaces FROM ${catalog}.${gold_schema}.dim_workspace"
+    },
+    {
+      "name": "ds_drift_alerts",
+      "displayName": "Drift Alerts",
+      "query": "SELECT 'Cost' AS area, 'Daily Spend' AS metric, ROUND(COALESCE(cost_drift_pct, 0), 1) AS drift_pct, CASE WHEN ABS(COALESCE(cost_drift_pct, 0)) > 20 THEN '\ud83d\udd34 High' WHEN ABS(COALESCE(cost_drift_pct, 0)) > 10 THEN '\ud83d\udfe1 Medium' ELSE '\ud83d\udfe2 Low' END AS severity FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND ABS(COALESCE(cost_drift_pct, 0)) > 10 ORDER BY window.start DESC LIMIT 5"
+    },
+    {
+      "name": "ds_kpi_failed",
+      "displayName": "KPI: Failed",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS failed_queries_pct FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_query_volume",
+      "displayName": "Query Volume",
+      "query": "SELECT DATE(start_time) AS day, COUNT(*) AS query_count, COUNT(DISTINCT executed_by_user_id) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_lineage_trend",
+      "displayName": "Lineage Trend",
+      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS lineage_events FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE \n 1=1  AND  event_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_security",
+      "displayName": "KPI: Security",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' THEN 1 ELSE 0 END), 0) AS high_risk FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_time_windows",
+      "displayName": "Time Windows",
+      "query": "SELECT 'Last 7 Days' AS time_window UNION ALL SELECT 'Last 30 Days' UNION ALL SELECT 'Last 90 Days' UNION ALL SELECT 'Last 6 Months' UNION ALL SELECT 'Last Year' UNION ALL SELECT 'All Time'"
+    },
+    {
+      "name": "ds_workspaces",
+      "displayName": "Workspaces",
+      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name"
+    },
+    {
+      "name": "select_workspace",
+      "displayName": "select_workspace",
+      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name"
+    },
+    {
+      "name": "select_time_key",
+      "displayName": "select_time_key",
+      "query": "SELECT explode(array(\n  'Day',\n  'Week',\n  'Month',\n  'Quarter',\n  'Year'\n)) AS time_key"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F7F9FA",
+        "dark": "#0B0E11"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#1A1D21"
+      },
+      "widgetBorderColor": {
+        "light": "#E0E4E8",
+        "dark": "#2A2E33"
+      },
+      "fontColor": {
+        "light": "#11171C",
+        "dark": "#E8ECF0"
+      },
+      "selectionColor": {
+        "light": "#077A9D",
+        "dark": "#8ACAE7"
+      },
+      "visualizationColors": [
+        "#077A9D",
+        "#00A972",
+        "#FFAB00",
+        "#FF3621",
+        "#8BCAE7",
+        "#99DDB4",
+        "#FCA4A1",
+        "#AB4057",
+        "#6B4FBB",
+        "#BF7080"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    },
+    "genieSpace": {
+      "isEnabled": false
+    }
+  },
+  "warehouse_id": "${warehouse_id}"
+}

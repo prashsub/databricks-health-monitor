@@ -1,0 +1,4889 @@
+{
+  "pages": [
+    {
+      "name": "page_performance_overview",
+      "displayName": "\u26a1 Performance Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "fields": [
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_queries",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Queries (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_duration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "fields": [
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_duration",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Duration (sec)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_p95_duration",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "fields": [
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "p95_duration",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "P95 Duration (sec)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_slow_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_slow",
+                  "fields": [
+                    {
+                      "name": "slow_queries_pct",
+                      "expression": "`slow_queries_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "slow_queries_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slow Queries %",
+                "description": ">30 seconds"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_failed_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_failed",
+                  "fields": [
+                    {
+                      "name": "failed_queries_pct",
+                      "expression": "`failed_queries_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "failed_queries_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failed Queries %"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_unique_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "fields": [
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unique_users",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Unique Users (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_query_volume",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_query_volume",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "query_count",
+                      "expression": "`query_count`"
+                    },
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "query_count",
+                      "displayName": "Queries"
+                    },
+                    {
+                      "fieldName": "unique_users",
+                      "displayName": "Users"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Query Volume Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_duration_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_duration_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_duration",
+                      "displayName": "Avg Duration (s)"
+                    },
+                    {
+                      "fieldName": "p95_duration",
+                      "displayName": "P95 Duration (s)"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u23f1\ufe0f Query Duration Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_slow_queries",
+      "displayName": "\ud83d\udc0c Slow Queries Analysis",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_slowest_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_slowest_queries",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "query_id",
+                      "expression": "`query_id`"
+                    },
+                    {
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
+                    },
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "duration_sec",
+                      "expression": "`duration_sec`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "query_id",
+                    "title": "Query ID",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "user_identity_email",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "warehouse_name",
+                    "title": "Warehouse",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "duration_sec",
+                    "title": "Duration (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "status",
+                    "title": "Status",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udc0c Top 20 Slowest Queries (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_slow_by_user",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_slow_by_user",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
+                    },
+                    {
+                      "name": "slow_queries",
+                      "expression": "`slow_queries`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_identity_email",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "slow_queries",
+                    "title": "Slow Queries",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_duration",
+                    "title": "Avg Duration (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "total_queries",
+                    "title": "Total Queries",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udc64 Slow Queries by User"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_slow_by_warehouse",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_slow_by_warehouse",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "slow_queries",
+                      "expression": "`slow_queries`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "warehouse_name",
+                    "title": "Warehouse",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "slow_queries",
+                    "title": "Slow Queries",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_duration",
+                    "title": "Avg Duration (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "total_queries",
+                    "title": "Total Queries",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83c\udfed Slow Queries by Warehouse"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_slow_query_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_slow_query_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "slow_queries",
+                      "expression": "`slow_queries`"
+                    },
+                    {
+                      "name": "slow_pct",
+                      "expression": "`slow_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "slow_queries",
+                      "displayName": "Slow Queries"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Slow Query Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_failed_queries",
+      "displayName": "\u274c Failed Queries",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_failed_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failed_queries",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "query_id",
+                      "expression": "`query_id`"
+                    },
+                    {
+                      "name": "user_identity_email",
+                      "expression": "`user_identity_email`"
+                    },
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "error_message",
+                      "expression": "`error_message`"
+                    },
+                    {
+                      "name": "execution_time",
+                      "expression": "`execution_time`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "query_id",
+                    "title": "Query ID",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "user_identity_email",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "warehouse_name",
+                    "title": "Warehouse",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "error_message",
+                    "title": "Error",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "execution_time",
+                    "title": "Time",
+                    "type": "datetime"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u274c Recent Failed Queries (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_failed_by_error",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failed_by_error",
+                  "fields": [
+                    {
+                      "name": "error_category",
+                      "expression": "`error_category`"
+                    },
+                    {
+                      "name": "failure_count",
+                      "expression": "`failure_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "error_category",
+                  "displayName": "Error Category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "failure_count",
+                  "displayName": "Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd34 Failures by Error Category"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_failed_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failed_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "failed_count",
+                      "expression": "`failed_count`"
+                    },
+                    {
+                      "name": "failure_rate",
+                      "expression": "`failure_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "failure_rate",
+                      "displayName": "Failure Rate %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Query Failure Rate Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_warehouse_analysis",
+      "displayName": "\ud83c\udfed Warehouse Analysis",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_warehouse_perf",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_warehouse_perf",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    },
+                    {
+                      "name": "failure_rate",
+                      "expression": "`failure_rate`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "warehouse_name",
+                    "title": "Warehouse",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "total_queries",
+                    "title": "Total Queries",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_duration",
+                    "title": "Avg Duration (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "p95_duration",
+                    "title": "P95 (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "failure_rate",
+                    "title": "Fail Rate %",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83c\udfed Warehouse Performance Summary (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_queries_by_warehouse",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_queries_by_warehouse",
+                  "fields": [
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "query_count",
+                      "expression": "`query_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "color": {
+                  "fieldName": "warehouse_name",
+                  "displayName": "Warehouse"
+                },
+                "angle": {
+                  "fieldName": "query_count",
+                  "displayName": "Queries"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Query Distribution by Warehouse"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_warehouse_hourly",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_warehouse_hourly",
+                  "fields": [
+                    {
+                      "name": "hour",
+                      "expression": "`hour`"
+                    },
+                    {
+                      "name": "query_count",
+                      "expression": "`query_count`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "hour",
+                  "displayName": "Hour of Day",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "query_count",
+                      "displayName": "Queries"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u23f0 Query Volume by Hour"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_ml_predictions",
+      "displayName": "\ud83e\udd16 ML Predictions",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_ml_optimization",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_optimization",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "query_pattern",
+                      "expression": "`query_pattern`"
+                    },
+                    {
+                      "name": "current_duration",
+                      "expression": "`current_duration`"
+                    },
+                    {
+                      "name": "predicted_duration",
+                      "expression": "`predicted_duration`"
+                    },
+                    {
+                      "name": "optimization_tip",
+                      "expression": "`optimization_tip`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "query_pattern",
+                    "title": "Query Pattern",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "current_duration",
+                    "title": "Current (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "predicted_duration",
+                    "title": "Predicted (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "optimization_tip",
+                    "title": "Optimization",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Query Optimization Recommendations",
+                "description": "From query optimizer model"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_regression",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_regression",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "query_id",
+                      "expression": "`query_id`"
+                    },
+                    {
+                      "name": "baseline_duration",
+                      "expression": "`baseline_duration`"
+                    },
+                    {
+                      "name": "current_duration",
+                      "expression": "`current_duration`"
+                    },
+                    {
+                      "name": "regression_pct",
+                      "expression": "`regression_pct`"
+                    },
+                    {
+                      "name": "root_cause",
+                      "expression": "`root_cause`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "query_id",
+                    "title": "Query ID",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "baseline_duration",
+                    "title": "Baseline (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "current_duration",
+                    "title": "Current (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "regression_pct",
+                    "title": "Regression %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "root_cause",
+                    "title": "Root Cause",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Query Regression Detection",
+                "description": "Anomaly detection model"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_warehouse",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_warehouse",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "recommendation",
+                      "expression": "`recommendation`"
+                    },
+                    {
+                      "name": "reason",
+                      "expression": "`reason`"
+                    },
+                    {
+                      "name": "confidence",
+                      "expression": "`confidence`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "warehouse_name",
+                    "title": "Warehouse",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommendation",
+                    "title": "Recommendation",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "reason",
+                    "title": "Reason",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "confidence",
+                    "title": "Confidence",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Warehouse Sizing Recommendations",
+                "description": "From capacity planner model"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_monitoring",
+      "displayName": "\ud83d\udcca Lakehouse Monitoring",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_monitor_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_queries",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Total Queries"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_monitor_avg",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_duration",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Avg Duration (s)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_monitor_slow",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "slow_query_rate",
+                      "expression": "`slow_query_rate`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "slow_query_rate",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Slow Query Rate %"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_duration_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_trend",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_duration",
+                      "displayName": "Avg Duration (s)"
+                    },
+                    {
+                      "fieldName": "p95_duration",
+                      "displayName": "P95 Duration (s)"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Query Duration Trend"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_volume_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_volume",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    },
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "total_queries",
+                      "displayName": "Queries"
+                    },
+                    {
+                      "fieldName": "unique_users",
+                      "displayName": "Users"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Query Volume Trend"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_drift",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_drift",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "duration_drift",
+                      "expression": "`duration_drift`"
+                    },
+                    {
+                      "name": "volume_drift",
+                      "expression": "`volume_drift`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "duration_drift",
+                      "displayName": "Duration Drift %"
+                    },
+                    {
+                      "fieldName": "volume_drift",
+                      "displayName": "Volume Drift %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Performance Drift Detection"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_monitor_detailed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_detailed",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    },
+                    {
+                      "name": "avg_duration",
+                      "expression": "`avg_duration`"
+                    },
+                    {
+                      "name": "p95_duration",
+                      "expression": "`p95_duration`"
+                    },
+                    {
+                      "name": "slow_query_rate",
+                      "expression": "`slow_query_rate`"
+                    },
+                    {
+                      "name": "failure_rate",
+                      "expression": "`failure_rate`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start",
+                    "title": "Period",
+                    "type": "datetime"
+                  },
+                  {
+                    "fieldName": "total_queries",
+                    "title": "Queries",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_duration",
+                    "title": "Avg (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "p95_duration",
+                    "title": "P95 (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "slow_query_rate",
+                    "title": "Slow %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "failure_rate",
+                    "title": "Fail %",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Complete Metrics Table"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_utilization_overview",
+      "displayName": "\ud83d\udda5\ufe0f Utilization Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_avg_cpu",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_utilization",
+                  "fields": [
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_cpu",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg CPU Utilization %"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_memory",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_utilization",
+                  "fields": [
+                    {
+                      "name": "avg_memory",
+                      "expression": "`avg_memory`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_memory",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Memory Utilization %"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_nodes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_utilization",
+                  "fields": [
+                    {
+                      "name": "total_nodes",
+                      "expression": "`total_nodes`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_nodes",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Nodes (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_underutilized",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_underutilized",
+                  "fields": [
+                    {
+                      "name": "underutilized_pct",
+                      "expression": "`underutilized_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "underutilized_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Underutilized Clusters %",
+                "description": "<30% avg CPU"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_overutilized",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_overutilized",
+                  "fields": [
+                    {
+                      "name": "overutilized_pct",
+                      "expression": "`overutilized_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "overutilized_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Overutilized Clusters %",
+                "description": ">80% avg CPU"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_clusters",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_kpi_utilization",
+                  "fields": [
+                    {
+                      "name": "total_clusters",
+                      "expression": "`total_clusters`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_clusters",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Clusters (7d)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_cpu_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_cpu_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    },
+                    {
+                      "name": "peak_cpu",
+                      "expression": "`peak_cpu`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_cpu",
+                      "displayName": "Avg CPU %"
+                    },
+                    {
+                      "fieldName": "peak_cpu",
+                      "displayName": "Peak CPU %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 CPU Utilization Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_memory_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_memory_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "avg_memory",
+                      "expression": "`avg_memory`"
+                    },
+                    {
+                      "name": "peak_memory",
+                      "expression": "`peak_memory`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_memory",
+                      "displayName": "Avg Memory %"
+                    },
+                    {
+                      "fieldName": "peak_memory",
+                      "displayName": "Peak Memory %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Memory Utilization Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_disk_io",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_disk_io_trend",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "avg_disk_wait",
+                      "expression": "`avg_disk_wait`"
+                    },
+                    {
+                      "name": "peak_disk_wait",
+                      "expression": "`peak_disk_wait`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_disk_wait",
+                      "displayName": "Avg I/O Wait %"
+                    },
+                    {
+                      "fieldName": "peak_disk_wait",
+                      "displayName": "Peak I/O Wait %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcbe Disk I/O Wait Trend (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_cluster_analysis",
+      "displayName": "\ud83d\udd0d Cluster Analysis",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_underutilized",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_underutilized_clusters",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "cluster_name",
+                      "expression": "`cluster_name`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    },
+                    {
+                      "name": "avg_memory",
+                      "expression": "`avg_memory`"
+                    },
+                    {
+                      "name": "estimated_cost",
+                      "expression": "`estimated_cost`"
+                    },
+                    {
+                      "name": "potential_savings",
+                      "expression": "`potential_savings`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "cluster_name",
+                    "title": "Cluster",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "avg_cpu",
+                    "title": "Avg CPU %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_memory",
+                    "title": "Avg Mem %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "estimated_cost",
+                    "title": "Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "potential_savings",
+                    "title": "Savings ($)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc9 Underutilized Clusters (<30% CPU)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_overutilized",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_overutilized_clusters",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "cluster_name",
+                      "expression": "`cluster_name`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    },
+                    {
+                      "name": "peak_cpu",
+                      "expression": "`peak_cpu`"
+                    },
+                    {
+                      "name": "avg_memory",
+                      "expression": "`avg_memory`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "cluster_name",
+                    "title": "Cluster",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "avg_cpu",
+                    "title": "Avg CPU %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "peak_cpu",
+                    "title": "Peak CPU %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_memory",
+                    "title": "Avg Mem %",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd25 Overutilized Clusters (>80% CPU)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_high_memory_swap",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_high_memory_swap",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "cluster_name",
+                      "expression": "`cluster_name`"
+                    },
+                    {
+                      "name": "avg_memory",
+                      "expression": "`avg_memory`"
+                    },
+                    {
+                      "name": "peak_memory",
+                      "expression": "`peak_memory`"
+                    },
+                    {
+                      "name": "swap_events",
+                      "expression": "`swap_events`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "cluster_name",
+                    "title": "Cluster",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "avg_memory",
+                    "title": "Avg Mem %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "peak_memory",
+                    "title": "Peak Mem %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "swap_events",
+                    "title": "Swap Events",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26a0\ufe0f High Memory/Swap Clusters"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_high_io_wait",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_high_io_wait",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "cluster_name",
+                      "expression": "`cluster_name`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "avg_io_wait",
+                      "expression": "`avg_io_wait`"
+                    },
+                    {
+                      "name": "peak_io_wait",
+                      "expression": "`peak_io_wait`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "cluster_name",
+                    "title": "Cluster",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "avg_io_wait",
+                    "title": "Avg I/O Wait %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "peak_io_wait",
+                    "title": "Peak I/O Wait %",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcbe High I/O Wait Clusters"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_utilization_distribution",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_utilization_distribution",
+                  "fields": [
+                    {
+                      "name": "utilization_bucket",
+                      "expression": "`utilization_bucket`"
+                    },
+                    {
+                      "name": "cluster_count",
+                      "expression": "`cluster_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "utilization_bucket",
+                  "displayName": "CPU Utilization Range",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "cluster_count",
+                  "displayName": "Cluster Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Cluster Distribution by CPU Utilization"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_rightsizing",
+      "displayName": "\ud83c\udfaf Right-Sizing Opportunities",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_rightsizing_recs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_rightsizing_recommendations",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "cluster_name",
+                      "expression": "`cluster_name`"
+                    },
+                    {
+                      "name": "current_size",
+                      "expression": "`current_size`"
+                    },
+                    {
+                      "name": "recommended_size",
+                      "expression": "`recommended_size`"
+                    },
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    },
+                    {
+                      "name": "potential_savings",
+                      "expression": "`potential_savings`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "cluster_name",
+                    "title": "Cluster",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "current_size",
+                    "title": "Current Size",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_size",
+                    "title": "Recommended",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "avg_cpu",
+                    "title": "Avg CPU %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "potential_savings",
+                    "title": "Savings ($)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcb0 Right-Sizing Recommendations"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_low_cpu_high_cost",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_low_cpu_high_cost",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    },
+                    {
+                      "name": "cost_30d",
+                      "expression": "`cost_30d`"
+                    },
+                    {
+                      "name": "potential_savings",
+                      "expression": "`potential_savings`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "avg_cpu",
+                    "title": "Avg CPU %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "cost_30d",
+                    "title": "Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "potential_savings",
+                    "title": "Savings ($)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc9 Low CPU + High Cost Jobs"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_high_memory_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_high_memory_jobs",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "avg_memory",
+                      "expression": "`avg_memory`"
+                    },
+                    {
+                      "name": "peak_memory",
+                      "expression": "`peak_memory`"
+                    },
+                    {
+                      "name": "recommendation",
+                      "expression": "`recommendation`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "avg_memory",
+                    "title": "Avg Mem %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "peak_memory",
+                    "title": "Peak Mem %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "recommendation",
+                    "title": "Recommendation",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd25 High Memory Usage Jobs"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_savings_opportunity",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_savings_opportunity",
+                  "fields": [
+                    {
+                      "name": "category",
+                      "expression": "`category`"
+                    },
+                    {
+                      "name": "savings",
+                      "expression": "`savings`"
+                    },
+                    {
+                      "name": "clusters",
+                      "expression": "`clusters`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "category",
+                  "displayName": "Category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "savings",
+                  "displayName": "Potential Savings ($)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcb0 Savings Opportunity by Category"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_ml_predictions_2",
+      "displayName": "\ud83e\udd16 ML Predictions (Cluster)",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_ml_capacity",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_capacity_predictions",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "current_workers",
+                      "expression": "`current_workers`"
+                    },
+                    {
+                      "name": "recommended_workers",
+                      "expression": "`recommended_workers`"
+                    },
+                    {
+                      "name": "confidence",
+                      "expression": "`confidence`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "current_workers",
+                    "title": "Current Workers",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "recommended_workers",
+                    "title": "Recommended",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "confidence",
+                    "title": "Confidence",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Capacity Planning Predictions",
+                "description": "Gradient Boosting capacity planner"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_rightsizing",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_rightsizing",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "cluster_name",
+                      "expression": "`cluster_name`"
+                    },
+                    {
+                      "name": "current_node_type",
+                      "expression": "`current_node_type`"
+                    },
+                    {
+                      "name": "recommended_type",
+                      "expression": "`recommended_type`"
+                    },
+                    {
+                      "name": "predicted_savings",
+                      "expression": "`predicted_savings`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "cluster_name",
+                    "title": "Cluster",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "current_node_type",
+                    "title": "Current Type",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_type",
+                    "title": "Recommended",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "predicted_savings",
+                    "title": "Savings ($)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: Right-Sizing Recommendations",
+                "description": "Multi-output regression model"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_ml_dbr_risk",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ml_dbr_risk",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "current_dbr",
+                      "expression": "`current_dbr`"
+                    },
+                    {
+                      "name": "target_dbr",
+                      "expression": "`target_dbr`"
+                    },
+                    {
+                      "name": "risk_level",
+                      "expression": "`risk_level`"
+                    },
+                    {
+                      "name": "risk_score",
+                      "expression": "`risk_score`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "current_dbr",
+                    "title": "Current DBR",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "target_dbr",
+                    "title": "Target DBR",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "risk_level",
+                    "title": "Risk Level",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "risk_score",
+                    "title": "Score",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83e\udd16 ML: DBR Migration Risk",
+                "description": "LightGBM risk scorer"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_monitoring_2",
+      "displayName": "\ud83d\udcca Cluster Monitoring",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_monitor_cpu",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_cpu",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Avg CPU %"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_monitor_memory",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "avg_memory",
+                      "expression": "`avg_memory`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_memory",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Avg Memory %"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_monitor_nodes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "fields": [
+                    {
+                      "name": "total_nodes",
+                      "expression": "`total_nodes`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_nodes",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Total Nodes"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_cpu_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_cpu_trend",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    },
+                    {
+                      "name": "p95_cpu",
+                      "expression": "`p95_cpu`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_cpu",
+                      "displayName": "Avg CPU %"
+                    },
+                    {
+                      "fieldName": "p95_cpu",
+                      "displayName": "P95 CPU %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: CPU Utilization Trend"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_memory_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_memory_trend",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "avg_memory",
+                      "expression": "`avg_memory`"
+                    },
+                    {
+                      "name": "p95_memory",
+                      "expression": "`p95_memory`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "avg_memory",
+                      "displayName": "Avg Memory %"
+                    },
+                    {
+                      "fieldName": "p95_memory",
+                      "displayName": "P95 Memory %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Memory Utilization Trend"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_drift",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_drift",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "cpu_drift",
+                      "expression": "`cpu_drift`"
+                    },
+                    {
+                      "name": "memory_drift",
+                      "expression": "`memory_drift`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "fieldName": "cpu_drift",
+                      "displayName": "CPU Drift %"
+                    },
+                    {
+                      "fieldName": "memory_drift",
+                      "displayName": "Memory Drift %"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Utilization Drift Detection"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_monitor_detailed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_detailed",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_nodes",
+                      "expression": "`total_nodes`"
+                    },
+                    {
+                      "name": "avg_cpu",
+                      "expression": "`avg_cpu`"
+                    },
+                    {
+                      "name": "p95_cpu",
+                      "expression": "`p95_cpu`"
+                    },
+                    {
+                      "name": "avg_memory",
+                      "expression": "`avg_memory`"
+                    },
+                    {
+                      "name": "avg_io_wait",
+                      "expression": "`avg_io_wait`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start",
+                    "title": "Period",
+                    "type": "datetime"
+                  },
+                  {
+                    "fieldName": "total_nodes",
+                    "title": "Nodes",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_cpu",
+                    "title": "Avg CPU",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "p95_cpu",
+                    "title": "P95 CPU",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_memory",
+                    "title": "Avg Mem",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_io_wait",
+                    "title": "I/O Wait",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcca Monitor: Complete Metrics Table"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_dbr_overview",
+      "displayName": "DBR Version Status",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_legacy_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_legacy_count",
+                  "fields": [
+                    {
+                      "name": "count",
+                      "expression": "`count`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs on Legacy DBR",
+                "description": "Jobs running DBR < 15"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_serverless_pct",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_serverless_adoption",
+                  "fields": [
+                    {
+                      "name": "serverless_pct",
+                      "expression": "`serverless_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "serverless_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Serverless Adoption",
+                "description": "% of jobs using serverless"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_current_dbr_pct",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_current_dbr",
+                  "fields": [
+                    {
+                      "name": "current_pct",
+                      "expression": "`current_pct`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "current_pct",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Current DBR Usage",
+                "description": "% on DBR 15+"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_dbr_distribution",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_dbr_dist",
+                  "fields": [
+                    {
+                      "name": "dbr_version",
+                      "expression": "`dbr_version`"
+                    },
+                    {
+                      "name": "job_count",
+                      "expression": "`job_count`"
+                    },
+                    {
+                      "name": "version_status",
+                      "expression": "`version_status`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "dbr_version",
+                  "displayName": "DBR Version",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "job_count",
+                  "displayName": "Job Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "version_status",
+                  "displayName": "Status",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "DBR Version Distribution",
+                "description": "Job distribution across DBR versions"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_compute_type",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_compute_type",
+                  "fields": [
+                    {
+                      "name": "compute_type",
+                      "expression": "`compute_type`"
+                    },
+                    {
+                      "name": "job_count",
+                      "expression": "`job_count`"
+                    },
+                    {
+                      "name": "total_cost",
+                      "expression": "`total_cost`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "color": {
+                  "fieldName": "compute_type",
+                  "displayName": "Compute Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "angle": {
+                  "fieldName": "job_count",
+                  "displayName": "Jobs",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Serverless vs Classic",
+                "description": "Job distribution by compute type"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_legacy_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_legacy_jobs",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "dbr_version",
+                      "expression": "`dbr_version`"
+                    },
+                    {
+                      "name": "last_run",
+                      "expression": "`last_run`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job Name",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "dbr_version",
+                    "title": "DBR Version",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_run",
+                    "title": "Last Run",
+                    "type": "datetime"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs on Legacy Runtime"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ],
+  "datasets": [
+    {
+      "name": "ds_kpi_queries",
+      "displayName": "KPI: Queries",
+      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, FORMAT_NUMBER(COUNT(DISTINCT executed_by_user_id), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_slow",
+      "displayName": "KPI: Slow",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS slow_queries_pct FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_failed",
+      "displayName": "KPI: Failed",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS failed_queries_pct FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_query_volume",
+      "displayName": "Query Volume",
+      "query": "SELECT DATE(start_time) AS day, COUNT(*) AS query_count, COUNT(DISTINCT executed_by_user_id) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_duration_trend",
+      "displayName": "Duration Trend",
+      "query": "SELECT DATE(start_time) AS day, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_slowest_queries",
+      "displayName": "Slowest Queries",
+      "query": "SELECT query_id, executed_by_user_id AS user_identity_email, warehouse_name, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, execution_status FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max ORDER BY total_duration_ms DESC LIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_slow_by_user",
+      "displayName": "Slow by User",
+      "query": "SELECT executed_by_user_id AS user_identity_email, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_slow_by_warehouse",
+      "displayName": "Slow by Warehouse",
+      "query": "SELECT warehouse_name, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_slow_query_trend",
+      "displayName": "Slow Query Trend",
+      "query": "SELECT DATE(start_time) AS day, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS slow_pct FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_failed_queries",
+      "displayName": "Failed Queries",
+      "query": "SELECT query_id, executed_by_user_id AS user_identity_email, warehouse_name, error_message, start_time AS execution_time FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_execution_status = 'FAILED' ORDER BY start_time DESC LIMIT 30",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_failed_by_error",
+      "displayName": "Failed by Error",
+      "query": "SELECT COALESCE(SUBSTRING(error_message, 1, 50), 'Unknown') AS error_category, COUNT(*) AS failure_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_execution_status = 'FAILED' GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_failed_trend",
+      "displayName": "Failed Trend",
+      "query": "SELECT DATE(start_time) AS day, SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) AS failed_count, ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS failure_rate FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_warehouse_perf",
+      "displayName": "Warehouse Performance",
+      "query": "SELECT warehouse_name, COUNT(*) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS failure_rate FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY total_queries DESC",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_queries_by_warehouse",
+      "displayName": "Queries by Warehouse",
+      "query": "SELECT warehouse_name, COUNT(*) AS query_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_warehouse_hourly",
+      "displayName": "Warehouse Hourly",
+      "query": "SELECT HOUR(start_time) AS hour, COUNT(*) AS query_count, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_ml_optimization",
+      "displayName": "ML: Optimization",
+      "query": "SELECT 'pattern-001' AS query_pattern, 0.0 AS current_duration, 0.0 AS predicted_duration, 'N/A' AS optimization_tip WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS query_pattern, 0.0 AS current_duration, 0.0 AS predicted_duration, 'Pending' AS optimization_tip LIMIT 1"
+    },
+    {
+      "name": "ds_ml_regression",
+      "displayName": "ML: Regression",
+      "query": "SELECT 'query-001' AS query_id, 0.0 AS baseline_duration, 0.0 AS current_duration, 0.0 AS regression_pct, 'N/A' AS root_cause WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS query_id, 0.0 AS baseline_duration, 0.0 AS current_duration, 0.0 AS regression_pct, 'Pending' AS root_cause LIMIT 1"
+    },
+    {
+      "name": "ds_ml_warehouse",
+      "displayName": "ML: Warehouse",
+      "query": "SELECT 'warehouse-001' AS warehouse_name, 'N/A' AS recommendation, 'N/A' AS reason, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS warehouse_name, 'Pending' AS recommendation, 'N/A' AS reason, 0.0 AS confidence LIMIT 1"
+    },
+    {
+      "name": "ds_monitor_latest",
+      "displayName": "Monitor: Latest",
+      "query": "SELECT \n  ROUND(AVG(avg_execution_duration_ms), 0) AS avg_duration_ms,\n  ROUND(AVG(total_queries), 0) AS total_queries,\n  ROUND(AVG(success_rate) * 100, 1) AS success_rate_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_trend",
+      "displayName": "Monitor: Trend",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  AVG(avg_execution_duration_ms) AS avg_duration_ms,\n  SUM(total_queries) AS total_queries\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_volume",
+      "displayName": "Monitor: Volume",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  SUM(total_queries) AS query_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_drift",
+      "displayName": "Monitor: Drift",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  column_name,\n  drift_type,\n  ROUND(ks_test * 100, 2) AS ks_stat_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\nWHERE window.start BETWEEN :time_range.min AND :time_range.max\nAND drift_type = 'CONSECUTIVE'\nORDER BY window.start DESC",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_detailed",
+      "displayName": "Monitor: Detailed",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  column_name,\n  ROUND(avg, 2) AS avg_value,\n  ROUND(stddev, 2) AS stddev_value\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nORDER BY window.start DESC LIMIT 100",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_utilization",
+      "displayName": "KPI: Utilization",
+      "query": "SELECT CONCAT(ROUND(AVG(cpu_user_percent + cpu_system_percent), 1), '%') AS avg_cpu, CONCAT(ROUND(AVG(mem_used_percent), 1), '%') AS avg_memory, FORMAT_NUMBER(COUNT(DISTINCT cluster_id), 0) AS total_nodes, FORMAT_NUMBER(COUNT(DISTINCT cluster_id), 0) AS total_clusters FROM ${catalog}.${gold_schema}.fact_node_timeline  WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_underutilized",
+      "displayName": "KPI: Underutilized",
+      "query": "WITH cluster_util AS (SELECT cluster_id, AVG(cpu_user_percent + cpu_system_percent) AS avg_cpu FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1) SELECT CONCAT(ROUND(SUM(CASE WHEN avg_cpu < 30 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS underutilized_pct FROM cluster_util",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_kpi_overutilized",
+      "displayName": "KPI: Overutilized",
+      "query": "WITH cluster_util AS (SELECT cluster_id, AVG(cpu_user_percent + cpu_system_percent) AS avg_cpu FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1) SELECT CONCAT(ROUND(SUM(CASE WHEN avg_cpu > 80 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS overutilized_pct FROM cluster_util",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_cpu_trend",
+      "displayName": "CPU Trend",
+      "query": "SELECT DATE(start_time) AS day, ROUND(AVG(cpu_user_percent + cpu_system_percent), 1) AS avg_cpu, ROUND(MAX(cpu_user_percent + cpu_system_percent), 1) AS peak_cpu FROM ${catalog}.${gold_schema}.fact_node_timeline  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_memory_trend",
+      "displayName": "Memory Trend",
+      "query": "SELECT DATE(start_time) AS day, ROUND(AVG(mem_used_percent), 1) AS avg_memory, ROUND(MAX(mem_used_percent), 1) AS peak_memory FROM ${catalog}.${gold_schema}.fact_node_timeline  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_disk_io_trend",
+      "displayName": "Disk I/O Trend",
+      "query": "SELECT DATE(start_time) AS day, ROUND(AVG(cpu_wait_percent), 1) AS avg_disk_wait, ROUND(MAX(cpu_wait_percent), 1) AS peak_disk_wait FROM ${catalog}.${gold_schema}.fact_node_timeline  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_underutilized_clusters",
+      "displayName": "Underutilized Clusters",
+      "query": "WITH cluster_stats AS (SELECT n.cluster_id, MAX(c.cluster_name) AS cluster_name, MAX(w.workspace_name) AS workspace_name, AVG(n.cpu_user_percent + n.cpu_system_percent) AS avg_cpu, AVG(n.mem_used_percent) AS avg_memory FROM ${catalog}.${gold_schema}.fact_node_timeline n LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON n.cluster_id = c.cluster_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON n.workspace_id = w.workspace_id WHERE n.start_time BETWEEN :time_range.min AND :time_range.max GROUP BY n.cluster_id) SELECT COALESCE(cluster_name, cluster_id) AS cluster_name, workspace_name, ROUND(avg_cpu, 1) AS avg_cpu, ROUND(avg_memory, 1) AS avg_memory, 0.00 AS estimated_cost, ROUND((30 - avg_cpu) / 30 * 100, 2) AS potential_savings FROM cluster_stats WHERE avg_cpu < 30 ORDER BY avg_cpu ASC LIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_overutilized_clusters",
+      "displayName": "Overutilized Clusters",
+      "query": "WITH cluster_stats AS (SELECT n.cluster_id, MAX(c.cluster_name) AS cluster_name, MAX(w.workspace_name) AS workspace_name, AVG(n.cpu_user_percent + n.cpu_system_percent) AS avg_cpu, MAX(n.cpu_user_percent + n.cpu_system_percent) AS peak_cpu, AVG(n.mem_used_percent) AS avg_memory FROM ${catalog}.${gold_schema}.fact_node_timeline n LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON n.cluster_id = c.cluster_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON n.workspace_id = w.workspace_id WHERE n.start_time BETWEEN :time_range.min AND :time_range.max GROUP BY n.cluster_id) SELECT COALESCE(cluster_name, cluster_id) AS cluster_name, workspace_name, ROUND(avg_cpu, 1) AS avg_cpu, ROUND(peak_cpu, 1) AS peak_cpu, ROUND(avg_memory, 1) AS avg_memory FROM cluster_stats WHERE avg_cpu > 80 ORDER BY avg_cpu DESC LIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_high_memory_swap",
+      "displayName": "High Memory Swap",
+      "query": "WITH cluster_stats AS (SELECT n.cluster_id, MAX(c.cluster_name) AS cluster_name, AVG(n.mem_used_percent) AS avg_memory, MAX(n.mem_used_percent) AS peak_memory, SUM(CASE WHEN n.mem_used_percent > 90 THEN 1 ELSE 0 END) AS swap_events FROM ${catalog}.${gold_schema}.fact_node_timeline n LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON n.cluster_id = c.cluster_id WHERE n.start_time BETWEEN :time_range.min AND :time_range.max GROUP BY n.cluster_id) SELECT COALESCE(cluster_name, cluster_id) AS cluster_name, ROUND(avg_memory, 1) AS avg_memory, ROUND(peak_memory, 1) AS peak_memory, swap_events FROM cluster_stats WHERE peak_memory > 90 ORDER BY swap_events DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_high_io_wait",
+      "displayName": "High I/O Wait",
+      "query": "WITH cluster_stats AS (SELECT n.cluster_id, MAX(c.cluster_name) AS cluster_name, MAX(w.workspace_name) AS workspace_name, AVG(n.cpu_wait_percent) AS avg_io_wait, MAX(n.cpu_wait_percent) AS peak_io_wait FROM ${catalog}.${gold_schema}.fact_node_timeline n LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON n.cluster_id = c.cluster_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON n.workspace_id = w.workspace_id WHERE n.start_time BETWEEN :time_range.min AND :time_range.max GROUP BY n.cluster_id) SELECT COALESCE(cluster_name, cluster_id) AS cluster_name, workspace_name, ROUND(avg_io_wait, 1) AS avg_io_wait, ROUND(peak_io_wait, 1) AS peak_io_wait FROM cluster_stats WHERE avg_io_wait > 10 ORDER BY avg_io_wait DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_utilization_distribution",
+      "displayName": "Utilization Distribution",
+      "query": "WITH cluster_util AS (SELECT cluster_id, AVG(cpu_user_percent + cpu_system_percent) AS avg_cpu FROM ${catalog}.${gold_schema}.fact_node_timeline WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1) SELECT CASE WHEN avg_cpu < 10 THEN '0-10%' WHEN avg_cpu < 20 THEN '10-20%' WHEN avg_cpu < 30 THEN '20-30%' WHEN avg_cpu < 50 THEN '30-50%' WHEN avg_cpu < 80 THEN '50-80%' ELSE '>80%' END AS utilization_bucket, COUNT(*) AS cluster_count FROM cluster_util GROUP BY 1 ORDER BY MIN(avg_cpu)",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_rightsizing_recommendations",
+      "displayName": "Right-Sizing Recommendations",
+      "query": "SELECT 'Cluster right-sizing requires ML model inference' AS cluster_name, 'N/A' AS current_size, 'N/A' AS recommended_size, 0.0 AS avg_cpu, 0.00 AS potential_savings WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline for recommendations' AS cluster_name, 'N/A' AS current_size, 'Pending' AS recommended_size, 0.0 AS avg_cpu, 0.00 AS potential_savings LIMIT 1"
+    },
+    {
+      "name": "ds_low_cpu_high_cost",
+      "displayName": "Low CPU High Cost",
+      "query": "SELECT 'Low CPU analysis requires cost data join' AS job_name, 'N/A' AS workspace_name, 0.0 AS avg_cpu, 0.00 AS cost_30d, 0.00 AS potential_savings WHERE 1=0 UNION ALL SELECT 'Run cost analysis job' AS job_name, 'Pending' AS workspace_name, 0.0 AS avg_cpu, 0.00 AS cost_30d, 0.00 AS potential_savings LIMIT 1"
+    },
+    {
+      "name": "ds_high_memory_jobs",
+      "displayName": "High Memory Jobs",
+      "query": "SELECT 'High memory job analysis pending' AS job_name, 0.0 AS avg_memory, 0.0 AS peak_memory, 'N/A' AS recommendation WHERE 1=0 UNION ALL SELECT 'Run memory analysis job' AS job_name, 0.0 AS avg_memory, 0.0 AS peak_memory, 'Pending' AS recommendation LIMIT 1"
+    },
+    {
+      "name": "ds_savings_opportunity",
+      "displayName": "Savings Opportunity",
+      "query": "SELECT 'Underutilized' AS category, 0.00 AS savings, 0 AS clusters WHERE 1=0 UNION ALL SELECT 'Run savings analysis' AS category, 0.00 AS savings, 0 AS clusters LIMIT 1"
+    },
+    {
+      "name": "ds_ml_capacity_predictions",
+      "displayName": "ML: Capacity Predictions",
+      "query": "SELECT 'job-001' AS job_name, 0 AS current_workers, 0 AS recommended_workers, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 0 AS current_workers, 0 AS recommended_workers, 0.0 AS confidence LIMIT 1"
+    },
+    {
+      "name": "ds_ml_rightsizing",
+      "displayName": "ML: Right-Sizing",
+      "query": "SELECT 'cluster-001' AS cluster_name, 'N/A' AS current_node_type, 'N/A' AS recommended_type, 0.00 AS predicted_savings WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS cluster_name, 'N/A' AS current_node_type, 'Pending' AS recommended_type, 0.00 AS predicted_savings LIMIT 1"
+    },
+    {
+      "name": "ds_ml_dbr_risk",
+      "displayName": "ML: DBR Risk",
+      "query": "SELECT 'job-001' AS job_name, 'N/A' AS current_dbr, 'N/A' AS target_dbr, 'N/A' AS risk_level, 0.0 AS risk_score WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 'N/A' AS current_dbr, 'N/A' AS target_dbr, 'Pending' AS risk_level, 0.0 AS risk_score LIMIT 1"
+    },
+    {
+      "name": "ds_monitor_cpu_trend",
+      "displayName": "Monitor: CPU Trend",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  ROUND(AVG(avg), 2) AS avg_cpu_percent\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE log_type = 'INPUT' AND column_name LIKE '%cpu%'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_memory_trend",
+      "displayName": "Monitor: Memory Trend",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  ROUND(AVG(avg), 2) AS avg_memory_percent\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE log_type = 'INPUT' AND column_name LIKE '%memory%'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_legacy_count",
+      "query": "WITH exploded AS (SELECT f.job_id, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date BETWEEN :time_range.min AND :time_range.max) SELECT COUNT(DISTINCT e.job_id) AS count FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15",
+      "displayName": "Legacy Count",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_serverless_adoption",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN product_features_is_serverless THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS serverless_pct FROM ${catalog}.${gold_schema}.fact_usage  WHERE usage_date BETWEEN :time_range.min AND :time_range.max",
+      "displayName": "Serverless Adoption",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_current_dbr",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) >= 15 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS current_pct FROM ${catalog}.${gold_schema}.dim_cluster c WHERE c.delete_time IS NULL",
+      "displayName": "Current Dbr"
+    },
+    {
+      "name": "ds_dbr_dist",
+      "query": "WITH exploded AS (SELECT f.job_id, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date BETWEEN :time_range.min AND :time_range.max) SELECT REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)') AS dbr_version, COUNT(DISTINCT e.job_id) AS job_count, CASE WHEN CAST(SPLIT(REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)'), '\\\\.')[0] AS INT) >= 15 THEN 'Current' WHEN CAST(SPLIT(REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)'), '\\\\.')[0] AS INT) >= 13 THEN 'LTS' ELSE 'Legacy' END AS version_status FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND c.dbr_version IS NOT NULL GROUP BY REGEXP_EXTRACT(c.dbr_version, '(\\\\d+\\\\.\\\\d+)') ORDER BY dbr_version DESC",
+      "displayName": "Dbr Dist",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_compute_type",
+      "query": "SELECT CASE WHEN product_features_is_serverless THEN 'Serverless' ELSE 'Classic' END AS compute_type, COUNT(DISTINCT usage_metadata_job_id) AS job_count, ROUND(SUM(list_cost), 2) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage  WHERE usage_date BETWEEN :time_range.min AND :time_range.max AND usage_metadata_job_id IS NOT NULL GROUP BY CASE WHEN product_features_is_serverless THEN 'Serverless' ELSE 'Classic' END",
+      "displayName": "Compute Type",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_legacy_jobs",
+      "query": "WITH exploded AS (SELECT f.job_id, f.workspace_id, f.period_end_time, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date BETWEEN :time_range.min AND :time_range.max) SELECT COALESCE(j.name, e.job_id) AS job_name, w.workspace_name, c.dbr_version, MAX(e.period_end_time) AS last_run FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON e.job_id = j.job_id AND e.workspace_id = j.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON e.workspace_id = w.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15 GROUP BY COALESCE(j.name, e.job_id), w.workspace_name, c.dbr_version ORDER BY last_run DESC LIMIT 30",
+      "displayName": "Legacy Jobs",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_time_windows",
+      "displayName": "Time Windows",
+      "query": "SELECT 'Last 7 Days' AS time_window UNION ALL SELECT 'Last 30 Days' UNION ALL SELECT 'Last 90 Days' UNION ALL SELECT 'Last 6 Months' UNION ALL SELECT 'Last Year' UNION ALL SELECT 'All Time'"
+    },
+    {
+      "name": "ds_workspaces",
+      "displayName": "Workspaces",
+      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name"
+    },
+    {
+      "name": "select_workspace",
+      "displayName": "select_workspace",
+      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name"
+    },
+    {
+      "name": "select_time_key",
+      "displayName": "select_time_key",
+      "query": "SELECT explode(array(\n  'Day',\n  'Week',\n  'Month',\n  'Quarter',\n  'Year'\n)) AS time_key"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F7F9FA",
+        "dark": "#0B0E11"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#1A1D21"
+      },
+      "widgetBorderColor": {
+        "light": "#E0E4E8",
+        "dark": "#2A2E33"
+      },
+      "fontColor": {
+        "light": "#11171C",
+        "dark": "#E8ECF0"
+      },
+      "selectionColor": {
+        "light": "#077A9D",
+        "dark": "#8ACAE7"
+      },
+      "visualizationColors": [
+        "#077A9D",
+        "#00A972",
+        "#FFAB00",
+        "#FF3621",
+        "#8BCAE7",
+        "#99DDB4",
+        "#FCA4A1",
+        "#AB4057",
+        "#6B4FBB",
+        "#BF7080"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    },
+    "genieSpace": {
+      "isEnabled": false
+    }
+  },
+  "warehouse_id": "${warehouse_id}"
+}

@@ -313,8 +313,9 @@ def create_job_monitor(workspace_client, catalog: str, gold_schema: str, spark=N
     #   - workspace_id: "Show job failures by workspace"
     #   - result_state: "Success vs failure breakdown"
     #   - trigger_type: "Scheduled vs manual run analysis"
-    #   - job_name: "Which job is failing most?"
+    #   - job_id: "Which job is failing most?" (join to dim_job for job_name)
     #   - termination_code: "Failure reason analysis"
+    #   - run_type: "Filter by JOB_RUN, SUBMIT_RUN, etc."
     monitor = create_time_series_monitor(
         workspace_client=workspace_client,
         table_name=table_name,
@@ -325,8 +326,9 @@ def create_job_monitor(workspace_client, catalog: str, gold_schema: str, spark=N
             "workspace_id",
             "result_state",
             "trigger_type",
-            "job_name",
-            "termination_code"
+            "job_id",
+            "termination_code",
+            "run_type"
         ],
         schedule_cron="0 0 * * * ?",  # Hourly
         spark=spark,  # Pass spark to create monitoring schema
@@ -351,7 +353,7 @@ def main():
     print(f"  Custom Metrics:  {num_metrics}")
     print(f"  Timestamp Col:   run_date")
     print(f"  Granularity:     1 hour, 1 day")
-    print(f"  Slicing:         workspace_id, result_state, trigger_type, job_name, termination_code")
+    print(f"  Slicing:         workspace_id, result_state, trigger_type, job_id, termination_code, run_type")
     print(f"  Schedule:        Hourly")
     print("-" * 70)
     

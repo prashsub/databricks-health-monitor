@@ -1,6 +1,12 @@
 #!/bin/bash
 # Delete monitoring dashboards from Databricks workspace
 
+# Check for --yes flag
+AUTO_CONFIRM=false
+if [ "$1" = "--yes" ] || [ "$1" = "-y" ]; then
+    AUTO_CONFIRM=true
+fi
+
 # Get Databricks host from CLI config
 DATABRICKS_HOST=$(databricks auth describe 2>/dev/null | grep "Host:" | awk '{print $2}')
 
@@ -130,8 +136,13 @@ echo "----------------------------------------"
 
 # Confirm
 echo ""
-printf "⚠️  Delete these $FOUND_COUNT dashboards? (yes/no): "
-read CONFIRM
+if [ "$AUTO_CONFIRM" = true ]; then
+    echo "⚠️  Auto-confirming deletion (--yes flag provided)"
+    CONFIRM="yes"
+else
+    printf "⚠️  Delete these $FOUND_COUNT dashboards? (yes/no): "
+    read CONFIRM
+fi
 
 if [ "$CONFIRM" != "yes" ]; then
     echo "❌ Cancelled."

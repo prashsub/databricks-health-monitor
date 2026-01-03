@@ -1,4 +1,23 @@
 # Databricks notebook source
+# ===========================================================================
+# PATH SETUP FOR ASSET BUNDLE IMPORTS
+# ===========================================================================
+# This enables imports from src.ml.config and src.ml.utils when deployed
+# via Databricks Asset Bundles. The bundle root is computed dynamically.
+# Reference: https://docs.databricks.com/aws/en/notebooks/share-code
+import sys
+import os
+
+try:
+    # Get current notebook path and compute bundle root
+    _notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+    _bundle_root = "/Workspace" + str(_notebook_path).rsplit('/src/', 1)[0]
+    if _bundle_root not in sys.path:
+        sys.path.insert(0, _bundle_root)
+        print(f"✓ Added bundle root to sys.path: {_bundle_root}")
+except Exception as e:
+    print(f"⚠ Path setup skipped (local execution): {e}")
+# ===========================================================================
 """
 Score Cost Anomalies - Batch Inference
 ======================================

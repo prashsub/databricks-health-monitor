@@ -14,16 +14,15 @@
 #   - Show jobs with performance regression
 
 version: "1.1"
-comment: '
-- PURPOSE: Job execution performance metrics for reliability and efficiency analysis
-- BEST FOR: "Job success rate" "Failed jobs today" "Slowest jobs" "Job failure rate by workspace" "Performance regression detection"
-- NOT FOR: Real-time job monitoring (use get_failed_jobs TVF), job cost (use cost_analytics)
-- DIMENSIONS: run_date, job_name, workspace_name, result_state, termination_type, duration_tier, error_category
-- MEASURES: success_rate, failure_rate, avg_duration_seconds, p95_duration_seconds, total_runs, unique_jobs
-- SOURCE: fact_job_run_timeline (lakeflow domain)
-- JOINS: dim_job (job metadata), dim_workspace (workspace details)
-- NOTE: Duration excludes queue time. For queue analysis, filter by termination_type.
-'
+comment: |
+  - PURPOSE: Job execution performance metrics for reliability and efficiency analysis
+  - BEST FOR: "Job success rate" "Failed jobs today" "Slowest jobs" "Job failure rate by workspace" "Performance regression detection"
+  - NOT FOR: Real-time job monitoring (use get_failed_jobs TVF), job cost (use cost_analytics)
+  - DIMENSIONS: run_date, job_name, workspace_name, result_state, termination_type, duration_tier, error_category
+  - MEASURES: success_rate, failure_rate, avg_duration_seconds, p95_duration_seconds, total_runs, unique_jobs
+  - SOURCE: fact_job_run_timeline (lakeflow domain)
+  - JOINS: dim_job (job metadata), dim_workspace (workspace details)
+  - NOTE: Duration excludes queue time. For queue analysis, filter by termination_type.
 
 source: ${catalog}.${gold_schema}.fact_job_run_timeline
 
@@ -34,7 +33,7 @@ joins:
   
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
+    'on': source.workspace_id = dim_workspace.workspace_id
 
 dimensions:
   # === Primary Dimensions ===

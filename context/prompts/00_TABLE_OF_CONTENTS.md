@@ -51,7 +51,12 @@ context/prompts/
 │   ├── 13-agent-architecture-design-prompt.md # Agent design
 │   └── 15-documentation-framework-prompt.md   # Documentation generation
 │
-├── frontend/                         # UI/Frontend prompts
+├── design/                           # UI/UX Design prompts (NEW)
+│   ├── README.md                     # Design prompts index
+│   ├── 16-capability-audit-prompt.md         # Audit capabilities before design
+│   └── 17-figma-interface-design-prompt.md   # Complete Figma guide generation
+│
+├── frontend/                         # UI/Frontend prompts (legacy)
 │   └── figma_frontend_design_prompt.md # Figma design prompt
 │
 ├── reference/                        # Reference materials (empty)
@@ -105,10 +110,16 @@ context/prompts/
 | 13 | agent-architecture-design-prompt.md | `planning/` | Agent design | 2-3 hrs |
 | 15 | documentation-framework-prompt.md | `planning/` | Documentation generation | 1-2 hrs |
 
-### Frontend
+### UI/UX Design (NEW)
 | # | Prompt | Directory | Purpose | Time |
 |---|--------|-----------|---------|------|
-| - | figma_frontend_design_prompt.md | `frontend/` | Figma UI design | 4-8 hrs |
+| 16 | capability-audit-prompt.md | `design/` | Audit capabilities before design | 30 min |
+| 17 | figma-interface-design-prompt.md | `design/` | Complete Figma guide generation | 1-2 hrs |
+
+### Frontend (Legacy)
+| # | Prompt | Directory | Purpose | Time |
+|---|--------|-----------|---------|------|
+| - | figma_frontend_design_prompt.md | `frontend/` | Figma UI design (legacy) | 4-8 hrs |
 
 ---
 

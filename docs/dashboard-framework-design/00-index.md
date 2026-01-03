@@ -23,8 +23,8 @@ This documentation describes the comprehensive dashboard framework for the Datab
 | **02** | [Asset Inventory](02-asset-inventory.md) | Complete inventory of ML Models, Lakehouse Monitors, Metric Views |
 | **03** | [Cost Dashboard](03-cost-dashboard.md) | Cost management, commit tracking, budget analysis |
 | **04** | [Performance Dashboard](04-performance-dashboard.md) | Query performance, cluster utilization, DBR migration |
-| **05** | [Quality Dashboard](05-quality-dashboard.md) | Data quality, governance, lineage |
-| **06** | [Security Dashboard](06-security-dashboard.md) | Audit logs, access patterns, threat detection |
+| **05** | [Security Dashboard](05-security-dashboard.md) | Audit logs, access patterns, threat detection |
+| **06** | [Quality Dashboard](06-quality-dashboard.md) | Data quality, governance, lineage |
 | **07** | [Reliability Dashboard](07-reliability-dashboard.md) | Job reliability, pipeline health, optimization |
 | **08** | [Unified Dashboard](08-unified-dashboard.md) | Executive overview combining all domains |
 | **09** | [Implementation Guide](09-implementation-guide.md) | Step-by-step implementation instructions |

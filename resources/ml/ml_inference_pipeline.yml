@@ -27,10 +27,11 @@ resources:
           spec:
             environment_version: "4"
             dependencies:
-              - "mlflow>=3.0.0"
+              - "mlflow==3.7.0"        # Pin version to match training environment
               - "scikit-learn>=1.3.0"
               - "pandas>=2.0.0"
               - "numpy>=1.24.0"
+              - "xgboost>=2.0.0"       # Required for XGBoost models
               - "databricks-feature-engineering"
       
       tasks:

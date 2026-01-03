@@ -134,11 +134,13 @@ def get_cost_custom_metrics():
         # ==========================================
 
         # Jobs running on ALL_PURPOSE clusters (inefficient pattern)
+        # NOTE: Gold layer fact_usage has flattened columns like usage_metadata_job_id
+        # instead of nested usage_metadata['job_id'] which isn't supported in Lakehouse Monitoring
         create_aggregate_metric(
             "jobs_on_all_purpose_cost",
             """SUM(CASE
                 WHEN sku_name LIKE '%ALL_PURPOSE%'
-                 AND usage_metadata['job_id'] IS NOT NULL
+                 AND usage_metadata_job_id IS NOT NULL
                 THEN list_cost ELSE 0
             END)""",
             "DOUBLE"
@@ -147,8 +149,8 @@ def get_cost_custom_metrics():
             "jobs_on_all_purpose_count",
             """COUNT(DISTINCT CASE
                 WHEN sku_name LIKE '%ALL_PURPOSE%'
-                 AND usage_metadata['job_id'] IS NOT NULL
-                THEN usage_metadata['job_id']
+                 AND usage_metadata_job_id IS NOT NULL
+                THEN usage_metadata_job_id
             END)""",
             "LONG"
         ),
@@ -157,7 +159,7 @@ def get_cost_custom_metrics():
             "potential_job_cluster_savings",
             """SUM(CASE
                 WHEN sku_name LIKE '%ALL_PURPOSE%'
-                 AND usage_metadata['job_id'] IS NOT NULL
+                 AND usage_metadata_job_id IS NOT NULL
                 THEN list_cost * 0.4
                 ELSE 0
             END)""",

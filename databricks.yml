@@ -16,6 +16,8 @@ sync:
     - src/**/*.py
     - src/**/*.sql
     - src/**/*.yaml
+    - src/**/*.json
+    - src/**/*.md
     - gold_layer_design/yaml/**/*.yaml
 
 variables:

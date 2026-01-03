@@ -586,6 +586,70 @@ This document is the **one-stop reference** for all measurements in the Databric
 
 ---
 
+## 🤖 ML Model Integration (25 Models)
+
+### ML Model to Metric Mapping
+
+Each ML model in the platform enhances specific metrics with predictive capabilities:
+
+| Domain | ML Model | Enhances Metric | Prediction Table | Question Type |
+|--------|----------|----------------|------------------|---------------|
+| **💰 Cost** | `cost_anomaly_detector` | Cost Anomalies (#38) | `cost_anomaly_predictions` | "Flag unusual spending" |
+| **💰 Cost** | `budget_forecaster` | Projected Monthly Cost (#6) | `cost_forecast_predictions` | "Forecast next month's cost" |
+| **💰 Cost** | `job_cost_optimizer` | Optimization Savings (#34-37) | `migration_recommendations` | "Where can we save money?" |
+| **💰 Cost** | `chargeback_attribution` | Cost by Owner (#13) | — | "Allocate cost to teams" |
+| **💰 Cost** | `commitment_recommender` | Projected Cost (#6) | `budget_alert_predictions` | "Recommend commitment level" |
+| **💰 Cost** | `tag_recommender` | Tag Coverage (#28) | `tag_recommendations` | "Suggest tags for resources" |
+| **🔄 Reliability** | `job_failure_predictor` | Failure Rate (#50) | `job_failure_predictions` | "Which jobs will fail?" |
+| **🔄 Reliability** | `job_duration_forecaster` | Duration (#59-70) | `job_duration_predictions` | "How long will job take?" |
+| **🔄 Reliability** | `sla_breach_predictor` | SLA Compliance (#94-96) | `incident_impact_predictions` | "Will SLA breach occur?" |
+| **🔄 Reliability** | `pipeline_health_scorer` | Pipeline Health (#101-102) | `pipeline_health_scores` | "Rate pipeline health" |
+| **🔄 Reliability** | `retry_success_predictor` | Retry Effectiveness (#97) | `retry_success_predictions` | "Will retry succeed?" |
+| **⚡ Performance** | `query_performance_forecaster` | P99 Duration (#118) | `query_optimization_recommendations` | "Predict query latency" |
+| **⚡ Performance** | `warehouse_optimizer` | Warehouse Utilization (#148) | `cluster_capacity_recommendations` | "Optimize warehouse size" |
+| **⚡ Performance** | `cache_hit_predictor` | Cache Hit Rate (#137) | `cache_hit_predictions` | "Predict cache performance" |
+| **⚡ Performance** | `cluster_sizing_recommender` | Cluster Efficiency (#183) | `cluster_rightsizing_recommendations` | "Right-size clusters" |
+| **⚡ Performance** | `cluster_capacity_planner` | Utilization (#164-165) | `cluster_capacity_recommendations` | "Plan capacity needs" |
+| **⚡ Performance** | `regression_detector` | Duration Drift (#75-77) | — | "Detect performance regression" |
+| **⚡ Performance** | `query_optimization_recommender` | Slow Queries (#121-126) | `query_optimization_classifications` | "How to optimize queries?" |
+| **🔒 Security** | `security_threat_detector` | Unusual Access (#218) | `access_anomaly_predictions` | "Detect security threats" |
+| **🔒 Security** | `access_pattern_analyzer` | Activity Patterns (#202) | `access_classifications` | "Classify access patterns" |
+| **🔒 Security** | `compliance_risk_classifier` | Risk Scores (#219) | `user_risk_scores` | "Assess compliance risk" |
+| **🔒 Security** | `permission_recommender` | Permission Changes (#208) | — | "Recommend permission changes" |
+| **📋 Quality** | `data_drift_detector` | Quality Drift (#241) | `quality_anomaly_predictions` | "Detect data drift" |
+| **📋 Quality** | `schema_change_predictor` | Schema Drift (#239) | `quality_trend_predictions` | "Predict schema changes" |
+| **📋 Quality** | `schema_evolution_predictor` | Schema Drift (#239) | `freshness_alert_predictions` | "Predict evolution patterns" |
+
+### ML Prediction Output Reference
+
+| Prediction Table | Key Output Columns | Threshold for Action |
+|------------------|-------------------|---------------------|
+| `cost_anomaly_predictions` | `anomaly_score`, `is_anomaly` | `is_anomaly = 1` or `anomaly_score < -0.5` |
+| `cost_forecast_predictions` | `predicted_cost`, `confidence_interval` | When `actual > predicted * 1.2` |
+| `job_failure_predictions` | `failure_probability`, `will_fail` | `failure_probability > 0.5` |
+| `job_duration_predictions` | `predicted_duration_sec` | When `actual > predicted * 1.5` |
+| `access_anomaly_predictions` | `threat_score`, `is_threat` | `is_threat = 1` or `threat_score < -0.5` |
+| `user_risk_scores` | `risk_level` (1-5) | `risk_level >= 4` |
+| `quality_anomaly_predictions` | `drift_score`, `is_drifted` | `is_drifted = 1` |
+| `pipeline_health_scores` | `health_score` (0-100) | `health_score < 70` |
+| `cluster_rightsizing_recommendations` | `recommended_action`, `potential_savings` | Any recommendation |
+| `query_optimization_recommendations` | `optimization_flags` | Any flag = 1 |
+
+### When to Use ML Models vs Other Methods
+
+| Question Type | Use ML Model? | Alternative | Example |
+|---------------|---------------|-------------|---------|
+| **"Will X happen?"** | ✅ Yes | — | "Will this job fail?" → `job_failure_predictions` |
+| **"Predict future X"** | ✅ Yes | — | "What's next month's cost?" → `cost_forecast_predictions` |
+| **"Is this anomalous?"** | ✅ Yes | Custom Metrics for simple drift | "Unusual spending?" → `cost_anomaly_predictions` |
+| **"Recommend action"** | ✅ Yes | TVF for simple lists | "How to optimize?" → `query_optimization_recommendations` |
+| **"Score/Risk level"** | ✅ Yes | — | "User risk score?" → `user_risk_scores` |
+| **"What is current X?"** | ❌ No | Metric View | "Total cost today?" → `mv_cost_analytics` |
+| **"List top N"** | ❌ No | TVF | "Top 10 slow queries?" → `get_slow_queries` |
+| **"Is X trending up/down?"** | ❌ No | Custom Metrics | "Is cost increasing?" → `_drift_metrics` |
+
+---
+
 ## Appendix: Method Comparison
 
 ### When to Use Each Method
@@ -595,24 +659,41 @@ This document is the **one-stop reference** for all measurements in the Databric
 | **TVF** | Parameterized investigation, actionable lists | "Top 10 cost drivers this week" |
 | **Metric View** | Dashboard aggregates, current state KPIs | "What's the success rate?" |
 | **Custom Metric** | Time series analysis, drift detection, alerting | "Is success rate degrading?" |
+| **ML Model** | Predictions, anomaly detection, recommendations | "Will this job fail?" |
 
 ### Method Capabilities
 
-| Capability | TVF | Metric View | Custom Metric |
-|------------|:---:|:-----------:|:-------------:|
-| Date range filtering | ✅ | Limited | ❌ |
-| Top N results | ✅ | ❌ | ❌ |
-| Custom thresholds | ✅ | ❌ | ❌ |
-| Dimension grouping | ❌ | ✅ | ❌ |
-| Pre-formatted output | ❌ | ✅ | ❌ |
-| Time series tracking | ❌ | ❌ | ✅ |
-| Drift detection | ❌ | ❌ | ✅ |
-| Automated alerting | ❌ | ❌ | ✅ |
-| Statistical profiling | ❌ | ❌ | ✅ |
+| Capability | TVF | Metric View | Custom Metric | ML Model |
+|------------|:---:|:-----------:|:-------------:|:--------:|
+| Date range filtering | ✅ | Limited | ❌ | ✅ |
+| Top N results | ✅ | ❌ | ❌ | ✅ |
+| Custom thresholds | ✅ | ❌ | ❌ | ❌ |
+| Dimension grouping | ❌ | ✅ | ❌ | Limited |
+| Pre-formatted output | ❌ | ✅ | ❌ | ✅ |
+| Time series tracking | ❌ | ❌ | ✅ | ❌ |
+| Drift detection | ❌ | ❌ | ✅ | ✅ |
+| Automated alerting | ❌ | ❌ | ✅ | ✅ |
+| Statistical profiling | ❌ | ❌ | ✅ | ❌ |
+| Future predictions | ❌ | ❌ | ❌ | ✅ |
+| Anomaly detection | ❌ | ❌ | ❌ | ✅ |
+| Recommendations | ❌ | ❌ | ❌ | ✅ |
+| Risk scoring | ❌ | ❌ | ❌ | ✅ |
+
+### Asset Count Summary
+
+| Asset Type | Count | Coverage |
+|------------|:-----:|----------|
+| **TVFs** | 60 | All domains |
+| **Metric Views** | 10 | Dashboard KPIs |
+| **Custom Metrics** | 87 | Time series + alerting |
+| **ML Models** | 25 | Predictions + recommendations |
+| **Total Semantic Assets** | 182 | — |
+| **Total Measurements** | 277 | Across all methods |
 
 ---
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Last Updated:** January 2026  
-**Total Measurements:** 277
+**Total Measurements:** 277  
+**ML Models Integrated:** 25
 

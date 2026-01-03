@@ -1,18 +1,30 @@
-# ML Training Pipeline
-# Trains all 29 ML models for Databricks Health Monitor
+# ML Training Pipeline (Standalone - Weekly Schedule)
+# ==================================================
+#
+# Trains all 25 ML models for Databricks Health Monitor.
+# Runs SEPARATELY from orchestrators on a weekly schedule.
+#
+# Schedule: Weekly (Sundays at 2 AM) - PAUSED by default
+# First Run: Manual after first Refresh populates Gold data
 #
 # Agent Domains:
-#   - Cost Agent (6 models)
-#   - Security Agent (4 models)
-#   - Performance Agent (7 models)
-#   - Reliability Agent (5 models)
-#   - Quality Agent (3 models)
+#   - 💰 Cost Agent (6 models)
+#   - 🔒 Security Agent (4 models)
+#   - ⚡ Performance Agent (7 models)
+#   - 🔄 Reliability Agent (5 models)
+#   - 📊 Quality Agent (3 models)
 #
 # MLflow 3.0 Best Practices:
-#   - Unity Catalog Model Registry (databricks-uc)
-#   - LoggedModel with name parameter
+#   - Unity Catalog Model Registry
 #   - Model signatures required
 #   - Feature Engineering integration
+#
+# Usage:
+#   # Manual first run (after data exists):
+#   databricks bundle run -t dev ml_training_pipeline
+#
+#   # Enable weekly schedule in prod:
+#   # Update pause_status to UNPAUSED
 #
 # Reference: https://github.com/databricks/bundle-examples
 
@@ -28,7 +40,7 @@ resources:
           spec:
             environment_version: "4"
             dependencies:
-              - "mlflow>=3.0.0"
+              - "mlflow==3.7.0"        # Pin version for reproducibility
               - "scikit-learn>=1.3.0"
               - "xgboost>=2.0.0"
               - "lightgbm>=4.0.0"
@@ -43,7 +55,7 @@ resources:
         - task_key: train_cost_anomaly_detector
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../../src/ml/cost/train_cost_anomaly.py
+            notebook_path: ../../src/ml/cost/train_cost_anomaly_detector.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
@@ -100,7 +112,7 @@ resources:
         - task_key: train_security_threat_detector
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../../src/ml/security/train_threat_detector.py
+            notebook_path: ../../src/ml/security/train_security_threat_detector.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
@@ -205,7 +217,7 @@ resources:
         - task_key: train_failure_predictor
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../../src/ml/reliability/train_failure_predictor.py
+            notebook_path: ../../src/ml/reliability/train_job_failure_predictor.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
@@ -214,7 +226,7 @@ resources:
         - task_key: train_duration_forecaster
           environment_key: ml_training
           notebook_task:
-            notebook_path: ../../src/ml/reliability/train_duration_forecaster.py
+            notebook_path: ../../src/ml/reliability/train_job_duration_forecaster.py
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
@@ -314,9 +326,10 @@ resources:
               catalog: ${var.catalog}
               feature_schema: ${var.feature_schema}
       
-      # Schedule: Daily at 3 AM (after feature pipeline)
+      # Schedule: Weekly on Sundays at 2 AM (retraining cadence)
+      # PAUSED by default - enable after first manual run confirms success
       schedule:
-        quartz_cron_expression: "0 0 3 * * ?"
+        quartz_cron_expression: "0 0 2 ? * SUN"
         timezone_id: "America/Los_Angeles"
         pause_status: PAUSED
       
@@ -332,7 +345,9 @@ resources:
       
       tags:
         environment: ${bundle.target}
-        project: health_monitor
+        project: databricks_health_monitor
         layer: ml
         job_type: training
+        job_level: atomic
         compute_type: serverless
+        schedule: weekly_sunday_2am

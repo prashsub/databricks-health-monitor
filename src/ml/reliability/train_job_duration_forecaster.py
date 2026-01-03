@@ -1,29 +1,58 @@
 # Databricks notebook source
+# ===========================================================================
+# PATH SETUP FOR ASSET BUNDLE IMPORTS
+# ===========================================================================
+# This enables imports from src.ml.config and src.ml.utils when deployed
+# via Databricks Asset Bundles. The bundle root is computed dynamically.
+# Reference: https://docs.databricks.com/aws/en/notebooks/share-code
+import sys
+import os
+
+try:
+    # Get current notebook path and compute bundle root
+    _notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+    _bundle_root = "/Workspace" + str(_notebook_path).rsplit('/src/', 1)[0]
+    if _bundle_root not in sys.path:
+        sys.path.insert(0, _bundle_root)
+        print(f"✓ Added bundle root to sys.path: {_bundle_root}")
+except Exception as e:
+    print(f"⚠ Path setup skipped (local execution): {e}")
+# ===========================================================================
 """
 Train Job Duration Forecaster Model
-===================================
+=========================================
 
 Problem: Regression
 Algorithm: Gradient Boosting Regressor
 Domain: Reliability
 
-Forecasts job execution duration based on historical patterns.
+REFACTORED: Uses FeatureRegistry for dynamic schema queries.
 """
 
 # COMMAND ----------
 
 from pyspark.sql import SparkSession
-import mlflow
-from mlflow.models.signature import infer_signature
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import train_test_split
-import pandas as pd
-import numpy as np
-from datetime import datetime
+import json
 
 from databricks.feature_engineering import FeatureEngineeringClient
+from src.ml.config.feature_registry import FeatureRegistry
+from src.ml.utils.training_base import (
+    setup_training_environment,
+    create_feature_lookup_training_set,
+    prepare_training_data,
+    log_model_with_features,
+    calculate_regression_metrics,
+)
 
-mlflow.set_registry_uri("databricks-uc")
+# COMMAND ----------
+
+# Configuration
+MODEL_NAME = "job_duration_forecaster"
+DOMAIN = "reliability"
+FEATURE_TABLE = "reliability_features"
+LABEL_COLUMN = "avg_duration_sec"
+ALGORITHM = "gradient_boosting"
 
 # COMMAND ----------
 
@@ -34,137 +63,58 @@ def get_parameters():
     print(f"Catalog: {catalog}, Gold Schema: {gold_schema}, Feature Schema: {feature_schema}")
     return catalog, gold_schema, feature_schema
 
-
-def setup_mlflow_experiment(model_name):
-    mlflow.set_experiment(f"/Shared/health_monitor_ml_{model_name}")
-
-
-def get_run_name(model_name, algorithm):
-    return f"{model_name}_{algorithm}_v1_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
-
-def get_standard_tags(model_name, domain, model_type, algorithm, use_case, training_table):
-    return {
-        "project": "databricks_health_monitor", "domain": domain, "model_name": model_name,
-        "model_type": model_type, "algorithm": algorithm, "use_case": use_case,
-        "training_data": training_table, "feature_engineering": "unity_catalog"
-    }
-
 # COMMAND ----------
 
-def load_training_data(spark, catalog, feature_schema):
-    """Load training data directly from the feature table."""
-    print("\nLoading training data from feature table...")
-    
-    feature_table = f"{catalog}.{feature_schema}.reliability_features"
-    
-    feature_cols = [
-        "total_runs", "failed_runs", "success_rate",
-        "std_duration_seconds", "avg_task_count", "hour_of_day", "day_of_week",
-        "failure_rate_7d", "duration_change_pct"
-    ]
-    
-    label_col = "avg_duration_seconds"
-    
-    df = spark.table(feature_table)
-    available_cols = set(df.columns)
-    feature_cols = [c for c in feature_cols if c in available_cols and c != label_col]
-    
-    if label_col not in available_cols:
-        raise ValueError(f"Label column '{label_col}' not found!")
-    
-    if not feature_cols:
-        raise ValueError(f"No valid feature columns found!")
-    
-    select_cols = feature_cols + [label_col]
-    df = df.select(*select_cols)
-    
-    record_count = df.count()
-    print(f"  Loaded {record_count} records, Features: {len(feature_cols)}, Label: {label_col}")
-    
-    if record_count == 0:
-        raise ValueError(f"No data found!")
-    
-    return df, feature_cols, label_col, feature_table
-
-# COMMAND ----------
-
-def prepare_and_train(df, feature_cols, label_col):
-    """Prepare data and train the model."""
-    print("\nPreparing data and training model...")
-    
-    pdf = df.toPandas()
-    X_train = pdf[feature_cols].fillna(0).replace([np.inf, -np.inf], 0)
-    y = pdf[label_col].fillna(0)
-    
-    X_train, X_test, y_train, y_test = train_test_split(X_train, y, test_size=0.2, random_state=42)
-    
-    print(f"  Training samples: {len(X_train)}, Test samples: {len(X_test)}")
-    
+def train_model(X_train, X_test, y_train, y_test):
+    print("\nTraining model...")
     hyperparams = {"n_estimators": 100, "max_depth": 6, "learning_rate": 0.1, "random_state": 42}
     model = GradientBoostingRegressor(**hyperparams)
     model.fit(X_train, y_train)
-    
-    metrics = {
-        "train_r2": round(float(model.score(X_train, y_train)), 4),
-        "test_r2": round(float(model.score(X_test, y_test)), 4),
-        "training_samples": len(X_train),
-        "features_count": len(feature_cols)
-    }
-    
-    print(f"✓ Model trained: R² = {metrics['test_r2']:.4f}")
-    return model, X_train, metrics, hyperparams
-
-# COMMAND ----------
-
-def log_model(model, X, metrics, hyperparams, catalog, feature_schema, feature_table):
-    """Log model."""
-    model_name = "job_duration_forecaster"
-    registered_name = f"{catalog}.{feature_schema}.{model_name}"
-    
-    print(f"\nLogging model: {registered_name}")
-    
-    mlflow.autolog(disable=True)
-    with mlflow.start_run(run_name=get_run_name(model_name, "gradient_boosting")) as run:
-        mlflow.set_tags(get_standard_tags(
-            model_name, "reliability", "regression", "gradient_boosting",
-            "job_duration_forecasting", feature_table
-        ))
-        mlflow.log_params(hyperparams)
-        mlflow.log_metrics(metrics)
-        
-        mlflow.sklearn.log_model(
-            model, artifact_path="model",
-            input_example=X.head(5),
-            registered_model_name=registered_name
-        )
-        
-        print(f"✓ Model logged and registered")
-        return {"model_name": model_name, "registered_as": registered_name, "metrics": metrics}
+    metrics = calculate_regression_metrics(model, X_train, X_test, y_train, y_test)
+    return model, metrics, hyperparams
 
 # COMMAND ----------
 
 def main():
-    import json
     print("\n" + "=" * 60)
-    print("JOB DURATION FORECASTER - TRAINING")
+    print(f"{MODEL_NAME.upper().replace('_', ' ')} - TRAINING")
+    print("Using FeatureRegistry (Dynamic Schema)")
     print("=" * 60)
     
     catalog, gold_schema, feature_schema = get_parameters()
     spark = SparkSession.builder.getOrCreate()
     
     fe = FeatureEngineeringClient()
-    setup_mlflow_experiment("job_duration_forecaster")
+    registry = FeatureRegistry(spark, catalog, feature_schema)
+    
+    feature_names = registry.get_feature_columns(FEATURE_TABLE, exclude_columns=[LABEL_COLUMN])
+    lookup_keys = registry.get_primary_keys(FEATURE_TABLE)
+    
+    setup_training_environment(MODEL_NAME)
+    feature_table_full = f"{catalog}.{feature_schema}.{FEATURE_TABLE}"
     
     try:
-        df, feature_cols, label_col, feature_table = load_training_data(spark, catalog, feature_schema)
-        model, X, metrics, hyperparams = prepare_and_train(df, feature_cols, label_col)
-        result = log_model(model, X, metrics, hyperparams, catalog, feature_schema, feature_table)
+        training_set, training_df, available_features = create_feature_lookup_training_set(
+            spark, fe, feature_table_full, feature_names, LABEL_COLUMN, lookup_keys
+        )
         
-        print("\n✓ TRAINING COMPLETE")
-        dbutils.notebook.exit(json.dumps({
-            "status": "SUCCESS", "model": result['model_name'], "metrics": result['metrics']
-        }))
+        X_train, X_test, y_train, y_test = prepare_training_data(
+            training_df, available_features, LABEL_COLUMN, cast_label_to="float64"
+        )
+        
+        model, metrics, hyperparams = train_model(X_train, X_test, y_train, y_test)
+        
+        result = log_model_with_features(
+            fe, model, training_set, X_train, metrics, hyperparams,
+            MODEL_NAME, DOMAIN, "regression", ALGORITHM, "job_duration_forecasting",
+            catalog, feature_schema, feature_table_full
+        )
+        
+        print("\n" + "=" * 60)
+        print(f"✓ TRAINING COMPLETE - R²: {result['metrics']['test_r2']}")
+        print("=" * 60)
+        
+        dbutils.notebook.exit(json.dumps({"status": "SUCCESS", **result}))
         
     except Exception as e:
         import traceback
@@ -173,4 +123,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

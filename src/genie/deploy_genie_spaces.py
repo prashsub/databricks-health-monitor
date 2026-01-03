@@ -14,7 +14,52 @@ Agent Domains (1 Space Each):
 - ✅ Quality: Data Quality Monitor Space
 - 🌐 Unified: Databricks Health Monitor Space (Leadership overview)
 
-Reference: Phase 3 Addendum 3.6 - Genie Spaces
+SEMANTIC LAYER FRAMEWORK
+========================
+Each Genie Space uses a 3-layer semantic framework:
+1. Metric Views (mv_*) - Dashboard KPIs, current state aggregates
+2. TVFs (get_*) - Parameterized drill-down, lists, investigations
+3. Custom Metrics (_profile_metrics, _drift_metrics) - Time series, drift detection
+
+Asset Selection Priority:
+- LIST queries → TVF
+- TREND queries → Custom Metrics
+- CURRENT VALUE queries → Metric View
+- PREDICTION queries → ML Tables (25 models across all domains)
+- ANOMALY queries → ML Tables (cost, security, quality anomaly detectors)
+- RECOMMENDATION queries → ML Tables (optimizer, recommender models)
+- RISK SCORE queries → ML Tables (user_risk_scores, health_scores)
+
+ML Model Integration (25 Models by Domain):
+- 💰 Cost (6): cost_anomaly_detector, budget_forecaster, job_cost_optimizer, 
+              tag_recommender, commitment_recommender, chargeback_attribution
+- 🔄 Reliability (5): job_failure_predictor, job_duration_forecaster, 
+                      sla_breach_predictor, pipeline_health_scorer, retry_success_predictor
+- ⚡ Performance (7): query_performance_forecaster, warehouse_optimizer, cache_hit_predictor,
+                     query_optimization_recommender, cluster_sizing_recommender, 
+                     cluster_capacity_planner, regression_detector
+- 🔒 Security (4): security_threat_detector, access_pattern_analyzer, 
+                   compliance_risk_classifier, permission_recommender
+- 📋 Quality (3): data_drift_detector, schema_change_predictor, schema_evolution_predictor
+
+CRITICAL: Lakehouse Monitoring Custom Metrics Query Patterns
+============================================================
+When querying _profile_metrics or _drift_metrics tables, ALWAYS include:
+
+  -- For profile_metrics:
+  WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
+    AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
+    AND slice_key IS NULL          -- For overall (or specify for dimensional)
+
+  -- For drift_metrics:
+  WHERE drift_type = 'CONSECUTIVE' -- REQUIRED: Period-over-period
+    AND column_name = ':table'     -- REQUIRED: Table-level drift
+
+References:
+- docs/reference/metrics-inventory.md - Complete unified metrics inventory
+- docs/reference/semantic-layer-rationalization.md - Design rationale
+- docs/reference/genie-asset-selection-guide.md - Asset selection decision tree
+- docs/lakehouse-monitoring-design/05-genie-integration.md - Query patterns
 """
 
 # COMMAND ----------
@@ -72,9 +117,20 @@ and cost optimization insights without SQL. Powered by Cost Analytics Metric Vie
             "migration_recommendations",
             "budget_alert_predictions",
         ],
+        "ml_model_mapping": {
+            # Question pattern → ML prediction table
+            "unusual|anomaly|spike|abnormal": "cost_anomaly_predictions",
+            "forecast|predict|next month|project": "cost_forecast_predictions",
+            "recommend tags|suggest tags|auto-tag": "tag_recommendations",
+            "save|reduce cost|optimize": "migration_recommendations",
+            "budget|commit level": "budget_alert_predictions",
+        },
         "monitoring_tables": [
             "fact_usage_profile_metrics",
             "fact_usage_drift_metrics",
+        ],
+        "slicing_dimensions": [
+            "workspace_id", "sku_name", "cloud", "is_tagged", "product_features_is_serverless"
         ],
         "gold_tables": [
             "fact_usage",          # billing/fact_usage.yaml
@@ -112,9 +168,20 @@ and performance metrics without SQL.""",
             "incident_impact_predictions",
             "self_healing_recommendations",
         ],
+        "ml_model_mapping": {
+            # Question pattern → ML prediction table
+            "will fail|likely to fail|at risk|failure prediction": "job_failure_predictions",
+            "retry succeed|recovery|will retry work": "retry_success_predictions",
+            "pipeline health|health score|pipeline status": "pipeline_health_scores",
+            "SLA breach|breach|impact": "incident_impact_predictions",
+            "how long|duration estimate|expected time": "job_duration_predictions",
+        },
         "monitoring_tables": [
             "fact_job_run_timeline_profile_metrics",
             "fact_job_run_timeline_drift_metrics",
+        ],
+        "slicing_dimensions": [
+            "workspace_id", "job_name", "result_state", "trigger_type", "termination_code"
         ],
         "gold_tables": [
             "fact_job_run_timeline",      # lakeflow/fact_job_run_timeline.yaml
@@ -164,12 +231,24 @@ cluster efficiency, and right-sizing opportunities without SQL. Combined Query +
             "cluster_rightsizing_recommendations",
             "dbr_migration_risk_scores",
         ],
+        "ml_model_mapping": {
+            # Question pattern → ML prediction table
+            "optimize query|improve query|tune query": "query_optimization_recommendations",
+            "cache|cache hit|caching": "cache_hit_predictions",
+            "right-size|optimize cluster|savings|too big|too small": "cluster_rightsizing_recommendations",
+            "capacity|scale|planning": "cluster_capacity_recommendations",
+            "migration risk|DBR upgrade": "dbr_migration_risk_scores",
+        },
         "monitoring_tables": [
             "fact_query_history_profile_metrics",
             "fact_query_history_drift_metrics",
             "fact_node_timeline_profile_metrics",
             "fact_node_timeline_drift_metrics",
         ],
+        "slicing_dimensions": {
+            "query": ["workspace_id", "compute_warehouse_id", "execution_status", "statement_type", "executed_by"],
+            "cluster": ["workspace_id", "cluster_id", "node_type", "cluster_name", "driver"]
+        },
         "gold_tables": [
             # Query Performance (query_performance/)
             "fact_query_history",   # query_performance/fact_query_history.yaml
@@ -207,9 +286,19 @@ audit trails, and security events without SQL.""",
             "access_classifications",
             "off_hours_baseline_predictions",
         ],
+        "ml_model_mapping": {
+            # Question pattern → ML prediction table
+            "threat|suspicious|unusual access|security risk|anomaly": "access_anomaly_predictions",
+            "risk score|risky users|compliance risk|high risk": "user_risk_scores",
+            "access pattern|behavior|classify user|normal access": "access_classifications",
+            "off hours|after hours|night access": "off_hours_baseline_predictions",
+        },
         "monitoring_tables": [
             "fact_audit_logs_profile_metrics",
             "fact_audit_logs_drift_metrics",
+        ],
+        "slicing_dimensions": [
+            "workspace_id", "service_name", "audit_level", "action_name", "user_identity_email"
         ],
         "gold_tables": [
             # Security (security/)
@@ -245,10 +334,19 @@ lineage, and quality metrics without SQL.""",
             "quality_trend_predictions",
             "freshness_alert_predictions",
         ],
+        "ml_model_mapping": {
+            # Question pattern → ML prediction table
+            "data drift|distribution change|quality anomaly|data changed": "quality_anomaly_predictions",
+            "schema change|schema risk|will schema change|breaking change": "quality_trend_predictions",
+            "freshness alert|stale prediction|will data be late": "freshness_alert_predictions",
+        },
         "monitoring_tables": [
-            "fact_information_schema_table_storage_profile_metrics",
-            "fact_table_lineage_profile_metrics",
-            "fact_table_lineage_drift_metrics",
+            "fact_table_quality_profile_metrics",
+            "fact_governance_metrics_profile_metrics",
+            "fact_table_quality_drift_metrics",
+        ],
+        "slicing_dimensions": [
+            "catalog_name", "schema_name", "table_name", "has_critical_violations"
         ],
         "gold_tables": [
             # Governance (governance/)
@@ -289,6 +387,28 @@ query performance, cluster efficiency, security audit, and data quality - all in
         ],
         "tvfs": "all",  # All 60 TVFs
         "ml_tables": "all",  # All 25 ML tables
+        "ml_model_mapping": {
+            # Cost domain
+            "unusual spending|cost anomaly|spike": "cost_anomaly_predictions",
+            "forecast cost|predict cost|next month cost": "cost_forecast_predictions",
+            "tag recommendations|suggest tags": "tag_recommendations",
+            # Reliability domain
+            "will job fail|failure prediction|at risk job": "job_failure_predictions",
+            "pipeline health|health score": "pipeline_health_scores",
+            "retry succeed|recovery prediction": "retry_success_predictions",
+            # Performance domain
+            "optimize query|query optimization": "query_optimization_recommendations",
+            "right-size cluster|cluster savings": "cluster_rightsizing_recommendations",
+            "cache hit|cache prediction": "cache_hit_predictions",
+            # Security domain
+            "security threat|suspicious access": "access_anomaly_predictions",
+            "user risk|risk score": "user_risk_scores",
+            "access pattern|behavior analysis": "access_classifications",
+            # Quality domain
+            "data drift|quality anomaly": "quality_anomaly_predictions",
+            "schema change|schema prediction": "quality_trend_predictions",
+            "freshness alert|late data": "freshness_alert_predictions",
+        },
         "monitoring_tables": "all",  # All 16 monitoring tables
         "gold_tables": [  # All 38 Gold tables from gold_layer_design/yaml/
             # Billing (4)
@@ -451,7 +571,7 @@ Genie Spaces are created via the Databricks UI:
       - Metric Views (primary)
       - Table-Valued Functions
       - ML Prediction Tables
-      - Lakehouse Monitoring Tables
+      - Lakehouse Monitoring Tables (_profile_metrics, _drift_metrics)
       - Gold Tables
    e. Configure Agent Instructions (from setup markdown files)
    f. Add Sample Questions (from setup markdown files)
@@ -466,6 +586,12 @@ Genie Spaces are created via the Databricks UI:
    - src/genie/security_auditor_genie.md (🔒 Security)
    - src/genie/data_quality_monitor_genie.md (✅ Quality)
    - src/genie/unified_health_monitor_genie.md (🌐 Unified)
+
+⚠️  CRITICAL: Custom Metrics Query Patterns
+   When querying _profile_metrics or _drift_metrics tables:
+   - ALWAYS include: column_name = ':table' AND log_type = 'INPUT'
+   - For drift: ALSO include: drift_type = 'CONSECUTIVE'
+   - See: docs/lakehouse-monitoring-design/05-genie-integration.md
 
 Total Genie Spaces: 6 (1 per domain to prevent sprawl)
 """)

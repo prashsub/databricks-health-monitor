@@ -6,6 +6,68 @@ Lakehouse Monitoring creates output tables (`_profile_metrics`, `_drift_metrics`
 
 This document explains how to add Genie-friendly documentation to monitoring output tables.
 
+## Asset Selection Framework
+
+### Priority Order for Genie Questions
+
+| Priority | Asset Type | Question Pattern | Example |
+|----------|------------|------------------|---------|
+| 1 | **Custom Metrics** | TREND, DRIFT, TIME SERIES | "How has cost changed over time?" |
+| 2 | **Metric Views** | AGGREGATE, CURRENT VALUE, KPI | "What is current total cost?" |
+| 3 | **TVFs** | LIST, FILTER, SPECIFIC ENTITY | "Show me failed jobs today" |
+| 4 | **ML Tables** | PREDICTION, FORECAST, ANOMALY | "Will this job fail?" |
+
+### Asset Selection Rules
+
+```
+QUERY CONTAINS...                → USE THIS ASSET
+──────────────────────────────────────────────────────────────
+"trend", "over time", "change"   → Custom Metrics (_drift_metrics)
+"week over week", "% change"     → Custom Metrics (_drift_metrics)
+"current", "total", "average"    → Metric Views (mv_*)
+"list", "show", "top N"          → TVFs (get_*)
+"predict", "forecast", "will"    → ML Tables (*_predictions)
+"anomaly", "unusual", "detect"   → ML Tables (*_anomaly_*)
+```
+
+### ⚠️ CRITICAL: Custom Metrics Query Patterns
+
+When querying Lakehouse Monitoring tables, these filters are **MANDATORY**:
+
+```sql
+-- Profile metrics (current values, aggregates)
+SELECT metric_name, value
+FROM ${catalog}.${gold_monitoring}.<table>_profile_metrics
+WHERE column_name = ':table'      -- REQUIRED: Table-level metrics
+  AND log_type = 'INPUT'          -- REQUIRED: Source data metrics
+ORDER BY window_start DESC;
+
+-- Drift metrics (period-over-period changes)
+SELECT metric_name, current_value, previous_value, drift
+FROM ${catalog}.${gold_monitoring}.<table>_drift_metrics
+WHERE column_name = ':table'      -- REQUIRED: Table-level metrics
+  AND log_type = 'INPUT'          -- REQUIRED: Source data metrics
+  AND drift_type = 'CONSECUTIVE'  -- REQUIRED: Week-over-week comparison
+ORDER BY window_start DESC;
+```
+
+**Without these filters, queries return confusing/incorrect results!**
+
+### Slicing Dimensions by Monitor
+
+Custom Metrics support dimensional analysis. Use these columns in GROUP BY or WHERE:
+
+| Monitor | Slicing Dimensions |
+|---------|-------------------|
+| **fact_usage** | `workspace_id`, `sku_name`, `cloud`, `is_tagged`, `product_features_is_serverless` |
+| **fact_job_run_timeline** | `workspace_id`, `job_name`, `result_state`, `trigger_type`, `termination_code` |
+| **fact_query_history** | `workspace_id`, `compute_warehouse_id`, `execution_status`, `statement_type`, `executed_by` |
+| **fact_node_timeline** | `workspace_id`, `cluster_name`, `cluster_owner`, `node_type` |
+| **fact_audit_logs** | `workspace_id`, `service_name`, `audit_level`, `action_name`, `user_identity_email` |
+| **fact_table_quality** | `catalog_name`, `schema_name`, `table_name`, `has_critical_violations` |
+| **fact_governance_metrics** | `catalog_name`, `schema_name`, `table_name` |
+| **fact_model_serving** | `workspace_id`, `endpoint_name`, `model_name`, `model_version` |
+
 ## The Problem
 
 ### Default State (No Documentation)
@@ -607,14 +669,106 @@ databricks bundle run -t dev lakehouse_monitoring_document_job
 GRANT MODIFY ON TABLE catalog.gold_monitoring.* TO `user@company.com`;
 ```
 
+## ML Model Integration
+
+### Complementary Assets
+
+Lakehouse Monitoring Custom Metrics work alongside 25 ML Models to provide a complete analytics layer:
+
+| Measurement Type | Custom Metrics | ML Models |
+|-----------------|---------------|-----------|
+| **Anomaly Detection** | Simple drift | Advanced anomaly scoring |
+| **Time Series** | Historical trends | Future predictions |
+| **Aggregates** | Current state | Forecasted values |
+| **Recommendations** | Threshold alerts | AI-powered recommendations |
+
+### ML Models by Domain
+
+| Domain | Custom Metrics Table | Complementary ML Model | Prediction Table |
+|--------|---------------------|----------------------|------------------|
+| **💰 Cost** | `fact_usage_profile_metrics` | `cost_anomaly_detector` | `cost_anomaly_predictions` |
+| **💰 Cost** | `fact_usage_drift_metrics` | `budget_forecaster` | `cost_forecast_predictions` |
+| **🔄 Reliability** | `fact_job_run_timeline_profile_metrics` | `job_failure_predictor` | `job_failure_predictions` |
+| **🔄 Reliability** | `fact_job_run_timeline_drift_metrics` | `job_duration_forecaster` | `job_duration_predictions` |
+| **⚡ Performance** | `fact_query_history_profile_metrics` | `query_optimization_recommender` | `query_optimization_recommendations` |
+| **⚡ Performance** | `fact_node_timeline_profile_metrics` | `cluster_sizing_recommender` | `cluster_rightsizing_recommendations` |
+| **🔒 Security** | `fact_audit_logs_profile_metrics` | `security_threat_detector` | `access_anomaly_predictions` |
+| **📋 Quality** | `fact_table_quality_profile_metrics` | `data_drift_detector` | `quality_anomaly_predictions` |
+
+### Question Routing Decision Tree
+
+```
+USER QUESTION                    → USE THIS ASSET
+─────────────────────────────────────────────────────────────
+"Is [metric] increasing?"        → Custom Metrics (_drift_metrics)
+"Current value of [metric]?"     → Custom Metrics (_profile_metrics)
+"Alert when [metric] exceeds X"  → Custom Metrics (alerting)
+─────────────────────────────────────────────────────────────
+"Will [job/query] fail?"         → ML Model (failure predictions)
+"Predict [metric] for next week" → ML Model (forecasting)
+"Is this [value] anomalous?"     → ML Model (anomaly detection)
+"Recommend optimization"         → ML Model (recommendations)
+```
+
+### Example: Combined Query
+
+```sql
+-- Get current metric value + anomaly prediction
+SELECT 
+  cm.window_start,
+  cm.total_daily_cost as current_cost,
+  ap.predicted_cost as forecasted_cost,
+  ap.anomaly_score,
+  ap.is_anomaly,
+  CASE 
+    WHEN ap.is_anomaly THEN 'ALERT: Anomalous spending detected'
+    WHEN cm.total_daily_cost > ap.predicted_cost * 1.2 THEN 'WARNING: 20% above forecast'
+    ELSE 'Normal'
+  END as status
+FROM ${catalog}.${gold_monitoring}.fact_usage_profile_metrics cm
+LEFT JOIN ${catalog}.${gold_schema}.cost_anomaly_predictions ap
+  ON DATE(cm.window_start) = ap.prediction_date
+WHERE cm.column_name = ':table'
+  AND cm.log_type = 'INPUT'
+ORDER BY cm.window_start DESC
+LIMIT 7;
+```
+
+### Genie Space Configuration
+
+When configuring Genie Spaces, include both Custom Metrics tables and ML prediction tables:
+
+```python
+"data_assets": {
+    "metric_views": ["cost_analytics"],  # Dashboard KPIs
+    "tvfs": ["get_top_cost_contributors"],  # Lists
+    "monitoring_tables": [  # Time series trends
+        "fact_usage_profile_metrics",
+        "fact_usage_drift_metrics"
+    ],
+    "ml_tables": [  # Predictions
+        "cost_anomaly_predictions",
+        "cost_forecast_predictions"
+    ]
+}
+```
+
+### References for ML Integration
+
+- [Metrics Inventory](../reference/metrics-inventory.md) - Complete metrics and ML model mapping
+- [ML Model Catalog](../ml-framework-design/07-model-catalog.md) - All 25 models documentation
+- [Genie Spaces Deployment Guide](../deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup
+
 ## References
 
 - [Lakehouse Monitoring](https://docs.databricks.com/lakehouse-monitoring)
 - [Genie Spaces](https://docs.databricks.com/genie)
 - [Cursor Rule: Lakehouse Monitoring](../../.cursor/rules/monitoring/17-lakehouse-monitoring-comprehensive.mdc)
+- [Metrics Inventory](../reference/metrics-inventory.md)
+- [ML Model Catalog](../ml-framework-design/07-model-catalog.md)
 
 ---
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Last Updated:** January 2026
 

@@ -78,8 +78,58 @@
 
 | Table Name | Purpose |
 |------------|---------|
-| `fact_job_run_timeline_profile_metrics` | Custom job metrics (success_rate, p90_duration, duration_cv) |
+| `fact_job_run_timeline_profile_metrics` | Custom job metrics (success_rate, failure_count, p90_duration, duration_cv) |
 | `fact_job_run_timeline_drift_metrics` | Reliability drift (success_rate_drift, duration_drift) |
+
+#### ⚠️ CRITICAL: Custom Metrics Query Patterns
+
+**Always include these filters when querying Lakehouse Monitoring tables:**
+
+```sql
+-- ✅ CORRECT: Get job reliability metrics
+SELECT 
+  window.start AS window_start,
+  success_rate,
+  failure_count,
+  p90_duration
+FROM ${catalog}.${gold_schema}.fact_job_run_timeline_profile_metrics
+WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
+  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
+  AND slice_key IS NULL          -- For overall metrics
+ORDER BY window.start DESC;
+
+-- ✅ CORRECT: Get success rate by job name (sliced)
+SELECT 
+  slice_value AS job_name,
+  AVG(success_rate) AS avg_success_rate,
+  SUM(failure_count) AS total_failures
+FROM ${catalog}.${gold_schema}.fact_job_run_timeline_profile_metrics
+WHERE column_name = ':table'
+  AND log_type = 'INPUT'
+  AND slice_key = 'job_name'
+GROUP BY slice_value
+ORDER BY avg_success_rate ASC;
+
+-- ✅ CORRECT: Get reliability drift
+SELECT 
+  window.start AS window_start,
+  success_rate_drift,
+  duration_drift
+FROM ${catalog}.${gold_schema}.fact_job_run_timeline_drift_metrics
+WHERE drift_type = 'CONSECUTIVE'
+  AND column_name = ':table'
+ORDER BY window.start DESC;
+```
+
+#### Available Slicing Dimensions (Job Monitor)
+
+| Slice Key | Use Case |
+|-----------|----------|
+| `workspace_id` | Reliability by workspace |
+| `job_name` | Metrics by specific job |
+| `result_state` | Breakdown by outcome |
+| `trigger_type` | Scheduled vs manual |
+| `termination_code` | Failures by termination code |
 
 ### Dimension Tables (from gold_layer_design/yaml/lakeflow/, shared/)
 
@@ -100,29 +150,71 @@
 
 ---
 
-## ████ SECTION E: GENERAL INSTRUCTIONS (≤20 Lines) ████
+## ████ SECTION E: ASSET SELECTION FRAMEWORK ████
+
+### Semantic Layer Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ASSET SELECTION DECISION TREE                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  USER QUERY PATTERN                → USE THIS ASSET             │
+│  ─────────────────────────────────────────────────────────────  │
+│  "What's the current success rate?"→ Metric View (job_performance)│
+│  "Show me job success by X"        → Metric View (job_performance)│
+│  ─────────────────────────────────────────────────────────────  │
+│  "Is success rate degrading?"      → Custom Metrics (_drift_metrics)│
+│  "Failure trend since last week"   → Custom Metrics (_profile_metrics)│
+│  ─────────────────────────────────────────────────────────────  │
+│  "Which jobs failed today?"        → TVF (get_failed_jobs)       │
+│  "Top 10 failing jobs"             → TVF (get_job_success_rate) │
+│  "Jobs slower than threshold"      → TVF (get_job_duration_percentiles)│
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Asset Selection Rules
+
+| Query Intent | Asset Type | Example |
+|--------------|-----------|---------|
+| **Current success rate** | Metric View | "Job success rate" → `job_performance` |
+| **Trend over time** | Custom Metrics | "Is reliability degrading?" → `_drift_metrics` |
+| **List of failed jobs** | TVF | "Failed jobs today" → `get_failed_jobs` |
+| **SLA compliance** | TVF | "SLA breaches" → `get_job_sla_compliance` |
+| **Failure predictions** | ML Tables | "Jobs likely to fail" → `job_failure_predictions` |
+
+### Priority Order
+
+1. **If user asks for a LIST** → TVF
+2. **If user asks about TREND** → Custom Metrics
+3. **If user asks for CURRENT VALUE** → Metric View
+4. **If user asks for PREDICTION** → ML Tables
+
+---
+
+## ████ SECTION F: GENERAL INSTRUCTIONS (≤20 Lines) ████
 
 ```
 You are a Databricks job reliability analyst. Follow these rules:
 
-1. **Primary Source:** Use job_performance metric view first
-2. **TVFs:** Use TVFs for parameterized queries (date ranges, specific jobs)
-3. **Date Default:** If no date specified, default to last 7 days
-4. **Aggregation:** Use COUNT for volumes, AVG for averages
-5. **Sorting:** Sort by failure_rate DESC or duration DESC
-6. **Limits:** Top 10-20 for ranking queries
-7. **Percentages:** Success/failure rates as % with 1 decimal
-8. **Duration:** Show in minutes for readability
-9. **Synonyms:** job=workflow=pipeline, failure=error=crash
-10. **ML Predictions:** For "likely to fail" → query job_failure_predictions
-11. **Health Score:** For "health score" → query pipeline_health_scores
-12. **Retry:** For "retry success" → query retry_success_predictions
+1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends
+2. **Primary Source:** Use job_performance metric view for dashboard KPIs
+3. **TVFs for Lists:** Use TVFs for "which jobs", "top N", "list" queries
+4. **Trends:** For "is success rate degrading?" check _drift_metrics tables
+5. **Date Default:** If no date specified, default to last 7 days
+6. **Aggregation:** Use COUNT for volumes, AVG for averages
+7. **Sorting:** Sort by failure_rate DESC or duration DESC
+8. **Limits:** Top 10-20 for ranking queries
+9. **Percentages:** Success/failure rates as % with 1 decimal
+10. **Duration:** Show in minutes for readability
+11. **Synonyms:** job=workflow=pipeline, failure=error=crash
+12. **ML Predictions:** For "likely to fail" → query job_failure_predictions
 13. **Failed Jobs:** For "failed jobs today" → use get_failed_jobs TVF
-14. **Success Rate:** For "success rate" → use get_job_success_rate TVF
-15. **SLA:** For "SLA compliance" → use get_job_sla_compliance TVF
-16. **Comparisons:** Show absolute and % change
-17. **Context:** Explain FAILED vs ERROR vs TIMED_OUT
-18. **Performance:** Never scan Bronze/Silver tables
+14. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
+15. **Context:** Explain FAILED vs ERROR vs TIMED_OUT
+16. **Performance:** Never scan Bronze/Silver tables
 ```
 
 ---
@@ -173,7 +265,75 @@ You are a Databricks job reliability analyst. Follow these rules:
 
 ---
 
-## ████ SECTION G: BENCHMARK QUESTIONS WITH SQL ████
+## ████ SECTION G: ML MODEL INTEGRATION (5 Models) ████
+
+### Reliability ML Models Quick Reference
+
+| ML Model | Prediction Table | Key Columns | Use When |
+|----------|-----------------|-------------|----------|
+| `job_failure_predictor` | `job_failure_predictions` | `failure_probability`, `will_fail` | "Will this job fail?" |
+| `job_duration_forecaster` | `job_duration_predictions` | `predicted_duration_sec` | "How long will it take?" |
+| `sla_breach_predictor` | `incident_impact_predictions` | `breach_probability` | "Will SLA breach?" |
+| `pipeline_health_scorer` | `pipeline_health_scores` | `health_score` (0-100) | "Pipeline health score" |
+| `retry_success_predictor` | `retry_success_predictions` | `retry_success_prob` | "Will retry succeed?" |
+
+### ML Model Usage Patterns
+
+#### job_failure_predictor (Failure Prediction)
+- **Question Triggers:** "will fail", "likely to fail", "at risk", "failure prediction"
+- **Query Pattern:**
+```sql
+SELECT job_name, failure_probability, will_fail, risk_factors
+FROM ${catalog}.${gold_schema}.job_failure_predictions
+WHERE prediction_date = CURRENT_DATE()
+  AND failure_probability > 0.5
+ORDER BY failure_probability DESC;
+```
+- **Interpretation:** `failure_probability > 0.5` = High risk of failure
+
+#### job_duration_forecaster (Duration Prediction)
+- **Question Triggers:** "how long", "duration estimate", "expected time", "forecast duration"
+- **Query Pattern:**
+```sql
+SELECT job_name, predicted_duration_sec / 60.0 as predicted_minutes, 
+       confidence_interval_lower, confidence_interval_upper
+FROM ${catalog}.${gold_schema}.job_duration_predictions
+WHERE job_name = '{job_name}'
+ORDER BY prediction_date DESC LIMIT 1;
+```
+
+#### pipeline_health_scorer (Health Score)
+- **Question Triggers:** "pipeline health", "health score", "pipeline status", "healthy pipelines"
+- **Query Pattern:**
+```sql
+SELECT pipeline_name, health_score, 
+       CASE WHEN health_score >= 90 THEN 'Excellent'
+            WHEN health_score >= 70 THEN 'Good'
+            WHEN health_score >= 50 THEN 'Warning'
+            ELSE 'Critical' END as health_status
+FROM ${catalog}.${gold_schema}.pipeline_health_scores
+ORDER BY health_score ASC;
+```
+- **Interpretation:** `health_score < 70` = Needs attention
+
+### ML vs Other Methods Decision Tree
+
+```
+USER QUESTION                           → USE THIS
+────────────────────────────────────────────────────
+"Will job X fail?"                      → ML: job_failure_predictions
+"How long will job X take?"             → ML: job_duration_predictions
+"Pipeline health score"                 → ML: pipeline_health_scores
+"Will SLA be breached?"                 → ML: incident_impact_predictions
+────────────────────────────────────────────────────
+"What is the success rate?"             → Metric View: job_performance
+"Is reliability trending down?"         → Custom Metrics: _drift_metrics
+"Show failed jobs today"                → TVF: get_failed_jobs
+```
+
+---
+
+## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
 
 ### Question 1: "What is our job success rate this week?"
 **Expected SQL:**
@@ -346,6 +506,20 @@ LIMIT 10;
 
 ## References
 
-- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md)
-- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md)
+### 📊 Semantic Layer Framework (Essential Reading)
+- [**Metrics Inventory**](../../docs/reference/metrics-inventory.md) - **START HERE**: Complete inventory of 277 measurements across TVFs, Metric Views, and Custom Metrics
+- [**Semantic Layer Rationalization**](../../docs/reference/semantic-layer-rationalization.md) - Design rationale: why overlaps are intentional and complementary
+- [**Genie Asset Selection Guide**](../../docs/reference/genie-asset-selection-guide.md) - Quick decision tree for choosing correct asset type
+
+### 📈 Lakehouse Monitoring Documentation
+- [Monitor Catalog](../../docs/lakehouse-monitoring-design/04-monitor-catalog.md) - Complete metric definitions for Job Monitor
+- [Genie Integration](../../docs/lakehouse-monitoring-design/05-genie-integration.md) - Critical query patterns and required filters
+- [Custom Metrics Reference](../../docs/lakehouse-monitoring-design/03-custom-metrics.md) - 50 reliability-specific custom metrics
+
+### 📁 Asset Inventories
+- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md) - 12 Reliability TVFs
+- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md) - 5 Reliability ML Models
+
+### 🚀 Deployment Guides
+- [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup and troubleshooting
 

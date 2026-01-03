@@ -3,11 +3,24 @@
 # Pre-deployment validation of all dashboard SQL queries.
 # Run this BEFORE dashboard_deployment_job to catch errors early.
 #
-# Usage:
+# Validates ALL dashboards in src/dashboards/:
+#   - 💰 Cost: cost_management, commit_tracking
+#   - ⚡ Performance: query_performance, cluster_utilization, dbr_migration
+#   - 🔄 Reliability: job_reliability, job_optimization
+#   - 🔒 Security: security_audit, governance_hub
+#   - ✅ Quality: table_health
+#   - 📊 Unified: health_monitor_unified
+#
+# Error Categories Detected:
+#   - COLUMN_NOT_FOUND: Invalid column references
+#   - AMBIGUOUS_COLUMN: Unqualified column in JOINs
+#   - SYNTAX_ERROR: SQL syntax issues
+#   - TABLE_NOT_FOUND: Missing tables
+#
+# Usage (standalone):
 #   databricks bundle run -t dev dashboard_validation_job
 #
-# If validation passes, then run:
-#   databricks bundle run -t dev dashboard_deployment_job
+# Note: This runs automatically before deployment in dashboard_deployment_job
 
 resources:
   jobs:
@@ -15,6 +28,7 @@ resources:
       name: "[${bundle.target}] Health Monitor - Dashboard SQL Validation"
       description: |
         Pre-deployment validation of all dashboard SQL queries.
+        Validates queries against Gold layer tables using EXPLAIN.
         Catches column resolution, syntax, and ambiguous reference errors.
         Run this before dashboard deployment to save debugging time.
       
@@ -33,17 +47,18 @@ resources:
               gold_schema: ${var.gold_schema}
       
       # Short timeout since validation should be fast
-      timeout_seconds: 600  # 10 minutes
+      timeout_seconds: 900  # 15 minutes (increased for full validation)
       
       # Email notifications
       email_notifications:
         on_failure:
-          - prashanth.subrahmanyam@databricks.com
+          - data-engineering@company.com
       
       tags:
         environment: ${bundle.target}
-        project: databricks_health_monitor
+        project: health_monitor
         layer: dashboard
         job_type: validation
         job_level: atomic
+        compute_type: serverless
 

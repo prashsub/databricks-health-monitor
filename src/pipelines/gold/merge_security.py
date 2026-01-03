@@ -34,11 +34,19 @@ def get_parameters():
     bronze_schema = dbutils.widgets.get("bronze_schema")
     gold_schema = dbutils.widgets.get("gold_schema")
     
+    # Optional: days_lookback for initial run (default: 7 days for fast startup)
+    # Use gold_backfill_job for historical data beyond this window
+    try:
+        days_lookback = int(dbutils.widgets.get("days_lookback"))
+    except Exception:
+        days_lookback = 7  # Default to 7 days for fast pipeline startup
+    
     print(f"Catalog: {catalog}")
     print(f"Bronze Schema: {bronze_schema}")
     print(f"Gold Schema: {gold_schema}")
+    print(f"Days Lookback (initial run): {days_lookback}")
     
-    return catalog, bronze_schema, gold_schema
+    return catalog, bronze_schema, gold_schema, days_lookback
 
 # COMMAND ----------
 
@@ -147,15 +155,20 @@ def merge_audit_logs_chunk(
     return merged_count
 
 
-def merge_fact_audit_logs(spark: SparkSession, catalog: str, bronze_schema: str, gold_schema: str):
+def merge_fact_audit_logs(spark: SparkSession, catalog: str, bronze_schema: str, gold_schema: str, days_lookback: int = 7):
     """
     Merge fact_audit_logs from Bronze to Gold using WEEKLY CHUNKS.
     
     Chunking Strategy:
-    - First run: Process last 90 days in weekly chunks (~13 chunks)
+    - First run: Process last `days_lookback` days (default: 7 days for fast startup)
     - Subsequent runs: Process new data since max(event_date) in weekly chunks
+    - For historical data beyond days_lookback, use the gold_backfill_job
     
     This prevents memory issues with 7B+ record table.
+    
+    Args:
+        days_lookback: Number of days to look back on first run (default: 7)
+                      Use gold_backfill_job for historical data beyond this window
     """
     print("\n" + "=" * 80)
     print("MERGING: fact_audit_logs (CHUNKED)")
@@ -173,9 +186,10 @@ def merge_fact_audit_logs(spark: SparkSession, catalog: str, bronze_schema: str,
         start_date = max_gold_date + timedelta(days=1)
         print(f"  ℹ️ Incremental mode: Processing from {start_date} to {today} (inclusive)")
     else:
-        # First run: last 90 days
-        start_date = today - timedelta(days=90)
-        print(f"  ℹ️ First run: Processing last 90 days ({start_date} to {today})")
+        # First run: last N days (configurable, default 7 for fast startup)
+        start_date = today - timedelta(days=days_lookback)
+        print(f"  ℹ️ First run: Processing last {days_lookback} days ({start_date} to {today})")
+        print(f"  💡 Tip: Use gold_backfill_job for historical data beyond {days_lookback} days")
     
     if start_date > today:  # Changed from >= to > (process today's data)
         print("  ✓ No new records to process - Gold is up to date!")
@@ -505,14 +519,16 @@ def main():
     print("HEALTH MONITOR - GOLD LAYER MERGE - SECURITY DOMAIN")
     print("=" * 80)
     
-    catalog, bronze_schema, gold_schema = get_parameters()
+    catalog, bronze_schema, gold_schema, days_lookback = get_parameters()
     
     spark = SparkSession.builder.appName("Gold Merge - Security").getOrCreate()
     
     try:
         # Primary audit table (chunked due to size)
+        # Uses days_lookback for initial run (default: 7 days)
+        # For historical data, use the separate gold_backfill_job
         print("\nStep 1: Merging fact_audit_logs (chunked)...")
-        merge_fact_audit_logs(spark, catalog, bronze_schema, gold_schema)
+        merge_fact_audit_logs(spark, catalog, bronze_schema, gold_schema, days_lookback)
         
         # Additional security tables
         print("\nStep 2: Merging fact_assistant_events...")

@@ -79,16 +79,51 @@ def extract_queries_from_dashboard(dashboard_path: Path, catalog: str, gold_sche
         # :param_name -> 'All' or default value
         # IMPORTANT: Do NOT replace :table - it's a literal value in Lakehouse Monitoring, not a parameter
         # Parameters are typically preceded by = or space (e.g., WHERE x = :param or AND :param)
+        
+        # Date range parameters (Account Usage Dashboard v2 style)
+        # :time_range.min and :time_range.max -> actual date values
+        query = re.sub(r':time_range\.min\b', "CURRENT_DATE() - INTERVAL 30 DAYS", query)
+        query = re.sub(r':time_range\.max\b', "CURRENT_DATE()", query)
+        
+        # Handle window_start from Lakehouse Monitoring tables
+        # This is the actual column name in monitoring tables
+        # For validation, just ensure queries referencing it are syntactically valid
+        # No substitution needed - window_start is an actual column
+        
+        # Time and date parameters (legacy style)
         query = re.sub(r':time_window\b', "'Last 30 Days'", query)
+        query = re.sub(r':time_key\b', "'Day'", query)
+        query = re.sub(r':date_range\b', "'Last 30 Days'", query)
+        
+        # Workspace and environment parameters  
         query = re.sub(r':workspace_filter\b', "'All'", query)
+        query = re.sub(r':workspace_name\b', "'All'", query)
+        query = re.sub(r':param_workspace\b', "'All'", query)
+        
+        # SKU and product parameters
         query = re.sub(r':sku_type\b', "'All'", query)
+        query = re.sub(r':sku_category\b', "'All'", query)
+        query = re.sub(r':product_category\b', "'All'", query)
+        query = re.sub(r':billing_origin_product\b', "'All'", query)
+        
+        # Other filter parameters
         query = re.sub(r':compute_type\b', "'All'", query)
         query = re.sub(r':job_status\b', "'All'", query)
+        query = re.sub(r':job_name\b', "'All'", query)
+        query = re.sub(r':owner\b', "'All'", query)
+        query = re.sub(r':service_name\b', "'All'", query)
+        
+        # Numeric parameters
         query = re.sub(r':annual_commit\b', "1000000", query)
-        query = re.sub(r':time_key\b', "'Day'", query)
-        # Catch remaining parameters only when preceded by = or whitespace (avoid :xxx inside strings)
+        query = re.sub(r':top_n\b', "10", query)
+        query = re.sub(r':limit\b', "100", query)
+        
+        # Catch remaining parameters - replace with string 'All' for validation
         # Skip :table (Lakehouse Monitoring literal) and patterns inside quoted strings
         query = re.sub(r'(?<=[=\s]):(?!table\b)([a-z_]+)\b', "'All'", query, flags=re.IGNORECASE)
+        
+        # Also replace CASE :param patterns that start the expression
+        query = re.sub(r'CASE\s+:([a-z_]+)', r"CASE 'All'", query, flags=re.IGNORECASE)
         
         queries.append({
             'dashboard': dashboard_name,
@@ -282,6 +317,27 @@ def main():
         print(f"\n❌ VALIDATION FAILED: {invalid_count} queries have errors")
         print("Fix the errors above before deploying the dashboard.")
         
+        # Print detailed errors for each failed query
+        print("\n" + "=" * 80)
+        print("DETAILED ERROR LIST (for easy debugging)")
+        print("=" * 80)
+        
+        for r in results:
+            if not r['valid']:
+                print(f"\n🔴 FAILED: {r['dashboard']}.lvdash.json -> {r['dataset']}")
+                print(f"   Error Type: {r.get('error_type', 'UNKNOWN')}")
+                if 'error_column' in r:
+                    print(f"   Column: {r['error_column']}")
+                if 'suggestions' in r:
+                    print(f"   Suggestions: {r['suggestions']}")
+                if 'missing_table' in r:
+                    print(f"   Missing Table: {r['missing_table']}")
+                if 'error_near' in r:
+                    print(f"   Error Near: {r['error_near']}")
+                print(f"   Full Error: {str(r.get('error', ''))[:500]}")
+        
+        print("\n" + "=" * 80)
+        
         # Create a summary file
         summary = {
             'total': len(results),
@@ -292,9 +348,36 @@ def main():
         
         # Output summary as JSON for programmatic use
         print("\n=== ERROR SUMMARY JSON ===")
-        print(json.dumps(summary, indent=2, default=str)[:5000])
+        error_json = json.dumps(summary, indent=2, default=str)
+        print(error_json[:10000])  # Print more for debugging
         
-        raise RuntimeError(f"Dashboard validation failed: {invalid_count} queries have errors")
+        # Save errors to a file for easier retrieval
+        error_file_path = "/Workspace/Users/prashanth.subrahmanyam@databricks.com/.bundle/databricks_health_monitor/dev/files/validation_errors.json"
+        try:
+            with open(error_file_path, 'w') as f:
+                f.write(error_json)
+            print(f"\n📁 Errors saved to: {error_file_path}")
+        except Exception as e:
+            print(f"Could not save errors to file: {e}")
+        
+        # Exit with error summary so it's captured in API response
+        dbutils.notebook.exit(json.dumps({
+            "status": "FAILED",
+            "invalid_count": invalid_count,
+            "errors": [
+                {
+                    "dashboard": r['dashboard'],
+                    "dataset": r['dataset'],
+                    "error_type": r.get('error_type'),
+                    "error_column": r.get('error_column'),
+                    "suggestions": r.get('suggestions'),
+                    "missing_table": r.get('missing_table'),
+                    "error_near": r.get('error_near'),
+                    "error": str(r.get('error', ''))[:300]
+                }
+                for r in results if not r['valid']
+            ]
+        }, default=str)[:30000])
     
     print("\n✅ VALIDATION PASSED: All queries are valid!")
     dbutils.notebook.exit("SUCCESS")

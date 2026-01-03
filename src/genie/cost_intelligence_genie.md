@@ -83,8 +83,56 @@
 
 | Table Name | Purpose |
 |------------|---------|
-| `fact_usage_profile_metrics` | Custom cost metrics (total_cost, serverless_percentage, tag_coverage_percentage) |
-| `fact_usage_drift_metrics` | Cost drift detection (cost_trend, serverless_adoption_drift) |
+| `fact_usage_profile_metrics` | Custom cost metrics (total_daily_cost, serverless_ratio, tag_coverage_pct) |
+| `fact_usage_drift_metrics` | Cost drift detection (cost_drift_pct, dbu_drift_pct, tag_coverage_drift) |
+
+#### ⚠️ CRITICAL: Custom Metrics Query Patterns
+
+**Always include these filters when querying Lakehouse Monitoring tables:**
+
+```sql
+-- ✅ CORRECT: Get cost metrics over time
+SELECT 
+  window.start AS window_start,
+  total_daily_cost,
+  tag_coverage_pct,
+  serverless_ratio
+FROM ${catalog}.${gold_schema}.fact_usage_profile_metrics
+WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
+  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
+  AND slice_key IS NULL          -- For overall metrics
+ORDER BY window.start DESC;
+
+-- ✅ CORRECT: Get cost by workspace (sliced)
+SELECT 
+  slice_value AS workspace_id,
+  SUM(total_daily_cost) AS total_cost
+FROM ${catalog}.${gold_schema}.fact_usage_profile_metrics
+WHERE column_name = ':table'
+  AND log_type = 'INPUT'
+  AND slice_key = 'workspace_id'
+GROUP BY slice_value
+ORDER BY total_cost DESC;
+
+-- ✅ CORRECT: Get cost drift
+SELECT 
+  window.start AS window_start,
+  cost_drift_pct
+FROM ${catalog}.${gold_schema}.fact_usage_drift_metrics
+WHERE drift_type = 'CONSECUTIVE'
+  AND column_name = ':table'
+ORDER BY window.start DESC;
+```
+
+#### Available Slicing Dimensions (Cost Monitor)
+
+| Slice Key | Use Case |
+|-----------|----------|
+| `workspace_id` | Cost by workspace |
+| `sku_name` | Cost by SKU |
+| `cloud` | Cost by cloud provider |
+| `is_tagged` | Tagged vs untagged |
+| `product_features_is_serverless` | Serverless vs classic |
 
 ### Dimension Tables (from gold_layer_design/yaml/billing/, shared/)
 
@@ -103,29 +151,74 @@
 
 ---
 
-## ████ SECTION E: GENERAL INSTRUCTIONS (≤20 Lines) ████
+## ████ SECTION E: ASSET SELECTION FRAMEWORK ████
+
+### Semantic Layer Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ASSET SELECTION DECISION TREE                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  USER QUERY PATTERN              → USE THIS ASSET               │
+│  ─────────────────────────────────────────────────────────────  │
+│  "What's the current X?"         → Metric View (cost_analytics) │
+│  "Show me total X by Y"          → Metric View (cost_analytics) │
+│  "Dashboard of cost metrics"     → Metric View (cost_analytics) │
+│  ─────────────────────────────────────────────────────────────  │
+│  "Is cost increasing over time?" → Custom Metrics (_drift_metrics) │
+│  "Cost trend since last week"    → Custom Metrics (_profile_metrics) │
+│  "Alert when cost exceeds X"     → Custom Metrics (for alerting) │
+│  ─────────────────────────────────────────────────────────────  │
+│  "Top N workspaces by cost"      → TVF (get_top_cost_contributors) │
+│  "Untagged resources list"       → TVF (get_untagged_resources) │
+│  "Cost from DATE to DATE"        → TVF (date range parameters)  │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Asset Selection Rules
+
+| Query Intent | Asset Type | Example |
+|--------------|-----------|---------|
+| **Current state aggregates** | Metric View | "Total cost this month" → `cost_analytics` |
+| **Trend over time** | Custom Metrics | "Is cost increasing?" → `_drift_metrics` |
+| **List of specific items** | TVF | "Top 10 by cost" → `get_top_cost_contributors` |
+| **Parameterized investigation** | TVF | "Cost anomalies >$1000" → `get_cost_anomalies` |
+| **Predictions/Forecasts** | ML Tables | "Cost forecast" → `cost_forecast_predictions` |
+
+### Priority Order
+
+1. **If user asks for a LIST** → TVF
+2. **If user asks about TREND** → Custom Metrics  
+3. **If user asks for CURRENT VALUE** → Metric View
+4. **If user asks for PREDICTION** → ML Tables
+
+---
+
+## ████ SECTION F: GENERAL INSTRUCTIONS (≤20 Lines) ████
 
 ```
 You are a Databricks FinOps analyst. Follow these rules:
 
-1. **Primary Source:** Use cost_analytics metric view first
-2. **TVFs:** Use TVFs for parameterized queries (date ranges, top N)
-3. **Date Default:** If no date specified, default to last 30 days
-4. **Aggregation:** Use SUM for totals, AVG for averages
-5. **Sorting:** Sort by cost DESC unless specified
-6. **Limits:** Top 10-20 for ranking queries
-7. **Currency:** Format as USD with 2 decimals ($1,234.56)
-8. **Percentages:** Show as % with 1 decimal (45.3%)
-9. **Synonyms:** cost=spend=billing, workspace=environment
-10. **ML Anomalies:** For "anomalies" → query cost_anomaly_predictions
-11. **ML Forecast:** For "forecast/predict" → query cost_forecast_predictions
-12. **Tag Questions:** For "untagged" → use get_untagged_resources TVF
-13. **ALL_PURPOSE:** For cluster savings → use get_all_purpose_cluster_cost TVF
-14. **Commit:** For budget tracking → use commit_tracking metric view
-15. **Comparisons:** Show absolute value AND % difference
-16. **Time Periods:** Support today, this week, this month, MTD, YTD
+1. **Asset Selection:** Use Metric View for current state, TVFs for lists/investigation, Custom Metrics for trends
+2. **Primary Source:** Use cost_analytics metric view for dashboard KPIs
+3. **TVFs for Lists:** Use TVFs for "top N", "which", "list" queries
+4. **Trends:** For "is X increasing?" check _drift_metrics tables
+5. **Date Default:** If no date specified, default to last 30 days
+6. **Aggregation:** Use SUM for totals, AVG for averages
+7. **Sorting:** Sort by cost DESC unless specified
+8. **Limits:** Top 10-20 for ranking queries
+9. **Currency:** Format as USD with 2 decimals ($1,234.56)
+10. **Percentages:** Show as % with 1 decimal (45.3%)
+11. **Synonyms:** cost=spend=billing, workspace=environment
+12. **ML Anomalies:** For "anomalies" → query cost_anomaly_predictions
+13. **ML Forecast:** For "forecast/predict" → query cost_forecast_predictions
+14. **Tag Questions:** For "untagged" → use get_untagged_resources TVF
+15. **Commit:** For budget tracking → use commit_tracking metric view
+16. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
 17. **Performance:** Never scan Bronze/Silver tables
-18. **Context:** Explain results in business terms
 ```
 
 ---
@@ -176,7 +269,72 @@ You are a Databricks FinOps analyst. Follow these rules:
 
 ---
 
-## ████ SECTION G: BENCHMARK QUESTIONS WITH SQL ████
+## ████ SECTION G: ML MODEL INTEGRATION (6 Models) ████
+
+### Cost ML Models Quick Reference
+
+| ML Model | Prediction Table | Key Columns | Use When |
+|----------|-----------------|-------------|----------|
+| `cost_anomaly_detector` | `cost_anomaly_predictions` | `anomaly_score`, `is_anomaly` | "Is this spending unusual?" |
+| `budget_forecaster` | `cost_forecast_predictions` | `predicted_cost`, `confidence_interval` | "Forecast next month" |
+| `job_cost_optimizer` | `migration_recommendations` | `potential_savings`, `migration_risk` | "Where can we save?" |
+| `tag_recommender` | `tag_recommendations` | `recommended_tag`, `confidence` | "Suggest tags" |
+| `commitment_recommender` | `budget_alert_predictions` | `recommended_commitment` | "Commit level?" |
+| `chargeback_attribution` | — | Cost allocation | "Allocate costs" |
+
+### ML Model Usage Patterns
+
+#### cost_anomaly_detector (Anomaly Detection)
+- **Question Triggers:** "anomaly", "unusual", "spike", "abnormal", "outlier"
+- **Query Pattern:**
+```sql
+SELECT workspace_name, usage_date, actual_cost, anomaly_score, is_anomaly
+FROM ${catalog}.${gold_schema}.cost_anomaly_predictions
+WHERE prediction_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  AND is_anomaly = TRUE
+ORDER BY anomaly_score ASC;
+```
+- **Interpretation:** `anomaly_score < -0.5` = High confidence anomaly
+
+#### budget_forecaster (Cost Forecasting)
+- **Question Triggers:** "forecast", "predict", "next month", "project", "estimate"
+- **Query Pattern:**
+```sql
+SELECT forecast_date, predicted_cost, lower_bound, upper_bound, confidence_pct
+FROM ${catalog}.${gold_schema}.cost_forecast_predictions
+WHERE workspace_id = 'ALL'
+ORDER BY forecast_date;
+```
+- **Interpretation:** Compare `predicted_cost` with actuals; alert if `actual > upper_bound`
+
+#### tag_recommender (Tag Suggestions)
+- **Question Triggers:** "recommend tags", "suggest tags", "auto-tag", "what tags should"
+- **Query Pattern:**
+```sql
+SELECT resource_name, recommended_tag_key, recommended_tag_value, confidence_score
+FROM ${catalog}.${gold_schema}.tag_recommendations
+WHERE confidence_score > 0.7
+ORDER BY confidence_score DESC;
+```
+
+### ML vs Other Methods Decision Tree
+
+```
+USER QUESTION                           → USE THIS
+────────────────────────────────────────────────────
+"Will cost exceed budget?"              → ML: cost_forecast_predictions
+"Is this spending unusual?"             → ML: cost_anomaly_predictions  
+"How can we reduce costs?"              → ML: migration_recommendations
+"What tags should we apply?"            → ML: tag_recommendations
+────────────────────────────────────────────────────
+"What is the current cost?"             → Metric View: cost_analytics
+"Is cost trending up?"                  → Custom Metrics: _drift_metrics
+"Top 10 by cost"                        → TVF: get_top_cost_contributors
+```
+
+---
+
+## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
 
 ### Question 1: "What is our total spend this month?"
 **Expected SQL:**
@@ -363,8 +521,21 @@ WHERE is_over_committed = FALSE;
 
 ## References
 
-- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md)
-- [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md)
-- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md)
-- [Lakehouse Monitoring Inventory](../../docs/reference/LAKEHOUSE_MONITORING_INVENTORY.md)
+### 📊 Semantic Layer Framework (Essential Reading)
+- [**Metrics Inventory**](../../docs/reference/metrics-inventory.md) - **START HERE**: Complete inventory of 277 measurements across TVFs, Metric Views, and Custom Metrics
+- [**Semantic Layer Rationalization**](../../docs/reference/semantic-layer-rationalization.md) - Design rationale: why overlaps are intentional and complementary
+- [**Genie Asset Selection Guide**](../../docs/reference/genie-asset-selection-guide.md) - Quick decision tree for choosing correct asset type
+
+### 📈 Lakehouse Monitoring Documentation
+- [Monitor Catalog](../../docs/lakehouse-monitoring-design/04-monitor-catalog.md) - Complete metric definitions for Cost Monitor
+- [Genie Integration](../../docs/lakehouse-monitoring-design/05-genie-integration.md) - Critical query patterns and required filters
+- [Custom Metrics Reference](../../docs/lakehouse-monitoring-design/03-custom-metrics.md) - 35 cost-specific custom metrics
+
+### 📁 Asset Inventories
+- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md) - 15 Cost TVFs
+- [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md) - 2 Cost Metric Views
+- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md) - 6 Cost ML Models
+
+### 🚀 Deployment Guides
+- [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup and troubleshooting
 

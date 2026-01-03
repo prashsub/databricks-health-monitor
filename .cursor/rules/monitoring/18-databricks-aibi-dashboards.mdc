@@ -8,413 +8,64 @@ alwaysApply: false
 
 # Databricks AI/BI Lakeview Dashboard Best Practices
 
-## Critical: Grid System
+> **Patterns extracted from production dashboards**: Account Usage Dashboard v2 - DAIS, Governance Hub, DBSQL Warehouse Advisor, Jobs System Tables Dashboard, LakeFlow System Tables Dashboard, Workflow Advisor Dashboard, and more.
 
-**ALWAYS use a 6-column grid layout**, not 12-column!
+---
 
-### Widget Positioning Rules
+## 1. Top-Level Dashboard Structure
+
+**MANDATORY KEYS:**
 ```json
 {
-  "position": {
-    "x": 0,     // Column position: 0-5 (6-column grid)
-    "y": 0,     // Row position: any positive integer
-    "width": 3,  // Width in columns: 1, 2, 3, 4, or 6 (must sum to ≤6 per row)
-    "height": 6  // Height in units: common values are 1, 2, 6, 9
-  }
+  "warehouse_id": "...",  // REQUIRED: SQL Warehouse ID for queries
+  "datasets": [...],      // REQUIRED: All data sources
+  "pages": [...],         // REQUIRED: Dashboard pages
+  "uiSettings": {...}     // OPTIONAL: Theme and settings
 }
 ```
 
-### Grid Layout Examples
-```json
-// Two widgets side-by-side (each 3 columns wide)
-{"x": 0, "y": 0, "width": 3, "height": 6}  // Left
-{"x": 3, "y": 0, "width": 3, "height": 6}  // Right
-
-// Three widgets across (each 2 columns wide)
-{"x": 0, "y": 0, "width": 2, "height": 6}  // Left
-{"x": 2, "y": 0, "width": 2, "height": 6}  // Center
-{"x": 4, "y": 0, "width": 2, "height": 6}  // Right
-
-// KPI counters (1 column each, 6 across)
-{"x": 0, "y": 0, "width": 1, "height": 2}
-{"x": 1, "y": 0, "width": 1, "height": 2}
-{"x": 2, "y": 0, "width": 1, "height": 2}
-{"x": 3, "y": 0, "width": 1, "height": 2}
-{"x": 4, "y": 0, "width": 1, "height": 2}
-{"x": 5, "y": 0, "width": 1, "height": 2}
-
-// Full-width chart
-{"x": 0, "y": 0, "width": 6, "height": 6}
-```
-
-### Common Height Values
-- **Filters**: `height: 1` or `height: 2`
-- **KPI Counters**: `height: 2`
-- **Charts**: `height: 6` (standard), `height: 9` (large)
-- **Tables**: `height: 6` or more
+**Notes:**
+- `warehouse_id` IS required for SDK deployment (pass `${warehouse_id}` for variable substitution)
+- `displayName` is set by deployment script, not in JSON
+- `widgets` and `layout` go inside pages, not at root level
 
 ---
 
-## System Tables: Schema Verification
+## 2. Dataset Structure
 
-**ALWAYS verify field names against official Databricks documentation** before using system tables.
-
-### Critical System Tables Reference
-
-#### 1. `system.lakeflow.jobs` (SCD2 Table)
-```sql
--- CORRECT: Jobs table columns
-SELECT 
-  workspace_id,    -- STRING
-  job_id,         -- STRING
-  name,           -- STRING ⚠️ NOT job_name!
-  description,    -- STRING
-  creator_id,     -- STRING
-  tags,           -- MAP
-  change_time,    -- TIMESTAMP
-  delete_time,    -- TIMESTAMP
-  run_as          -- STRING (owner/service principal)
-FROM system.lakeflow.jobs
-```
-
-**Pattern: Get Latest Job (SCD2 handling)**
-```sql
-WITH latest_jobs AS (
-  SELECT workspace_id, job_id, name, run_as,
-    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id 
-                      ORDER BY change_time DESC) as rn
-  FROM system.lakeflow.jobs
-  WHERE delete_time IS NULL
-  QUALIFY rn = 1
-)
-SELECT * FROM latest_jobs
-```
-
-#### 2. `system.lakeflow.job_task_run_timeline`
-```sql
--- CORRECT: Task timeline columns
-SELECT
-  workspace_id,      -- STRING
-  job_id,           -- STRING (NO job_name column!)
-  run_id,           -- STRING
-  task_key,         -- STRING
-  period_start_time,-- TIMESTAMP
-  period_end_time,  -- TIMESTAMP
-  compute_ids,      -- ARRAY<STRING>
-  result_state,     -- STRING
-  termination_code  -- STRING
-FROM system.lakeflow.job_task_run_timeline
-```
-
-**❌ WRONG: Assuming job_name exists**
-```sql
--- This will FAIL!
-SELECT job_name 
-FROM system.lakeflow.job_task_run_timeline
-```
-
-**✅ CORRECT: JOIN with jobs table**
-```sql
-WITH latest_jobs AS (
-  SELECT workspace_id, job_id, name,
-    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id 
-                      ORDER BY change_time DESC) as rn
-  FROM system.lakeflow.jobs
-  WHERE delete_time IS NULL
-  QUALIFY rn = 1
-)
-SELECT 
-  jtr.*,
-  COALESCE(lj.name, 'Job ' || CAST(jtr.job_id AS STRING)) AS job_name
-FROM system.lakeflow.job_task_run_timeline jtr
-LEFT JOIN latest_jobs lj 
-  ON jtr.workspace_id = lj.workspace_id 
-  AND jtr.job_id = lj.job_id
-```
-
-#### 3. `system.compute.clusters`
-```sql
--- Get latest DBR version per cluster
-SELECT workspace_id, cluster_id, 
-       MAX_BY(dbr_version, change_time) AS dbr_version
-FROM system.compute.clusters
-WHERE delete_time IS NULL
-GROUP BY workspace_id, cluster_id
-```
-
-#### 4. `system.access.workspaces_latest`
-```sql
--- Workspace filter data
-SELECT 
-  CAST(workspace_id AS STRING) AS workspace_id,
-  COALESCE(workspace_name, CAST(workspace_id AS STRING)) AS workspace_name
-FROM system.access.workspaces_latest
-WHERE status = 'RUNNING'
-```
-
-#### 5. `system.information_schema.tables`
-```sql
--- Table inventory
-SELECT 
-  table_catalog,
-  table_schema,
-  table_name,
-  table_type,        -- 'EXTERNAL' or 'MANAGED'
-  storage_path,
-  data_source_format,
-  last_altered
-FROM system.information_schema.tables
-WHERE table_type IN ('EXTERNAL', 'MANAGED')
-```
-
----
-
-## Widget Specifications
-
-### KPI Counter (Version 2)
+### 2.1 Basic Dataset
 ```json
 {
-  "name": "kpi_widget_name",
-  "queries": [
+  "name": "ds_unique_id",           // REQUIRED: Unique identifier
+  "displayName": "Human Readable",  // REQUIRED: Display name
+  "query": "SELECT ...",            // Option A: Single string
+  "queryLines": ["SELECT ", "..."], // Option B: Array of strings
+  "parameters": [...]               // OPTIONAL: Parameter definitions
+}
+```
+
+### 2.2 Dataset with Parameters (CRITICAL)
+
+**Every dataset using `:param_name` in SQL MUST define that parameter with `defaultSelection`!**
+
+```json
+{
+  "name": "ds_cost_data",
+  "displayName": "Cost Data",
+  "query": "SELECT * FROM table WHERE date BETWEEN :time_range.min AND :time_range.max",
+  "parameters": [
     {
-      "name": "main_query",
-      "query": {
-        "datasetName": "dataset_name",
-        "fields": [
-          {"name": "value", "expression": "`value`"}
-        ],
-        "disaggregated": false
-      }
-    }
-  ],
-  "spec": {
-    "version": 2,
-    "widgetType": "counter",
-    "encodings": {
-      "value": {
-        "fieldName": "value"
-      }
-    },
-    "frame": {
-      "showTitle": true,
-      "title": "KPI Title",
-      "showDescription": true,
-      "description": "Brief description"
-    }
-  }
-}
-```
-
-**⚠️ Common Error**: Including `period` in encoding (not needed for version 2)
-
-### Filter Widget (Single Select)
-```json
-{
-  "name": "filter_name",
-  "queries": [
-    {
-      "name": "main_query",
-      "query": {
-        "datasetName": "distinct_values_dataset",
-        "fields": [
-          {"name": "field_name", "expression": "`field_name`"}
-        ],
-        "disaggregated": false
-      }
-    }
-  ],
-  "spec": {
-    "version": 2,
-    "widgetType": "filter-single-select",
-    "encodings": {
-      "fields": [
-        {
-          "displayName": "Display Label",
-          "fieldName": "field_name",
-          "queryName": "main_query"
-        }
-      ]
-    },
-    "frame": {
-      "showTitle": true,
-      "title": "Filter Title"
-    }
-  }
-}
-```
-
-### Bar Chart (Version 3)
-```json
-{
-  "spec": {
-    "version": 3,
-    "widgetType": "bar",
-    "encodings": {
-      "x": {
-        "fieldName": "category_field",
-        "displayName": "X Axis Label",
-        "scale": {"type": "categorical"}
-      },
-      "y": {
-        "fieldName": "value_field",
-        "displayName": "Y Axis Label",
-        "scale": {"type": "quantitative"}
-      },
-      "color": {
-        "fieldName": "group_field",
-        "displayName": "Legend Label",
-        "scale": {"type": "categorical"}
-      }
-    },
-    "frame": {
-      "showTitle": true,
-      "title": "Chart Title",
-      "showDescription": true,
-      "description": "Chart description"
-    }
-  }
-}
-```
-
-### Line Chart (Version 3)
-```json
-{
-  "spec": {
-    "version": 3,
-    "widgetType": "line",
-    "encodings": {
-      "x": {
-        "fieldName": "time_field",
-        "displayName": "Time",
-        "scale": {"type": "temporal"}
-      },
-      "y": {
-        "fieldName": "value_field",
-        "displayName": "Value",
-        "scale": {"type": "quantitative"}
-      },
-      "color": {
-        "fieldName": "series_field",
-        "displayName": "Series",
-        "legend": {"position": "right"}
-      }
-    }
-  }
-}
-```
-
-### Pie Chart (Version 3)
-```json
-{
-  "spec": {
-    "version": 3,
-    "widgetType": "pie",
-    "encodings": {
-      "angle": {
-        "fieldName": "value_field",
-        "displayName": "Value",
-        "scale": {"type": "quantitative"}
-      },
-      "color": {
-        "fieldName": "category_field",
-        "displayName": "Category",
-        "scale": {"type": "categorical"}
-      }
-    }
-  }
-}
-```
-
-### Table Widget (Version 1)
-```json
-{
-  "spec": {
-    "version": 1,
-    "widgetType": "table",
-    "frame": {
-      "showTitle": true,
-      "title": "Table Title",
-      "showDescription": true,
-      "description": "Table description"
-    },
-    "encodings": {
-      "columns": [
-        {
-          "fieldName": "field1",
-          "title": "Column 1"
-        },
-        {
-          "fieldName": "field2",
-          "title": "Column 2",
-          "useMonospaceFont": true
-        },
-        {
-          "fieldName": "timestamp_field",
-          "title": "Timestamp",
-          "dateTimeFormat": "yyyy-MM-dd HH:mm",
-          "type": "datetime",
-          "displayAs": "datetime"
-        }
-      ]
-    },
-    "itemsPerPage": 50,
-    "paginationSize": "default",
-    "condensed": true,
-    "withRowNumber": true
-  }
-}
-```
-
----
-
-## Date Parameters
-
-**Use DATE type, not DATETIME**, with static date strings:
-
-```json
-{
-  "displayName": "Start Date",
-  "keyword": "start_date",
-  "dataType": "DATE",
-  "defaultSelection": {
-    "values": {
+      "displayName": "time_range",
+      "keyword": "time_range",
       "dataType": "DATE",
-      "values": [{"value": "2024-01-01"}]
-    }
-  }
-}
-```
-
-**❌ WRONG**: Using DATETIME or dynamic expressions
-```json
-{"dataType": "DATETIME", "values": [{"value": "now-12M/M"}]}
-```
-
----
-
-## Global Filters Page
-
-Always include a Global Filters page for cross-dashboard filtering:
-
-```json
-{
-  "name": "page_global_filters",
-  "displayName": "Global Filters",
-  "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
-  "layout": [
-    {
-      "widget": {
-        "name": "workspace_filter",
-        "spec": {
-          "version": 2,
-          "widgetType": "filter-single-select",
-          "frame": {
-            "showTitle": true,
-            "title": "Workspace"
-          }
+      "complexType": "RANGE",
+      "defaultSelection": {
+        "range": {
+          "dataType": "DATE",
+          "min": { "value": "now-90d/d" },
+          "max": { "value": "now/d" }
         }
-      },
-      "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+      }
     }
   ]
 }
@@ -422,186 +73,856 @@ Always include a Global Filters page for cross-dashboard filtering:
 
 ---
 
-## Query Best Practices
+## 3. Parameter Type Reference
 
-### Pattern: "All" Option for Filters
-```sql
-SELECT 'All' AS filter_value
-UNION ALL
-SELECT DISTINCT actual_value AS filter_value
-FROM source_table
-ORDER BY filter_value
-```
+### 3.1 DATE:RANGE (For Date Range Pickers)
 
-### Pattern: Handle NULL/Missing Values
-```sql
-COALESCE(field_name, 'Unknown')
-COALESCE(field_name, 'Field ' || CAST(id_field AS STRING))
-```
-
-### Pattern: Dynamic Filtering
-```sql
-WHERE ( :filter_param = 'All' OR field IN (:filter_param) )
-```
-
-### Pattern: Date Range Filtering
-```sql
-WHERE DATE(timestamp_field) >= :start_date 
-  AND DATE(timestamp_field) <= :end_date
-```
-
-### Pattern: Extract Version Numbers
-```sql
-CAST(regexp_extract(version_string, '^(\\d+)', 1) AS INT)
-```
-
----
-
-## Theme & Colors
-
-Use the Databricks standard color palette:
+**Use when query has `:time_range.min` and `:time_range.max`**
 
 ```json
 {
-  "uiSettings": {
-    "theme": {
-      "canvasBackgroundColor": {"light": "#F7F9FA", "dark": "#0B0E11"},
-      "widgetBackgroundColor": {"light": "#FFFFFF", "dark": "#1A1D21"},
-      "widgetBorderColor": {"light": "#E0E4E8", "dark": "#2A2E33"},
-      "fontColor": {"light": "#11171C", "dark": "#E8ECF0"},
-      "selectionColor": {"light": "#077A9D", "dark": "#8ACAE7"},
-      "visualizationColors": [
-        "#077A9D",  // Primary blue
-        "#00A972",  // Green
-        "#FFAB00",  // Amber
-        "#FF3621",  // Red
-        "#8BCAE7",  // Light blue
-        "#99DDB4",  // Light green
-        "#FCA4A1",  // Light red
-        "#AB4057",  // Maroon
-        "#6B4FBB",  // Purple
-        "#BF7080"   // Rose
-      ],
-      "widgetHeaderAlignment": "LEFT"
-    },
-    "genieSpace": {"isEnabled": false}
+  "displayName": "time_range",
+  "keyword": "time_range",
+  "dataType": "DATE",
+  "complexType": "RANGE",          // ⚠️ CRITICAL for .min/.max
+  "defaultSelection": {
+    "range": {
+      "dataType": "DATE",
+      "min": { "value": "now-90d/d" },
+      "max": { "value": "now/d" }
+    }
+  }
+}
+```
+
+**Relative date syntax:**
+- `now` - Current date/time
+- `now-90d/d` - 90 days ago, rounded to day
+- `now-12M/M` - 12 months ago, rounded to month
+- `now-1M/M` - 1 month ago
+- `2024-01-01T00:00:00.000` - Absolute date
+
+### 3.2 DATETIME:RANGE (For Timestamp Ranges)
+
+```json
+{
+  "displayName": "time_range",
+  "keyword": "time_range",
+  "dataType": "DATETIME",
+  "complexType": "RANGE",
+  "defaultSelection": {
+    "range": {
+      "dataType": "DATETIME",
+      "min": { "value": "now-7d/d" },
+      "max": { "value": "now-1d/d" }
+    }
+  }
+}
+```
+
+### 3.3 STRING (Single Select)
+
+**Use when query has `:param_workspace`**
+
+```json
+{
+  "displayName": "param_workspace",
+  "keyword": "param_workspace",
+  "dataType": "STRING",
+  "defaultSelection": {
+    "values": {
+      "dataType": "STRING",
+      "values": [{ "value": "<ALL WORKSPACES>" }]
+    }
+  }
+}
+```
+
+### 3.4 STRING:MULTI (Multi-Select)
+
+**Use when query has `array_contains(:param_workspace, column)`**
+
+```json
+{
+  "displayName": "param_workspace",
+  "keyword": "param_workspace",
+  "dataType": "STRING",
+  "complexType": "MULTI",
+  "defaultSelection": {
+    "values": {
+      "dataType": "STRING",
+      "values": [{ "value": "all" }]
+    }
+  }
+}
+```
+
+### 3.5 INTEGER
+
+**Use when query has `LIMIT :param_top_n`**
+
+```json
+{
+  "displayName": "param_top_n",
+  "keyword": "param_top_n",
+  "dataType": "INTEGER",
+  "defaultSelection": {
+    "values": {
+      "dataType": "INTEGER",
+      "values": [{ "value": "10" }]
+    }
+  }
+}
+```
+
+### 3.6 DECIMAL
+
+**Use for numeric inputs like amounts**
+
+```json
+{
+  "displayName": "annual_commit",
+  "keyword": "annual_commit",
+  "dataType": "DECIMAL",
+  "defaultSelection": {
+    "values": {
+      "dataType": "DECIMAL",
+      "values": [{ "value": "1000000" }]
+    }
+  }
+}
+```
+
+### 3.7 DATE (Single Date)
+
+```json
+{
+  "displayName": "contract_start_date",
+  "keyword": "contract_start_date",
+  "dataType": "DATE",
+  "defaultSelection": {
+    "values": {
+      "dataType": "DATE",
+      "values": [{ "value": "2024-01-01T00:00:00.000" }]
+    }
   }
 }
 ```
 
 ---
 
-## Common Pitfalls
+## 4. Grid System (6-Column)
 
-### ❌ AVOID: Assuming Field Names
-Always verify against documentation. Common mistakes:
-- `job_name` doesn't exist in `job_task_run_timeline` (use `name` from `jobs` table)
-- Forgetting to handle SCD2 tables with `QUALIFY rn=1`
-- Not filtering out deleted records with `WHERE delete_time IS NULL`
+**ALWAYS use a 6-column grid layout!**
 
-### ❌ AVOID: 12-Column Grid
-**Use 6-column grid!** Widget widths must be 1-6, not 1-12.
+### 4.1 Position Structure
+```json
+{
+  "position": {
+    "x": 0,      // Column: 0-5
+    "y": 0,      // Row: any positive integer
+    "width": 3,  // Width: 1-6 (must sum to ≤6 per row)
+    "height": 6  // Height: varies by widget type
+  }
+}
+```
 
-### ❌ AVOID: Complex Y-Positioning
-Keep Y positions sequential and use consistent heights (2, 6, 9).
+### 4.2 Common Width Patterns
 
-### ❌ AVOID: Missing JOIN Conditions
-Always JOIN on both `workspace_id` AND the entity ID (job_id, cluster_id, etc.).
+| Widgets per row | Width each |
+|-----------------|------------|
+| 6 KPIs | 1 |
+| 3 charts | 2 |
+| 2 charts | 3 |
+| 2 uneven | 2 + 4 |
+| Full width | 6 |
+
+### 4.3 Typical Heights by Widget Type
+
+| Widget Type | Common Heights |
+|-------------|----------------|
+| counter | 2 |
+| filter-single-select | 2 |
+| filter-date-range-picker | 2 |
+| bar | 6, 7, 8 |
+| line | 5, 6 |
+| table | 4, 8, 9 |
+| pie | 4, 7, 8 |
+
+### 4.4 Layout Examples
+```json
+// Row of 6 KPI counters
+{"x": 0, "y": 0, "width": 1, "height": 2}
+{"x": 1, "y": 0, "width": 1, "height": 2}
+{"x": 2, "y": 0, "width": 1, "height": 2}
+{"x": 3, "y": 0, "width": 1, "height": 2}
+{"x": 4, "y": 0, "width": 1, "height": 2}
+{"x": 5, "y": 0, "width": 1, "height": 2}
+
+// Two side-by-side charts
+{"x": 0, "y": 2, "width": 3, "height": 6}
+{"x": 3, "y": 2, "width": 3, "height": 6}
+
+// Full-width table
+{"x": 0, "y": 8, "width": 6, "height": 9}
+```
 
 ---
 
-## Verification Checklist
+## 5. Widget Types & Encodings
 
-Before finalizing a dashboard:
-
-- [ ] All widget positions use 6-column grid (widths: 1-6)
-- [ ] All system table fields verified against [official docs](https://docs.databricks.com/aws/en/admin/system-tables/)
-- [ ] SCD2 tables handled with `QUALIFY rn=1` pattern
-- [ ] Deleted records filtered with `WHERE delete_time IS NULL`
-- [ ] JOINs include both `workspace_id` and entity ID
-- [ ] Date parameters use `DATE` type with static values
-- [ ] KPIs use version 2 with simple `value` encoding
-- [ ] Global Filters page included
-- [ ] All filters have "All" option
-- [ ] NULL values handled with COALESCE
-- [ ] Theme colors match Databricks palette
-
----
-
-## Documentation References
-
-Always reference these URLs when working with system tables:
-
-- **System Tables Overview**: https://docs.databricks.com/aws/en/admin/system-tables/
-- **Jobs System Tables**: https://docs.databricks.com/aws/en/admin/system-tables/jobs
-- **Compute System Tables**: https://docs.databricks.com/aws/en/admin/system-tables/compute
-- **Access System Tables**: https://docs.databricks.com/aws/en/admin/system-tables/access
-
----
-
-## Example: Complete Widget Definition
+### 5.1 Counter Widget (KPI)
 
 ```json
 {
-  "widget": {
-    "name": "chart_jobs_by_workspace",
-    "queries": [
-      {
-        "name": "main_query",
-        "query": {
-          "datasetName": "jobs_by_workspace_dbr",
-          "fields": [
-            {"name": "workspace_name", "expression": "`workspace_name`"},
-            {"name": "dbr_version", "expression": "`dbr_version`"},
-            {"name": "job_count", "expression": "`job_count`"}
-          ],
-          "disaggregated": false
+  "name": "kpi_total_cost",
+  "queries": [{
+    "name": "main_query",
+    "query": {
+      "datasetName": "ds_cost",
+      "fields": [
+        {"name": "total_cost", "expression": "`total_cost`"}
+      ],
+      "disaggregated": false
+    }
+  }],
+  "spec": {
+    "version": 2,
+    "widgetType": "counter",
+    "encodings": {
+      "value": {
+        "fieldName": "total_cost",
+        "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "none",
+          "decimalPlaces": { "type": "max", "places": 0 }
+        },
+        "style": {
+          "bold": true,
+          "color": "#00A972",
+          "fontSize": 32
+        },
+        "displayName": "Total Cost"
+      },
+      "target": {                    // Optional subtitle
+        "fieldName": "period_label",
+        "style": {
+          "italic": true,
+          "fontSize": 14,
+          "color": { "themeColorType": "fontColor" }
         }
       }
-    ],
-    "spec": {
-      "version": 3,
-      "widgetType": "bar",
-      "encodings": {
-        "x": {
-          "fieldName": "workspace_name",
-          "displayName": "Workspace",
-          "scale": {"type": "categorical"}
-        },
-        "y": {
-          "fieldName": "job_count",
-          "displayName": "Job Count",
-          "scale": {"type": "quantitative"}
-        },
-        "color": {
-          "fieldName": "dbr_version",
-          "displayName": "DBR Version",
-          "scale": {"type": "categorical"}
-        }
+    },
+    "frame": {
+      "showTitle": true,
+      "title": "💰 Total Cost"
+    }
+  }
+}
+```
+
+**Encoding keys:** `value`, `target` (optional)
+
+### 5.2 Bar Chart
+
+```json
+{
+  "spec": {
+    "version": 3,
+    "widgetType": "bar",
+    "encodings": {
+      "x": {
+        "fieldName": "time_key",
+        "scale": { "type": "temporal" },
+        "displayName": "Time"
       },
-      "frame": {
-        "showTitle": true,
-        "title": "Jobs by Workspace & DBR Version",
-        "showDescription": true,
-        "description": "Distribution of jobs across workspaces"
+      "y": {
+        "fieldName": "sum(cost)",
+        "scale": { "type": "quantitative" },
+        "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact"
+        },
+        "displayName": "Cost"
+      },
+      "color": {
+        "fieldName": "category",
+        "scale": { "type": "categorical" },
+        "legend": { "hideTitle": true, "position": "right" },
+        "displayName": "Category"
+      }
+    },
+    "frame": {
+      "showTitle": true,
+      "title": "Cost Over Time"
+    }
+  }
+}
+```
+
+**Encoding keys:** `x`, `y`, `color` (optional), `label` (optional)
+
+### 5.3 Line Chart
+
+```json
+{
+  "spec": {
+    "version": 3,
+    "widgetType": "line",
+    "encodings": {
+      "x": {
+        "fieldName": "time_key",
+        "scale": { "type": "temporal" },
+        "axis": { "hideTitle": true }
+      },
+      "y": {
+        "fieldName": "avg(metric)",
+        "scale": { "type": "quantitative" },
+        "format": {
+          "type": "number-percent",
+          "decimalPlaces": { "type": "max", "places": 1 }
+        },
+        "axis": { "title": "Rate" }
+      },
+      "label": { "show": false }
+    }
+  }
+}
+```
+
+**Encoding keys:** `x`, `y`, `color` (optional), `label` (optional)
+
+### 5.4 Pie Chart
+
+**⚠️ Use `angle` for values, NOT `theta`!**
+
+```json
+{
+  "spec": {
+    "version": 3,
+    "widgetType": "pie",
+    "encodings": {
+      "angle": {                        // NOT theta!
+        "fieldName": "sum(count)",
+        "scale": { "type": "quantitative" }
+      },
+      "color": {
+        "fieldName": "category",
+        "scale": {
+          "type": "categorical",
+          "mappings": [
+            { "value": "Success", "color": { "themeColorType": "visualizationColors", "position": 1 } },
+            { "value": "Failed", "color": { "themeColorType": "visualizationColors", "position": 3 } }
+          ]
+        },
+        "legend": { "hideTitle": true }
+      },
+      "label": { "show": true }
+    }
+  }
+}
+```
+
+**Encoding keys:** `angle`, `color`, `label` (optional)
+
+### 5.5 Table Widget
+
+**⚠️ CRITICAL: `disaggregated: true` required for row display!**
+
+```json
+{
+  "queries": [{
+    "name": "main_query",
+    "query": {
+      "datasetName": "ds_data",
+      "fields": [
+        {"name": "col1", "expression": "`col1`"},
+        {"name": "col2", "expression": "`col2`"}
+      ],
+      "disaggregated": true           // ⚠️ REQUIRED for tables!
+    }
+  }],
+  "spec": {
+    "version": 1,
+    "widgetType": "table",
+    "encodings": {
+      "columns": [
+        {
+          "fieldName": "col1",
+          "title": "Column 1",
+          "type": "string",
+          "displayAs": "string",
+          "visible": true,
+          "order": 0,
+          "allowSearch": true,
+          "alignContent": "left",
+          "allowHTML": true
+        },
+        {
+          "fieldName": "col2",
+          "title": "Column 2",
+          "type": "number",
+          "displayAs": "number",
+          "visible": true,
+          "order": 1
+        }
+      ]
+    },
+    "itemsPerPage": 50,
+    "paginationSize": "default",
+    "condensed": true,
+    "withRowNumber": false
+  }
+}
+```
+
+**Encoding keys:** `columns`
+
+### 5.6 Filter Single Select
+
+```json
+{
+  "spec": {
+    "version": 2,
+    "widgetType": "filter-single-select",
+    "encodings": {
+      "fields": [
+        {
+          "fieldName": "option_value",
+          "displayName": "Option",
+          "queryName": "dashboards/.../option_value"
+        },
+        {
+          "parameterName": "param_selection",
+          "queryName": "parameter_dashboards/.../param_selection"
+        }
+      ]
+    },
+    "selection": {
+      "defaultSelection": {
+        "values": {
+          "dataType": "STRING",
+          "values": [{ "value": "Default" }]
+        }
+      }
+    },
+    "frame": {
+      "showTitle": true,
+      "title": "Select Option"
+    }
+  }
+}
+```
+
+### 5.7 Filter Date Range Picker
+
+```json
+{
+  "spec": {
+    "version": 2,
+    "widgetType": "filter-date-range-picker",
+    "encodings": {
+      "fields": [
+        {
+          "parameterName": "time_range",
+          "queryName": "parameter_dashboards/.../time_range"
+        }
+      ]
+    },
+    "selection": {
+      "defaultSelection": {
+        "range": {
+          "dataType": "DATE",
+          "min": { "value": "now-90d/d" },
+          "max": { "value": "now/d" }
+        }
       }
     }
-  },
-  "position": {"x": 0, "y": 2, "width": 3, "height": 6}
+  }
 }
 ```
 
 ---
 
-## Pro Tips
+## 5.9 ⚠️ CRITICAL: Global Filter Pattern
 
-1. **Start with a reference dashboard** - Use existing Databricks AI/BI dashboards as templates
-2. **Test queries separately** - Run SQL in Databricks SQL editor before embedding
-3. **Use descriptive names** - Dataset and widget names should be self-documenting
-4. **Keep it modular** - One dataset per logical query, reuse via multiple widgets
-5. **Add descriptions everywhere** - Future users will thank you
-6. **Version control** - Track dashboard JSON in git with meaningful commit messages
+**Global filters require filter widgets with MULTIPLE queries binding to MULTIPLE datasets!**
+
+The filter widget doesn't just have one query - it has **one query per dataset that should be filtered**.
+
+### Global Filter Widget Structure
+
+```json
+{
+  "name": "filter_time_range",
+  "queries": [
+    {
+      "name": "parameter_dashboards/.../ds1_time_range",
+      "query": {
+        "datasetName": "ds_cost_data",
+        "parameters": [{"name": "time_range", "keyword": "time_range"}],
+        "disaggregated": false
+      }
+    },
+    {
+      "name": "parameter_dashboards/.../ds2_time_range",
+      "query": {
+        "datasetName": "ds_trend_data",
+        "parameters": [{"name": "time_range", "keyword": "time_range"}],
+        "disaggregated": false
+      }
+    },
+    {
+      "name": "parameter_dashboards/.../ds3_time_range",
+      "query": {
+        "datasetName": "ds_summary_data",
+        "parameters": [{"name": "time_range", "keyword": "time_range"}],
+        "disaggregated": false
+      }
+    }
+  ],
+  "spec": {
+    "version": 2,
+    "widgetType": "filter-date-range-picker",
+    "encodings": {
+      "fields": [
+        {"parameterName": "time_range", "queryName": "parameter_dashboards/.../ds1_time_range"},
+        {"parameterName": "time_range", "queryName": "parameter_dashboards/.../ds2_time_range"},
+        {"parameterName": "time_range", "queryName": "parameter_dashboards/.../ds3_time_range"}
+      ]
+    }
+  }
+}
+```
+
+### Key Points:
+1. **Each query in `queries[]` binds to ONE dataset**
+2. **Each `encodings.fields` entry references ONE query**
+3. **Number of queries = Number of datasets to filter**
+4. **All datasets MUST have matching `parameters[]` with same keyword**
+
+### Required Dataset Parameter Structure
+
+Each dataset that should be filtered MUST have:
+
+```json
+{
+  "name": "ds_cost_data",
+  "query": "SELECT * FROM table WHERE date BETWEEN :time_range.min AND :time_range.max",
+  "parameters": [
+    {
+      "displayName": "time_range",
+      "keyword": "time_range",
+      "dataType": "DATE",
+      "complexType": "RANGE",
+      "defaultSelection": {
+        "range": {
+          "dataType": "DATE",
+          "min": {"value": "now-90d/d"},
+          "max": {"value": "now/d"}
+        }
+      }
+    }
+  ]
+}
+```
+
+### 5.8 Filter Multi-Select
+
+```json
+{
+  "spec": {
+    "version": 2,
+    "widgetType": "filter-multi-select",
+    "encodings": {
+      "fields": [
+        {
+          "fieldName": "option_value",
+          "displayName": "Options",
+          "queryName": "dashboards/.../option_value"
+        }
+      ]
+    },
+    "frame": {
+      "showTitle": true,
+      "title": "Select Multiple"
+    }
+  }
+}
+```
 
 ---
 
-**Remember**: The grid system is **6 columns**, not 12! This is the #1 cause of widget snapping issues.
+## 6. Query Structure in Widgets
+
+### 6.1 Basic Query
+
+```json
+{
+  "queries": [{
+    "name": "main_query",
+    "query": {
+      "datasetName": "ds_name",       // Must match dataset.name
+      "fields": [
+        {"name": "col", "expression": "`col`"},
+        {"name": "sum(val)", "expression": "SUM(`val`)"}
+      ],
+      "disaggregated": false          // false=aggregate, true=rows
+    }
+  }]
+}
+```
+
+### 6.2 Field Expressions
+
+```json
+// Simple column
+{"name": "column_name", "expression": "`column_name`"}
+
+// Aggregation
+{"name": "sum(revenue)", "expression": "SUM(`revenue`)"}
+{"name": "count(*)", "expression": "COUNT(*)"}
+{"name": "avg(duration)", "expression": "AVG(`duration`)"}
+
+// Conditional
+{"name": "count_success", "expression": "COUNT_IF(`status` = 'SUCCESS')"}
+```
+
+### 6.3 Query with Parameter Binding
+
+```json
+{
+  "query": {
+    "datasetName": "ds_data",
+    "fields": [...],
+    "disaggregated": false,
+    "parameters": [
+      { "name": "time_range", "keyword": "time_range" }
+    ]
+  }
+}
+```
+
+---
+
+## 7. Format Types Reference
+
+### 7.1 Currency
+```json
+{
+  "type": "number-currency",
+  "currencyCode": "USD",
+  "abbreviation": "none",            // or "compact" for K/M/B
+  "decimalPlaces": { "type": "max", "places": 0 }
+}
+```
+
+### 7.2 Percentage
+```json
+{
+  "type": "number-percent",
+  "decimalPlaces": { "type": "max", "places": 1 }
+}
+```
+
+### 7.3 Plain Number
+```json
+{
+  "type": "number-plain",
+  "abbreviation": "compact",
+  "decimalPlaces": { "type": "exact", "places": 2 }
+}
+```
+
+### 7.4 Date/Time
+```json
+{
+  "type": "date-time",
+  "date": "locale-short-month",
+  "time": "none"
+}
+```
+
+---
+
+## 8. Scale Types Reference
+
+| Scale Type | Use For |
+|------------|---------|
+| `temporal` | Time/date on x-axis |
+| `quantitative` | Numeric values on y-axis |
+| `categorical` | Categories, groups |
+
+---
+
+## 9. Style Examples
+
+```json
+// Bold green value
+{"bold": true, "color": "#00A972", "fontSize": 32}
+
+// Theme-aware italic subtitle
+{"italic": true, "fontSize": 14, "color": {"themeColorType": "fontColor"}}
+
+// Colored from palette
+{"bold": true, "fontSize": 32, "color": {"themeColorType": "visualizationColors", "position": 9}}
+```
+
+---
+
+## 10. System Tables Reference
+
+### 10.1 Jobs Tables
+```sql
+-- system.lakeflow.jobs (SCD2)
+SELECT workspace_id, job_id, name, run_as, tags
+FROM system.lakeflow.jobs
+WHERE delete_time IS NULL
+QUALIFY ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id ORDER BY change_time DESC) = 1
+
+-- system.lakeflow.job_task_run_timeline
+SELECT workspace_id, job_id, run_id, task_key, result_state, termination_code
+FROM system.lakeflow.job_task_run_timeline
+-- Note: NO job_name column! Must JOIN with jobs table
+```
+
+### 10.2 Compute Tables
+```sql
+-- system.compute.clusters
+SELECT workspace_id, cluster_id, cluster_name, dbr_version
+FROM system.compute.clusters
+WHERE delete_time IS NULL
+```
+
+### 10.3 Billing Tables
+```sql
+-- system.billing.usage
+SELECT usage_date, workspace_id, sku_name, usage_quantity, list_cost
+FROM system.billing.usage
+WHERE usage_date BETWEEN :time_range.min AND :time_range.max
+```
+
+---
+
+## 11. Common Pitfalls
+
+### ❌ Missing `complexType: "RANGE"` for date ranges
+```json
+// WRONG - will cause UNBOUND_SQL_PARAMETER error
+{
+  "keyword": "time_range",
+  "dataType": "DATE",
+  "defaultSelection": {...}
+}
+
+// CORRECT
+{
+  "keyword": "time_range",
+  "dataType": "DATE",
+  "complexType": "RANGE",
+  "defaultSelection": {...}
+}
+```
+
+### ❌ Using `theta` instead of `angle` for pie charts
+```json
+// WRONG
+"encodings": { "theta": {...} }
+
+// CORRECT
+"encodings": { "angle": {...} }
+```
+
+### ❌ Missing `disaggregated: true` for tables
+```json
+// WRONG - table shows no rows
+"query": { "datasetName": "ds", "fields": [...], "disaggregated": false }
+
+// CORRECT
+"query": { "datasetName": "ds", "fields": [...], "disaggregated": true }
+```
+
+### ❌ Parameter keyword doesn't match SQL
+```json
+// SQL uses :time_range but parameter has different keyword
+"query": "WHERE date BETWEEN :time_range.min AND :time_range.max"
+"parameters": [{ "keyword": "date_range", ... }]  // WRONG!
+
+// CORRECT - keywords must match
+"parameters": [{ "keyword": "time_range", ... }]
+```
+
+### ❌ Using 12-column grid
+```json
+// WRONG - widgets won't display correctly
+{"x": 0, "y": 0, "width": 12, "height": 6}
+
+// CORRECT - use 6-column grid
+{"x": 0, "y": 0, "width": 6, "height": 6}
+```
+
+---
+
+## 12. Verification Checklist
+
+Before deploying a dashboard:
+
+### Parameters
+- [ ] Every `:param_name` in SQL has matching parameter definition
+- [ ] Date range parameters have `complexType: "RANGE"`
+- [ ] All parameters have `defaultSelection`
+- [ ] Parameter `keyword` exactly matches SQL usage
+
+### Widgets
+- [ ] Counter widgets use `encodings.value` (not `period`)
+- [ ] Pie charts use `encodings.angle` (not `theta`)
+- [ ] Tables have `disaggregated: true` in query
+- [ ] Bar/line charts have proper scale types
+
+### Layout
+- [ ] All positions use 6-column grid (width 1-6)
+- [ ] No overlapping widgets
+- [ ] Consistent heights per widget type
+
+### Datasets
+- [ ] All referenced `datasetName` exist in `datasets` array
+- [ ] Field `expression` uses backticks for columns
+- [ ] Aggregations use proper SQL functions
+
+---
+
+## 13. Reference Dashboards
+
+These production dashboards were analyzed to extract these patterns:
+
+1. **Account Usage Dashboard v2 - DAIS** - 28 datasets, 70 widgets
+2. **Governance Hub System Dashboard** - 30 datasets, 47 widgets
+3. **DBSQL Warehouse Advisor** - 19 datasets, 122 widgets
+4. **Jobs System Tables Dashboard** - 22 datasets, 33 widgets
+5. **LakeFlow System Tables Dashboard** - 35 datasets, 75 widgets
+6. **Workflow Advisor Dashboard** - 3 datasets, 61 widgets
+
+---
+
+## 14. Quick Reference Card
+
+| Pattern | Value |
+|---------|-------|
+| Grid columns | 6 |
+| Counter height | 2 |
+| Chart height | 6-8 |
+| Table height | 4-9 |
+| Filter height | 2 |
+| Date range param | `complexType: "RANGE"` |
+| Pie chart value | `encodings.angle` |
+| Table rows | `disaggregated: true` |
+| Counter spec | `version: 2` |
+| Chart spec | `version: 3` |
+| Table spec | `version: 1` |
+| Filter spec | `version: 2` |
+
+---
+
+**Remember**: The grid system is **6 columns**, and every parameter used in SQL must be defined with `defaultSelection`!

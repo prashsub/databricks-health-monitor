@@ -14,16 +14,15 @@
 #   - Queries with high spill
 
 version: "1.1"
-comment: '
-- PURPOSE: SQL Warehouse query performance and efficiency metrics for optimization
-- BEST FOR: "Average query duration" "P95/P99 latency by warehouse" "Query throughput" "Queries with high spill" "Slowest queries today"
-- NOT FOR: Real-time query monitoring (use get_slow_queries TVF), cost per query (use cost_analytics)
-- DIMENSIONS: execution_date, warehouse_name, user_name, statement_type, execution_status, efficiency_tier, spill_tier
-- MEASURES: total_queries, avg_duration_ms, p95_duration_ms, p99_duration_ms, success_rate, queries_per_minute, bytes_spilled
-- SOURCE: fact_query_history (query_performance domain)
-- JOINS: dim_warehouse (warehouse details), dim_workspace (workspace details)
-- NOTE: Duration metrics exclude queue time. For queue analysis, use queue_duration_ms measures.
-'
+comment: |
+  - PURPOSE: SQL Warehouse query performance and efficiency metrics for optimization
+  - BEST FOR: "Average query duration" "P95/P99 latency by warehouse" "Query throughput" "Queries with high spill" "Slowest queries today"
+  - NOT FOR: Real-time query monitoring (use get_slow_queries TVF), cost per query (use cost_analytics)
+  - DIMENSIONS: execution_date, warehouse_name, user_name, statement_type, execution_status, efficiency_tier, spill_tier
+  - MEASURES: total_queries, avg_duration_ms, p95_duration_ms, p99_duration_ms, success_rate, queries_per_minute, bytes_spilled
+  - SOURCE: fact_query_history (query_performance domain)
+  - JOINS: dim_warehouse (warehouse details), dim_workspace (workspace details)
+  - NOTE: Duration metrics exclude queue time. For queue analysis, use queue_duration_ms measures.
 
 source: ${catalog}.${gold_schema}.fact_query_history
 
@@ -34,7 +33,7 @@ joins:
   
   - name: dim_workspace
     source: ${catalog}.${gold_schema}.dim_workspace
-    'on': source.workspace_id = dim_workspace.workspace_id AND dim_workspace.is_current = true
+    'on': source.workspace_id = dim_workspace.workspace_id
 
 dimensions:
   # === Primary Dimensions ===

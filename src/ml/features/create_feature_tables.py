@@ -1,4 +1,23 @@
 # Databricks notebook source
+# ===========================================================================
+# PATH SETUP FOR ASSET BUNDLE IMPORTS
+# ===========================================================================
+# This enables imports from src.ml.config and src.ml.utils when deployed
+# via Databricks Asset Bundles. The bundle root is computed dynamically.
+# Reference: https://docs.databricks.com/aws/en/notebooks/share-code
+import sys
+import os
+
+try:
+    # Get current notebook path and compute bundle root
+    _notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+    _bundle_root = "/Workspace" + str(_notebook_path).rsplit('/src/', 1)[0]
+    if _bundle_root not in sys.path:
+        sys.path.insert(0, _bundle_root)
+        print(f"✓ Added bundle root to sys.path: {_bundle_root}")
+except Exception as e:
+    print(f"⚠ Path setup skipped (local execution): {e}")
+# ===========================================================================
 """
 Create Feature Tables for Databricks Health Monitor ML Models
 =============================================================
@@ -69,6 +88,10 @@ def create_feature_table(
     which makes it eligible for use as a feature table with the
     Feature Engineering client.
     
+    IMPORTANT: All numeric feature columns are cast to DOUBLE type to ensure
+    consistency between training (which uses float64) and inference (which
+    uses native types). This prevents MLflow schema validation errors.
+    
     Args:
         spark: SparkSession
         config: Feature engineering configuration
@@ -82,10 +105,34 @@ def create_feature_table(
     Returns:
         Fully qualified table name
     """
+    from pyspark.sql.types import IntegerType, LongType, FloatType, DecimalType, ShortType, ByteType
+    
     full_table_name = f"{config.catalog}.{config.schema}.{table_name}"
     
     print(f"\nCreating feature table: {full_table_name}")
     print(f"Primary keys: {primary_keys}")
+    
+    # =============================================================================
+    # CRITICAL: Cast all numeric columns to DOUBLE for MLflow compatibility
+    # =============================================================================
+    # Training scripts cast features to float64, so we need feature tables to
+    # also use DOUBLE type to ensure model signatures match at inference time.
+    # This prevents "Failed to enforce schema" errors during fe.score_batch()
+    # =============================================================================
+    
+    # Define columns that should NOT be cast (primary keys, timestamps, strings)
+    timestamp_cols = timestamp_keys or []
+    non_cast_cols = set(primary_keys + timestamp_cols)
+    
+    # Cast all numeric columns to DOUBLE
+    cast_count = 0
+    for field in df.schema.fields:
+        if field.name not in non_cast_cols:
+            if isinstance(field.dataType, (IntegerType, LongType, FloatType, DecimalType, ShortType, ByteType)):
+                df = df.withColumn(field.name, F.col(field.name).cast("double"))
+                cast_count += 1
+    
+    print(f"  Cast {cast_count} numeric columns to DOUBLE for MLflow compatibility")
     
     # Filter out rows where any primary key column is NULL
     # This is REQUIRED for PRIMARY KEY constraint

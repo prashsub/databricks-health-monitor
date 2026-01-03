@@ -275,8 +275,14 @@ class TestJoinConfiguration:
         Valid patterns:
         - is_current = true (explicit SCD2 flag)
         - delete_time IS NULL (soft delete pattern)
+
+        Excluded dimensions (simple lookup tables, not SCD2):
+        - dim_workspace: Simple lookup by workspace_id
         """
         config = load_yaml_file(yaml_file)
+
+        # Dimensions that are simple lookups (not SCD2)
+        simple_lookup_dims = {'dim_workspace'}
 
         for join in config.get('joins', []):
             join_name = join.get('name', '')
@@ -284,6 +290,10 @@ class TestJoinConfiguration:
 
             # Check if joining to a dimension table (starts with dim_)
             if 'dim_' in join.get('source', ''):
+                # Skip simple lookup dimensions that don't have SCD2
+                if join_name in simple_lookup_dims:
+                    continue
+
                 # Accept either is_current or delete_time IS NULL pattern
                 has_current_filter = 'is_current' in on_clause or 'delete_time' in on_clause
                 assert has_current_filter, (

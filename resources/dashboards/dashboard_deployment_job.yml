@@ -1,13 +1,22 @@
 # Dashboard Deployment Job
 # Deploys all Lakeview AI/BI Dashboards for Health Monitor
 #
-# Dashboards created:
-#   - Executive Overview: High-level KPIs for leadership
-#   - Cost Management: FinOps analysis and optimization
-#   - Job Reliability: Job execution health monitoring
-#   - Query Performance: SQL latency and efficiency
-#   - Cluster Utilization: Resource usage tracking
-#   - Security Audit: Access and compliance monitoring
+# Workflow:
+#   1. Validate SQL queries (catches errors before deployment)
+#   2. Deploy 5 domain dashboards (Cost, Performance, Quality, Security, Reliability)
+#   3. Deploy unified dashboard (combines overview pages from all domains)
+#
+# Domain Dashboards:
+#   - 💰 Cost: cost_management, commit_tracking
+#   - ⚡ Performance: query_performance, cluster_utilization, dbr_migration
+#   - 🔄 Reliability: job_reliability, job_optimization
+#   - 🔒 Security: security_audit, governance_hub
+#   - ✅ Quality: table_health
+#
+# Unified Dashboard:
+#   - Combines overview pages from all domains
+#   - Includes global filters for cross-domain analysis
+#   - Executive-friendly single entry point
 #
 # Run after Gold layer and TVF setup
 # Reference: https://docs.databricks.com/visualizations/lakeview
@@ -16,7 +25,9 @@ resources:
   jobs:
     dashboard_deployment_job:
       name: "[${bundle.target}] Health Monitor - Dashboard Deployment"
-      description: "Deploys all AI/BI Lakeview dashboards"
+      description: |
+        Validates and deploys all AI/BI Lakeview dashboards.
+        First validates SQL queries, then deploys domain dashboards, then unified dashboard.
 
       # ✅ MANDATORY: Serverless environment configuration
       environments:
@@ -25,6 +36,16 @@ resources:
             environment_version: "4"
 
       tasks:
+        # Task 1: Validate all SQL queries FIRST (optional - use dashboard_validation_job for standalone validation)
+        # - task_key: validate_sql_queries
+        #   environment_key: default
+        #   notebook_task:
+        #     notebook_path: ../../src/dashboards/validate_dashboard_queries.py
+        #     base_parameters:
+        #       catalog: ${var.catalog}
+        #       gold_schema: ${var.gold_schema}
+
+        # Task 2: Deploy all dashboards (domain + unified)
         - task_key: deploy_all_dashboards
           environment_key: default
           notebook_task:
@@ -33,12 +54,13 @@ resources:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
               warehouse_id: ${var.warehouse_id}
+              deploy_domain_dashboards: "true"  # Deploy individual domain dashboards
 
       # No schedule - run on demand after Gold setup
       # Dashboards refresh automatically based on their queries
 
-      # Timeout: 60 minutes (Lakeview SDK operations can be slow)
-      timeout_seconds: 3600
+      # Timeout: 90 minutes (validation + multiple dashboard deployments)
+      timeout_seconds: 5400
 
       # Email notifications
       email_notifications:

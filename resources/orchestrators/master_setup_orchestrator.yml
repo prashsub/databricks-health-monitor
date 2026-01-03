@@ -20,7 +20,10 @@
 #   5. Wait for Monitor Tables (20 min) → Allow async table creation
 #   6. Monitoring Documentation (atomic) → Add Genie-friendly descriptions
 #   7. Alerting Layer Setup (composite) → Alert tables + deployment
-#   8. ML Layer Setup (composite) → Feature + Training jobs
+#   8. ML Feature Tables (atomic) → Create empty feature tables
+#
+# NOTE: ML Training runs separately (weekly schedule) after data exists.
+#       Setup only creates feature table infrastructure.
 #
 # Total Infrastructure:
 #   - Bronze: 8 non-streaming tables + DQ rules
@@ -28,7 +31,7 @@
 #   - Semantic: 60 TVFs + 10 Metric Views
 #   - Monitoring: 8 Lakehouse Monitors + Genie-friendly descriptions
 #   - Alerting: 56 SQL Alerts
-#   - ML: Feature tables + 25 trained models
+#   - ML: Feature tables (training runs separately)
 #
 # Usage:
 #   databricks bundle run -t dev master_setup_orchestrator
@@ -118,15 +121,16 @@ resources:
             job_id: ${resources.jobs.alerting_layer_setup_job.id}
         
         # ================================================================
-        # PHASE 5: ML LAYER SETUP (requires Gold data)
+        # PHASE 5: ML FEATURE TABLES (infrastructure only)
         # ================================================================
         
-        # Step 8: ML Layer (composite job → Feature + Training jobs)
-        - task_key: ml_layer_setup
+        # Step 8: ML Feature Tables (atomic job - creates empty feature tables)
+        # NOTE: ML Training runs separately on weekly schedule after data exists
+        - task_key: ml_feature_tables
           depends_on:
             - task_key: gold_setup
           run_job_task:
-            job_id: ${resources.jobs.ml_layer_setup_job.id}
+            job_id: ${resources.jobs.ml_feature_pipeline.id}
       
       # Timeout: 4 hours for complete setup
       timeout_seconds: 14400

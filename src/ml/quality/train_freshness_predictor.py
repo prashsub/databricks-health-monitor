@@ -1,36 +1,61 @@
 # Databricks notebook source
+# ===========================================================================
+# PATH SETUP FOR ASSET BUNDLE IMPORTS
+# ===========================================================================
+# This enables imports from src.ml.config and src.ml.utils when deployed
+# via Databricks Asset Bundles. The bundle root is computed dynamically.
+# Reference: https://docs.databricks.com/aws/en/notebooks/share-code
+import sys
+import os
+
+try:
+    # Get current notebook path and compute bundle root
+    _notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+    _bundle_root = "/Workspace" + str(_notebook_path).rsplit('/src/', 1)[0]
+    if _bundle_root not in sys.path:
+        sys.path.insert(0, _bundle_root)
+        print(f"✓ Added bundle root to sys.path: {_bundle_root}")
+except Exception as e:
+    print(f"⚠ Path setup skipped (local execution): {e}")
+# ===========================================================================
 """
 Train Data Freshness Predictor Model
-====================================
+==========================================
 
 Problem: Regression
 Algorithm: Gradient Boosting Regressor
 Domain: Quality
 
-Predicts data freshness and staleness risks.
-
-Feature Engineering in Unity Catalog:
-- Uses FeatureLookup for automatic lineage tracking
-- Enables automatic feature lookup at inference time
-
-Reference: https://docs.databricks.com/aws/en/machine-learning/feature-store/train-models-with-feature-store
+REFACTORED: Uses FeatureRegistry for dynamic schema queries.
 """
 
 # COMMAND ----------
 
 from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
-import mlflow
-from mlflow.models.signature import infer_signature
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import train_test_split
-import pandas as pd
-import numpy as np
-from datetime import datetime
+import json
 
-from databricks.feature_engineering import FeatureEngineeringClient, FeatureLookup
+from databricks.feature_engineering import FeatureEngineeringClient
+from src.ml.config.feature_registry import FeatureRegistry
+from src.ml.utils.training_base import (
+    setup_training_environment,
+    create_feature_lookup_training_set,
+    prepare_training_data,
+    log_model_with_features,
+    calculate_regression_metrics,
+)
 
+import mlflow
 mlflow.set_registry_uri("databricks-uc")
+
+# COMMAND ----------
+
+# Configuration
+MODEL_NAME = "data_freshness_predictor"
+DOMAIN = "quality"
+FEATURE_TABLE = "quality_features"
+LABEL_COLUMN = "table_count"
+ALGORITHM = "gradient_boosting"
 
 # COMMAND ----------
 
@@ -41,171 +66,67 @@ def get_parameters():
     print(f"Catalog: {catalog}, Gold Schema: {gold_schema}, Feature Schema: {feature_schema}")
     return catalog, gold_schema, feature_schema
 
-
-def setup_mlflow_experiment(model_name):
-    mlflow.set_experiment(f"/Shared/health_monitor_ml_{model_name}")
-
-
-def get_run_name(model_name, algorithm):
-    return f"{model_name}_{algorithm}_v1_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
-
-def get_standard_tags(model_name, domain, model_type, algorithm, use_case, training_table):
-    return {
-        "project": "databricks_health_monitor", "domain": domain, "model_name": model_name,
-        "model_type": model_type, "algorithm": algorithm, "use_case": use_case,
-        "training_data": training_table, "feature_engineering": "unity_catalog"
-    }
-
 # COMMAND ----------
 
-def create_training_set_with_features(spark, fe, catalog, feature_schema, gold_schema):
-    print("\nCreating training set with Feature Engineering...")
-    
-    feature_table = f"{catalog}.{feature_schema}.performance_features"
-    
-    # Use performance features as proxies for freshness indicators
-    feature_names = ["query_count", "avg_duration_ms", "p50_duration_ms", "p95_duration_ms",
-                     "error_rate", "avg_query_count_7d", "is_weekend"]
-    
-    feature_lookups = [
-        FeatureLookup(
-            table_name=feature_table,
-            feature_names=feature_names,
-            lookup_key=["warehouse_id", "query_date"]
-        )
-    ]
-    
-    # Target: days until next query as proxy for freshness
-    base_df = (spark.table(feature_table)
-               .withColumn("freshness_score",
-                           F.when(F.col("query_count") > 10, 1.0)  # Fresh
-                           .when(F.col("query_count") > 0, 0.5)   # Moderate
-                           .otherwise(0.0))                        # Stale
-               .select("warehouse_id", "query_date", "freshness_score")
-               .filter(F.col("freshness_score").isNotNull()))
-    
-    record_count = base_df.count()
-    print(f"  Base DataFrame has {record_count} records")
-    if record_count == 0:
-        raise ValueError(f"No data found!")
-    
-    training_set = fe.create_training_set(
-        df=base_df,
-        feature_lookups=feature_lookups,
-        label="freshness_score",
-        exclude_columns=["warehouse_id", "query_date"]
-    )
-    
-    training_df = training_set.load_df()
-    print(f"✓ Training set: {training_df.count()} rows")
-    
-    return training_set, training_df, feature_names
-
-# COMMAND ----------
-
-def prepare_and_train(training_df, feature_names):
-    print("\nPreparing data and training model...")
-    
-    pdf = training_df.toPandas()
-    X_train = pdf[feature_names].fillna(0).replace([np.inf, -np.inf], 0)
-    y = pdf["freshness_score"].fillna(0.5)
-    
-    X_train, X_test, y_train, y_test = train_test_split(X_train, y, test_size=0.2, random_state=42)
-    
-    hyperparams = {"n_estimators": 100, "max_depth": 5, "learning_rate": 0.1, "random_state": 42}
+def train_model(X_train, X_test, y_train, y_test):
+    print("\nTraining model...")
+    hyperparams = {"n_estimators": 100, "max_depth": 6, "learning_rate": 0.1, "random_state": 42}
     model = GradientBoostingRegressor(**hyperparams)
     model.fit(X_train, y_train)
-    
-    train_r2 = model.score(X_train, y_train)
-    test_r2 = model.score(X_test, y_test)
-    
-    metrics = {
-        "train_r2": round(float(train_r2), 4),
-        "test_r2": round(float(test_r2), 4),
-        "training_samples": len(X_train),
-        "test_samples": len(X_test)
-    }
-    
-    print(f"✓ Test R²: {test_r2:.4f}")
-    return model, metrics, hyperparams, X_train
-
-# COMMAND ----------
-
-def log_model_with_feature_engineering(fe, model, training_set, metrics, hyperparams, catalog, feature_schema, X_train):
-    model_name = "data_freshness_predictor"
-    registered_name = f"{catalog}.{feature_schema}.{model_name}"
-    
-    print(f"\nLogging model with Feature Engineering: {registered_name}")
-    
-    mlflow.autolog(disable=True)
-    with mlflow.start_run(run_name=get_run_name(model_name, "gradient_boosting")) as run:
-        mlflow.set_tags(get_standard_tags(
-            model_name, "quality", "regression", "gradient_boosting",
-            "freshness_prediction", f"{catalog}.{feature_schema}.performance_features"
-        ))
-        mlflow.log_params(hyperparams)
-        mlflow.log_params({"feature_engineering": "unity_catalog"})
-        mlflow.log_metrics(metrics)
-        
-        # Create input example and signature (REQUIRED for Unity Catalog)
-        input_example = X_train.head(5).astype('float64')
-        sample_predictions = model.predict(input_example)
-        signature = infer_signature(input_example, sample_predictions)
-        
-        fe.log_model(
-            model=model,
-            artifact_path="model",
-            flavor=mlflow.sklearn,
-            training_set=training_set,
-            registered_model_name=registered_name,
-            input_example=input_example,
-            signature=signature
-        )
-        
-        print(f"✓ Model logged with Feature Engineering")
-        return {
-            "run_id": run.info.run_id,
-            "model_name": model_name,
-            "registered_as": registered_name,
-            "algorithm": "GradientBoostingRegressor",
-            "hyperparameters": hyperparams,
-            "metrics": metrics
-        }
+    metrics = calculate_regression_metrics(model, X_train, X_test, y_train, y_test)
+    return model, metrics, hyperparams
 
 # COMMAND ----------
 
 def main():
-    import json
     print("\n" + "=" * 60)
-    print("DATA FRESHNESS PREDICTOR - TRAINING")
-    print("Feature Engineering in Unity Catalog")
+    print(f"{MODEL_NAME.upper().replace('_', ' ')} - TRAINING")
+    print("Using FeatureRegistry (Dynamic Schema)")
     print("=" * 60)
     
     catalog, gold_schema, feature_schema = get_parameters()
     spark = SparkSession.builder.getOrCreate()
     
     fe = FeatureEngineeringClient()
-    print("✓ Feature Engineering client initialized")
+    registry = FeatureRegistry(spark, catalog, feature_schema)
     
-    setup_mlflow_experiment("data_freshness_predictor")
+    feature_names = registry.get_feature_columns(FEATURE_TABLE, exclude_columns=[LABEL_COLUMN])
+    lookup_keys = registry.get_primary_keys(FEATURE_TABLE)
+    
+    setup_training_environment(MODEL_NAME)
+    feature_table_full = f"{catalog}.{feature_schema}.{FEATURE_TABLE}"
     
     try:
-        training_set, training_df, feature_names = create_training_set_with_features(spark, fe, catalog, feature_schema, gold_schema)
-        model, metrics, hyperparams, X_train = prepare_and_train(training_df, feature_names)
-        result = log_model_with_feature_engineering(fe, model, training_set, metrics, hyperparams, catalog, feature_schema, X_train)
+        training_set, training_df, available_features = create_feature_lookup_training_set(
+            spark, fe, feature_table_full, feature_names, LABEL_COLUMN, lookup_keys
+        )
+        
+        # Minimum sample check - need at least 2 samples for train/test split
+        sample_count = training_df.count()
+        MIN_SAMPLES = 2
+        if sample_count < MIN_SAMPLES:
+            msg = f"Insufficient data: {sample_count} samples (need {MIN_SAMPLES}+). Skipping training."
+            print(f"⚠ {msg}")
+            dbutils.notebook.exit(json.dumps({"status": "SKIPPED", "reason": msg}))
+        print(f"✓ Found {sample_count} samples for training")
+        
+        X_train, X_test, y_train, y_test = prepare_training_data(
+            training_df, available_features, LABEL_COLUMN, cast_label_to="float64"
+        )
+        
+        model, metrics, hyperparams = train_model(X_train, X_test, y_train, y_test)
+        
+        result = log_model_with_features(
+            fe, model, training_set, X_train, metrics, hyperparams,
+            MODEL_NAME, DOMAIN, "regression", ALGORITHM, "data_freshness_prediction",
+            catalog, feature_schema, feature_table_full
+        )
         
         print("\n" + "=" * 60)
-        print("✓ TRAINING COMPLETE")
-        print(f"  Model: {result['model_name']}")
-        print(f"  Feature Engineering: Unity Catalog ENABLED")
+        print(f"✓ TRAINING COMPLETE - R²: {result['metrics']['test_r2']}")
         print("=" * 60)
         
-        dbutils.notebook.exit(json.dumps({
-            "status": "SUCCESS", "model": result['model_name'],
-            "registered_as": result['registered_as'], "run_id": result['run_id'],
-            "metrics": result['metrics'], "feature_engineering": "unity_catalog"
-        }))
+        dbutils.notebook.exit(json.dumps({"status": "SUCCESS", **result}))
         
     except Exception as e:
         import traceback

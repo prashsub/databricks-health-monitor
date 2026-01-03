@@ -151,12 +151,21 @@ def check_sql_syntax(query: str, dashboard: str, dataset: str) -> List[Dict]:
     """Check for common SQL syntax issues."""
     issues = []
     
-    # Check for multiple WHERE clauses (but allow if query has CTEs)
+    # Check for unsubstituted :time_range parameters (these will be replaced by filter)
+    # This is informational, not an error
+    if ':time_range.min' in query or ':time_range.max' in query:
+        # This is expected - parameters are bound by Global Filters
+        pass
+    
+    # Check for multiple WHERE clauses at the main query level
+    # Allow WHERE in: CTEs, subqueries (SELECT inside parentheses)
     where_count = len(re.findall(r'\bWHERE\b', query, re.IGNORECASE))
     has_cte = bool(re.search(r'\bWITH\b', query, re.IGNORECASE))
+    has_subquery = bool(re.search(r'\(\s*SELECT\b', query, re.IGNORECASE))
     
-    # Multiple WHERE is OK if there's a CTE (each subquery can have its own WHERE)
-    if where_count > 1 and not has_cte:
+    # Multiple WHERE is OK if there's a CTE or subquery
+    # Only flag if multiple WHERE at same level (no subqueries/CTEs)
+    if where_count > 1 and not has_cte and not has_subquery:
         issues.append({
             'type': 'MULTIPLE_WHERE',
             'dashboard': dashboard,

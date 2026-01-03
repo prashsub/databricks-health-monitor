@@ -1,43 +1,27 @@
 # Databricks notebook source
 """
-Batch Inference - All Models with Feature Engineering
-=====================================================
+Batch Inference - Simple Pattern
+================================
 
-Runs batch inference for ALL trained ML models using Feature Engineering's
-fe.score_batch() for automatic feature lookup.
+Uses the official Databricks pattern for batch inference:
+1. Create DataFrame with lookup keys only
+2. Call fe.score_batch() - it handles feature lookup automatically  
+3. Save predictions
 
-Key Benefits of fe.score_batch():
-- Automatic feature lookup from feature tables
-- Scoring DataFrame only needs lookup keys (not all features)
-- Training/inference consistency guaranteed
-- Full lineage tracking in Unity Catalog
-
-Models by Domain (25 total):
-- COST (6): anomaly, budget, job_cost, chargeback, commitment, tag_recommender
-- SECURITY (4): threat, exfiltration, privilege, user_behavior  
-- PERFORMANCE (7): query_forecaster, warehouse, regression, cache_hit, 
-                   cluster_capacity, dbr_migration, query_optimization
-- RELIABILITY (5): failure, duration, sla_breach, pipeline_health, retry_success
-- QUALITY (3): drift, schema_change, freshness
-
-Reference: https://docs.databricks.com/aws/en/machine-learning/feature-store/score-batch
+Reference: https://docs.databricks.com/aws/en/machine-learning/feature-store/train-models-with-feature-store
 """
 
 # COMMAND ----------
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, TimestampType
 import mlflow
 from mlflow import MlflowClient
-import pandas as pd
-import numpy as np
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 import json
 import time
 
-# Feature Engineering for automatic feature lookup
 from databricks.feature_engineering import FeatureEngineeringClient
 
 mlflow.set_registry_uri("databricks-uc")
@@ -45,7 +29,6 @@ mlflow.set_registry_uri("databricks-uc")
 # COMMAND ----------
 
 def get_parameters():
-    """Get job parameters from dbutils widgets."""
     catalog = dbutils.widgets.get("catalog")
     gold_schema = dbutils.widgets.get("gold_schema")
     feature_schema = dbutils.widgets.get("feature_schema")
@@ -54,522 +37,330 @@ def get_parameters():
 # COMMAND ----------
 
 # =============================================================================
-# MODEL CONFIGURATION - ALL MODELS WITH FEATURE ENGINEERING
+# MODEL CONFIGURATIONS
 # =============================================================================
 
+def get_feature_table_keys(spark, full_table_name: str) -> List[str]:
+    """
+    Dynamically get primary keys from feature table by querying its schema.
+    
+    Per Databricks docs: For fe.score_batch(), pass only the lookup keys.
+    We identify lookup keys as the columns that were used as primary keys
+    during fe.create_table().
+    
+    Simple approach: Read the first row and use common key patterns.
+    """
+    try:
+        # Get actual columns from the table
+        df = spark.table(full_table_name)
+        columns = df.columns
+        
+        # Common primary key patterns by domain (order matters - first match wins)
+        key_patterns = [
+            # Cost domain
+            ("cost_features", ["workspace_id", "usage_date"]),
+            # Security domain - actual columns are user_id, event_date
+            ("security_features", ["user_id", "event_date"]),
+            # Performance domain
+            ("performance_features", ["warehouse_id", "query_date"]),
+            # Reliability domain - job_id, run_date (used by all reliability models)
+            ("reliability_features", ["job_id", "run_date"]),
+            # Quality domain - actual columns are catalog_name, snapshot_date
+            ("quality_features", ["catalog_name", "snapshot_date"]),
+        ]
+        
+        # Match table name to pattern
+        for pattern_table, keys in key_patterns:
+            if pattern_table in full_table_name.lower():
+                # Verify keys exist in table
+                valid_keys = [k for k in keys if k in columns]
+                if valid_keys:
+                    return valid_keys
+        
+        # Fallback: Look for common key column names
+        common_keys = []
+        for col in columns:
+            col_lower = col.lower()
+            if col_lower.endswith('_id') or col_lower.endswith('_date') or col_lower == 'date':
+                common_keys.append(col)
+        
+        if common_keys:
+            return common_keys[:2]  # Max 2 keys
+        
+        # Last resort: first column
+        return [columns[0]]
+        
+    except Exception as e:
+        print(f"    ⚠ Could not determine keys: {e}")
+        return ["id"]
+
 def get_model_configs(catalog: str, feature_schema: str) -> List[Dict]:
-    """
-    Configuration for ALL models to score using Feature Engineering.
-    
-    Each config specifies:
-    - model_name: Name in UC registry
-    - feature_table: Source feature table for lookup
-    - lookup_keys: Primary key columns for feature lookup
-    - output_table: Where to store predictions
-    - model_type: For post-processing predictions
-    - domain: Agent domain
-    
-    NOTE: feature_columns are NOT needed when using fe.score_batch()!
-    The model metadata contains the feature lookup info.
-    """
-    base_config = {
-        "catalog": catalog,
-        "schema": feature_schema
-    }
-    
+    """Simple model configurations."""
     return [
-        # =====================================================================
-        # COST DOMAIN (6 models)
-        # Feature table: cost_features
-        # Lookup keys: ["workspace_id", "usage_date"]
-        # =====================================================================
-        {
-            **base_config,
-            "model_name": "cost_anomaly_detector",
-            "feature_table": "cost_features",
-            "lookup_keys": ["workspace_id", "usage_date"],
-            "output_table": "cost_anomaly_predictions",
-            "model_type": "anomaly_detection",
-            "domain": "COST"
-        },
-        {
-            **base_config,
-            "model_name": "budget_forecaster",
-            "feature_table": "cost_features",
-            "lookup_keys": ["workspace_id", "usage_date"],
-            "output_table": "budget_forecast_predictions",
-            "model_type": "regression",
-            "domain": "COST"
-        },
+        # COST DOMAIN
+        {"model_name": "cost_anomaly_detector", "feature_table": "cost_features", "output_table": "cost_anomaly_predictions", "domain": "COST"},
+        {"model_name": "budget_forecaster", "feature_table": "cost_features", "output_table": "budget_forecast_predictions", "domain": "COST"},
+        {"model_name": "job_cost_optimizer", "feature_table": "cost_features", "output_table": "job_cost_optimizer_predictions", "domain": "COST"},
+        {"model_name": "chargeback_attribution", "feature_table": "cost_features", "output_table": "chargeback_predictions", "domain": "COST"},
+        {"model_name": "commitment_recommender", "feature_table": "cost_features", "output_table": "commitment_recommendations", "domain": "COST"},
+        # NOTE: tag_recommender uses TF-IDF, not feature store. Skip from FE scoring.
+        {"model_name": "tag_recommender", "feature_table": "cost_features", "output_table": "tag_recommendations", "domain": "COST", "skip_fe": True},
         
-        # =====================================================================
-        # SECURITY DOMAIN (4 models)
-        # Feature table: security_features
-        # Lookup keys: ["user_id", "event_date"]
-        # =====================================================================
-        {
-            **base_config,
-            "model_name": "security_threat_detector",
-            "feature_table": "security_features",
-            "lookup_keys": ["user_id", "event_date"],
-            "output_table": "security_threat_predictions",
-            "model_type": "anomaly_detection",
-            "domain": "SECURITY"
-        },
+        # SECURITY DOMAIN
+        {"model_name": "security_threat_detector", "feature_table": "security_features", "output_table": "security_threat_predictions", "domain": "SECURITY"},
+        {"model_name": "exfiltration_detector", "feature_table": "security_features", "output_table": "exfiltration_predictions", "domain": "SECURITY"},
+        {"model_name": "privilege_escalation_detector", "feature_table": "security_features", "output_table": "privilege_escalation_predictions", "domain": "SECURITY"},
+        {"model_name": "user_behavior_baseline", "feature_table": "security_features", "output_table": "user_behavior_predictions", "domain": "SECURITY"},
         
-        # =====================================================================
-        # PERFORMANCE DOMAIN (7 models)
-        # Feature table: performance_features
-        # Lookup keys: ["warehouse_id", "query_date"]
-        # =====================================================================
-        {
-            **base_config,
-            "model_name": "query_performance_forecaster",
-            "feature_table": "performance_features",
-            "lookup_keys": ["warehouse_id", "query_date"],
-            "output_table": "query_forecast_predictions",
-            "model_type": "regression",
-            "domain": "PERFORMANCE"
-        },
+        # PERFORMANCE DOMAIN
+        {"model_name": "query_performance_forecaster", "feature_table": "performance_features", "output_table": "query_performance_predictions", "domain": "PERFORMANCE"},
+        {"model_name": "warehouse_optimizer", "feature_table": "performance_features", "output_table": "warehouse_optimizer_predictions", "domain": "PERFORMANCE"},
+        {"model_name": "performance_regression_detector", "feature_table": "performance_features", "output_table": "performance_regression_predictions", "domain": "PERFORMANCE"},
+        {"model_name": "cluster_capacity_planner", "feature_table": "performance_features", "output_table": "cluster_capacity_predictions", "domain": "PERFORMANCE"},
+        {"model_name": "dbr_migration_risk_scorer", "feature_table": "reliability_features", "output_table": "dbr_migration_predictions", "domain": "PERFORMANCE"},  # Uses reliability_features per training script
+        {"model_name": "cache_hit_predictor", "feature_table": "performance_features", "output_table": "cache_hit_predictions", "domain": "PERFORMANCE"},
+        {"model_name": "query_optimization_recommender", "feature_table": "performance_features", "output_table": "query_optimization_predictions", "domain": "PERFORMANCE"},
         
-        # =====================================================================
-        # RELIABILITY DOMAIN (5 models)
-        # Feature table: reliability_features
-        # Lookup keys: ["job_id", "run_date"]
-        # =====================================================================
-        {
-            **base_config,
-            "model_name": "job_failure_predictor",
-            "feature_table": "reliability_features",
-            "lookup_keys": ["job_id", "run_date"],
-            "output_table": "failure_predictions",
-            "model_type": "classification",
-            "domain": "RELIABILITY"
-        },
+        # RELIABILITY DOMAIN - All use reliability_features (job_id, run_date as keys)
+        {"model_name": "job_failure_predictor", "feature_table": "reliability_features", "output_table": "job_failure_predictions", "domain": "RELIABILITY"},
+        {"model_name": "job_duration_forecaster", "feature_table": "reliability_features", "output_table": "duration_predictions", "domain": "RELIABILITY"},
+        {"model_name": "sla_breach_predictor", "feature_table": "reliability_features", "output_table": "sla_breach_predictions", "domain": "RELIABILITY"},
+        {"model_name": "retry_success_predictor", "feature_table": "reliability_features", "output_table": "retry_success_predictions", "domain": "RELIABILITY"},
+        {"model_name": "pipeline_health_scorer", "feature_table": "reliability_features", "output_table": "pipeline_health_predictions", "domain": "RELIABILITY"},
         
-        # =====================================================================
-        # QUALITY DOMAIN (3 models)
-        # Feature table: quality_features
-        # Lookup keys: ["catalog_name", "snapshot_date"]
-        # =====================================================================
-        {
-            **base_config,
-            "model_name": "data_drift_detector",
-            "feature_table": "quality_features",
-            "lookup_keys": ["catalog_name", "snapshot_date"],
-            "output_table": "data_drift_predictions",
-            "model_type": "anomaly_detection",
-            "domain": "QUALITY"
-        },
-        {
-            **base_config,
-            "model_name": "tag_recommender",
-            "feature_table": "quality_features",
-            "lookup_keys": ["catalog_name", "snapshot_date"],
-            "output_table": "tag_recommendations",
-            "model_type": "classification",
-            "domain": "QUALITY"
-        },
+        # QUALITY DOMAIN
+        {"model_name": "data_drift_detector", "feature_table": "quality_features", "output_table": "data_drift_predictions", "domain": "QUALITY"},
+        {"model_name": "schema_change_predictor", "feature_table": "quality_features", "output_table": "schema_change_predictions", "domain": "QUALITY"},
+        {"model_name": "data_freshness_predictor", "feature_table": "quality_features", "output_table": "freshness_predictions", "domain": "QUALITY"},
     ]
 
 # COMMAND ----------
 
-def check_model_exists(client: MlflowClient, catalog: str, schema: str, model_name: str) -> Tuple[bool, str, int]:
-    """
-    Check if model exists in Unity Catalog registry.
-    
-    Returns: (exists, model_uri, version)
-    """
+def check_model_exists(catalog: str, schema: str, model_name: str) -> Tuple[bool, Optional[int]]:
+    """Check if model exists in Unity Catalog registry."""
+    client = MlflowClient()
     full_model_name = f"{catalog}.{schema}.{model_name}"
     
     try:
+        # Get latest version
         versions = client.search_model_versions(f"name='{full_model_name}'")
-        if not versions:
-            return False, None, 0
-        
-        latest = max(versions, key=lambda v: int(v.version))
-        model_uri = f"models:/{full_model_name}/{latest.version}"
-        return True, model_uri, int(latest.version)
-        
-    except Exception as e:
-        print(f"    ⚠ Error checking model: {e}")
-        return False, None, 0
+        if versions:
+            latest = max(versions, key=lambda v: int(v.version))
+            return True, int(latest.version)
+        return False, None
+    except Exception:
+        return False, None
 
 # COMMAND ----------
 
-def create_scoring_dataframe(spark: SparkSession, catalog: str, schema: str, 
-                             feature_table: str, lookup_keys: List[str]) -> Tuple[any, int]:
+def run_inference_simple(
+    fe: FeatureEngineeringClient,
+    spark: SparkSession,
+    catalog: str,
+    feature_schema: str,
+    model_name: str,
+    feature_table: str,
+    output_table: str,
+    model_version: int
+) -> Tuple[str, int, Optional[str]]:
     """
-    Create scoring DataFrame with ONLY lookup keys.
+    Simple batch inference following official Databricks pattern.
     
-    When using fe.score_batch(), the DataFrame only needs the lookup keys
-    (primary key columns). Features are automatically retrieved from
-    the feature table based on model metadata.
+    1. Get lookup keys DataFrame
+    2. Call fe.score_batch()
+    3. Write to table
+    
+    That's it. No caching, no conversion, just the standard pattern.
     """
-    full_table = f"{catalog}.{schema}.{feature_table}"
+    full_model_name = f"{catalog}.{feature_schema}.{model_name}"
+    # Use version number, not @latest alias
+    model_uri = f"models:/{full_model_name}/{model_version}"
+    full_feature_table = f"{catalog}.{feature_schema}.{feature_table}"
+    full_output_table = f"{catalog}.{feature_schema}.{output_table}"
     
     try:
-        # Get recent data for scoring (last 30 days by default)
-        date_col = lookup_keys[-1] if any('date' in k.lower() for k in lookup_keys) else None
+        # Step 1: Create lookup DataFrame - dynamically get keys from table schema
+        lookup_keys = get_feature_table_keys(spark, full_feature_table)
+        print(f"    🔑 Lookup keys: {lookup_keys}")
         
-        df = spark.table(full_table)
-        
-        # Filter to recent data if date column exists
-        if date_col and date_col in df.columns:
-            df = df.filter(F.col(date_col) >= F.date_sub(F.current_date(), 30))
-        
-        # Select ONLY lookup keys - features are auto-retrieved by fe.score_batch()
-        scoring_df = df.select(*lookup_keys).distinct()
-        
-        # Sample if too large
-        MAX_SAMPLES = 100_000
-        count = scoring_df.count()
-        if count > MAX_SAMPLES:
-            scoring_df = scoring_df.sample(fraction=MAX_SAMPLES/count, seed=42)
-            count = MAX_SAMPLES
-        
-        return scoring_df, count
-        
-    except Exception as e:
-        print(f"    ⚠ Error creating scoring DataFrame: {e}")
-        return None, 0
-
-# COMMAND ----------
-
-def score_with_feature_engineering(fe: FeatureEngineeringClient, 
-                                   spark: SparkSession,
-                                   scoring_df,
-                                   model_uri: str,
-                                   model_type: str) -> Tuple[any, str]:
-    """
-    Score using Feature Engineering's fe.score_batch().
-    
-    This method:
-    1. Reads model metadata to find required features
-    2. Automatically joins features from feature tables
-    3. Runs the model
-    4. Returns predictions with original columns
-    
-    The scoring_df only needs lookup keys - features are auto-retrieved!
-    """
-    try:
-        # Score with automatic feature lookup
-        # result_type depends on model type
-        if model_type in ["regression"]:
-            result_type = "double"
-        elif model_type in ["classification", "anomaly_detection"]:
-            result_type = "double"  # Scores/probabilities
-        else:
-            result_type = "double"
-        
-        predictions = fe.score_batch(
-            model_uri=model_uri,
-            df=scoring_df,
-            result_type=result_type
+        lookup_df = (
+            spark.table(full_feature_table)
+            .select(*lookup_keys)
+            .distinct()
+            .limit(100_000)  # Reasonable limit for batch
         )
         
-        return predictions, None
+        row_count = lookup_df.count()
+        print(f"    📊 Scoring {row_count:,} records with model v{model_version}...")
+        
+        # Step 2: Score using feature engineering (THE SIMPLE PATTERN)
+        # fe.score_batch() handles ALL feature lookup automatically
+        predictions = fe.score_batch(
+            model_uri=model_uri,
+            df=lookup_df
+        )
+        
+        # Step 3: Add metadata and save
+        predictions_with_meta = (
+            predictions
+            .withColumn("model_name", F.lit(model_name))
+            .withColumn("scored_at", F.current_timestamp())
+        )
+        
+        # Drop and recreate to avoid schema conflicts
+        spark.sql(f"DROP TABLE IF EXISTS {full_output_table}")
+        predictions_with_meta.write.format("delta").mode("overwrite").saveAsTable(full_output_table)
+        
+        final_count = spark.table(full_output_table).count()
+        return "SUCCESS", final_count, None
         
     except Exception as e:
         error_msg = str(e)
-        
-        # Handle models not logged with fe.log_model (fallback to manual scoring)
-        if "feature" in error_msg.lower() or "lookup" in error_msg.lower():
-            print(f"    ⚠ Model not logged with Feature Engineering, using fallback")
-            return None, "MODEL_NOT_FE_ENABLED"
-        
-        return None, f"Scoring error: {error_msg}"
-
-# COMMAND ----------
-
-def score_with_fallback(spark: SparkSession, 
-                        scoring_df,
-                        catalog: str, 
-                        schema: str,
-                        feature_table: str,
-                        model_uri: str,
-                        model_type: str) -> Tuple[any, str]:
-    """
-    Fallback scoring for models not logged with Feature Engineering.
-    
-    Manually loads features and scores.
-    """
-    try:
-        # Load full feature table
-        full_table = f"{catalog}.{schema}.{feature_table}"
-        features_df = spark.table(full_table)
-        
-        # Convert to pandas
-        pdf = features_df.limit(100_000).toPandas()
-        
-        # Get feature columns (exclude non-feature columns)
-        exclude_cols = ['feature_timestamp', 'workspace_id', 'usage_date', 
-                       'user_id', 'event_date', 'warehouse_id', 'query_date',
-                       'job_id', 'run_date', 'catalog_name', 'snapshot_date']
-        feature_cols = [c for c in pdf.columns if c not in exclude_cols]
-        
-        # Prepare features
-        X = pdf[feature_cols].fillna(0).replace([np.inf, -np.inf], 0)
-        
-        # Load model and predict
-        model = mlflow.sklearn.load_model(model_uri)
-        
-        if model_type == "anomaly_detection":
-            predictions = model.predict(X)
-            scores = model.decision_function(X)
-            pdf["prediction"] = (predictions == -1).astype(int)
-            pdf["anomaly_score"] = scores
-        elif model_type == "classification":
-            predictions = model.predict(X)
-            pdf["prediction"] = predictions
-            if hasattr(model, 'predict_proba'):
-                probas = model.predict_proba(X)
-                pdf["probability"] = probas[:, 1] if probas.shape[1] > 1 else probas[:, 0]
-        else:
-            predictions = model.predict(X)
-            pdf["prediction"] = predictions
-        
-        pdf["scored_at"] = datetime.now()
-        result_df = spark.createDataFrame(pdf)
-        
-        return result_df, None
-        
-    except Exception as e:
-        return None, f"Fallback scoring error: {str(e)}"
-
-# COMMAND ----------
-
-def save_predictions(spark: SparkSession, predictions_df, 
-                     catalog: str, schema: str, table_name: str, 
-                     model_version: int, model_name: str) -> Tuple[str, int, str]:
-    """Save predictions to Delta table."""
-    output_table = f"{catalog}.{schema}.{table_name}"
-    
-    try:
-        # Add metadata columns
-        result_df = (predictions_df
-                    .withColumn("model_version", F.lit(model_version))
-                    .withColumn("model_name", F.lit(model_name))
-                    .withColumn("scored_at", F.current_timestamp()))
-        
-        # Save
-        result_df.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(output_table)
-        
-        count = predictions_df.count()
-        return output_table, count, None
-        
-    except Exception as e:
-        return output_table, 0, f"Save error: {str(e)}"
-
-# COMMAND ----------
-
-def run_inference_for_model(spark: SparkSession, fe: FeatureEngineeringClient,
-                            client: MlflowClient, config: Dict) -> Dict:
-    """Run inference for a single model using Feature Engineering."""
-    model_name = config["model_name"]
-    catalog = config["catalog"]
-    schema = config["schema"]
-    domain = config.get("domain", "UNKNOWN")
-    
-    start_time = time.time()
-    
-    result = {
-        "model_name": model_name,
-        "domain": domain,
-        "status": "FAILED",
-        "records_scored": 0,
-        "model_version": 0,
-        "output_table": None,
-        "error": None,
-        "error_stage": None,
-        "used_feature_engineering": False,
-        "duration_sec": 0
-    }
-    
-    print(f"\n  [{domain}] {model_name}")
-    print(f"  {'-' * 50}")
-    
-    # Stage 1: Check model exists
-    print(f"    1. Checking model in UC registry...")
-    exists, model_uri, version = check_model_exists(client, catalog, schema, model_name)
-    if not exists:
-        result["error"] = f"Model not found: {catalog}.{schema}.{model_name}"
-        result["error_stage"] = "MODEL_CHECK"
-        print(f"    ❌ {result['error']}")
-        result["duration_sec"] = round(time.time() - start_time, 2)
-        return result
-    print(f"    ✓ Found model v{version}")
-    result["model_version"] = version
-    
-    # Stage 2: Create scoring DataFrame (only lookup keys needed!)
-    print(f"    2. Creating scoring DataFrame with lookup keys: {config['lookup_keys']}")
-    scoring_df, count = create_scoring_dataframe(
-        spark, catalog, schema, 
-        config['feature_table'], 
-        config['lookup_keys']
-    )
-    if scoring_df is None or count == 0:
-        result["error"] = f"No data to score from {config['feature_table']}"
-        result["error_stage"] = "SCORING_DF"
-        print(f"    ❌ {result['error']}")
-        result["duration_sec"] = round(time.time() - start_time, 2)
-        return result
-    print(f"    ✓ Scoring DataFrame: {count:,} rows (only lookup keys)")
-    
-    # Stage 3: Score with Feature Engineering
-    print(f"    3. Scoring with fe.score_batch() (automatic feature lookup)...")
-    predictions, error = score_with_feature_engineering(
-        fe, spark, scoring_df, model_uri, config['model_type']
-    )
-    
-    if error == "MODEL_NOT_FE_ENABLED":
-        # Fallback for models not logged with Feature Engineering
-        print(f"    ⚠ Falling back to manual feature loading...")
-        predictions, error = score_with_fallback(
-            spark, scoring_df, catalog, schema,
-            config['feature_table'], model_uri, config['model_type']
-        )
-        result["used_feature_engineering"] = False
-    else:
-        result["used_feature_engineering"] = True
-    
-    if error:
-        result["error"] = error
-        result["error_stage"] = "SCORING"
-        print(f"    ❌ {error}")
-        result["duration_sec"] = round(time.time() - start_time, 2)
-        return result
-    
-    pred_count = predictions.count()
-    fe_status = "✓ (Feature Engineering)" if result["used_feature_engineering"] else "⚠ (Fallback)"
-    print(f"    {fe_status} Scored {pred_count:,} records")
-    
-    # Stage 4: Save predictions
-    print(f"    4. Saving predictions to {config['output_table']}...")
-    output_table, rows_saved, error = save_predictions(
-        spark, predictions, catalog, schema, 
-        config["output_table"], version, model_name
-    )
-    if error:
-        result["error"] = error
-        result["error_stage"] = "SAVE"
-        print(f"    ❌ {error}")
-        result["duration_sec"] = round(time.time() - start_time, 2)
-        return result
-    
-    result["status"] = "SUCCESS"
-    result["records_scored"] = rows_saved
-    result["output_table"] = output_table
-    result["duration_sec"] = round(time.time() - start_time, 2)
-    
-    print(f"    ✓ Saved {rows_saved:,} predictions to {output_table}")
-    print(f"    ✓ Completed in {result['duration_sec']:.1f}s")
-    
-    return result
+        # Truncate for readability
+        if len(error_msg) > 300:
+            error_msg = error_msg[:300] + "..."
+        return "FAILED", 0, error_msg
 
 # COMMAND ----------
 
 def main():
-    """Main entry point for batch inference with Feature Engineering."""
-    print("\n" + "=" * 80)
-    print("BATCH INFERENCE WITH FEATURE ENGINEERING")
-    print("Automatic Feature Lookup via fe.score_batch()")
-    print("=" * 80)
+    """Run batch inference for all models."""
     
+    start_time = time.time()
+    
+    # Get parameters
     catalog, gold_schema, feature_schema = get_parameters()
+    print(f"Catalog: {catalog}")
+    print(f"Feature Schema: {feature_schema}")
+    print()
+    
+    # Initialize clients
     spark = SparkSession.builder.getOrCreate()
-    
-    # Initialize Feature Engineering client
     fe = FeatureEngineeringClient()
-    client = MlflowClient()
-    
-    print(f"\nConfiguration:")
-    print(f"  Catalog:        {catalog}")
-    print(f"  Gold Schema:    {gold_schema}")
-    print(f"  Feature Schema: {feature_schema}")
-    print(f"  Feature Engineering: ENABLED")
     
     # Get model configs
     model_configs = get_model_configs(catalog, feature_schema)
     
-    print(f"\nModels to Score: {len(model_configs)}")
-    print(f"Feature Lookup: Automatic via model metadata")
-    
-    print("\n" + "=" * 80)
-    print("INFERENCE EXECUTION")
-    print("=" * 80)
-    
+    # Track results
     results = []
-    start_time = time.time()
     
-    for config in model_configs:
-        result = run_inference_for_model(spark, fe, client, config)
-        results.append(result)
-    
-    total_time = round(time.time() - start_time, 2)
-    
-    # =========================================================================
-    # SUMMARY
-    # =========================================================================
-    print("\n" + "=" * 80)
-    print("BATCH INFERENCE SUMMARY")
     print("=" * 80)
+    print("BATCH INFERENCE - SIMPLE PATTERN")
+    print("=" * 80)
+    print()
     
+    for i, config in enumerate(model_configs, 1):
+        model_name = config["model_name"]
+        feature_table = config["feature_table"]
+        output_table = config["output_table"]
+        domain = config["domain"]
+        skip_fe = config.get("skip_fe", False)
+        
+        print(f"[{i}/{len(model_configs)}] {model_name}")
+        print(f"    Domain: {domain}")
+        print(f"    Feature Table: {feature_table}")
+        
+        # Skip models that don't use feature engineering (e.g., TF-IDF models)
+        if skip_fe:
+            print(f"    ⏭️  Skipped (uses TF-IDF, not feature store)")
+            results.append({
+                "model_name": model_name,
+                "domain": domain,
+                "status": "SKIPPED",
+                "records": 0,
+                "error": "Model uses TF-IDF, not feature store"
+            })
+            print()
+            continue
+        
+        # Check if model exists
+        exists, version = check_model_exists(catalog, feature_schema, model_name)
+        if not exists:
+            print(f"    ❌ Model not found in registry")
+            results.append({
+                "model_name": model_name,
+                "domain": domain,
+                "status": "NOT_FOUND",
+                "records": 0,
+                "error": "Model not registered"
+            })
+            print()
+            continue
+        
+        print(f"    Model Version: v{version}")
+        
+        # Run inference
+        status, records, error = run_inference_simple(
+            fe, spark, catalog, feature_schema,
+            model_name, feature_table, output_table, version
+        )
+        
+        if status == "SUCCESS":
+            print(f"    ✅ {records:,} predictions saved to {output_table}")
+        else:
+            print(f"    ❌ {error}")
+        
+        results.append({
+            "model_name": model_name,
+            "domain": domain,
+            "status": status,
+            "records": records,
+            "error": error
+        })
+        print()
+    
+    # Summary
+    total_time = time.time() - start_time
     successful = [r for r in results if r["status"] == "SUCCESS"]
-    failed = [r for r in results if r["status"] != "SUCCESS"]
-    fe_enabled = [r for r in successful if r.get("used_feature_engineering", False)]
-    total_records = sum(r["records_scored"] for r in successful)
+    failed = [r for r in results if r["status"] == "FAILED"]
+    not_found = [r for r in results if r["status"] == "NOT_FOUND"]
+    skipped = [r for r in results if r["status"] == "SKIPPED"]
+    total_records = sum(r["records"] for r in results)
     
-    print("\n[OVERALL RESULTS]")
-    print(f"  Total Models:           {len(results)}")
-    print(f"  Successful:             {len(successful)}")
-    print(f"  Failed:                 {len(failed)}")
-    print(f"  Feature Engineering:    {len(fe_enabled)}/{len(successful)} used fe.score_batch()")
-    print(f"  Total Records:          {total_records:,}")
-    print(f"  Total Duration:         {total_time:.1f}s")
+    print("=" * 80)
+    print("SUMMARY")
+    print("=" * 80)
+    print()
+    print(f"Total Models:    {len(results)}")
+    print(f"✅ Successful:    {len(successful)}")
+    print(f"❌ Failed:        {len(failed)}")
+    print(f"⚠️  Not Found:    {len(not_found)}")
+    print(f"⏭️  Skipped:      {len(skipped)}")
+    print(f"Total Records:   {total_records:,}")
+    print(f"Duration:        {total_time:.1f}s")
+    print()
     
-    # Successful models
     if successful:
-        print(f"\n[SUCCESSFUL MODELS] ({len(successful)} total)")
-        print("-" * 80)
-        for r in sorted(successful, key=lambda x: (x["domain"], x["model_name"])):
-            fe_mark = "FE" if r.get("used_feature_engineering") else "FB"
-            print(f"  [{fe_mark}] {r['domain']:<11} {r['model_name']:<35} v{r['model_version']:<3} {r['records_scored']:>8,} records")
-        print("-" * 80)
-        print("  FE = Feature Engineering (automatic lookup)")
-        print("  FB = Fallback (manual feature loading)")
+        print("✅ SUCCESSFUL MODELS:")
+        for r in successful:
+            print(f"   [{r['domain']:12}] {r['model_name']:35} {r['records']:>10,} records")
+        print()
     
-    # Failed models
     if failed:
-        print(f"\n[FAILED MODELS] ({len(failed)} total)")
-        print("-" * 80)
-        for r in sorted(failed, key=lambda x: (x["domain"], x["model_name"])):
-            stage = r.get("error_stage", "UNKNOWN")
-            error = r.get("error", "Unknown")[:60]
-            print(f"  [FAIL] {r['domain']:<11} {r['model_name']:<35}")
-            print(f"         Stage: {stage}, Error: {error}")
-        print("-" * 80)
+        print("❌ FAILED MODELS:")
+        for r in failed:
+            print(f"   [{r['domain']:12}] {r['model_name']}")
+            print(f"      Error: {r['error'][:100]}..." if r['error'] and len(r['error']) > 100 else f"      Error: {r['error']}")
+        print()
     
-    # Build exit message
-    status = "SUCCESS" if len(failed) == 0 else "PARTIAL" if successful else "FAILED"
+    if not_found:
+        print("⚠️  MODELS NOT FOUND (need training):")
+        for r in not_found:
+            print(f"   [{r['domain']:12}] {r['model_name']}")
+        print()
     
-    json_data = {
-        "status": status,
-        "total_models": len(results),
-        "successful_models": len(successful),
-        "failed_models": len(failed),
-        "feature_engineering_enabled": len(fe_enabled),
-        "total_records_scored": total_records,
-        "total_duration_sec": total_time
-    }
-    
-    print(f"\n{'='*80}")
-    print(f"STATUS: {status}")
-    print(f"{'='*80}")
-    
-    dbutils.notebook.exit(json.dumps(json_data))
+    # Final status
+    final_status = "SUCCESS" if len(failed) == 0 else "PARTIAL"
+    print(f"FINAL STATUS: {final_status}")
 
 # COMMAND ----------
 
 if __name__ == "__main__":
     main()
+
+# COMMAND ----------
+
+# Exit signal for job orchestration
+dbutils.notebook.exit(json.dumps({
+    "status": "COMPLETE"
+}))

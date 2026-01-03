@@ -4,6 +4,8 @@
 
 This document provides a comprehensive inventory of all Genie Spaces implemented for the Databricks Health Monitor project. **Consolidated to 1 Genie Space per Agent Domain to prevent sprawl.**
 
+> **⚠️ IMPORTANT:** When querying Lakehouse Monitoring tables (`_profile_metrics`, `_drift_metrics`), always include required filters. See [Custom Metrics Query Patterns](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md#custom-metrics-query-patterns-critical-for-genie) for details.
+
 ## Genie Space Summary by Agent Domain
 
 | Agent Domain | Genie Space | Purpose | Assets | Target Users |
@@ -16,6 +18,53 @@ This document provides a comprehensive inventory of all Genie Spaces implemented
 | 🌐 Unified | Health Monitor | All domains | 60 TVFs, 10 MVs, 25 ML | Leadership, SREs |
 
 **Total: 6 Genie Spaces (5 domain-specific + 1 unified)**
+
+---
+
+## ML Model Integration Summary (25 Models)
+
+### Models by Domain with Metrics Inventory Cross-Reference
+
+| Domain | Model | Enhances Metrics | Primary Table |
+|--------|-------|-----------------|---------------|
+| **💰 Cost** | `cost_anomaly_detector` | #38 Cost Anomalies | `cost_anomaly_predictions` |
+| **💰 Cost** | `budget_forecaster` | #6 Projected Monthly Cost | `cost_forecast_predictions` |
+| **💰 Cost** | `job_cost_optimizer` | #34-37 Optimization | `migration_recommendations` |
+| **💰 Cost** | `tag_recommender` | #28 Tag Coverage | `tag_recommendations` |
+| **💰 Cost** | `commitment_recommender` | #6 Projected Cost | `budget_alert_predictions` |
+| **💰 Cost** | `chargeback_attribution` | #13 Cost by Owner | — |
+| **🔄 Reliability** | `job_failure_predictor` | #50 Failure Rate | `job_failure_predictions` |
+| **🔄 Reliability** | `job_duration_forecaster` | #59-70 Duration | `job_duration_predictions` |
+| **🔄 Reliability** | `sla_breach_predictor` | #94-96 SLA Compliance | `incident_impact_predictions` |
+| **🔄 Reliability** | `pipeline_health_scorer` | #101-102 Pipeline Health | `pipeline_health_scores` |
+| **🔄 Reliability** | `retry_success_predictor` | #97 Retry Effectiveness | `retry_success_predictions` |
+| **⚡ Performance** | `query_performance_forecaster` | #118 P99 Duration | `query_optimization_recommendations` |
+| **⚡ Performance** | `warehouse_optimizer` | #148 Warehouse Utilization | `cluster_capacity_recommendations` |
+| **⚡ Performance** | `cache_hit_predictor` | #137 Cache Hit Rate | `cache_hit_predictions` |
+| **⚡ Performance** | `query_optimization_recommender` | #121-126 Slow Queries | `query_optimization_classifications` |
+| **⚡ Performance** | `cluster_sizing_recommender` | #183 Efficiency Score | `cluster_rightsizing_recommendations` |
+| **⚡ Performance** | `cluster_capacity_planner` | #164-165 Utilization | `cluster_capacity_recommendations` |
+| **⚡ Performance** | `regression_detector` | #75-77 Duration Drift | — |
+| **🔒 Security** | `security_threat_detector` | #218 Unusual Access | `access_anomaly_predictions` |
+| **🔒 Security** | `access_pattern_analyzer` | #202 Activity Patterns | `access_classifications` |
+| **🔒 Security** | `compliance_risk_classifier` | #219 Risk Scores | `user_risk_scores` |
+| **🔒 Security** | `permission_recommender` | #208 Permission Changes | — |
+| **📋 Quality** | `data_drift_detector` | #241 Quality Drift | `quality_anomaly_predictions` |
+| **📋 Quality** | `schema_change_predictor` | #239 Schema Drift | `quality_trend_predictions` |
+| **📋 Quality** | `schema_evolution_predictor` | #239 Schema Drift | `freshness_alert_predictions` |
+
+> **Reference:** See [Metrics Inventory](../../docs/reference/metrics-inventory.md) for complete metric definitions and cross-references.
+
+### ML Model Question Routing
+
+| Question Pattern | Domain | Route To |
+|-----------------|--------|----------|
+| "Will [job/query] fail?" | Reliability | `job_failure_predictions` |
+| "Predict cost for [period]" | Cost | `cost_forecast_predictions` |
+| "Is this [spending/access] unusual?" | Cost/Security | `*_anomaly_predictions` |
+| "Optimize [cluster/query/warehouse]" | Performance | `*_recommendations` |
+| "Risk score for [user/entity]" | Security | `user_risk_scores` |
+| "Is data drifting?" | Quality | `quality_anomaly_predictions` |
 
 ---
 
@@ -204,6 +253,98 @@ This document provides a comprehensive inventory of all Genie Spaces implemented
 
 ---
 
+## Asset Selection Framework
+
+### Decision Tree for Genie
+
+```
+USER QUERY                                          → USE THIS
+─────────────────────────────────────────────────────────────────
+"What's the current X?"                             → Metric View
+"Show me total X by Y"                              → Metric View
+"Dashboard of X"                                    → Metric View
+─────────────────────────────────────────────────────────────────
+"Is X increasing/decreasing over time?"             → Custom Metrics (_drift_metrics)
+"How has X changed since last week?"                → Custom Metrics (_drift_metrics)
+"Alert me when X exceeds threshold"                 → Custom Metrics (for alerting)
+─────────────────────────────────────────────────────────────────
+"Which specific items have X?"                      → TVF
+"List the top N items with X"                       → TVF
+"Show me items from DATE to DATE with X"            → TVF
+"What failed/what's slow/what's stale?"             → TVF
+─────────────────────────────────────────────────────────────────
+"Will X happen in the future?"                      → ML Model
+"Predict/forecast X for next period"                → ML Model
+"Is this X anomalous/unusual?"                      → ML Model  
+"Recommend optimizations for X"                     → ML Model
+"Score the risk/health of X"                        → ML Model
+─────────────────────────────────────────────────────────────────
+```
+
+### Priority Order
+
+1. **If user asks for a LIST** → TVF
+2. **If user asks about TREND** → Custom Metrics
+3. **If user asks for CURRENT VALUE** → Metric View
+4. **If user asks for PREDICTION** → ML Tables
+5. **If user asks for RECOMMENDATIONS** → ML Tables
+6. **If user asks about ANOMALIES** → ML Tables (or Custom Metrics for simple drift)
+
+### Asset Type Capabilities
+
+| Capability | TVF | Metric View | Custom Metric | ML Model |
+|------------|:---:|:-----------:|:-------------:|:--------:|
+| Date range filtering | ✅ | Limited | ❌ | ✅ |
+| Top N results | ✅ | ❌ | ❌ | ✅ |
+| Custom thresholds | ✅ | ❌ | ❌ | ❌ |
+| Dimension grouping | ❌ | ✅ | ❌ | Limited |
+| Pre-formatted output | ❌ | ✅ | ❌ | ✅ |
+| Time series tracking | ❌ | ❌ | ✅ | ❌ |
+| Drift detection | ❌ | ❌ | ✅ | ✅ |
+| Automated alerting | ❌ | ❌ | ✅ | ✅ |
+| **Future predictions** | ❌ | ❌ | ❌ | ✅ |
+| **Anomaly detection** | ❌ | ❌ | ❌ | ✅ |
+| **Recommendations** | ❌ | ❌ | ❌ | ✅ |
+| **Risk/Health scoring** | ❌ | ❌ | ❌ | ✅ |
+
+> **Reference:** See [Genie Asset Selection Guide](../../docs/reference/genie-asset-selection-guide.md) and [Metrics Inventory](../../docs/reference/metrics-inventory.md) for detailed examples.
+
+---
+
+## Lakehouse Monitoring Custom Metrics Query Patterns
+
+### ⚠️ CRITICAL: Required Filters for Custom Metrics
+
+When querying `_profile_metrics` or `_drift_metrics` tables, **ALWAYS include these filters**:
+
+```sql
+-- For _profile_metrics tables (time series metrics)
+WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
+  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
+  AND slice_key IS NULL          -- For overall metrics (or specify slice_key)
+
+-- For _drift_metrics tables (period-over-period)
+WHERE drift_type = 'CONSECUTIVE' -- REQUIRED: Compare consecutive periods
+  AND column_name = ':table'     -- REQUIRED: Table-level drift
+```
+
+### Slicing Dimensions by Monitor
+
+| Monitor | Profile Table | Available Slice Keys |
+|---------|---------------|----------------------|
+| **Cost** | `fact_usage_profile_metrics` | `workspace_id`, `sku_name`, `cloud`, `is_tagged`, `product_features_is_serverless` |
+| **Job** | `fact_job_run_timeline_profile_metrics` | `workspace_id`, `job_name`, `result_state`, `trigger_type`, `termination_code` |
+| **Query** | `fact_query_history_profile_metrics` | `workspace_id`, `compute_warehouse_id`, `execution_status`, `statement_type`, `executed_by` |
+| **Cluster** | `fact_node_timeline_profile_metrics` | `workspace_id`, `cluster_id`, `node_type`, `cluster_name`, `driver` |
+| **Security** | `fact_audit_logs_profile_metrics` | `workspace_id`, `service_name`, `audit_level`, `action_name`, `user_identity_email` |
+| **Quality** | `fact_table_quality_profile_metrics` | `catalog_name`, `schema_name`, `table_name`, `has_critical_violations` |
+| **Governance** | `fact_governance_metrics_profile_metrics` | `workspace_id`, `entity_type`, `created_by`, `source_catalog_name` |
+| **Inference** | `fact_model_serving_profile_metrics` | `workspace_id`, `is_anomaly`, `anomaly_category` |
+
+> **Reference:** See [Monitor Catalog](../../docs/lakehouse-monitoring-design/04-monitor-catalog.md) for complete metric definitions.
+
+---
+
 ## Benchmark Questions Summary
 
 Each Genie Space has 10-15 benchmark questions with expected SQL for validation:
@@ -221,7 +362,12 @@ Each Genie Space has 10-15 benchmark questions with expected SQL for validation:
 
 ## References
 
-### Setup Documents
+### 📊 Semantic Layer Framework (Essential Reading)
+- [**Metrics Inventory**](../../docs/reference/metrics-inventory.md) - **START HERE**: Complete inventory of 277 measurements across TVFs, Metric Views, and Custom Metrics
+- [**Semantic Layer Rationalization**](../../docs/reference/semantic-layer-rationalization.md) - Design rationale: why overlaps are intentional and complementary  
+- [**Genie Asset Selection Guide**](../../docs/reference/genie-asset-selection-guide.md) - Quick decision tree for choosing correct asset type
+
+### 🛠️ Setup Documents
 - [Cost Intelligence](./cost_intelligence_genie.md) - 💰 Cost
 - [Job Health Monitor](./job_health_monitor_genie.md) - 🔄 Reliability
 - [Performance](./performance_genie.md) - ⚡ Performance (Query + Cluster)
@@ -229,17 +375,24 @@ Each Genie Space has 10-15 benchmark questions with expected SQL for validation:
 - [Data Quality Monitor](./data_quality_monitor_genie.md) - ✅ Quality
 - [Unified Health Monitor](./unified_health_monitor_genie.md) - 🌐 Unified
 
-### Related Inventories
-- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md)
-- [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md)
-- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md)
-- [Lakehouse Monitoring Inventory](../../docs/reference/LAKEHOUSE_MONITORING_INVENTORY.md)
-- [Dashboard Inventory](../dashboards/DASHBOARD_INVENTORY.md)
+### 📁 Asset Inventories
+- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md) - 60 Table-Valued Functions
+- [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md) - 10 Metric Views
+- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md) - 25 ML Models
+- [Dashboard Inventory](../dashboards/DASHBOARD_INVENTORY.md) - AI/BI Dashboards
 
-### Official Documentation
+### 📈 Lakehouse Monitoring Documentation
+- [Monitor Catalog](../../docs/lakehouse-monitoring-design/04-monitor-catalog.md) - Complete inventory of 8 monitors with 210+ metrics
+- [Genie Integration](../../docs/lakehouse-monitoring-design/05-genie-integration.md) - Critical query patterns for Genie
+- [Custom Metrics Reference](../../docs/lakehouse-monitoring-design/03-custom-metrics.md) - Custom metrics syntax and definitions
+
+### 🚀 Deployment Guides
+- [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive deployment and troubleshooting guide
+
+### 📚 Official Documentation
 - [Databricks Genie](https://docs.databricks.com/genie/)
 - [Genie Trusted Assets](https://docs.databricks.com/genie/trusted-assets)
 - [Genie Instructions](https://docs.databricks.com/genie/instructions)
 
-### Cursor Rules
+### 📋 Cursor Rules
 - [Genie Space Patterns](../../.cursor/rules/semantic-layer/16-genie-space-patterns.mdc)

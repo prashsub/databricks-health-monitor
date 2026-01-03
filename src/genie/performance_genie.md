@@ -86,10 +86,80 @@
 
 | Table Name | Purpose |
 |------------|---------|
-| `fact_query_history_profile_metrics` | Custom query metrics (p99_duration, sla_breach_rate, qps) |
+| `fact_query_history_profile_metrics` | Custom query metrics (p99_duration_ms, sla_breach_rate, queries_per_second) |
 | `fact_query_history_drift_metrics` | Performance drift (duration_drift, qps_drift) |
-| `fact_node_timeline_profile_metrics` | Custom cluster metrics (p95_cpu, saturation_hours) |
-| `fact_node_timeline_drift_metrics` | Resource drift (cpu_drift, memory_drift) |
+| `fact_node_timeline_profile_metrics` | Custom cluster metrics (p95_cpu_total_pct, cpu_saturation_hours) |
+| `fact_node_timeline_drift_metrics` | Resource drift (cpu_drift_pct, memory_drift_pct) |
+
+#### ⚠️ CRITICAL: Custom Metrics Query Patterns
+
+**Always include these filters when querying Lakehouse Monitoring tables:**
+
+```sql
+-- ✅ CORRECT: Get query performance metrics
+SELECT 
+  window.start AS window_start,
+  p99_duration_ms,
+  sla_breach_rate,
+  queries_per_second
+FROM ${catalog}.${gold_schema}.fact_query_history_profile_metrics
+WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
+  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
+  AND slice_key IS NULL          -- For overall metrics
+ORDER BY window.start DESC;
+
+-- ✅ CORRECT: Get cluster utilization metrics
+SELECT 
+  window.start AS window_start,
+  p95_cpu_total_pct,
+  cpu_saturation_hours,
+  cpu_idle_hours
+FROM ${catalog}.${gold_schema}.fact_node_timeline_profile_metrics
+WHERE column_name = ':table'
+  AND log_type = 'INPUT'
+  AND slice_key IS NULL
+ORDER BY window.start DESC;
+
+-- ✅ CORRECT: Get performance by warehouse (sliced)
+SELECT 
+  slice_value AS warehouse_id,
+  AVG(p99_duration_ms) AS avg_p99_duration
+FROM ${catalog}.${gold_schema}.fact_query_history_profile_metrics
+WHERE column_name = ':table'
+  AND log_type = 'INPUT'
+  AND slice_key = 'compute_warehouse_id'
+GROUP BY slice_value;
+
+-- ✅ CORRECT: Get performance drift
+SELECT 
+  window.start AS window_start,
+  duration_drift,
+  qps_drift
+FROM ${catalog}.${gold_schema}.fact_query_history_drift_metrics
+WHERE drift_type = 'CONSECUTIVE'
+  AND column_name = ':table'
+ORDER BY window.start DESC;
+```
+
+#### Available Slicing Dimensions
+
+**Query Monitor:**
+| Slice Key | Use Case |
+|-----------|----------|
+| `workspace_id` | Performance by workspace |
+| `compute_warehouse_id` | Performance by warehouse |
+| `execution_status` | Status breakdown |
+| `statement_type` | Query type analysis |
+| `executed_by` | Queries by user |
+
+**Cluster Monitor:**
+| Slice Key | Use Case |
+|-----------|----------|
+| `workspace_id` | Utilization by workspace |
+| `cluster_id` | Per-cluster metrics |
+| `node_type` | By node type |
+| `cluster_name` | By cluster name |
+| `driver` | Driver vs worker |
 
 ### Dimension Tables (from gold_layer_design/yaml/compute/, query_performance/, shared/)
 
@@ -110,28 +180,70 @@
 
 ---
 
-## ████ SECTION E: GENERAL INSTRUCTIONS (≤20 Lines) ████
+## ████ SECTION E: ASSET SELECTION FRAMEWORK ████
+
+### Semantic Layer Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ASSET SELECTION DECISION TREE                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  USER QUERY PATTERN                → USE THIS ASSET             │
+│  ─────────────────────────────────────────────────────────────  │
+│  "What's the P95 latency?"         → Metric View (query_performance)│
+│  "Average CPU utilization"         → Metric View (cluster_utilization)│
+│  ─────────────────────────────────────────────────────────────  │
+│  "Is latency increasing?"          → Custom Metrics (_drift_metrics)│
+│  "Query performance trend"         → Custom Metrics (_profile_metrics)│
+│  ─────────────────────────────────────────────────────────────  │
+│  "List slow queries today"         → TVF (get_slow_queries)      │
+│  "Underutilized clusters"          → TVF (get_underutilized_clusters)│
+│  "Queries with high spill"         → TVF (get_high_spill_queries)│
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Asset Selection Rules
+
+| Query Intent | Asset Type | Example |
+|--------------|-----------|---------|
+| **Current P95/P99 latency** | Metric View | "Query latency" → `query_performance` |
+| **Latency trend** | Custom Metrics | "Is latency degrading?" → `_drift_metrics` |
+| **List of slow queries** | TVF | "Slow queries >30s" → `get_slow_queries` |
+| **Right-sizing recs** | TVF/ML | "Cluster recommendations" → `get_cluster_rightsizing` |
+| **Optimization suggestions** | ML Tables | "Optimize queries" → `query_optimization_recommendations` |
+
+### Priority Order
+
+1. **If user asks for a LIST** → TVF
+2. **If user asks about TREND** → Custom Metrics
+3. **If user asks for CURRENT VALUE** → Metric View
+4. **If user asks for RECOMMENDATION** → TVF or ML Tables
+
+---
+
+## ████ SECTION F: GENERAL INSTRUCTIONS (≤20 Lines) ████
 
 ```
 You are a Databricks performance analyst. Follow these rules:
 
-1. **Query Questions:** Use query_performance metric view first
-2. **Cluster Questions:** Use cluster_utilization or cluster_efficiency metric view
-3. **TVFs:** Use TVFs for parameterized queries (date ranges, thresholds)
-4. **Date Default:** Queries=last 24h, Clusters=last 7 days
-5. **Duration Units:** Queries in seconds, jobs in minutes
-6. **Sorting:** Sort by duration DESC for slow queries, cpu ASC for underutilized
-7. **Limits:** Top 20 for performance lists
-8. **Percentiles:** P50=median, P95=tail, P99=extreme
-9. **SLA Threshold:** 60 seconds default, high spill = any spill > 0
-10. **Underutilized:** CPU <30% average
-11. **ML Optimization:** For "optimize queries" → query query_optimization_recommendations
-12. **ML Right-Sizing:** For "right-sizing" → query cluster_rightsizing_recommendations
-13. **Slow Queries:** For "slow queries" → use get_slow_queries TVF
-14. **Underutilized:** For "underutilized clusters" → use get_underutilized_clusters TVF
-15. **Synonyms:** query=statement=SQL, cluster=compute, warehouse=endpoint
-16. **Context:** Explain EFFICIENT vs HIGH_SPILL vs SLOW
-17. **Performance:** Never scan Bronze/Silver tables
+1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends
+2. **Query Questions:** Use query_performance metric view for dashboard KPIs
+3. **Cluster Questions:** Use cluster_utilization or cluster_efficiency for aggregates
+4. **TVFs for Lists:** Use TVFs for "slow queries", "underutilized", "spill" queries
+5. **Trends:** For "is latency increasing?" check _drift_metrics tables
+6. **Date Default:** Queries=last 24h, Clusters=last 7 days
+7. **Duration Units:** Queries in seconds, jobs in minutes
+8. **Sorting:** Sort by duration DESC for slow queries, cpu ASC for underutilized
+9. **Limits:** Top 20 for performance lists
+10. **Percentiles:** P50=median, P95=tail, P99=extreme
+11. **SLA Threshold:** 60 seconds default, high spill = any spill > 0
+12. **ML Optimization:** For "optimize queries" → query query_optimization_recommendations
+13. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
+14. **Synonyms:** query=statement=SQL, cluster=compute, warehouse=endpoint
+15. **Performance:** Never scan Bronze/Silver tables
 ```
 
 ---
@@ -160,7 +272,74 @@ You are a Databricks performance analyst. Follow these rules:
 
 ---
 
-## ████ SECTION G: BENCHMARK QUESTIONS WITH SQL ████
+## ████ SECTION G: ML MODEL INTEGRATION (7 Models) ████
+
+### Performance ML Models Quick Reference
+
+| ML Model | Prediction Table | Key Columns | Use When |
+|----------|-----------------|-------------|----------|
+| `query_performance_forecaster` | `query_optimization_recommendations` | `predicted_p99_ms` | "Predict query latency" |
+| `warehouse_optimizer` | `cluster_capacity_recommendations` | `size_recommendation` | "Optimal warehouse size" |
+| `cache_hit_predictor` | `cache_hit_predictions` | `cache_hit_probability` | "Will cache hit?" |
+| `query_optimization_recommender` | `query_optimization_classifications` | `optimization_flags` | "How to optimize?" |
+| `cluster_sizing_recommender` | `cluster_rightsizing_recommendations` | `recommended_action`, `potential_savings` | "Right-size clusters" |
+| `cluster_capacity_planner` | `cluster_capacity_recommendations` | `predicted_peak_utilization` | "Capacity planning" |
+| `regression_detector` | — | `regression_score`, `is_regression` | "Performance regression?" |
+
+### ML Model Usage Patterns
+
+#### query_optimization_recommender (Optimization Suggestions)
+- **Question Triggers:** "how to optimize", "improve query", "optimization suggestions", "tune query"
+- **Query Pattern:**
+```sql
+SELECT query_id, statement_text, 
+       needs_partition_pruning, needs_caching, needs_join_reorder,
+       estimated_improvement_pct
+FROM ${catalog}.${gold_schema}.query_optimization_classifications
+WHERE optimization_flags > 0
+ORDER BY estimated_improvement_pct DESC
+LIMIT 20;
+```
+
+#### cluster_rightsizing_recommendations (Right-Sizing)
+- **Question Triggers:** "right-size", "optimize cluster", "savings", "too big", "too small"
+- **Query Pattern:**
+```sql
+SELECT cluster_name, current_size, recommended_size, 
+       recommended_action, potential_savings_usd
+FROM ${catalog}.${gold_schema}.cluster_rightsizing_recommendations
+WHERE recommended_action != 'NO_CHANGE'
+ORDER BY potential_savings_usd DESC;
+```
+
+#### cache_hit_predictor (Cache Efficiency)
+- **Question Triggers:** "cache", "cache hit", "caching", "result cache"
+- **Query Pattern:**
+```sql
+SELECT warehouse_id, predicted_cache_hit_rate,
+       cache_optimization_potential
+FROM ${catalog}.${gold_schema}.cache_hit_predictions
+ORDER BY cache_optimization_potential DESC;
+```
+
+### ML vs Other Methods Decision Tree
+
+```
+USER QUESTION                           → USE THIS
+────────────────────────────────────────────────────
+"How to optimize queries?"              → ML: query_optimization_classifications
+"Right-size our clusters"               → ML: cluster_rightsizing_recommendations
+"Predict cache performance"             → ML: cache_hit_predictions
+"Capacity planning"                     → ML: cluster_capacity_recommendations
+────────────────────────────────────────────────────
+"What is P95 latency?"                  → Metric View: query_performance
+"Is latency trending up?"               → Custom Metrics: _drift_metrics
+"Show slow queries"                     → TVF: get_slow_queries
+```
+
+---
+
+## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
 
 ### Question 1: "What is our average query duration?"
 **Expected SQL:**
@@ -318,4 +497,26 @@ WHERE potential_savings > 0;
 ## Agent Domain Tag
 
 **Agent Domain:** ⚡ **Performance**
+
+---
+
+## References
+
+### 📊 Semantic Layer Framework (Essential Reading)
+- [**Metrics Inventory**](../../docs/reference/metrics-inventory.md) - **START HERE**: Complete inventory of 277 measurements across TVFs, Metric Views, and Custom Metrics
+- [**Semantic Layer Rationalization**](../../docs/reference/semantic-layer-rationalization.md) - Design rationale: why overlaps are intentional and complementary
+- [**Genie Asset Selection Guide**](../../docs/reference/genie-asset-selection-guide.md) - Quick decision tree for choosing correct asset type
+
+### 📈 Lakehouse Monitoring Documentation
+- [Monitor Catalog](../../docs/lakehouse-monitoring-design/04-monitor-catalog.md) - Complete metric definitions for Query and Cluster Monitors
+- [Genie Integration](../../docs/lakehouse-monitoring-design/05-genie-integration.md) - Critical query patterns and required filters
+- [Custom Metrics Reference](../../docs/lakehouse-monitoring-design/03-custom-metrics.md) - 80+ performance-specific custom metrics
+
+### 📁 Asset Inventories
+- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md) - 16 Performance TVFs (Query + Cluster)
+- [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md) - 3 Performance Metric Views
+- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md) - 7 Performance ML Models
+
+### 🚀 Deployment Guides
+- [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup and troubleshooting
 

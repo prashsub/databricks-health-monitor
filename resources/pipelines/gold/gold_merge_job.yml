@@ -114,6 +114,9 @@ resources:
               catalog: ${var.catalog}
               bronze_schema: ${var.system_bronze_schema}
               gold_schema: ${var.gold_schema}
+              # Only process last 7 days for fast startup
+              # Use gold_backfill_job for historical data beyond this window
+              days_lookback: "7"
           depends_on:
             - task_key: merge_shared
         
