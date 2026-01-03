@@ -548,64 +548,126 @@ alwaysApply: false
 
 ## 5.9 ⚠️ CRITICAL: Global Filter Pattern
 
-**Global filters require filter widgets with MULTIPLE queries binding to MULTIPLE datasets!**
+**Global filters in Databricks AI/BI dashboards use the built-in "Global Filters" pane, which is a SPECIAL PAGE TYPE - `PAGE_TYPE_GLOBAL_FILTERS`!**
 
-The filter widget doesn't just have one query - it has **one query per dataset that should be filtered**.
+This is NOT a regular page with filter widgets. It's a dedicated collapsible pane that appears on the left side of the dashboard.
 
-### Global Filter Widget Structure
+### ⚠️ KEY LEARNING: Two Components Required
+
+1. **Global Filters PAGE** - Uses `pageType: "PAGE_TYPE_GLOBAL_FILTERS"` (NOT `PAGE_TYPE_CANVAS`)
+2. **Filter Widget** - With `queries[]` binding to ALL datasets with that parameter
+
+### Complete Global Filters Page Structure
 
 ```json
 {
-  "name": "filter_time_range",
-  "queries": [
+  "pages": [
     {
-      "name": "parameter_dashboards/.../ds1_time_range",
-      "query": {
-        "datasetName": "ds_cost_data",
-        "parameters": [{"name": "time_range", "keyword": "time_range"}],
-        "disaggregated": false
-      }
-    },
-    {
-      "name": "parameter_dashboards/.../ds2_time_range",
-      "query": {
-        "datasetName": "ds_trend_data",
-        "parameters": [{"name": "time_range", "keyword": "time_range"}],
-        "disaggregated": false
-      }
-    },
-    {
-      "name": "parameter_dashboards/.../ds3_time_range",
-      "query": {
-        "datasetName": "ds_summary_data",
-        "parameters": [{"name": "time_range", "keyword": "time_range"}],
-        "disaggregated": false
-      }
-    }
-  ],
-  "spec": {
-    "version": 2,
-    "widgetType": "filter-date-range-picker",
-    "encodings": {
-      "fields": [
-        {"parameterName": "time_range", "queryName": "parameter_dashboards/.../ds1_time_range"},
-        {"parameterName": "time_range", "queryName": "parameter_dashboards/.../ds2_time_range"},
-        {"parameterName": "time_range", "queryName": "parameter_dashboards/.../ds3_time_range"}
+      "name": "global_filters_page",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",   // ⚠️ CRITICAL: NOT PAGE_TYPE_CANVAS!
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_time_range",
+            "queries": [
+              // ONE query per dataset - binds filter to that dataset
+              {
+                "name": "parameter_dashboards/{dashboard_id}/datasets/{ds1_name}_time_range",
+                "query": {
+                  "datasetName": "ds_cost_data",
+                  "parameters": [{"name": "time_range", "keyword": "time_range"}],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/{dashboard_id}/datasets/{ds2_name}_time_range", 
+                "query": {
+                  "datasetName": "ds_trend_data",
+                  "parameters": [{"name": "time_range", "keyword": "time_range"}],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/{dashboard_id}/datasets/{ds3_name}_time_range",
+                "query": {
+                  "datasetName": "ds_summary_data", 
+                  "parameters": [{"name": "time_range", "keyword": "time_range"}],
+                  "disaggregated": false
+                }
+              }
+              // ... repeat for ALL datasets using this parameter
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  // ONE field per dataset - maps parameter to query
+                  {"parameterName": "time_range", "queryName": "parameter_dashboards/{dashboard_id}/datasets/{ds1_name}_time_range"},
+                  {"parameterName": "time_range", "queryName": "parameter_dashboards/{dashboard_id}/datasets/{ds2_name}_time_range"},
+                  {"parameterName": "time_range", "queryName": "parameter_dashboards/{dashboard_id}/datasets/{ds3_name}_time_range"}
+                  // ... repeat for ALL datasets
+                ]
+              },
+              "selection": {
+                "defaultSelection": {
+                  "range": {
+                    "dataType": "DATE",
+                    "min": {"value": "now-90d/d"},
+                    "max": {"value": "now/d"}
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Time Window"
+              }
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 6, "height": 2}
+        }
+        // Can add more filter widgets here (workspace filter, etc.)
       ]
+    },
+    {
+      "name": "overview_page",
+      "displayName": "Overview",
+      "pageType": "PAGE_TYPE_CANVAS",  // Regular content pages use PAGE_TYPE_CANVAS
+      "layout": [/* ... widgets ... */]
     }
-  }
+  ]
 }
 ```
 
 ### Key Points:
-1. **Each query in `queries[]` binds to ONE dataset**
-2. **Each `encodings.fields` entry references ONE query**
-3. **Number of queries = Number of datasets to filter**
-4. **All datasets MUST have matching `parameters[]` with same keyword**
+1. **`pageType: "PAGE_TYPE_GLOBAL_FILTERS"`** - This creates the collapsible filter pane, NOT a regular page tab
+2. **Each query in `queries[]` binds to ONE dataset** - You need one query per dataset
+3. **Each `encodings.fields` entry references ONE query** - Maps the filter selection to that dataset's parameter
+4. **Number of queries = Number of datasets to filter** - ALL datasets using the parameter need a binding
+5. **All datasets MUST have matching `parameters[]` with same keyword** - The parameter definition MUST exist in each dataset
+
+### ❌ WRONG: Using PAGE_TYPE_CANVAS for Global Filters
+
+```json
+{
+  "pageType": "PAGE_TYPE_CANVAS",  // ❌ This creates a regular page tab!
+  "displayName": "Global Filters"  // This will show as a page, not a filter pane
+}
+```
+
+### ✅ CORRECT: Using PAGE_TYPE_GLOBAL_FILTERS
+
+```json
+{
+  "pageType": "PAGE_TYPE_GLOBAL_FILTERS",  // ✅ Creates the built-in filter pane
+  "displayName": "Global Filters"           // Pane label in collapsed state
+}
+```
 
 ### Required Dataset Parameter Structure
 
-Each dataset that should be filtered MUST have:
+Each dataset that should be filtered MUST have its own `parameters[]` definition with defaults:
 
 ```json
 {
@@ -627,6 +689,79 @@ Each dataset that should be filtered MUST have:
     }
   ]
 }
+```
+
+### Python Script Pattern to Add Global Filters
+
+When programmatically adding global filters to all datasets:
+
+```python
+def add_global_filters(dashboard: dict) -> dict:
+    """Add global filters page that binds to all datasets with time_range parameter."""
+    
+    # Collect all datasets that have time_range parameter
+    filtered_datasets = []
+    for ds in dashboard.get('datasets', []):
+        for param in ds.get('parameters', []):
+            if param.get('keyword') == 'time_range':
+                filtered_datasets.append(ds['name'])
+                break
+    
+    if not filtered_datasets:
+        return dashboard
+    
+    # Build queries array - one per dataset
+    filter_queries = []
+    filter_fields = []
+    
+    for ds_name in filtered_datasets:
+        query_name = f"parameter_dashboards/dummy/datasets/{ds_name}_time_range"
+        filter_queries.append({
+            "name": query_name,
+            "query": {
+                "datasetName": ds_name,
+                "parameters": [{"name": "time_range", "keyword": "time_range"}],
+                "disaggregated": False
+            }
+        })
+        filter_fields.append({
+            "parameterName": "time_range",
+            "queryName": query_name
+        })
+    
+    # Create global filters page
+    global_filters_page = {
+        "name": "global_filters",
+        "displayName": "Global Filters",
+        "pageType": "PAGE_TYPE_GLOBAL_FILTERS",  # ⚠️ CRITICAL!
+        "layout": [{
+            "widget": {
+                "name": "filter_time_range",
+                "queries": filter_queries,
+                "spec": {
+                    "version": 2,
+                    "widgetType": "filter-date-range-picker",
+                    "encodings": {"fields": filter_fields},
+                    "selection": {
+                        "defaultSelection": {
+                            "range": {
+                                "dataType": "DATE",
+                                "min": {"value": "now-90d/d"},
+                                "max": {"value": "now/d"}
+                            }
+                        }
+                    },
+                    "frame": {"showTitle": True, "title": "Time Window"}
+                }
+            },
+            "position": {"x": 0, "y": 0, "width": 6, "height": 2}
+        }]
+    }
+    
+    # Insert global filters page as FIRST page
+    dashboard['pages'] = [global_filters_page] + dashboard['pages']
+    
+    return dashboard
 ```
 
 ### 5.8 Filter Multi-Select

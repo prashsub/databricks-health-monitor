@@ -440,6 +440,127 @@ else:
 
 ---
 
+## XGBoost Classifier Errors
+
+### base_score must be in (0,1) for logistic loss
+
+**Error:**
+```
+XGBoostError: [05:06:27] /workspace/src/objective/regression_obj.cu:119: 
+Check failed: is_valid: base_score must be in (0,1) for the logistic loss.
+```
+
+**Cause:** XGBClassifier is receiving continuous values (0.0-1.0 rate/ratio) instead of binary labels (0 or 1). This commonly happens when:
+- Label column is a rate like `success_rate`, `failure_rate`, `spill_rate`
+- Label column is a ratio like `serverless_adoption_ratio`
+- Using `cast_label_to="int"` on continuous values truncates 0.x → 0
+
+**Solution:** Binarize continuous labels before training:
+
+```python
+# ❌ WRONG: Continuous rate passed to classifier
+LABEL_COLUMN = "failure_rate"  # Values like 0.15, 0.45, 0.89
+X_train, X_test, y_train, y_test = prepare_training_data(
+    training_df, available_features, LABEL_COLUMN, cast_label_to="int"
+)
+# All values < 1.0 become 0, model gets all zeros!
+
+# ✅ CORRECT: Binarize first, then train
+from pyspark.sql.functions import when, col
+
+# Create binary label BEFORE training
+training_df = training_df.withColumn(
+    "high_failure_rate",
+    when(col("failure_rate") > 0.2, 1).otherwise(0)  # Threshold binarization
+)
+
+X_train, X_test, y_train, y_test = prepare_training_data(
+    training_df, available_features, "high_failure_rate",  # Use binary column
+    cast_label_to="int", stratify=True
+)
+```
+
+**Standard Thresholds by Model Type:**
+
+| Model Type | Label Column | Threshold | Binary Meaning |
+|-----------|-------------|-----------|----------------|
+| Failure predictor | failure_rate | > 0.2 | High risk of failure |
+| Success predictor | success_rate | > 0.7 | High likelihood of success |
+| SLA breach | breach_rate | > 0.1 | Needs attention |
+| Cache performance | spill_rate | > 0.3 | Poor cache performance |
+| Serverless adoption | adoption_ratio | > 0.5 | Good candidate |
+
+---
+
+## Schema Consistency Errors
+
+### DELTA_FAILED_TO_MERGE_FIELDS
+
+**Error:**
+```
+[DELTA_FAILED_TO_MERGE_FIELDS] Failed to merge fields 'daily_dbu' and 'daily_dbu'.
+```
+
+**Cause:** Data type mismatch between training and inference:
+- Feature table has `INTEGER` or `DECIMAL` types
+- Training casts to `float64` for model signature
+- Inference writes predictions with original types
+- Delta table schema evolution can't merge incompatible types
+
+**Solution:** Cast all numeric features to DOUBLE in feature table creation:
+
+```python
+# In create_feature_tables.py
+from pyspark.sql.types import IntegerType, LongType, FloatType, DecimalType, ShortType, ByteType
+
+def create_feature_table(spark, df, table_name, primary_keys):
+    # Cast all numeric columns to DOUBLE for MLflow compatibility
+    for field in df.schema.fields:
+        if field.name not in primary_keys:  # Don't cast PKs
+            if isinstance(field.dataType, (IntegerType, LongType, FloatType, DecimalType)):
+                df = df.withColumn(field.name, F.col(field.name).cast("double"))
+    
+    # Now create table with consistent types
+    df.write.format("delta").mode("overwrite").saveAsTable(table_name)
+```
+
+**Type Flow for Consistency:**
+```
+Feature Creation (Spark)  →  Training (Pandas)  →  Inference (Spark)
+      DOUBLE             →      float64        →      DOUBLE
+         ✓ Compatible!         ✓ Model signature matches!
+```
+
+---
+
+### Failed to enforce schema of data
+
+**Error:**
+```
+MlflowException: Failed to enforce schema of data '... event_count  tables_accessed ...'
+```
+
+**Cause:** Model signature expects different column names or types than provided:
+- Column names don't match training features
+- Data types don't match (e.g., INTEGER vs DOUBLE)
+- Missing columns in scoring DataFrame
+
+**Solution:**
+```python
+# 1. Get expected features from model signature
+model_info = mlflow.pyfunc.load_model(model_uri)
+expected_features = model_info.metadata.signature.inputs.column_names()
+
+# 2. Filter DataFrame to only those features
+scoring_df = scoring_df.select(*expected_features)
+
+# 3. Ensure types match
+for col_name in expected_features:
+    scoring_df = scoring_df.withColumn(col_name, F.col(col_name).cast("double"))
+```
+
+---
+
 ## Quick Debugging Checklist
 
 ### Feature Pipeline Issues

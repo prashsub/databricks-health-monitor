@@ -1,6 +1,502 @@
 {
   "pages": [
     {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_time_range",
+            "queries": [
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_lineage_trend_time_range",
+                "query": {
+                  "datasetName": "ds_lineage_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_stale_lineage_time_range",
+                "query": {
+                  "datasetName": "ds_stale_lineage",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_schema_summary_time_range",
+                "query": {
+                  "datasetName": "ds_schema_summary",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_lineage_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_stale_lineage_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_schema_summary_time_range"
+                  }
+                ]
+              },
+              "selection": {
+                "defaultSelection": {
+                  "range": {
+                    "dataType": "DATE",
+                    "min": {
+                      "value": "now-90d/d"
+                    },
+                    "max": {
+                      "value": "now/d"
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Time Window"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_param_catalog",
+            "queries": [
+              {
+                "name": "dashboards/dummy/datasets/ds_select_catalog_catalog_name",
+                "query": {
+                  "datasetName": "ds_select_catalog",
+                  "fields": [
+                    {
+                      "name": "catalog_name",
+                      "expression": "`catalog_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_tables_param_catalog",
+                "query": {
+                  "datasetName": "ds_kpi_tables",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_jobs_param_catalog",
+                "query": {
+                  "datasetName": "ds_kpi_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_workspaces_param_catalog",
+                "query": {
+                  "datasetName": "ds_kpi_workspaces",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_tables_by_catalog_param_catalog",
+                "query": {
+                  "datasetName": "ds_tables_by_catalog",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_lineage_trend_param_catalog",
+                "query": {
+                  "datasetName": "ds_lineage_trend",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_untagged_tables_param_catalog",
+                "query": {
+                  "datasetName": "ds_untagged_tables",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_undocumented_tables_param_catalog",
+                "query": {
+                  "datasetName": "ds_undocumented_tables",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_lineage_sources_param_catalog",
+                "query": {
+                  "datasetName": "ds_lineage_sources",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_lineage_sinks_param_catalog",
+                "query": {
+                  "datasetName": "ds_lineage_sinks",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_stale_lineage_param_catalog",
+                "query": {
+                  "datasetName": "ds_stale_lineage",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_catalog_summary_param_catalog",
+                "query": {
+                  "datasetName": "ds_catalog_summary",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_schema_summary_param_catalog",
+                "query": {
+                  "datasetName": "ds_schema_summary",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_summary_param_catalog",
+                "query": {
+                  "datasetName": "ds_summary",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_optimization_needed_param_catalog",
+                "query": {
+                  "datasetName": "ds_optimization_needed",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_size_buckets_param_catalog",
+                "query": {
+                  "datasetName": "ds_size_buckets",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_file_buckets_param_catalog",
+                "query": {
+                  "datasetName": "ds_file_buckets",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_largest_tables_param_catalog",
+                "query": {
+                  "datasetName": "ds_largest_tables",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_needs_compaction_param_catalog",
+                "query": {
+                  "datasetName": "ds_needs_compaction",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_empty_tables_param_catalog",
+                "query": {
+                  "datasetName": "ds_empty_tables",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_workspaces_param_catalog",
+                "query": {
+                  "datasetName": "ds_workspaces",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/select_workspace_param_catalog",
+                "query": {
+                  "datasetName": "select_workspace",
+                  "parameters": [
+                    {
+                      "name": "param_catalog",
+                      "keyword": "param_catalog"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "catalog_name",
+                    "displayName": "Catalog",
+                    "queryName": "dashboards/dummy/datasets/ds_select_catalog_catalog_name"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_tables_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_jobs_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_workspaces_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_tables_by_catalog_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_lineage_trend_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_untagged_tables_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_undocumented_tables_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_lineage_sources_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_lineage_sinks_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_stale_lineage_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_catalog_summary_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_schema_summary_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_summary_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_optimization_needed_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_size_buckets_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_file_buckets_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_largest_tables_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_needs_compaction_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_empty_tables_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_workspaces_param_catalog"
+                  },
+                  {
+                    "parameterName": "param_catalog",
+                    "queryName": "parameter_dashboards/dummy/datasets/select_workspace_param_catalog"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Catalog"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ]
+    },
+    {
       "name": "page_governance_overview",
       "displayName": "\ud83d\udcca Governance Overview",
       "layout": [
@@ -1325,7 +1821,25 @@
     {
       "name": "ds_kpi_tables",
       "displayName": "KPI: Tables",
-      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT target_table_full_name), 0) AS total_tables FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1"
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT target_table_full_name), 0) AS total_tables FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_kpi_tagged",
@@ -1345,17 +1859,71 @@
     {
       "name": "ds_kpi_jobs",
       "displayName": "KPI: Jobs",
-      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT job_id), 0) AS total_jobs FROM ${catalog}.${gold_schema}.dim_job"
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT job_id), 0) AS total_jobs FROM ${catalog}.${gold_schema}.dim_job",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_kpi_workspaces",
       "displayName": "KPI: Workspaces",
-      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT workspace_id), 0) AS total_workspaces FROM ${catalog}.${gold_schema}.dim_workspace"
+      "query": "SELECT FORMAT_NUMBER(COUNT(DISTINCT workspace_id), 0) AS total_workspaces FROM ${catalog}.${gold_schema}.dim_workspace",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_tables_by_catalog",
       "displayName": "Tables by Catalog",
-      "query": "SELECT COALESCE(target_table_catalog, 'Unknown') AS catalog_name, COUNT(DISTINCT target_table_full_name) AS table_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE target_table_catalog IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+      "query": "SELECT COALESCE(target_table_catalog, 'Unknown') AS catalog_name, COUNT(DISTINCT target_table_full_name) AS table_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE target_table_catalog IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_lineage_trend",
@@ -1378,18 +1946,70 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
     {
       "name": "ds_untagged_tables",
       "displayName": "Untagged Tables",
-      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, SPLIT(target_table_full_name, '.')[2] AS table_name, 'TABLE' AS table_type FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 LIMIT 20"
+      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, SPLIT(target_table_full_name, '.')[2] AS table_name, 'TABLE' AS table_type FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 LIMIT 20",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_undocumented_tables",
       "displayName": "Undocumented Tables",
-      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, SPLIT(target_table_full_name, '.')[2] AS table_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 LIMIT 20"
+      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, SPLIT(target_table_full_name, '.')[2] AS table_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 LIMIT 20",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_quality_distribution",
@@ -1399,62 +2019,312 @@
     {
       "name": "ds_lineage_sources",
       "displayName": "Lineage Sources",
-      "query": "SELECT source_table_full_name AS source_table, COUNT(DISTINCT target_table_full_name) AS downstream_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
+      "query": "SELECT source_table_full_name AS source_table, COUNT(DISTINCT target_table_full_name) AS downstream_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1 ORDER BY 2 DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_lineage_sinks",
       "displayName": "Lineage Sinks",
-      "query": "SELECT target_table_full_name AS target_table, COUNT(DISTINCT source_table_full_name) AS upstream_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
+      "query": "SELECT target_table_full_name AS target_table, COUNT(DISTINCT source_table_full_name) AS upstream_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1 ORDER BY 2 DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_stale_lineage",
       "displayName": "Stale Lineage",
-      "query": "SELECT target_table_full_name AS table_name, MAX(event_time) AS last_update, DATEDIFF(CURRENT_DATE(), DATE(MAX(event_time))) AS days_stale FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1 HAVING DATEDIFF(CURRENT_DATE(), DATE(MAX(event_time))) > 7 ORDER BY days_stale DESC LIMIT 20"
+      "query": "SELECT target_table_full_name AS table_name, MAX(event_time) AS last_update, DATEDIFF(CURRENT_DATE(), DATE(MAX(event_time))) AS days_stale FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1 HAVING DATEDIFF(CURRENT_DATE(), DATE(MAX(event_time))) > 7 ORDER BY days_stale DESC LIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        },
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_catalog_summary",
       "displayName": "Catalog Summary",
-      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, COUNT(DISTINCT SPLIT(target_table_full_name, '.')[1]) AS schema_count, COUNT(DISTINCT target_table_full_name) AS table_count, 0 AS view_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1 ORDER BY 3 DESC"
+      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, COUNT(DISTINCT SPLIT(target_table_full_name, '.')[1]) AS schema_count, COUNT(DISTINCT target_table_full_name) AS table_count, 0 AS view_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1 ORDER BY 3 DESC",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_schema_summary",
       "displayName": "Schema Summary",
-      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, COUNT(DISTINCT target_table_full_name) AS table_count, MAX(event_time) AS last_modified FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 20"
+      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, COUNT(DISTINCT target_table_full_name) AS table_count, MAX(event_time) AS last_modified FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        },
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_summary",
       "query": "SELECT ROUND(SUM(storage_size_bytes) / (1024*1024*1024), 2) AS total_size_gb, COUNT(DISTINCT table_name) AS table_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 AND 1=0 -- fact_information_schema_table_storage not available",
-      "displayName": "Summary"
+      "displayName": "Summary",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_optimization_needed",
       "query": "SELECT COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 AND 1=0 -- fact_information_schema_table_storage not available AND file_count > 100 AND COALESCE(avg_file_size_bytes, 0) < 32*1024*1024",
-      "displayName": "Optimization Needed"
+      "displayName": "Optimization Needed",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_size_buckets",
       "query": "SELECT CASE WHEN storage_size_bytes < 1024*1024*1024 THEN '< 1 GB' WHEN storage_size_bytes < 10*1024*1024*1024 THEN '1-10 GB' WHEN storage_size_bytes < 100*1024*1024*1024 THEN '10-100 GB' ELSE '> 100 GB' END AS size_bucket, COUNT(*) AS table_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 AND 1=0 -- fact_information_schema_table_storage not available GROUP BY CASE WHEN storage_size_bytes < 1024*1024*1024 THEN '< 1 GB' WHEN storage_size_bytes < 10*1024*1024*1024 THEN '1-10 GB' WHEN storage_size_bytes < 100*1024*1024*1024 THEN '10-100 GB' ELSE '> 100 GB' END ORDER BY size_bucket",
-      "displayName": "Size Buckets"
+      "displayName": "Size Buckets",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_file_buckets",
       "query": "SELECT CASE WHEN file_count < 10 THEN '< 10 files' WHEN file_count < 100 THEN '10-100 files' WHEN file_count < 1000 THEN '100-1000 files' ELSE '> 1000 files' END AS file_bucket, COUNT(*) AS table_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 AND 1=0 -- fact_information_schema_table_storage not available GROUP BY CASE WHEN file_count < 10 THEN '< 10 files' WHEN file_count < 100 THEN '10-100 files' WHEN file_count < 1000 THEN '100-1000 files' ELSE '> 1000 files' END ORDER BY file_bucket",
-      "displayName": "File Buckets"
+      "displayName": "File Buckets",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_largest_tables",
       "query": "SELECT table_name, table_schema AS schema_name, ROUND(storage_size_bytes / (1024*1024*1024), 2) AS size_gb, file_count AS num_files, ROUND(COALESCE(avg_file_size_bytes, 0) / (1024*1024), 2) AS avg_file_mb FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 AND 1=0 -- fact_information_schema_table_storage not available ORDER BY storage_size_bytes DESC LIMIT 20",
-      "displayName": "Largest Tables"
+      "displayName": "Largest Tables",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_needs_compaction",
       "query": "SELECT table_name, table_schema AS schema_name, ROUND(storage_size_bytes / (1024*1024*1024), 2) AS size_gb, file_count AS num_files, CASE WHEN file_count > 1000 AND COALESCE(avg_file_size_bytes, 0) < 32*1024*1024 THEN 'NEEDS_COMPACTION' WHEN file_count > 100 AND COALESCE(avg_file_size_bytes, 0) < 16*1024*1024 THEN 'CONSIDER_COMPACTION' ELSE 'OK' END AS optimization_status FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 AND 1=0 -- fact_information_schema_table_storage not available AND file_count > 50 AND COALESCE(avg_file_size_bytes, 0) < 64*1024*1024 ORDER BY file_count DESC LIMIT 25",
-      "displayName": "Neecompaction"
+      "displayName": "Neecompaction",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_empty_tables",
       "query": "SELECT table_name, table_schema AS schema_name, last_modified_time AS created_at FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 AND 1=0 -- fact_information_schema_table_storage not available AND row_count = 0 OR row_count IS NULL ORDER BY table_name LIMIT 30",
-      "displayName": "Empty Tables"
+      "displayName": "Empty Tables",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_time_windows",
@@ -1464,17 +2334,59 @@
     {
       "name": "ds_workspaces",
       "displayName": "Workspaces",
-      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name"
+      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "select_workspace",
       "displayName": "select_workspace",
-      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name"
+      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name",
+      "parameters": [
+        {
+          "displayName": "param_catalog",
+          "keyword": "param_catalog",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "select_time_key",
       "displayName": "select_time_key",
       "query": "SELECT explode(array(\n  'Day',\n  'Week',\n  'Month',\n  'Quarter',\n  'Year'\n)) AS time_key"
+    },
+    {
+      "name": "ds_select_catalog",
+      "displayName": "ds_select_catalog",
+      "query": "SELECT DISTINCT target_table_catalog AS catalog_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE target_table_catalog IS NOT NULL ORDER BY 1",
+      "parameters": []
     }
   ],
   "uiSettings": {

@@ -98,8 +98,16 @@ def main():
             spark, fe, feature_table_full, feature_names, LABEL_COLUMN, lookup_keys
         )
         
+        # Convert continuous failure_rate (0-1) to binary classification label
+        # High failure rate (>0.2) = 1 (job likely to fail), else 0
+        from pyspark.sql.functions import when, col
+        training_df = training_df.withColumn(
+            "high_failure_rate",
+            when(col(LABEL_COLUMN) > 0.2, 1).otherwise(0)
+        )
+        
         X_train, X_test, y_train, y_test = prepare_training_data(
-            training_df, available_features, LABEL_COLUMN, cast_label_to="int", stratify=True
+            training_df, available_features, "high_failure_rate", cast_label_to="int", stratify=True
         )
         
         model, metrics, hyperparams = train_model(X_train, X_test, y_train, y_test)

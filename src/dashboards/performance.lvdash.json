@@ -1,6 +1,859 @@
 {
   "pages": [
     {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_time_range",
+            "queries": [
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_queries_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_queries",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_slow_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_slow",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_failed_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_failed",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_query_volume_time_range",
+                "query": {
+                  "datasetName": "ds_query_volume",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_duration_trend_time_range",
+                "query": {
+                  "datasetName": "ds_duration_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_slowest_queries_time_range",
+                "query": {
+                  "datasetName": "ds_slowest_queries",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_slow_by_user_time_range",
+                "query": {
+                  "datasetName": "ds_slow_by_user",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_slow_by_warehouse_time_range",
+                "query": {
+                  "datasetName": "ds_slow_by_warehouse",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_slow_query_trend_time_range",
+                "query": {
+                  "datasetName": "ds_slow_query_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failed_queries_time_range",
+                "query": {
+                  "datasetName": "ds_failed_queries",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failed_by_error_time_range",
+                "query": {
+                  "datasetName": "ds_failed_by_error",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failed_trend_time_range",
+                "query": {
+                  "datasetName": "ds_failed_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_warehouse_perf_time_range",
+                "query": {
+                  "datasetName": "ds_warehouse_perf",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_queries_by_warehouse_time_range",
+                "query": {
+                  "datasetName": "ds_queries_by_warehouse",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_warehouse_hourly_time_range",
+                "query": {
+                  "datasetName": "ds_warehouse_hourly",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_latest_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_trend_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_volume_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_volume",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_drift_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_drift",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_detailed_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_detailed",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_utilization_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_utilization",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_underutilized_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_underutilized",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_overutilized_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_overutilized",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_cpu_trend_time_range",
+                "query": {
+                  "datasetName": "ds_cpu_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_memory_trend_time_range",
+                "query": {
+                  "datasetName": "ds_memory_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_disk_io_trend_time_range",
+                "query": {
+                  "datasetName": "ds_disk_io_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_underutilized_clusters_time_range",
+                "query": {
+                  "datasetName": "ds_underutilized_clusters",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_overutilized_clusters_time_range",
+                "query": {
+                  "datasetName": "ds_overutilized_clusters",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_high_memory_swap_time_range",
+                "query": {
+                  "datasetName": "ds_high_memory_swap",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_high_io_wait_time_range",
+                "query": {
+                  "datasetName": "ds_high_io_wait",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_utilization_distribution_time_range",
+                "query": {
+                  "datasetName": "ds_utilization_distribution",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_cpu_trend_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_cpu_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_memory_trend_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_memory_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_legacy_count_time_range",
+                "query": {
+                  "datasetName": "ds_legacy_count",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_serverless_adoption_time_range",
+                "query": {
+                  "datasetName": "ds_serverless_adoption",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_dbr_dist_time_range",
+                "query": {
+                  "datasetName": "ds_dbr_dist",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_compute_type_time_range",
+                "query": {
+                  "datasetName": "ds_compute_type",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_legacy_jobs_time_range",
+                "query": {
+                  "datasetName": "ds_legacy_jobs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_queries_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_slow_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_failed_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_query_volume_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_duration_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_slowest_queries_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_slow_by_user_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_slow_by_warehouse_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_slow_query_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failed_queries_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failed_by_error_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failed_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_warehouse_perf_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_queries_by_warehouse_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_warehouse_hourly_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_latest_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_volume_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_drift_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_detailed_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_utilization_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_underutilized_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_overutilized_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_cpu_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_memory_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_disk_io_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_underutilized_clusters_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_overutilized_clusters_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_high_memory_swap_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_high_io_wait_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_utilization_distribution_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_cpu_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_memory_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_legacy_count_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_serverless_adoption_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_dbr_dist_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_compute_type_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_legacy_jobs_time_range"
+                  }
+                ]
+              },
+              "selection": {
+                "defaultSelection": {
+                  "range": {
+                    "dataType": "DATE",
+                    "min": {
+                      "value": "now-90d/d"
+                    },
+                    "max": {
+                      "value": "now/d"
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Time Window"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_param_workspace",
+            "queries": [
+              {
+                "name": "dashboards/dummy/datasets/ds_select_workspace_workspace_name",
+                "query": {
+                  "datasetName": "ds_select_workspace",
+                  "fields": [
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_underutilized_clusters_param_workspace",
+                "query": {
+                  "datasetName": "ds_underutilized_clusters",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_overutilized_clusters_param_workspace",
+                "query": {
+                  "datasetName": "ds_overutilized_clusters",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_high_io_wait_param_workspace",
+                "query": {
+                  "datasetName": "ds_high_io_wait",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_low_cpu_high_cost_param_workspace",
+                "query": {
+                  "datasetName": "ds_low_cpu_high_cost",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_legacy_jobs_param_workspace",
+                "query": {
+                  "datasetName": "ds_legacy_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_workspaces_param_workspace",
+                "query": {
+                  "datasetName": "ds_workspaces",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/select_workspace_param_workspace",
+                "query": {
+                  "datasetName": "select_workspace",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "workspace_name",
+                    "displayName": "Workspace",
+                    "queryName": "dashboards/dummy/datasets/ds_select_workspace_workspace_name"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_underutilized_clusters_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_overutilized_clusters_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_high_io_wait_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_low_cpu_high_cost_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_legacy_jobs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_workspaces_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/select_workspace_param_workspace"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Workspace"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ]
+    },
+    {
       "name": "page_performance_overview",
       "displayName": "\u26a1 Performance Overview",
       "layout": [
@@ -4517,6 +5370,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -4539,6 +5408,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -4589,6 +5474,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -4624,7 +5525,25 @@
     {
       "name": "ds_low_cpu_high_cost",
       "displayName": "Low CPU High Cost",
-      "query": "SELECT 'Low CPU analysis requires cost data join' AS job_name, 'N/A' AS workspace_name, 0.0 AS avg_cpu, 0.00 AS cost_30d, 0.00 AS potential_savings WHERE 1=0 UNION ALL SELECT 'Run cost analysis job' AS job_name, 'Pending' AS workspace_name, 0.0 AS avg_cpu, 0.00 AS cost_30d, 0.00 AS potential_savings LIMIT 1"
+      "query": "SELECT 'Low CPU analysis requires cost data join' AS job_name, 'N/A' AS workspace_name, 0.0 AS avg_cpu, 0.00 AS cost_30d, 0.00 AS potential_savings WHERE 1=0 UNION ALL SELECT 'Run cost analysis job' AS job_name, 'Pending' AS workspace_name, 0.0 AS avg_cpu, 0.00 AS cost_30d, 0.00 AS potential_savings LIMIT 1",
+      "parameters": [
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_high_memory_jobs",
@@ -4821,6 +5740,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -4832,17 +5767,65 @@
     {
       "name": "ds_workspaces",
       "displayName": "Workspaces",
-      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name"
+      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name",
+      "parameters": [
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "select_workspace",
       "displayName": "select_workspace",
-      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name"
+      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name",
+      "parameters": [
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "select_time_key",
       "displayName": "select_time_key",
       "query": "SELECT explode(array(\n  'Day',\n  'Week',\n  'Month',\n  'Quarter',\n  'Year'\n)) AS time_key"
+    },
+    {
+      "name": "ds_select_workspace",
+      "displayName": "ds_select_workspace",
+      "query": "SELECT DISTINCT COALESCE(workspace_name, CAST(workspace_id AS STRING)) AS workspace_name FROM ${catalog}.${gold_schema}.dim_workspace ORDER BY 1",
+      "parameters": []
+    },
+    {
+      "name": "ds_select_warehouse_type",
+      "displayName": "ds_select_warehouse_type",
+      "query": "SELECT 'All' AS warehouse_type UNION ALL SELECT 'CLASSIC' UNION ALL SELECT 'PRO' UNION ALL SELECT 'SERVERLESS'",
+      "parameters": []
     }
   ],
   "uiSettings": {

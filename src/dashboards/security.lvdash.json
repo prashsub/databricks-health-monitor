@@ -1,6 +1,570 @@
 {
   "pages": [
     {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_time_range",
+            "queries": [
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_events_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_events",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_high_risk_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_high_risk",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_denied_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_denied",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_permissions_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_permissions",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_admin_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_admin",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_event_trend_time_range",
+                "query": {
+                  "datasetName": "ds_event_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_risk_trend_time_range",
+                "query": {
+                  "datasetName": "ds_risk_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_denied_access_time_range",
+                "query": {
+                  "datasetName": "ds_denied_access",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_permission_changes_time_range",
+                "query": {
+                  "datasetName": "ds_permission_changes",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_denied_by_service_time_range",
+                "query": {
+                  "datasetName": "ds_denied_by_service",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_denied_by_user_time_range",
+                "query": {
+                  "datasetName": "ds_denied_by_user",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_admin_actions_time_range",
+                "query": {
+                  "datasetName": "ds_admin_actions",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_sensitive_actions_time_range",
+                "query": {
+                  "datasetName": "ds_sensitive_actions",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_admin_by_action_time_range",
+                "query": {
+                  "datasetName": "ds_admin_by_action",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_data_access_time_range",
+                "query": {
+                  "datasetName": "ds_data_access",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_access_by_service_time_range",
+                "query": {
+                  "datasetName": "ds_access_by_service",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_access_hourly_time_range",
+                "query": {
+                  "datasetName": "ds_access_hourly",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_latest_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_trend_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_access_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_access",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_drift_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_drift",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_detailed_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_detailed",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_events_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_high_risk_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_denied_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_permissions_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_admin_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_event_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_risk_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_denied_access_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_permission_changes_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_denied_by_service_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_denied_by_user_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_admin_actions_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_sensitive_actions_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_admin_by_action_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_data_access_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_access_by_service_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_access_hourly_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_latest_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_access_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_drift_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_detailed_time_range"
+                  }
+                ]
+              },
+              "selection": {
+                "defaultSelection": {
+                  "range": {
+                    "dataType": "DATE",
+                    "min": {
+                      "value": "now-90d/d"
+                    },
+                    "max": {
+                      "value": "now/d"
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Time Window"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_param_service",
+            "queries": [
+              {
+                "name": "dashboards/dummy/datasets/ds_select_service_service_name",
+                "query": {
+                  "datasetName": "ds_select_service",
+                  "fields": [
+                    {
+                      "name": "service_name",
+                      "expression": "`service_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_denied_access_param_service",
+                "query": {
+                  "datasetName": "ds_denied_access",
+                  "parameters": [
+                    {
+                      "name": "param_service",
+                      "keyword": "param_service"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_denied_by_service_param_service",
+                "query": {
+                  "datasetName": "ds_denied_by_service",
+                  "parameters": [
+                    {
+                      "name": "param_service",
+                      "keyword": "param_service"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_admin_actions_param_service",
+                "query": {
+                  "datasetName": "ds_admin_actions",
+                  "parameters": [
+                    {
+                      "name": "param_service",
+                      "keyword": "param_service"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_sensitive_actions_param_service",
+                "query": {
+                  "datasetName": "ds_sensitive_actions",
+                  "parameters": [
+                    {
+                      "name": "param_service",
+                      "keyword": "param_service"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_data_access_param_service",
+                "query": {
+                  "datasetName": "ds_data_access",
+                  "parameters": [
+                    {
+                      "name": "param_service",
+                      "keyword": "param_service"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_access_by_service_param_service",
+                "query": {
+                  "datasetName": "ds_access_by_service",
+                  "parameters": [
+                    {
+                      "name": "param_service",
+                      "keyword": "param_service"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "service_name",
+                    "displayName": "Service",
+                    "queryName": "dashboards/dummy/datasets/ds_select_service_service_name"
+                  },
+                  {
+                    "parameterName": "param_service",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_denied_access_param_service"
+                  },
+                  {
+                    "parameterName": "param_service",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_denied_by_service_param_service"
+                  },
+                  {
+                    "parameterName": "param_service",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_admin_actions_param_service"
+                  },
+                  {
+                    "parameterName": "param_service",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_sensitive_actions_param_service"
+                  },
+                  {
+                    "parameterName": "param_service",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_data_access_param_service"
+                  },
+                  {
+                    "parameterName": "param_service",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_access_by_service_param_service"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Service"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ]
+    },
+    {
       "name": "page_security_overview",
       "displayName": "\ud83d\udd12 Security Overview",
       "layout": [
@@ -1880,6 +2444,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_service",
+          "keyword": "param_service",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -1926,6 +2506,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_service",
+          "keyword": "param_service",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -1976,6 +2572,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_service",
+          "keyword": "param_service",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -1998,6 +2610,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_service",
+          "keyword": "param_service",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -2048,6 +2676,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_service",
+          "keyword": "param_service",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -2070,6 +2714,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_service",
+          "keyword": "param_service",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -2253,6 +2913,18 @@
       "name": "select_time_key",
       "displayName": "select_time_key",
       "query": "SELECT explode(array(\n  'Day',\n  'Week',\n  'Month',\n  'Quarter',\n  'Year'\n)) AS time_key"
+    },
+    {
+      "name": "ds_select_service",
+      "displayName": "ds_select_service",
+      "query": "SELECT DISTINCT service_name FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE service_name IS NOT NULL ORDER BY 1 LIMIT 50",
+      "parameters": []
+    },
+    {
+      "name": "ds_select_action",
+      "displayName": "ds_select_action",
+      "query": "SELECT DISTINCT action_name FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE action_name IS NOT NULL ORDER BY 1 LIMIT 50",
+      "parameters": []
     }
   ],
   "uiSettings": {

@@ -1,6 +1,1140 @@
 {
   "pages": [
     {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_time_range",
+            "queries": [
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_success_rate_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_success_rate",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_totals_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_totals",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_duration_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_duration",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_mttr_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_mttr",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_success_trend_time_range",
+                "query": {
+                  "datasetName": "ds_success_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_runs_by_status_time_range",
+                "query": {
+                  "datasetName": "ds_runs_by_status",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_duration_trend_time_range",
+                "query": {
+                  "datasetName": "ds_duration_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failed_today_time_range",
+                "query": {
+                  "datasetName": "ds_failed_today",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_low_success_jobs_time_range",
+                "query": {
+                  "datasetName": "ds_low_success_jobs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_highest_failure_jobs_time_range",
+                "query": {
+                  "datasetName": "ds_highest_failure_jobs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failure_by_type_time_range",
+                "query": {
+                  "datasetName": "ds_failure_by_type",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failure_trend_by_type_time_range",
+                "query": {
+                  "datasetName": "ds_failure_trend_by_type",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_slowest_jobs_time_range",
+                "query": {
+                  "datasetName": "ds_slowest_jobs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_duration_regression_time_range",
+                "query": {
+                  "datasetName": "ds_duration_regression",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_duration_outliers_time_range",
+                "query": {
+                  "datasetName": "ds_duration_outliers",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_runs_by_hour_time_range",
+                "query": {
+                  "datasetName": "ds_runs_by_hour",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_runs_by_day_time_range",
+                "query": {
+                  "datasetName": "ds_runs_by_day",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_latest_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_latest",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_trend_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_duration_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_duration",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_run_types_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_run_types",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_errors_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_errors",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_drift_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_drift",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_detailed_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_detailed",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_stale_count_time_range",
+                "query": {
+                  "datasetName": "ds_stale_count",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_no_autoscale_time_range",
+                "query": {
+                  "datasetName": "ds_no_autoscale",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_stale_datasets_time_range",
+                "query": {
+                  "datasetName": "ds_stale_datasets",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_ap_jobs_time_range",
+                "query": {
+                  "datasetName": "ds_ap_jobs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_outliers_time_range",
+                "query": {
+                  "datasetName": "ds_outliers",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_success_rate_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_totals_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_duration_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_mttr_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_success_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_runs_by_status_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_duration_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failed_today_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_low_success_jobs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_highest_failure_jobs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failure_by_type_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failure_trend_by_type_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_slowest_jobs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_duration_regression_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_duration_outliers_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_runs_by_hour_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_runs_by_day_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_latest_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_duration_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_run_types_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_errors_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_drift_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_detailed_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_stale_count_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_no_autoscale_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_stale_datasets_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_ap_jobs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_outliers_time_range"
+                  }
+                ]
+              },
+              "selection": {
+                "defaultSelection": {
+                  "range": {
+                    "dataType": "DATE",
+                    "min": {
+                      "value": "now-90d/d"
+                    },
+                    "max": {
+                      "value": "now/d"
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Time Window"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_param_workspace",
+            "queries": [
+              {
+                "name": "dashboards/dummy/datasets/ds_select_workspace_workspace_name",
+                "query": {
+                  "datasetName": "ds_select_workspace",
+                  "fields": [
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failed_today_param_workspace",
+                "query": {
+                  "datasetName": "ds_failed_today",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_low_success_jobs_param_workspace",
+                "query": {
+                  "datasetName": "ds_low_success_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_highest_failure_jobs_param_workspace",
+                "query": {
+                  "datasetName": "ds_highest_failure_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_slowest_jobs_param_workspace",
+                "query": {
+                  "datasetName": "ds_slowest_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_duration_regression_param_workspace",
+                "query": {
+                  "datasetName": "ds_duration_regression",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_duration_outliers_param_workspace",
+                "query": {
+                  "datasetName": "ds_duration_outliers",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_no_autoscale_param_workspace",
+                "query": {
+                  "datasetName": "ds_no_autoscale",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_stale_datasets_param_workspace",
+                "query": {
+                  "datasetName": "ds_stale_datasets",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_ap_jobs_param_workspace",
+                "query": {
+                  "datasetName": "ds_ap_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_outliers_param_workspace",
+                "query": {
+                  "datasetName": "ds_outliers",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_workspaces_param_workspace",
+                "query": {
+                  "datasetName": "ds_workspaces",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/select_workspace_param_workspace",
+                "query": {
+                  "datasetName": "select_workspace",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "workspace_name",
+                    "displayName": "Workspace",
+                    "queryName": "dashboards/dummy/datasets/ds_select_workspace_workspace_name"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failed_today_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_low_success_jobs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_highest_failure_jobs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_slowest_jobs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_duration_regression_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_duration_outliers_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_no_autoscale_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_stale_datasets_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_ap_jobs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_outliers_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_workspaces_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/select_workspace_param_workspace"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Workspace"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_param_job_status",
+            "queries": [
+              {
+                "name": "dashboards/dummy/datasets/ds_select_job_status_status",
+                "query": {
+                  "datasetName": "ds_select_job_status",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_success_rate_param_job_status",
+                "query": {
+                  "datasetName": "ds_kpi_success_rate",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_totals_param_job_status",
+                "query": {
+                  "datasetName": "ds_kpi_totals",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_duration_param_job_status",
+                "query": {
+                  "datasetName": "ds_kpi_duration",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_mttr_param_job_status",
+                "query": {
+                  "datasetName": "ds_kpi_mttr",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_success_trend_param_job_status",
+                "query": {
+                  "datasetName": "ds_success_trend",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_runs_by_status_param_job_status",
+                "query": {
+                  "datasetName": "ds_runs_by_status",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_duration_trend_param_job_status",
+                "query": {
+                  "datasetName": "ds_duration_trend",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failed_today_param_job_status",
+                "query": {
+                  "datasetName": "ds_failed_today",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_low_success_jobs_param_job_status",
+                "query": {
+                  "datasetName": "ds_low_success_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_highest_failure_jobs_param_job_status",
+                "query": {
+                  "datasetName": "ds_highest_failure_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failure_by_type_param_job_status",
+                "query": {
+                  "datasetName": "ds_failure_by_type",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failure_trend_by_type_param_job_status",
+                "query": {
+                  "datasetName": "ds_failure_trend_by_type",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_slowest_jobs_param_job_status",
+                "query": {
+                  "datasetName": "ds_slowest_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_duration_regression_param_job_status",
+                "query": {
+                  "datasetName": "ds_duration_regression",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_duration_outliers_param_job_status",
+                "query": {
+                  "datasetName": "ds_duration_outliers",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_runs_by_hour_param_job_status",
+                "query": {
+                  "datasetName": "ds_runs_by_hour",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_runs_by_day_param_job_status",
+                "query": {
+                  "datasetName": "ds_runs_by_day",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_outliers_param_job_status",
+                "query": {
+                  "datasetName": "ds_outliers",
+                  "parameters": [
+                    {
+                      "name": "param_job_status",
+                      "keyword": "param_job_status"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "status",
+                    "displayName": "Job Status",
+                    "queryName": "dashboards/dummy/datasets/ds_select_job_status_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_success_rate_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_totals_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_duration_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_mttr_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_success_trend_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_runs_by_status_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_duration_trend_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failed_today_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_low_success_jobs_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_highest_failure_jobs_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failure_by_type_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failure_trend_by_type_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_slowest_jobs_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_duration_regression_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_duration_outliers_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_runs_by_hour_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_runs_by_day_param_job_status"
+                  },
+                  {
+                    "parameterName": "param_job_status",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_outliers_param_job_status"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Job Status"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ]
+    },
+    {
       "name": "page_reliability_overview",
       "displayName": "\ud83d\udd04 Reliability Overview",
       "layout": [
@@ -2744,6 +3878,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -2766,6 +3916,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -2792,6 +3958,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -2814,6 +3996,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -2840,6 +4038,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -2862,6 +4076,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -2888,6 +4118,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -2910,6 +4156,38 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -2936,6 +4214,38 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -2958,6 +4268,38 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -2984,6 +4326,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3006,6 +4364,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -3037,6 +4411,38 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3059,6 +4465,38 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -3085,6 +4523,38 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3109,6 +4579,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3131,6 +4617,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -3169,37 +4671,170 @@
     {
       "name": "ds_monitor_latest",
       "displayName": "Monitor: Latest",
-      "query": "SELECT ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate_pct, COALESCE(total_runs, 0) AS total_runs, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' ORDER BY window.start DESC LIMIT 1"
+      "query": "SELECT ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate_pct, COALESCE(total_runs, 0) AS total_runs, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' ORDER BY window.start DESC LIMIT 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_trend",
       "displayName": "Monitor: Trend",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate, ROUND(COALESCE(failure_rate, 0) * 100, 1) AS failure_rate, ROUND(COALESCE(timeout_rate, 0) * 100, 1) AS timeout_rate FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate, ROUND(COALESCE(failure_rate, 0) * 100, 1) AS failure_rate, ROUND(COALESCE(timeout_rate, 0) * 100, 1) AS timeout_rate FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_duration",
       "displayName": "Monitor: Duration",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(avg_duration_minutes, 0), 1) AS avg_duration, ROUND(COALESCE(p50_duration_minutes, 0), 1) AS p50_duration, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration, ROUND(COALESCE(p99_duration_minutes, 0), 1) AS p99_duration FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(avg_duration_minutes, 0), 1) AS avg_duration, ROUND(COALESCE(p50_duration_minutes, 0), 1) AS p50_duration, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration, ROUND(COALESCE(p99_duration_minutes, 0), 1) AS p99_duration FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_run_types",
       "displayName": "Monitor: Run Types",
-      "query": "SELECT window.start AS window_start, COALESCE(scheduled_runs, 0) AS scheduled_runs, COALESCE(manual_runs, 0) AS manual_runs, COALESCE(retry_runs, 0) AS retry_runs FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+      "query": "SELECT window.start AS window_start, COALESCE(scheduled_runs, 0) AS scheduled_runs, COALESCE(manual_runs, 0) AS manual_runs, COALESCE(retry_runs, 0) AS retry_runs FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_errors",
       "displayName": "Monitor: Errors",
-      "query": "SELECT window.start AS window_start, COALESCE(timeout_count, 0) AS timeout_count, COALESCE(cancelled_count, 0) AS cancelled_count, COALESCE(internal_error_count, 0) AS internal_error_count FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+      "query": "SELECT window.start AS window_start, COALESCE(timeout_count, 0) AS timeout_count, COALESCE(cancelled_count, 0) AS cancelled_count, COALESCE(internal_error_count, 0) AS internal_error_count FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(success_rate_drift, 0) * 100, 1) AS success_rate_drift, ROUND(COALESCE(duration_drift_pct, 0), 1) AS duration_drift, ROUND(COALESCE(run_count_drift_pct, 0), 1) AS volume_drift FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start"
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(success_rate_drift, 0) * 100, 1) AS success_rate_drift, ROUND(COALESCE(duration_drift_pct, 0), 1) AS duration_drift, ROUND(COALESCE(run_count_drift_pct, 0), 1) AS volume_drift FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_detailed",
       "displayName": "Monitor: Detailed",
-      "query": "SELECT window.start AS window_start, COALESCE(total_runs, 0) AS total_runs, ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate, ROUND(COALESCE(failure_rate, 0) * 100, 1) AS failure_rate, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration, COALESCE(retry_runs, 0) AS retry_runs, COALESCE(distinct_jobs, 0) AS distinct_jobs FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start DESC"
+      "query": "SELECT window.start AS window_start, COALESCE(total_runs, 0) AS total_runs, ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate, ROUND(COALESCE(failure_rate, 0) * 100, 1) AS failure_rate, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration, COALESCE(retry_runs, 0) AS retry_runs, COALESCE(distinct_jobs, 0) AS distinct_jobs FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start DESC",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_no_autoscale_count",
@@ -3256,6 +4891,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3278,6 +4929,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -3304,6 +4971,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3328,6 +5011,38 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_job_status",
+          "keyword": "param_job_status",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3339,17 +5054,65 @@
     {
       "name": "ds_workspaces",
       "displayName": "Workspaces",
-      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name"
+      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name",
+      "parameters": [
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "select_workspace",
       "displayName": "select_workspace",
-      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name"
+      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name",
+      "parameters": [
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "select_time_key",
       "displayName": "select_time_key",
       "query": "SELECT explode(array(\n  'Day',\n  'Week',\n  'Month',\n  'Quarter',\n  'Year'\n)) AS time_key"
+    },
+    {
+      "name": "ds_select_workspace",
+      "displayName": "ds_select_workspace",
+      "query": "SELECT DISTINCT COALESCE(workspace_name, CAST(workspace_id AS STRING)) AS workspace_name FROM ${catalog}.${gold_schema}.dim_workspace ORDER BY 1",
+      "parameters": []
+    },
+    {
+      "name": "ds_select_job_status",
+      "displayName": "ds_select_job_status",
+      "query": "SELECT 'All' AS status UNION ALL SELECT 'SUCCESS' UNION ALL SELECT 'FAILED' UNION ALL SELECT 'CANCELED'",
+      "parameters": []
     }
   ],
   "uiSettings": {

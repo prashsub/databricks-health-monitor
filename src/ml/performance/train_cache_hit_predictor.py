@@ -98,8 +98,16 @@ def main():
             spark, fe, feature_table_full, feature_names, LABEL_COLUMN, lookup_keys
         )
         
+        # Convert continuous spill_rate (0-1) to binary classification label
+        # High spill rate (>0.3) = 1 (bad cache performance), else 0 (good)
+        from pyspark.sql.functions import when, col
+        training_df = training_df.withColumn(
+            "high_spill_rate",
+            when(col(LABEL_COLUMN) > 0.3, 1).otherwise(0)
+        )
+        
         X_train, X_test, y_train, y_test = prepare_training_data(
-            training_df, available_features, LABEL_COLUMN, cast_label_to="int", stratify=True
+            training_df, available_features, "high_spill_rate", cast_label_to="int", stratify=True
         )
         
         model, metrics, hyperparams = train_model(X_train, X_test, y_train, y_test)

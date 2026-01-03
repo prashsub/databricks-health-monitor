@@ -1,6 +1,1021 @@
 {
   "pages": [
     {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_time_range",
+            "queries": [
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_mtd_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_mtd",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_kpi_30d_time_range",
+                "query": {
+                  "datasetName": "ds_kpi_30d",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_30_60_compare_time_range",
+                "query": {
+                  "datasetName": "ds_30_60_compare",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_tag_coverage_time_range",
+                "query": {
+                  "datasetName": "ds_tag_coverage",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_serverless_adoption_time_range",
+                "query": {
+                  "datasetName": "ds_serverless_adoption",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_unique_counts_time_range",
+                "query": {
+                  "datasetName": "ds_unique_counts",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_wow_growth_time_range",
+                "query": {
+                  "datasetName": "ds_wow_growth",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_daily_cost_time_range",
+                "query": {
+                  "datasetName": "ds_daily_cost",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_top_workspaces_time_range",
+                "query": {
+                  "datasetName": "ds_top_workspaces",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_sku_breakdown_time_range",
+                "query": {
+                  "datasetName": "ds_sku_breakdown",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_top_owners_time_range",
+                "query": {
+                  "datasetName": "ds_top_owners",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_highest_change_users_time_range",
+                "query": {
+                  "datasetName": "ds_highest_change_users",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_untagged_cost_time_range",
+                "query": {
+                  "datasetName": "ds_untagged_cost",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_expensive_jobs_time_range",
+                "query": {
+                  "datasetName": "ds_expensive_jobs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_expensive_runs_time_range",
+                "query": {
+                  "datasetName": "ds_expensive_runs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_highest_change_jobs_time_range",
+                "query": {
+                  "datasetName": "ds_highest_change_jobs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_outlier_runs_time_range",
+                "query": {
+                  "datasetName": "ds_outlier_runs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failure_cost_time_range",
+                "query": {
+                  "datasetName": "ds_failure_cost",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_no_tags_jobs_time_range",
+                "query": {
+                  "datasetName": "ds_no_tags_jobs",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_ml_anomalies_time_range",
+                "query": {
+                  "datasetName": "ds_ml_anomalies",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_cost_trend_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_cost_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_serverless_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_serverless",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_drift_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_drift",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monitor_summary_time_range",
+                "query": {
+                  "datasetName": "ds_monitor_summary",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_ytd_spend_time_range",
+                "query": {
+                  "datasetName": "ds_ytd_spend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_commit_status_time_range",
+                "query": {
+                  "datasetName": "ds_commit_status",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_forecast_summary_time_range",
+                "query": {
+                  "datasetName": "ds_forecast_summary",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_variance_time_range",
+                "query": {
+                  "datasetName": "ds_variance",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_run_rate_time_range",
+                "query": {
+                  "datasetName": "ds_run_rate",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_usage_forecast_time_range",
+                "query": {
+                  "datasetName": "ds_usage_forecast",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_cumulative_vs_commit_time_range",
+                "query": {
+                  "datasetName": "ds_cumulative_vs_commit",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monthly_breakdown_time_range",
+                "query": {
+                  "datasetName": "ds_monthly_breakdown",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_monthly_detail_time_range",
+                "query": {
+                  "datasetName": "ds_monthly_detail",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_mtd_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_kpi_30d_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_30_60_compare_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_tag_coverage_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_serverless_adoption_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_unique_counts_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_wow_growth_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_daily_cost_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_top_workspaces_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_sku_breakdown_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_top_owners_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_highest_change_users_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_untagged_cost_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_expensive_jobs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_expensive_runs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_highest_change_jobs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_outlier_runs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failure_cost_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_no_tags_jobs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_ml_anomalies_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_cost_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_serverless_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_drift_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monitor_summary_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_ytd_spend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_commit_status_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_forecast_summary_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_variance_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_run_rate_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_usage_forecast_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_cumulative_vs_commit_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monthly_breakdown_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_monthly_detail_time_range"
+                  }
+                ]
+              },
+              "selection": {
+                "defaultSelection": {
+                  "range": {
+                    "dataType": "DATE",
+                    "min": {
+                      "value": "now-90d/d"
+                    },
+                    "max": {
+                      "value": "now/d"
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Time Window"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_param_workspace",
+            "queries": [
+              {
+                "name": "dashboards/dummy/datasets/ds_select_workspace_workspace_name",
+                "query": {
+                  "datasetName": "ds_select_workspace",
+                  "fields": [
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_wow_growth_param_workspace",
+                "query": {
+                  "datasetName": "ds_wow_growth",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_daily_cost_param_workspace",
+                "query": {
+                  "datasetName": "ds_daily_cost",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_top_workspaces_param_workspace",
+                "query": {
+                  "datasetName": "ds_top_workspaces",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_sku_breakdown_param_workspace",
+                "query": {
+                  "datasetName": "ds_sku_breakdown",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_top_owners_param_workspace",
+                "query": {
+                  "datasetName": "ds_top_owners",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_untagged_cost_param_workspace",
+                "query": {
+                  "datasetName": "ds_untagged_cost",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_expensive_jobs_param_workspace",
+                "query": {
+                  "datasetName": "ds_expensive_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_expensive_runs_param_workspace",
+                "query": {
+                  "datasetName": "ds_expensive_runs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_highest_change_jobs_param_workspace",
+                "query": {
+                  "datasetName": "ds_highest_change_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_outlier_runs_param_workspace",
+                "query": {
+                  "datasetName": "ds_outlier_runs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_failure_cost_param_workspace",
+                "query": {
+                  "datasetName": "ds_failure_cost",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_no_tags_jobs_param_workspace",
+                "query": {
+                  "datasetName": "ds_no_tags_jobs",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_ml_anomalies_param_workspace",
+                "query": {
+                  "datasetName": "ds_ml_anomalies",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_ml_budget_alerts_param_workspace",
+                "query": {
+                  "datasetName": "ds_ml_budget_alerts",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_workspaces_param_workspace",
+                "query": {
+                  "datasetName": "ds_workspaces",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/select_workspace_param_workspace",
+                "query": {
+                  "datasetName": "select_workspace",
+                  "parameters": [
+                    {
+                      "name": "param_workspace",
+                      "keyword": "param_workspace"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "workspace_name",
+                    "displayName": "Workspace",
+                    "queryName": "dashboards/dummy/datasets/ds_select_workspace_workspace_name"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_wow_growth_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_daily_cost_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_top_workspaces_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_sku_breakdown_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_top_owners_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_untagged_cost_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_expensive_jobs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_expensive_runs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_highest_change_jobs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_outlier_runs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_failure_cost_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_no_tags_jobs_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_ml_anomalies_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_ml_budget_alerts_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_workspaces_param_workspace"
+                  },
+                  {
+                    "parameterName": "param_workspace",
+                    "queryName": "parameter_dashboards/dummy/datasets/select_workspace_param_workspace"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Workspace"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_param_sku",
+            "queries": [
+              {
+                "name": "dashboards/dummy/datasets/ds_select_sku_sku_name",
+                "query": {
+                  "datasetName": "ds_select_sku",
+                  "fields": [
+                    {
+                      "name": "sku_name",
+                      "expression": "`sku_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_sku_breakdown_param_sku",
+                "query": {
+                  "datasetName": "ds_sku_breakdown",
+                  "parameters": [
+                    {
+                      "name": "param_sku",
+                      "keyword": "param_sku"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_top_owners_param_sku",
+                "query": {
+                  "datasetName": "ds_top_owners",
+                  "parameters": [
+                    {
+                      "name": "param_sku",
+                      "keyword": "param_sku"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_ml_anomalies_param_sku",
+                "query": {
+                  "datasetName": "ds_ml_anomalies",
+                  "parameters": [
+                    {
+                      "name": "param_sku",
+                      "keyword": "param_sku"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "sku_name",
+                    "displayName": "SKU",
+                    "queryName": "dashboards/dummy/datasets/ds_select_sku_sku_name"
+                  },
+                  {
+                    "parameterName": "param_sku",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_sku_breakdown_param_sku"
+                  },
+                  {
+                    "parameterName": "param_sku",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_top_owners_param_sku"
+                  },
+                  {
+                    "parameterName": "param_sku",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_ml_anomalies_param_sku"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "SKU"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ]
+    },
+    {
       "name": "page_cost_overview",
       "displayName": "\ud83d\udcb0 Cost Overview",
       "layout": [
@@ -3211,7 +4226,26 @@
     {
       "name": "ds_kpi_mtd",
       "displayName": "KPI: MTD Spend",
-      "query": "SELECT CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS mtd_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())"
+      "query": "SELECT CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS mtd_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_kpi_30d",
@@ -3354,6 +4388,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3376,6 +4426,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -3402,6 +4468,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3426,6 +4508,38 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_sku",
+          "keyword": "param_sku",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3448,6 +4562,38 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_sku",
+          "keyword": "param_sku",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -3503,6 +4649,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3525,6 +4687,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -3551,6 +4729,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3573,6 +4767,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -3599,6 +4809,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3621,6 +4847,22 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
             }
           }
         }
@@ -3672,6 +4914,22 @@
               }
             }
           }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3688,12 +4946,81 @@
     {
       "name": "ds_ml_anomalies",
       "displayName": "ML: Cost Anomalies",
-      "query": "SELECT CURRENT_DATE() AS usage_date, 'ws-001' AS workspace_name, 'JOBS_COMPUTE' AS sku_name, 0.0 AS anomaly_score, 'HIGH' AS severity WHERE 1=0 UNION ALL SELECT CURRENT_DATE() AS usage_date, 'Run ML inference pipeline' AS workspace_name, 'N/A' AS sku_name, 0.0 AS anomaly_score, 'Pending' AS severity LIMIT 1"
+      "query": "SELECT CURRENT_DATE() AS usage_date, 'ws-001' AS workspace_name, 'JOBS_COMPUTE' AS sku_name, 0.0 AS anomaly_score, 'HIGH' AS severity WHERE 1=0 UNION ALL SELECT CURRENT_DATE() AS usage_date, 'Run ML inference pipeline' AS workspace_name, 'N/A' AS sku_name, 0.0 AS anomaly_score, 'Pending' AS severity LIMIT 1",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        },
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "param_sku",
+          "keyword": "param_sku",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_ml_budget_alerts",
       "displayName": "ML: Budget Alerts",
-      "query": "SELECT 'workspace-001' AS workspace_name, 'HIGH' AS alert_priority, 0.0 AS burn_rate, 0 AS days_to_budget WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS workspace_name, 'Pending' AS alert_priority, 0.0 AS burn_rate, 0 AS days_to_budget LIMIT 1"
+      "query": "SELECT 'workspace-001' AS workspace_name, 'HIGH' AS alert_priority, 0.0 AS burn_rate, 0 AS days_to_budget WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS workspace_name, 'Pending' AS alert_priority, 0.0 AS burn_rate, 0 AS days_to_budget LIMIT 1",
+      "parameters": [
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_ml_tag_recs",
@@ -3713,22 +5040,98 @@
     {
       "name": "ds_monitor_cost_trend",
       "displayName": "Monitor: Cost Trend",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(total_cost, 0), 2) AS total_cost, ROUND(COALESCE(total_dbu, 0), 0) AS total_dbu FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(total_cost, 0), 2) AS total_cost, ROUND(COALESCE(total_dbu, 0), 0) AS total_dbu FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_serverless",
       "displayName": "Monitor: Serverless",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(serverless_percentage, 0) * 100, 1) AS serverless_pct, ROUND(COALESCE(tag_coverage, 0) * 100, 1) AS tag_coverage_pct FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start"
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(serverless_percentage, 0) * 100, 1) AS serverless_pct, ROUND(COALESCE(tag_coverage, 0) * 100, 1) AS tag_coverage_pct FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(total_cost_drift_pct, 0), 1) AS cost_drift_pct, ROUND(COALESCE(serverless_adoption_drift, 0), 2) AS serverless_drift FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start"
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(total_cost_drift_pct, 0), 1) AS cost_drift_pct, ROUND(COALESCE(serverless_adoption_drift, 0), 2) AS serverless_drift FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_summary",
       "displayName": "Monitor: Summary",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(total_cost, 0), 2) AS total_cost, ROUND(COALESCE(total_dbu, 0), 0) AS total_dbu, ROUND(COALESCE(serverless_percentage, 0) * 100, 1) AS serverless_pct, ROUND(COALESCE(tag_coverage, 0) * 100, 1) AS tag_coverage_pct, COALESCE(unique_users, 0) AS unique_users FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start DESC"
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(total_cost, 0), 2) AS total_cost, ROUND(COALESCE(total_dbu, 0), 0) AS total_dbu, ROUND(COALESCE(serverless_percentage, 0) * 100, 1) AS serverless_pct, ROUND(COALESCE(tag_coverage, 0) * 100, 1) AS tag_coverage_pct, COALESCE(unique_users, 0) AS unique_users FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start DESC",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_commit_options",
@@ -3738,7 +5141,26 @@
     {
       "name": "ds_ytd_spend",
       "displayName": "YTD Spend",
-      "query": "SELECT SUM(list_cost) AS ytd_spend FROM ${catalog}.${gold_schema}.fact_usage WHERE YEAR(usage_date) = YEAR(CURRENT_DATE())"
+      "query": "SELECT SUM(list_cost) AS ytd_spend FROM ${catalog}.${gold_schema}.fact_usage WHERE YEAR(usage_date) = YEAR(CURRENT_DATE())",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_commit_status",
@@ -3757,6 +5179,23 @@
                   "value": "1000000"
                 }
               ]
+            }
+          }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
             }
           }
         }
@@ -3892,6 +5331,23 @@
               ]
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
       ]
     },
@@ -3991,17 +5447,71 @@
     {
       "name": "ds_workspaces",
       "displayName": "Workspaces",
-      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name"
+      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM ${catalog}.${gold_schema}.dim_workspace WHERE workspace_name IS NOT NULL ORDER BY workspace_name",
+      "parameters": [
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "select_workspace",
       "displayName": "select_workspace",
-      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name"
+      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name",
+      "parameters": [
+        {
+          "displayName": "param_workspace",
+          "keyword": "param_workspace",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "name": "select_time_key",
       "displayName": "select_time_key",
       "query": "SELECT explode(array(\n  'Day',\n  'Week',\n  'Month',\n  'Quarter',\n  'Year'\n)) AS time_key"
+    },
+    {
+      "name": "ds_select_workspace",
+      "displayName": "ds_select_workspace",
+      "query": "SELECT DISTINCT COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id ORDER BY 1",
+      "parameters": []
+    },
+    {
+      "name": "ds_select_sku",
+      "displayName": "ds_select_sku",
+      "query": "SELECT DISTINCT sku_name FROM ${catalog}.${gold_schema}.fact_usage WHERE sku_name IS NOT NULL ORDER BY 1",
+      "parameters": []
+    },
+    {
+      "name": "ds_select_tag_status",
+      "displayName": "ds_select_tag_status",
+      "query": "SELECT 'All' AS tag_status UNION ALL SELECT 'Tagged' UNION ALL SELECT 'Untagged'",
+      "parameters": []
     }
   ],
   "uiSettings": {

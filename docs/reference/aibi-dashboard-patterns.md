@@ -353,3 +353,96 @@ Relative date syntax:
 - Reference dashboards: `context/dashboards/`
 - Cursor rule: `.cursor/rules/monitoring/18-databricks-aibi-dashboards.mdc`
 
+
+---
+
+## 🎯 CRITICAL UPDATE: Global Filters Page Type (Learned Jan 3, 2025)
+
+**The "Global Filters" pane in Databricks AI/BI is NOT a regular page - it uses a special `PAGE_TYPE_GLOBAL_FILTERS`!**
+
+### ❌ WRONG Approach (What I Was Doing)
+
+```json
+{
+  "pages": [
+    {
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_CANVAS",  // ❌ Creates a TAB, not a filter pane!
+      "layout": [/* filter widgets */]
+    }
+  ]
+}
+```
+
+This creates a regular page tab labeled "Global Filters" - NOT the built-in collapsible filter pane.
+
+### ✅ CORRECT Approach (From Gold Standard)
+
+```json
+{
+  "pages": [
+    {
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",  // ✅ Creates the filter PANE!
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_time_range",
+            "queries": [
+              // ONE query per dataset that needs filtering
+              {
+                "name": "param_ds1_time_range",
+                "query": {
+                  "datasetName": "ds_dataset_1",
+                  "parameters": [{"name": "time_range", "keyword": "time_range"}]
+                }
+              },
+              {
+                "name": "param_ds2_time_range", 
+                "query": {
+                  "datasetName": "ds_dataset_2",
+                  "parameters": [{"name": "time_range", "keyword": "time_range"}]
+                }
+              }
+              // ... repeat for ALL 35+ datasets
+            ],
+            "spec": {
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {"parameterName": "time_range", "queryName": "param_ds1_time_range"},
+                  {"parameterName": "time_range", "queryName": "param_ds2_time_range"}
+                  // ... one field per query
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "displayName": "Overview",
+      "pageType": "PAGE_TYPE_CANVAS",  // Regular pages use PAGE_TYPE_CANVAS
+      "layout": [/* ... */]
+    }
+  ]
+}
+```
+
+### Key Differences
+
+| Aspect | WRONG (PAGE_TYPE_CANVAS) | CORRECT (PAGE_TYPE_GLOBAL_FILTERS) |
+|--------|--------------------------|-------------------------------------|
+| UI Location | Creates a page TAB | Creates collapsible PANE on left |
+| Visibility | Shows as regular page | Shows as expandable filter panel |
+| Filter Binding | Widget binds to ONE dataset | Widget binds to ALL datasets |
+| User Experience | Confusing - filters on separate tab | Intuitive - filters always accessible |
+
+### Checklist for Global Filters
+
+- [ ] Global Filters page uses `pageType: "PAGE_TYPE_GLOBAL_FILTERS"`
+- [ ] Filter widget has ONE query per dataset with matching parameter
+- [ ] Filter widget `encodings.fields` has ONE entry per query
+- [ ] Each dataset defines its own `parameters[]` with `defaultSelection`
+- [ ] Parameter keyword matches across all datasets (e.g., `time_range`)
+- [ ] Global Filters page is FIRST in `pages[]` array

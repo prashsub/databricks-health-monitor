@@ -658,7 +658,56 @@ def get_incremental_scoring_df(
 | "Model not found" | Model not registered | Run training pipeline first |
 | "Unable to find feature" | Feature table missing | Run feature pipeline first |
 | "Column mismatch" | Different features at inference | Ensure model uses fe.log_model |
+| "Failed to enforce schema" | Type mismatch (INT vs DOUBLE) | Cast features to DOUBLE in feature table |
+| "DELTA_FAILED_TO_MERGE_FIELDS" | Schema evolution conflict | Use `mode("overwrite")` for predictions |
 | "Timeout" | Too many records | Implement sampling |
+
+### Type Consistency (CRITICAL)
+
+**The single biggest cause of inference errors is type mismatch between training and inference.**
+
+**Symptom:**
+```
+MlflowException: Failed to enforce schema of data '... event_count  tables_accessed ...'
+```
+
+**Root Cause:**
+- Feature tables have native types: `INTEGER`, `DECIMAL`, `LONG`
+- Training casts to `float64` (Pandas) for scikit-learn
+- Model signature expects `float64` inputs
+- Inference provides native Spark types → type mismatch!
+
+**Prevention (Feature Table Level):**
+```python
+# In create_feature_tables.py - cast ALL numeric columns to DOUBLE
+from pyspark.sql.types import IntegerType, LongType, FloatType, DecimalType
+
+for field in df.schema.fields:
+    if isinstance(field.dataType, (IntegerType, LongType, FloatType, DecimalType)):
+        df = df.withColumn(field.name, F.col(field.name).cast("double"))
+```
+
+**Type Flow:**
+```
+Feature Creation  →  Training  →  Model Signature  →  Inference
+     DOUBLE       →  float64   →     float64       ←   DOUBLE
+                      ↑                               ↑
+            ✅ Compatible types throughout!
+```
+
+### Prediction Table Schema Conflicts
+
+**Error:**
+```
+DELTA_FAILED_TO_MERGE_FIELDS: Failed to merge fields 'daily_dbu' and 'daily_dbu'
+```
+
+**Cause:** Trying to append predictions with different types to existing table.
+
+**Solution:** Use overwrite mode for prediction tables:
+```python
+predictions_df.write.format("delta").mode("overwrite").saveAsTable(output_table)
+```
 
 ### Graceful Degradation
 

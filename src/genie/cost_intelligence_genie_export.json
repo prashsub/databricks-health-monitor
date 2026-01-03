@@ -4,63 +4,93 @@
     "sample_questions": [
       {
         "id": "b1c2d3e4f5a6789012345678901234ba",
-        "question": ["What is our total spend this month?"]
+        "question": [
+          "What is our total spend this month?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234bb",
-        "question": ["Show me the top 10 workspaces by cost"]
+        "question": [
+          "Show me the top 10 workspaces by cost"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234bc",
-        "question": ["What was our daily cost trend for the last 30 days?"]
+        "question": [
+          "What was our daily cost trend for the last 30 days?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234bd",
-        "question": ["What percentage of our spend is tagged?"]
+        "question": [
+          "What percentage of our spend is tagged?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234be",
-        "question": ["Which SKU costs the most?"]
+        "question": [
+          "Which SKU costs the most?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234bf",
-        "question": ["Show me cost by owner"]
+        "question": [
+          "Show me cost by owner"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234c0",
-        "question": ["What is our serverless vs non-serverless spend?"]
+        "question": [
+          "What is our serverless vs non-serverless spend?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234c1",
-        "question": ["Break down cost by team tag"]
+        "question": [
+          "Break down cost by team tag"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234c2",
-        "question": ["Which ALL_PURPOSE clusters could be migrated to JOBS clusters?"]
+        "question": [
+          "Which ALL_PURPOSE clusters could be migrated to JOBS clusters?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234c3",
-        "question": ["What are our cost anomalies?"]
+        "question": [
+          "What are our cost anomalies?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234c4",
-        "question": ["Show me week-over-week cost growth"]
+        "question": [
+          "Show me week-over-week cost growth"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234c5",
-        "question": ["What is the cost forecast for next month?"]
+        "question": [
+          "What is the cost forecast for next month?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234c6",
-        "question": ["Are there any cost anomalies today?"]
+        "question": [
+          "Are there any cost anomalies today?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234c7",
-        "question": ["Which resources need tags?"]
+        "question": [
+          "Which resources need tags?"
+        ]
       },
       {
         "id": "b1c2d3e4f5a6789012345678901234c8",
-        "question": ["What's the predicted cost for next week?"]
+        "question": [
+          "What's the predicted cost for next week?"
+        ]
       }
     ]
   },
@@ -77,75 +107,139 @@
         "column_configs": [
           {
             "column_name": "usage_date",
-            "description": ["Calendar date of usage for time-based filtering"],
-            "synonyms": ["date", "day", "billing date"],
+            "description": [
+              "Calendar date of usage for time-based filtering"
+            ],
+            "synonyms": [
+              "date",
+              "day",
+              "billing date"
+            ],
             "get_example_values": true
           },
           {
             "column_name": "workspace_id",
-            "description": ["Workspace identifier for workspace-level cost analysis"],
-            "synonyms": ["workspace", "environment"],
+            "description": [
+              "Workspace identifier for workspace-level cost analysis"
+            ],
+            "synonyms": [
+              "workspace",
+              "environment"
+            ],
             "build_value_dictionary": true
           },
           {
             "column_name": "sku_name",
-            "description": ["Product SKU category (JOBS_COMPUTE, SQL, etc.)"],
-            "synonyms": ["sku", "product", "service"],
+            "description": [
+              "Product SKU category (JOBS_COMPUTE, SQL, etc.)"
+            ],
+            "synonyms": [
+              "sku",
+              "product",
+              "service"
+            ],
             "get_example_values": true,
             "build_value_dictionary": true
           },
           {
             "column_name": "cloud",
-            "description": ["Cloud provider: AWS, AZURE, or GCP"],
-            "synonyms": ["cloud provider", "provider"],
+            "description": [
+              "Cloud provider: AWS, AZURE, or GCP"
+            ],
+            "synonyms": [
+              "cloud provider",
+              "provider"
+            ],
             "get_example_values": true,
             "build_value_dictionary": true
           },
           {
             "column_name": "billing_origin_product",
-            "description": ["Product that originated the usage: JOBS, SQL, DLT, etc."],
-            "synonyms": ["product", "origin", "billing product"],
+            "description": [
+              "Product that originated the usage: JOBS, SQL, DLT, etc."
+            ],
+            "synonyms": [
+              "product",
+              "origin",
+              "billing product"
+            ],
             "get_example_values": true,
             "build_value_dictionary": true
           },
           {
             "column_name": "usage_quantity",
-            "description": ["DBUs or other units consumed"]
+            "description": [
+              "DBUs or other units consumed"
+            ]
           },
           {
             "column_name": "list_cost",
-            "description": ["Calculated cost: usage_quantity * list_price"],
-            "synonyms": ["cost", "spend", "dollars"]
+            "description": [
+              "Calculated cost: usage_quantity * list_price"
+            ],
+            "synonyms": [
+              "cost",
+              "spend",
+              "dollars"
+            ]
           },
           {
             "column_name": "is_tagged",
-            "description": ["Boolean: true if custom tags are present"],
-            "synonyms": ["tagged", "has tags"]
+            "description": [
+              "Boolean: true if custom tags are present"
+            ],
+            "synonyms": [
+              "tagged",
+              "has tags"
+            ]
           },
           {
             "column_name": "custom_tags",
-            "description": ["Map of custom tags (team, project, cost_center, etc.)"]
+            "description": [
+              "Map of custom tags (team, project, cost_center, etc.)"
+            ]
           },
           {
             "column_name": "product_features_is_serverless",
-            "description": ["Boolean: true if serverless compute"],
-            "synonyms": ["serverless", "serverless compute"],
+            "description": [
+              "Boolean: true if serverless compute"
+            ],
+            "synonyms": [
+              "serverless",
+              "serverless compute"
+            ],
             "get_example_values": true
           },
           {
             "column_name": "identity_metadata_run_as",
-            "description": ["User or service principal who ran the workload"],
-            "synonyms": ["owner", "user", "run by"]
+            "description": [
+              "User or service principal who ran the workload"
+            ],
+            "synonyms": [
+              "owner",
+              "user",
+              "run by"
+            ]
           },
           {
             "column_name": "identity_metadata_owned_by",
-            "description": ["Resource owner for chargeback"],
-            "synonyms": ["owner", "resource owner"]
+            "description": [
+              "Resource owner for chargeback"
+            ],
+            "synonyms": [
+              "owner",
+              "resource owner"
+            ]
           },
           {
             "column_name": "usage_metadata_job_name",
-            "description": ["Job name for job-level cost attribution"],
-            "synonyms": ["job", "workflow"]
+            "description": [
+              "Job name for job-level cost attribution"
+            ],
+            "synonyms": [
+              "job",
+              "workflow"
+            ]
           }
         ]
       },
@@ -158,12 +252,19 @@
         "column_configs": [
           {
             "column_name": "workspace_id",
-            "description": ["Unique workspace identifier"]
+            "description": [
+              "Unique workspace identifier"
+            ]
           },
           {
             "column_name": "workspace_name",
-            "description": ["Human-readable workspace name"],
-            "synonyms": ["workspace", "environment"],
+            "description": [
+              "Human-readable workspace name"
+            ],
+            "synonyms": [
+              "workspace",
+              "environment"
+            ],
             "get_example_values": true,
             "build_value_dictionary": true
           }
@@ -178,244 +279,153 @@
         "column_configs": [
           {
             "column_name": "sku_name",
-            "description": ["SKU identifier determining pricing rate"],
+            "description": [
+              "SKU identifier determining pricing rate"
+            ],
             "get_example_values": true,
             "build_value_dictionary": true
           },
           {
             "column_name": "cloud",
-            "description": ["Cloud provider for this SKU"]
+            "description": [
+              "Cloud provider for this SKU"
+            ]
           },
           {
             "column_name": "usage_unit",
-            "description": ["Measurement unit: DBU, GB, API calls, tokens"]
+            "description": [
+              "Measurement unit: DBU, GB, API calls, tokens"
+            ]
           }
         ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_usage_profile_metrics",
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics",
         "description": [
           "Lakehouse Monitoring profile metrics for cost analysis.\n",
           "Contains custom metrics: total_daily_cost, tag_coverage_pct, serverless_ratio.\n",
-          "⚠️ CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
         ],
         "column_configs": [
           {
             "column_name": "window",
-            "description": ["Time window for aggregation (struct with start/end)"]
+            "description": [
+              "Time window for aggregation (struct with start/end)"
+            ]
           },
           {
             "column_name": "column_name",
-            "description": ["Column name - use ':table' for custom metrics"]
+            "description": [
+              "Column name - use ':table' for custom metrics"
+            ]
           },
           {
             "column_name": "log_type",
-            "description": ["Log type - use 'INPUT' for monitoring queries"]
+            "description": [
+              "Log type - use 'INPUT' for monitoring queries"
+            ]
           },
           {
             "column_name": "slice_key",
-            "description": ["Slicing dimension: workspace_id, sku_name, cloud, is_tagged, product_features_is_serverless"]
+            "description": [
+              "Slicing dimension: workspace_id, sku_name, cloud, is_tagged, product_features_is_serverless"
+            ]
           },
           {
             "column_name": "slice_value",
-            "description": ["Value of the slicing dimension"]
+            "description": [
+              "Value of the slicing dimension"
+            ]
           },
           {
             "column_name": "total_daily_cost",
-            "description": ["Custom metric: Total daily cost"],
-            "synonyms": ["cost", "spend", "daily spend"]
+            "description": [
+              "Custom metric: Total daily cost"
+            ],
+            "synonyms": [
+              "cost",
+              "spend",
+              "daily spend"
+            ]
           },
           {
             "column_name": "tag_coverage_pct",
-            "description": ["Custom metric: Percentage of cost with tags"],
-            "synonyms": ["tag coverage", "tagging rate"]
+            "description": [
+              "Custom metric: Percentage of cost with tags"
+            ],
+            "synonyms": [
+              "tag coverage",
+              "tagging rate"
+            ]
           },
           {
             "column_name": "serverless_ratio",
-            "description": ["Custom metric: Serverless vs classic ratio"],
-            "synonyms": ["serverless percentage", "serverless adoption"]
+            "description": [
+              "Custom metric: Serverless vs classic ratio"
+            ],
+            "synonyms": [
+              "serverless percentage",
+              "serverless adoption"
+            ]
           }
         ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_usage_drift_metrics",
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics",
         "description": [
           "Lakehouse Monitoring drift metrics for cost trend detection.\n",
           "Contains drift metrics: cost_drift_pct, dbu_drift_pct, tag_coverage_drift.\n",
-          "⚠️ CRITICAL: Always include filter: drift_type='CONSECUTIVE', column_name=':table'"
+          "\u26a0\ufe0f CRITICAL: Always include filter: drift_type='CONSECUTIVE', column_name=':table'"
         ],
         "column_configs": [
           {
             "column_name": "window",
-            "description": ["Time window for drift calculation"]
+            "description": [
+              "Time window for drift calculation"
+            ]
           },
           {
             "column_name": "drift_type",
-            "description": ["Drift type - use 'CONSECUTIVE' for period comparison"]
+            "description": [
+              "Drift type - use 'CONSECUTIVE' for period comparison"
+            ]
           },
           {
             "column_name": "column_name",
-            "description": ["Column name - use ':table' for drift metrics"]
+            "description": [
+              "Column name - use ':table' for drift metrics"
+            ]
           },
           {
             "column_name": "cost_drift_pct",
-            "description": ["Period-over-period change in cost"],
-            "synonyms": ["cost drift", "cost trend", "cost change"]
+            "description": [
+              "Period-over-period change in cost"
+            ],
+            "synonyms": [
+              "cost drift",
+              "cost trend",
+              "cost change"
+            ]
           },
           {
             "column_name": "dbu_drift_pct",
-            "description": ["Period-over-period change in DBU usage"],
-            "synonyms": ["dbu drift", "usage drift"]
+            "description": [
+              "Period-over-period change in DBU usage"
+            ],
+            "synonyms": [
+              "dbu drift",
+              "usage drift"
+            ]
           },
           {
             "column_name": "tag_coverage_drift",
-            "description": ["Period-over-period change in tag coverage"],
-            "synonyms": ["tagging drift", "tag trend"]
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.cost_anomaly_predictions",
-        "description": [
-          "ML-generated cost anomaly predictions.\n",
-          "Business: Detected cost spikes and unusual spending patterns with anomaly scores."
-        ],
-        "column_configs": [
-          {
-            "column_name": "prediction_date",
-            "description": ["Date of anomaly detection"],
-            "get_example_values": true
-          },
-          {
-            "column_name": "is_anomaly",
-            "description": ["Boolean: true if anomaly detected"],
-            "get_example_values": true
-          },
-          {
-            "column_name": "anomaly_score",
-            "description": ["Anomaly severity score (0-1)"]
-          },
-          {
-            "column_name": "workspace_id",
-            "description": ["Workspace with anomaly"]
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.cost_forecast_predictions",
-        "description": [
-          "ML-generated 30-day cost forecasts.\n",
-          "Business: Predicted daily costs with confidence intervals for budget planning."
-        ],
-        "column_configs": [
-          {
-            "column_name": "forecast_date",
-            "description": ["Date of forecast"],
-            "get_example_values": true
-          },
-          {
-            "column_name": "predicted_cost",
-            "description": ["Predicted daily cost"]
-          },
-          {
-            "column_name": "lower_bound",
-            "description": ["95% confidence interval lower bound"]
-          },
-          {
-            "column_name": "upper_bound",
-            "description": ["95% confidence interval upper bound"]
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.tag_recommendations",
-        "description": [
-          "ML-generated tag recommendations for untagged resources.\n",
-          "Business: Suggested tags based on resource patterns and historical tagging."
-        ],
-        "column_configs": [
-          {
-            "column_name": "resource_id",
-            "description": ["Resource needing tags"]
-          },
-          {
-            "column_name": "suggested_tags",
-            "description": ["Recommended tags (JSON)"]
-          },
-          {
-            "column_name": "confidence_score",
-            "description": ["Recommendation confidence (0-1)"]
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.user_cost_segments",
-        "description": [
-          "ML-generated user behavior clustering for cost attribution.\n",
-          "Business: User cost profiles and spending patterns for chargeback optimization."
-        ],
-        "column_configs": [
-          {
-            "column_name": "user_identity",
-            "description": ["User or service principal"]
-          },
-          {
-            "column_name": "cost_segment",
-            "description": ["Spending segment (high/medium/low)"]
-          },
-          {
-            "column_name": "typical_workload",
-            "description": ["Primary workload type"]
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.migration_recommendations",
-        "description": [
-          "ML-generated ALL_PURPOSE to JOBS cluster migration candidates.\n",
-          "Business: Identifies clusters that can be migrated to JOBS clusters for cost savings."
-        ],
-        "column_configs": [
-          {
-            "column_name": "cluster_id",
-            "description": ["Cluster identifier"]
-          },
-          {
-            "column_name": "potential_savings",
-            "description": ["Estimated monthly savings from migration"]
-          },
-          {
-            "column_name": "migration_risk",
-            "description": ["Risk level: low/medium/high"]
-          },
-          {
-            "column_name": "recommendation_score",
-            "description": ["Migration recommendation confidence (0-1)"]
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.budget_alert_predictions",
-        "description": [
-          "ML-generated prioritized budget alert predictions.\n",
-          "Business: Forecasted budget overruns and commitment burn rates."
-        ],
-        "column_configs": [
-          {
-            "column_name": "alert_date",
-            "description": ["Date of predicted alert"]
-          },
-          {
-            "column_name": "budget_category",
-            "description": ["Budget category (workspace/team/project)"]
-          },
-          {
-            "column_name": "overage_probability",
-            "description": ["Probability of exceeding budget"]
-          },
-          {
-            "column_name": "predicted_overage_amount",
-            "description": ["Estimated overage dollars"]
+            "description": [
+              "Period-over-period change in tag coverage"
+            ],
+            "synonyms": [
+              "tagging drift",
+              "tag trend"
+            ]
           }
         ]
       }
@@ -432,11 +442,19 @@
         "column_configs": [
           {
             "column_name": "total_cost",
-            "synonyms": ["cost", "spend", "spending"]
+            "synonyms": [
+              "cost",
+              "spend",
+              "spending"
+            ]
           },
           {
             "column_name": "total_dbu",
-            "synonyms": ["dbu", "units", "usage"]
+            "synonyms": [
+              "dbu",
+              "units",
+              "usage"
+            ]
           },
           {
             "column_name": "workspace_name",
@@ -450,11 +468,17 @@
           },
           {
             "column_name": "tag_coverage_pct",
-            "synonyms": ["tag coverage", "tagging rate"]
+            "synonyms": [
+              "tag coverage",
+              "tagging rate"
+            ]
           },
           {
             "column_name": "serverless_ratio",
-            "synonyms": ["serverless percentage", "serverless adoption"]
+            "synonyms": [
+              "serverless percentage",
+              "serverless adoption"
+            ]
           },
           {
             "column_name": "team_tag",
@@ -486,18 +510,18 @@
           "ROLE: You are a Databricks FinOps analyst.\n",
           "\n",
           "ASSET SELECTION RULES:\n",
-          "1. Current state aggregates (total cost, tag coverage) → Use cost_analytics METRIC VIEW\n",
-          "2. Trend/drift queries (is cost increasing?) → Use _drift_metrics TABLE\n",
-          "3. List queries (top N workspaces, untagged resources) → Use TVF functions\n",
-          "4. Predictions (cost forecast, anomalies) → Use ML prediction tables\n",
+          "1. Current state aggregates (total cost, tag coverage) \u2192 Use cost_analytics METRIC VIEW\n",
+          "2. Trend/drift queries (is cost increasing?) \u2192 Use _drift_metrics TABLE\n",
+          "3. List queries (top N workspaces, untagged resources) \u2192 Use TVF functions\n",
+          "4. Predictions (cost forecast, anomalies) \u2192 Use ML prediction tables\n",
           "\n",
           "PRIORITY ORDER:\n",
-          "- If user asks for a LIST → TVF (get_top_cost_contributors, get_untagged_resources)\n",
-          "- If user asks about TREND → Custom Metrics (_drift_metrics)\n",
-          "- If user asks for CURRENT VALUE → Metric View (cost_analytics)\n",
-          "- If user asks for PREDICTION → ML tables (cost_forecast_predictions, cost_anomaly_predictions)\n",
+          "- If user asks for a LIST \u2192 TVF (get_top_cost_contributors, get_untagged_resources)\n",
+          "- If user asks about TREND \u2192 Custom Metrics (_drift_metrics)\n",
+          "- If user asks for CURRENT VALUE \u2192 Metric View (cost_analytics)\n",
+          "- If user asks for PREDICTION \u2192 ML tables (cost_forecast_predictions, cost_anomaly_predictions)\n",
           "\n",
-          "⚠️ CUSTOM METRICS QUERY RULES:\n",
+          "\u26a0\ufe0f CUSTOM METRICS QUERY RULES:\n",
           "- _profile_metrics: ALWAYS include column_name=':table' AND log_type='INPUT'\n",
           "- _drift_metrics: ALWAYS include drift_type='CONSECUTIVE' AND column_name=':table'\n",
           "- For sliced analysis: Use slice_key='workspace_id', 'sku_name', 'cloud', 'is_tagged', or 'product_features_is_serverless'\n",
@@ -517,31 +541,37 @@
           "- tagged = attributed = with tags\n",
           "\n",
           "TAG GOVERNANCE:\n",
-          "- For untagged resources → use get_untagged_resources TVF\n",
-          "- For tag coverage → use tag_coverage_pct from cost_analytics\n",
+          "- For untagged resources \u2192 use get_untagged_resources TVF\n",
+          "- For tag coverage \u2192 use tag_coverage_pct from cost_analytics\n",
           "- Common tags: team, project, cost_center, environment\n",
           "\n",
           "COMMIT TRACKING:\n",
-          "- For budget monitoring → use commit_tracking metric view\n",
-          "- For budget vs actual → use get_commit_vs_actual TVF\n"
+          "- For budget monitoring \u2192 use commit_tracking metric view\n",
+          "- For budget vs actual \u2192 use get_commit_vs_actual TVF\n"
         ]
       }
     ],
     "example_question_sqls": [
       {
         "id": "d2e3f4a5b6c7789012345678901234d9",
-        "question": ["What is our total spend this month?"],
+        "question": [
+          "What is our total spend this month?"
+        ],
         "sql": [
           "SELECT \n",
           "  MEASURE(total_cost) as total_spend\n",
           "FROM ${catalog}.${gold_schema}.cost_analytics\n",
           "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())"
         ],
-        "usage_guidance": ["Use for current state total cost queries"]
+        "usage_guidance": [
+          "Use for current state total cost queries"
+        ]
       },
       {
         "id": "d2e3f4a5b6c7789012345678901234da",
-        "question": ["Show me the top 10 workspaces by cost"],
+        "question": [
+          "Show me the top 10 workspaces by cost"
+        ],
         "sql": [
           "SELECT * FROM ${catalog}.${gold_schema}.get_top_cost_contributors(\n",
           "  DATE_FORMAT(DATE_TRUNC('month', CURRENT_DATE()), 'yyyy-MM-dd'),\n",
@@ -553,46 +583,64 @@
           {
             "name": "start_date",
             "type_hint": "STRING",
-            "description": ["Start date in yyyy-MM-dd format"]
+            "description": [
+              "Start date in yyyy-MM-dd format"
+            ]
           },
           {
             "name": "end_date",
             "type_hint": "STRING",
-            "description": ["End date in yyyy-MM-dd format"]
+            "description": [
+              "End date in yyyy-MM-dd format"
+            ]
           },
           {
             "name": "top_n",
             "type_hint": "INTEGER",
-            "description": ["Number of top contributors to return"]
+            "description": [
+              "Number of top contributors to return"
+            ]
           }
         ],
-        "usage_guidance": ["Use for ranking workspaces/SKUs by cost"]
+        "usage_guidance": [
+          "Use for ranking workspaces/SKUs by cost"
+        ]
       },
       {
         "id": "d2e3f4a5b6c7789012345678901234db",
-        "question": ["What percentage of our spend is tagged?"],
+        "question": [
+          "What percentage of our spend is tagged?"
+        ],
         "sql": [
           "SELECT \n",
           "  MEASURE(tag_coverage_pct) as tag_coverage\n",
           "FROM ${catalog}.${gold_schema}.cost_analytics\n",
           "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())"
         ],
-        "usage_guidance": ["Use for tag governance KPI tracking"]
+        "usage_guidance": [
+          "Use for tag governance KPI tracking"
+        ]
       },
       {
         "id": "d2e3f4a5b6c7789012345678901234dc",
-        "question": ["Show me cost by owner"],
+        "question": [
+          "Show me cost by owner"
+        ],
         "sql": [
           "SELECT * FROM ${catalog}.${gold_schema}.get_cost_by_owner(\n",
           "  DATE_FORMAT(DATE_TRUNC('month', CURRENT_DATE()), 'yyyy-MM-dd'),\n",
           "  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')\n",
           ")"
         ],
-        "usage_guidance": ["Use for chargeback and cost attribution by owner"]
+        "usage_guidance": [
+          "Use for chargeback and cost attribution by owner"
+        ]
       },
       {
         "id": "d2e3f4a5b6c7789012345678901234dd",
-        "question": ["What is our serverless vs non-serverless spend?"],
+        "question": [
+          "What is our serverless vs non-serverless spend?"
+        ],
         "sql": [
           "SELECT \n",
           "  is_serverless,\n",
@@ -602,11 +650,15 @@
           "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())\n",
           "GROUP BY is_serverless"
         ],
-        "usage_guidance": ["Use for serverless adoption analysis"]
+        "usage_guidance": [
+          "Use for serverless adoption analysis"
+        ]
       },
       {
         "id": "d2e3f4a5b6c7789012345678901234de",
-        "question": ["Is cost increasing over time?"],
+        "question": [
+          "Is cost increasing over time?"
+        ],
         "sql": [
           "SELECT \n",
           "  window.start AS window_start,\n",
@@ -618,7 +670,9 @@
           "ORDER BY window.start DESC\n",
           "LIMIT 10"
         ],
-        "usage_guidance": ["Use for drift/trend detection queries"]
+        "usage_guidance": [
+          "Use for drift/trend detection queries"
+        ]
       }
     ],
     "sql_functions": [
@@ -698,7 +752,9 @@
           "`fact_usage`.`workspace_id` = `dim_workspace`.`workspace_id`\n",
           "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
         ],
-        "comment": ["Join usage records to workspace for workspace name"]
+        "comment": [
+          "Join usage records to workspace for workspace name"
+        ]
       },
       {
         "id": "f2a3b4c5d6e7789012345678901234f9",
@@ -714,7 +770,9 @@
           "`fact_usage`.`sku_name` = `dim_sku`.`sku_name`\n",
           "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
         ],
-        "comment": ["Join usage records to SKU for SKU details and usage unit"]
+        "comment": [
+          "Join usage records to SKU for SKU details and usage unit"
+        ]
       }
     ]
   },
@@ -722,7 +780,9 @@
     "questions": [
       {
         "id": "02a3b4c5d6e7789012345678901234c1",
-        "question": ["What is our total spend this month?"],
+        "question": [
+          "What is our total spend this month?"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -737,7 +797,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234c2",
-        "question": ["Show me the top 10 workspaces by cost"],
+        "question": [
+          "Show me the top 10 workspaces by cost"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -753,7 +815,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234c3",
-        "question": ["What percentage of our spend is tagged?"],
+        "question": [
+          "What percentage of our spend is tagged?"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -768,7 +832,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234c4",
-        "question": ["Show me cost by owner"],
+        "question": [
+          "Show me cost by owner"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -783,7 +849,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234c5",
-        "question": ["What is our serverless vs non-serverless spend?"],
+        "question": [
+          "What is our serverless vs non-serverless spend?"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -801,7 +869,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234c6",
-        "question": ["Are there any cost anomalies today?"],
+        "question": [
+          "Are there any cost anomalies today?"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -817,7 +887,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234c7",
-        "question": ["What is the cost forecast for next month?"],
+        "question": [
+          "What is the cost forecast for next month?"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -837,7 +909,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234c8",
-        "question": ["Which ALL_PURPOSE clusters could be migrated to JOBS clusters?"],
+        "question": [
+          "Which ALL_PURPOSE clusters could be migrated to JOBS clusters?"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -855,7 +929,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234c9",
-        "question": ["What is the week-over-week cost growth?"],
+        "question": [
+          "What is the week-over-week cost growth?"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -870,7 +946,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234ca",
-        "question": ["Which resources need tags?"],
+        "question": [
+          "Which resources need tags?"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -887,7 +965,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234cb",
-        "question": ["Show me cost trend by SKU for the last 30 days"],
+        "question": [
+          "Show me cost trend by SKU for the last 30 days"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -903,7 +983,9 @@
       },
       {
         "id": "02a3b4c5d6e7789012345678901234cc",
-        "question": ["What is our commit utilization?"],
+        "question": [
+          "What is our commit utilization?"
+        ],
         "answer": [
           {
             "format": "SQL",
@@ -922,4 +1004,3 @@
     ]
   }
 }
-

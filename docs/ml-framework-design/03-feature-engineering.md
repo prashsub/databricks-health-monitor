@@ -87,6 +87,45 @@ base_df = (spark.table(source)
            .select("pk1", "pk2", "features"))
 ```
 
+### Type Consistency (CRITICAL)
+
+**All numeric feature columns MUST be cast to DOUBLE in feature tables.**
+
+This ensures consistency between:
+1. **Feature Creation**: Spark DOUBLE type
+2. **Training**: Pandas float64 type  
+3. **Inference**: MLflow signature validation
+
+```python
+# ❌ WRONG: Feature table has mixed types
+# INTEGER, DECIMAL types cause schema validation errors at inference
+
+# ✅ CORRECT: Cast all numeric features to DOUBLE
+from pyspark.sql.types import IntegerType, LongType, FloatType, DecimalType
+
+def prepare_features_for_table(df: DataFrame, primary_keys: List[str]) -> DataFrame:
+    """Cast all numeric columns to DOUBLE for MLflow compatibility."""
+    for field in df.schema.fields:
+        if field.name not in primary_keys:  # Don't cast primary keys
+            if isinstance(field.dataType, (IntegerType, LongType, FloatType, DecimalType)):
+                df = df.withColumn(field.name, F.col(field.name).cast("double"))
+    return df
+```
+
+**Why This Matters:**
+- Training scripts cast to `float64` (Python equivalent of Spark DOUBLE)
+- Model signatures expect `float64` inputs
+- Inference uses native Spark types from feature tables
+- Type mismatch causes `Failed to enforce schema` errors
+
+**Type Flow:**
+```
+Feature Table (Spark)  →  Training (Pandas)  →  Model Signature  →  Inference
+     DOUBLE           →      float64        →     float64       ←    DOUBLE
+          ↓                    ↓                    ↓                  ↓
+       ✅ Compatible types throughout the pipeline!
+```
+
 ### Feature Table Schema Pattern
 
 ```python
@@ -102,6 +141,8 @@ def create_feature_table(
     """
     Create a feature table with proper constraints.
     
+    IMPORTANT: Numeric columns are cast to DOUBLE for MLflow compatibility.
+    
     Args:
         spark: SparkSession
         catalog: Unity Catalog name
@@ -111,7 +152,15 @@ def create_feature_table(
         features_df: DataFrame with features (NULLs filtered)
         description: Table description
     """
+    from pyspark.sql.types import IntegerType, LongType, FloatType, DecimalType
+    
     full_table_name = f"{catalog}.{schema}.{table_name}"
+    
+    # CRITICAL: Cast numeric columns to DOUBLE
+    for field in features_df.schema.fields:
+        if field.name not in primary_keys:
+            if isinstance(field.dataType, (IntegerType, LongType, FloatType, DecimalType)):
+                features_df = features_df.withColumn(field.name, F.col(field.name).cast("double"))
     
     # Step 1: Drop existing table
     spark.sql(f"DROP TABLE IF EXISTS {full_table_name}")

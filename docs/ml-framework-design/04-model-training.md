@@ -376,6 +376,57 @@ metrics = {
 
 #### XGBoost Classifier (Classification)
 
+> ⚠️ **CRITICAL: Label Binarization Required**
+> 
+> XGBClassifier requires **binary labels (0 or 1)**. If your label column contains 
+> continuous values (rates, ratios), you MUST binarize them first!
+
+**Common Continuous Labels That Need Binarization:**
+
+| Label Column | Type | Binarization Needed |
+|-------------|------|---------------------|
+| `failure_rate` | Continuous (0-1) | ✅ Yes → `high_failure_rate` |
+| `success_rate` | Continuous (0-1) | ✅ Yes → `high_success_rate` |
+| `spill_rate` | Continuous (0-1) | ✅ Yes → `high_spill_rate` |
+| `is_failed` | Already binary (0/1) | ❌ No |
+| `class_label` | Integer classes | ❌ No |
+
+**Label Binarization Pattern:**
+
+```python
+from pyspark.sql.functions import when, col
+
+# STEP 1: Identify continuous rate/ratio columns
+LABEL_COLUMN = "failure_rate"  # Original continuous column (0.0-1.0)
+
+# STEP 2: Create binary label BEFORE training
+training_df = training_df.withColumn(
+    "high_failure_rate",  # New binary column name
+    when(col(LABEL_COLUMN) > 0.2, 1).otherwise(0)  # Threshold binarization
+)
+
+# STEP 3: Use binary column for training
+X_train, X_test, y_train, y_test = prepare_training_data(
+    training_df, 
+    available_features, 
+    "high_failure_rate",  # Use the binary column!
+    cast_label_to="int", 
+    stratify=True
+)
+```
+
+**Standard Thresholds by Use Case:**
+
+| Use Case | Threshold | Meaning |
+|----------|-----------|---------|
+| Failure prediction | > 0.2 | High failure risk |
+| Success prediction | > 0.7 | High success likelihood |
+| SLA compliance | > 0.1 | At-risk for breach |
+| Cache efficiency | > 0.3 | Poor cache hit rate |
+| Serverless adoption | > 0.5 | Good serverless candidate |
+
+**XGBoost Classifier Configuration:**
+
 ```python
 from xgboost import XGBClassifier
 
@@ -384,13 +435,12 @@ hyperparams = {
     "max_depth": 6,
     "learning_rate": 0.1,
     "objective": "binary:logistic",
-    "eval_metric": "auc",
-    "use_label_encoder": False,
+    "eval_metric": "logloss",  # Use logloss for binary classification
     "random_state": 42
 }
 
 model = XGBClassifier(**hyperparams)
-model.fit(X_train, y_train)
+model.fit(X_train, y_train)  # y_train MUST be 0/1 values!
 
 # Metrics
 y_pred = model.predict(X_test)
