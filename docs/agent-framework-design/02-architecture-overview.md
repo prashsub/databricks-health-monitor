@@ -1,5 +1,11 @@
 # 02 - Architecture Overview
 
+> **✅ Implementation Status**: See `src/agents/orchestrator/graph.py` for the actual LangGraph implementation.
+> Key differences from this design:
+> - Memory uses Lakebase `CheckpointSaver` and `DatabricksStore` (not custom Delta tables)
+> - Worker agents use `GenieWorkerAgent` base class with placeholder Genie Space IDs
+> - Graph has simplified routing via `add_conditional_edges`
+
 ## System Architecture
 
 The Databricks Health Monitor Agent System uses a **hierarchical multi-agent architecture** with a custom LangGraph orchestrator supervising domain-specific worker agents. All data access flows through Genie Spaces.
@@ -173,41 +179,27 @@ The orchestrator is the brain of the system, implemented as a LangGraph state ma
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ReceiveQuery
-    ReceiveQuery --> LoadContext: Retrieve memory
-    LoadContext --> ClassifyIntent: Intent classification
-    ClassifyIntent --> SingleDomain: 1 domain detected
-    ClassifyIntent --> MultiDomain: 2+ domains detected
-    
-    SingleDomain --> RouteToWorker
-    MultiDomain --> ParallelExecution
-    
-    RouteToWorker --> CostAgent: domain=cost
-    RouteToWorker --> SecurityAgent: domain=security
-    RouteToWorker --> PerformanceAgent: domain=performance
-    RouteToWorker --> ReliabilityAgent: domain=reliability
-    RouteToWorker --> QualityAgent: domain=quality
-    
-    ParallelExecution --> CostAgent
-    ParallelExecution --> SecurityAgent
-    ParallelExecution --> PerformanceAgent
-    ParallelExecution --> ReliabilityAgent
-    ParallelExecution --> QualityAgent
-    
-    CostAgent --> CollectResponses
-    SecurityAgent --> CollectResponses
-    PerformanceAgent --> CollectResponses
-    ReliabilityAgent --> CollectResponses
-    QualityAgent --> CollectResponses
-    
-    CollectResponses --> Synthesize
-    Synthesize --> CheckUtility: Need utility tools?
-    CheckUtility --> UseUtility: Yes
-    CheckUtility --> SaveMemory: No
-    UseUtility --> SaveMemory
-    SaveMemory --> ReturnResponse
-    ReturnResponse --> [*]
+    [*] --> LoadContext: Start
+    LoadContext --> ClassifyIntent: Load user preferences
+    ClassifyIntent --> CostAgent: domain=cost
+    ClassifyIntent --> SecurityAgent: domain=security
+    ClassifyIntent --> PerformanceAgent: domain=performance
+    ClassifyIntent --> ReliabilityAgent: domain=reliability
+    ClassifyIntent --> QualityAgent: domain=quality
+    ClassifyIntent --> ParallelAgents: multi-domain
+
+    CostAgent --> Synthesize
+    SecurityAgent --> Synthesize
+    PerformanceAgent --> Synthesize
+    ReliabilityAgent --> Synthesize
+    QualityAgent --> Synthesize
+    ParallelAgents --> Synthesize
+
+    Synthesize --> SaveContext: Combine responses
+    SaveContext --> [*]: Return
 ```
+
+> **Implementation Note**: The actual implementation in `src/agents/orchestrator/graph.py` uses `add_conditional_edges` for routing and does not have separate `RouteToWorker` or `CollectResponses` nodes.
 
 ### Worker Agent Design
 

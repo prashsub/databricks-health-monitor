@@ -1,5 +1,13 @@
 # 07 - Memory Management
 
+> **✅ Implementation Status**: See `src/agents/memory/` for the actual implementation.
+>
+> **IMPORTANT**: The actual implementation uses official Databricks Lakebase primitives:
+> - **Short-term**: `CheckpointSaver` from `databricks_langchain` (NOT custom Delta tables)
+> - **Long-term**: `DatabricksStore` from `databricks_langchain` with vector embeddings
+>
+> This provides automatic schema management, TTL handling, and native LangGraph integration.
+
 ## Overview
 
 The agent system uses **Lakebase** for memory management, providing both short-term conversation context and long-term user preferences. Lakebase is Databricks' native memory solution optimized for AI agents.
@@ -596,6 +604,79 @@ def cleanup_memory_job():
 
 # Schedule this as a daily job in Asset Bundles
 ```
+
+## Actual Implementation
+
+The actual implementation uses the official Databricks Lakebase primitives instead of custom Delta tables. This approach was chosen because:
+
+1. **Automatic schema management** - No manual DDL required
+2. **Built-in TTL handling** - Lakebase manages expiration
+3. **Native LangGraph integration** - `CheckpointSaver` works directly with `graph.compile()`
+4. **Vector search** - `DatabricksStore` provides semantic retrieval
+
+### Short-Term Memory (CheckpointSaver)
+
+```python
+# src/agents/memory/short_term.py (actual implementation)
+from databricks_langchain import CheckpointSaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
+
+class ShortTermMemory:
+    """Short-term memory using Lakebase CheckpointSaver."""
+
+    def __init__(self, instance_name: Optional[str] = None):
+        self.instance_name = instance_name or settings.lakebase_instance_name
+
+    @contextmanager
+    def get_checkpointer(self) -> Generator[BaseCheckpointSaver, None, None]:
+        """Get checkpoint saver for LangGraph compilation."""
+        with CheckpointSaver(instance_name=self.instance_name) as checkpointer:
+            yield checkpointer
+
+# Usage with LangGraph
+with get_checkpoint_saver() as checkpointer:
+    graph = workflow.compile(checkpointer=checkpointer)
+    config = {"configurable": {"thread_id": thread_id}}
+    result = graph.invoke(inputs, config)
+```
+
+### Long-Term Memory (DatabricksStore)
+
+```python
+# src/agents/memory/long_term.py (actual implementation)
+from databricks_langchain import DatabricksStore
+
+class LongTermMemory:
+    """Long-term memory using DatabricksStore with vector embeddings."""
+
+    def __init__(
+        self,
+        instance_name: Optional[str] = None,
+        embedding_endpoint: str = "databricks-gte-large-en",
+        embedding_dims: int = 1024,
+    ):
+        self.instance_name = instance_name or settings.lakebase_instance_name
+        self._store = DatabricksStore(
+            instance_name=self.instance_name,
+            embedding_endpoint=embedding_endpoint,
+            embedding_dims=embedding_dims,
+        )
+
+    def save_memory(self, user_id: str, memory_key: str, memory_data: Dict):
+        """Save user memory with vector embedding."""
+        namespace = ("user_memories", user_id)
+        self._store.put(namespace, memory_key, memory_data)
+
+    def search_memories(self, user_id: str, query: str, limit: int = 5):
+        """Semantic search over user memories."""
+        namespace = ("user_memories", user_id)
+        return self._store.search(namespace, query=query, limit=limit)
+```
+
+### References
+
+- [Databricks Short-term Memory Agent (Lakebase)](https://docs.databricks.com/aws/en/notebooks/source/generative-ai/short-term-memory-agent-lakebase.html)
+- [Databricks Long-term Memory Agent (Lakebase)](https://docs.databricks.com/aws/en/notebooks/source/generative-ai/long-term-memory-agent-lakebase.html)
 
 ## Next Steps
 

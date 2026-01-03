@@ -380,6 +380,38 @@ def deploy_genie_space(
 
 # COMMAND ----------
 
+def validate_json_export(json_file: str) -> bool:
+    """
+    Pre-deployment validation of JSON export file.
+    
+    Args:
+        json_file: Path to JSON export file
+    
+    Returns:
+        True if validation passes, False otherwise
+    """
+    import sys
+    import importlib.util
+    
+    # Import validation module
+    validator_path = os.path.join(os.path.dirname(json_file), "validate_genie_space.py")
+    
+    if not os.path.exists(validator_path):
+        print(f"⚠️  Warning: Validator not found at {validator_path}, skipping validation")
+        return True
+    
+    # Load validator module
+    spec = importlib.util.spec_from_file_location("validator", validator_path)
+    validator_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator_module)
+    
+    # Run validation
+    validator = validator_module.GenieSpaceValidator(json_file)
+    passed = validator.validate()
+    
+    return passed
+
+
 def main():
     """Main deployment function."""
     
@@ -415,6 +447,13 @@ def main():
     for json_file in json_files:
         try:
             print(f"\nProcessing: {json_file}")
+            
+            # Pre-deployment validation
+            print(f"Running pre-deployment validation...")
+            if not validate_json_export(json_file):
+                raise ValueError(f"Validation failed for {json_file}")
+            print(f"✅ Validation passed")
+            
             space_id = deploy_genie_space(
                 json_file=json_file,
                 catalog=catalog,

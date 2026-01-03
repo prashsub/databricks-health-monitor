@@ -97,124 +97,6 @@
   "data_sources": {
     "tables": [
       {
-        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
-        "description": [
-          "Fact table capturing job run execution metrics with hourly slicing.\n",
-          "Business: Primary table for job performance monitoring - tracks run duration, status,\n",
-          "termination reasons, and timing. Enables SLA tracking, failure analysis, and job\n",
-          "performance trending."
-        ],
-        "column_configs": [
-          {
-            "column_name": "run_date",
-            "description": [
-              "Calendar date of job run"
-            ],
-            "get_example_values": true
-          },
-          {
-            "column_name": "job_id",
-            "description": [
-              "Job identifier within workspace"
-            ],
-            "synonyms": [
-              "job",
-              "workflow"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "run_id",
-            "description": [
-              "Unique run identifier for this execution"
-            ],
-            "synonyms": [
-              "execution id",
-              "run identifier"
-            ]
-          },
-          {
-            "column_name": "result_state",
-            "description": [
-              "Job result: SUCCESS, FAILED, ERROR, TIMED_OUT, CANCELLED"
-            ],
-            "synonyms": [
-              "status",
-              "result",
-              "outcome"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "termination_code",
-            "description": [
-              "Detailed termination reason code"
-            ],
-            "synonyms": [
-              "error code",
-              "failure reason",
-              "exit code"
-            ],
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "trigger_type",
-            "description": [
-              "Type of trigger: PERIODIC, ONE_TIME, RETRY, FILE_ARRIVAL, TABLE"
-            ],
-            "synonyms": [
-              "trigger",
-              "schedule type"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "run_duration_seconds",
-            "description": [
-              "Total run duration in seconds"
-            ],
-            "synonyms": [
-              "duration",
-              "runtime"
-            ]
-          },
-          {
-            "column_name": "run_duration_minutes",
-            "description": [
-              "Total run duration in minutes"
-            ],
-            "synonyms": [
-              "duration minutes",
-              "runtime minutes"
-            ]
-          },
-          {
-            "column_name": "is_success",
-            "description": [
-              "Boolean flag: TRUE if job completed successfully"
-            ],
-            "synonyms": [
-              "successful",
-              "passed"
-            ]
-          },
-          {
-            "column_name": "workspace_id",
-            "description": [
-              "Workspace identifier where job ran"
-            ],
-            "synonyms": [
-              "workspace",
-              "environment"
-            ],
-            "build_value_dictionary": true
-          }
-        ]
-      },
-      {
         "identifier": "${catalog}.${gold_schema}.dim_job",
         "description": [
           "Dimension table containing job definitions and configurations.\n",
@@ -222,6 +104,16 @@
           "cluster settings, notifications, and tags. Essential for job governance."
         ],
         "column_configs": [
+          {
+            "column_name": "creator_id",
+            "description": [
+              "ID of the principal who created the job"
+            ],
+            "synonyms": [
+              "owner",
+              "creator"
+            ]
+          },
           {
             "column_name": "job_id",
             "description": [
@@ -239,16 +131,6 @@
             ],
             "get_example_values": true,
             "build_value_dictionary": true
-          },
-          {
-            "column_name": "creator_id",
-            "description": [
-              "ID of the principal who created the job"
-            ],
-            "synonyms": [
-              "owner",
-              "creator"
-            ]
           },
           {
             "column_name": "run_as",
@@ -300,6 +182,172 @@
         ]
       },
       {
+        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
+        "description": [
+          "Fact table capturing job run execution metrics with hourly slicing.\n",
+          "Business: Primary table for job performance monitoring - tracks run duration, status,\n",
+          "termination reasons, and timing. Enables SLA tracking, failure analysis, and job\n",
+          "performance trending."
+        ],
+        "column_configs": [
+          {
+            "column_name": "is_success",
+            "description": [
+              "Boolean flag: TRUE if job completed successfully"
+            ],
+            "synonyms": [
+              "successful",
+              "passed"
+            ]
+          },
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier within workspace"
+            ],
+            "synonyms": [
+              "job",
+              "workflow"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "result_state",
+            "description": [
+              "Job result: SUCCESS, FAILED, ERROR, TIMED_OUT, CANCELLED"
+            ],
+            "synonyms": [
+              "status",
+              "result",
+              "outcome"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Calendar date of job run"
+            ],
+            "get_example_values": true
+          },
+          {
+            "column_name": "run_duration_minutes",
+            "description": [
+              "Total run duration in minutes"
+            ],
+            "synonyms": [
+              "duration minutes",
+              "runtime minutes"
+            ]
+          },
+          {
+            "column_name": "run_duration_seconds",
+            "description": [
+              "Total run duration in seconds"
+            ],
+            "synonyms": [
+              "duration",
+              "runtime"
+            ]
+          },
+          {
+            "column_name": "run_id",
+            "description": [
+              "Unique run identifier for this execution"
+            ],
+            "synonyms": [
+              "execution id",
+              "run identifier"
+            ]
+          },
+          {
+            "column_name": "termination_code",
+            "description": [
+              "Detailed termination reason code"
+            ],
+            "synonyms": [
+              "error code",
+              "failure reason",
+              "exit code"
+            ],
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "trigger_type",
+            "description": [
+              "Type of trigger: PERIODIC, ONE_TIME, RETRY, FILE_ARRIVAL, TABLE"
+            ],
+            "synonyms": [
+              "trigger",
+              "schedule type"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Workspace identifier where job ran"
+            ],
+            "synonyms": [
+              "workspace",
+              "environment"
+            ],
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics",
+        "description": [
+          "Lakehouse Monitoring drift metrics for reliability trend detection.\n",
+          "Contains drift metrics: success_rate_drift, duration_drift.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filter: drift_type='CONSECUTIVE', column_name=':table'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for drift metrics"
+            ]
+          },
+          {
+            "column_name": "drift_type",
+            "description": [
+              "Drift type - use 'CONSECUTIVE' for period comparison"
+            ]
+          },
+          {
+            "column_name": "duration_drift",
+            "description": [
+              "Period-over-period change in duration"
+            ],
+            "synonyms": [
+              "performance drift",
+              "duration trend"
+            ]
+          },
+          {
+            "column_name": "success_rate_drift",
+            "description": [
+              "Period-over-period change in success rate"
+            ],
+            "synonyms": [
+              "reliability drift",
+              "success trend"
+            ]
+          },
+          {
+            "column_name": "window",
+            "description": [
+              "Time window for drift calculation"
+            ]
+          }
+        ]
+      },
+      {
         "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics",
         "description": [
           "Lakehouse Monitoring profile metrics for job reliability analysis.\n",
@@ -308,21 +356,33 @@
         ],
         "column_configs": [
           {
-            "column_name": "window",
-            "description": [
-              "Time window for aggregation (struct with start/end)"
-            ]
-          },
-          {
             "column_name": "column_name",
             "description": [
               "Column name - use ':table' for custom metrics"
             ]
           },
           {
+            "column_name": "duration_cv",
+            "description": [
+              "Custom metric: Duration coefficient of variation"
+            ]
+          },
+          {
+            "column_name": "failure_count",
+            "description": [
+              "Custom metric: Number of failed runs"
+            ]
+          },
+          {
             "column_name": "log_type",
             "description": [
               "Log type - use 'INPUT' for monitoring queries"
+            ]
+          },
+          {
+            "column_name": "p90_duration",
+            "description": [
+              "Custom metric: 90th percentile duration"
             ]
           },
           {
@@ -348,69 +408,9 @@
             ]
           },
           {
-            "column_name": "failure_count",
-            "description": [
-              "Custom metric: Number of failed runs"
-            ]
-          },
-          {
-            "column_name": "p90_duration",
-            "description": [
-              "Custom metric: 90th percentile duration"
-            ]
-          },
-          {
-            "column_name": "duration_cv",
-            "description": [
-              "Custom metric: Duration coefficient of variation"
-            ]
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics",
-        "description": [
-          "Lakehouse Monitoring drift metrics for reliability trend detection.\n",
-          "Contains drift metrics: success_rate_drift, duration_drift.\n",
-          "\u26a0\ufe0f CRITICAL: Always include filter: drift_type='CONSECUTIVE', column_name=':table'"
-        ],
-        "column_configs": [
-          {
             "column_name": "window",
             "description": [
-              "Time window for drift calculation"
-            ]
-          },
-          {
-            "column_name": "drift_type",
-            "description": [
-              "Drift type - use 'CONSECUTIVE' for period comparison"
-            ]
-          },
-          {
-            "column_name": "column_name",
-            "description": [
-              "Column name - use ':table' for drift metrics"
-            ]
-          },
-          {
-            "column_name": "success_rate_drift",
-            "description": [
-              "Period-over-period change in success rate"
-            ],
-            "synonyms": [
-              "reliability drift",
-              "success trend"
-            ]
-          },
-          {
-            "column_name": "duration_drift",
-            "description": [
-              "Period-over-period change in duration"
-            ],
-            "synonyms": [
-              "performance drift",
-              "duration trend"
+              "Time window for aggregation (struct with start/end)"
             ]
           }
         ]

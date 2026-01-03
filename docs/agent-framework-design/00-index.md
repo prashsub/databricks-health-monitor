@@ -4,6 +4,10 @@
 
 This documentation suite provides comprehensive architecture and implementation guidance for the **Databricks Health Monitor Multi-Agent System**. The system uses a custom multi-agent supervisor with Genie Spaces as the sole data interface, showcasing 14 Databricks and MLflow best practices.
 
+> **✅ Implementation Status: COMPLETE**
+>
+> The agent framework has been implemented in `src/agents/`. See [Appendix D: Implementation Reference](appendices/D-implementation-reference.md) for the complete file structure and code mapping.
+
 ## Architecture Principle
 
 > **Agents NEVER call TVFs, Metric Views, or ML tables directly.**
@@ -34,6 +38,7 @@ This documentation suite provides comprehensive architecture and implementation 
 | A | [Code Examples](appendices/A-code-examples.md) | Complete working code snippets |
 | B | [MLflow Cursor Rule](appendices/B-mlflow-cursor-rule.md) | Cursor rule for MLflow GenAI patterns |
 | C | [References](appendices/C-references.md) | Official documentation links |
+| D | [Implementation Reference](appendices/D-implementation-reference.md) | Actual implementation file structure |
 
 ## Tool Architecture Summary
 

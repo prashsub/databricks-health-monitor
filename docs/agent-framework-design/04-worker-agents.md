@@ -1,5 +1,12 @@
 # 04 - Worker Agents
 
+> **✅ Implementation Status**: See `src/agents/workers/` for the actual implementation.
+> Key differences from this design:
+> - Workers inherit from `GenieWorkerAgent` base class (not `WorkerAgent`)
+> - No `format_response` method - Genie responses used directly
+> - Genie Space IDs configured via environment variables with placeholders
+> - Simpler `enhance_query` pattern
+
 ## Overview
 
 Worker agents are domain specialists that receive queries from the orchestrator and query their assigned Genie Space. Each worker follows a consistent interface but specializes in a specific domain.
@@ -661,6 +668,52 @@ class TestCostWorkerAgent:
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 ```
+
+## Actual Implementation
+
+The actual implementation uses a simplified pattern based on `GenieWorkerAgent`:
+
+```python
+# src/agents/workers/base.py (actual implementation)
+class GenieWorkerAgent(ABC):
+    """Base class for Genie-backed worker agents."""
+
+    def __init__(self, domain: str, genie_space_id: str):
+        self.domain = domain
+        self.genie_space_id = genie_space_id
+        self._client: Optional[WorkspaceClient] = None
+        self._conversation_id: Optional[str] = None
+
+    @abstractmethod
+    def enhance_query(self, query: str, context: Dict) -> str:
+        """Enhance query with domain-specific context."""
+        pass
+
+    @mlflow.trace(span_type="AGENT")
+    def query(self, question: str, context: Optional[Dict] = None) -> Dict:
+        """Query the Genie Space."""
+        enhanced = self.enhance_query(question, context or {})
+        # ... Genie API call implementation
+
+# src/agents/workers/cost_agent.py (actual implementation)
+class CostWorkerAgent(GenieWorkerAgent):
+    GENIE_SPACE_ID_PLACEHOLDER = "COST_GENIE_SPACE_ID"
+
+    def __init__(self, genie_space_id: str = None):
+        super().__init__(
+            domain="cost",
+            genie_space_id=genie_space_id or settings.cost_genie_space_id,
+        )
+
+    def enhance_query(self, query: str, context: Dict) -> str:
+        enhanced = query
+        prefs = context.get("preferences", {})
+        if prefs.get("cost_threshold"):
+            enhanced += f" Flag costs exceeding ${prefs['cost_threshold']}."
+        return enhanced
+```
+
+See `src/agents/workers/` for the complete implementation.
 
 ## Next Steps
 

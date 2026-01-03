@@ -97,148 +97,30 @@
   "data_sources": {
     "tables": [
       {
-        "identifier": "${catalog}.${gold_schema}.fact_usage",
+        "identifier": "${catalog}.${gold_schema}.dim_sku",
         "description": [
-          "Fact table tracking all billable Databricks usage across your account.\n",
-          "Business: Primary source for cost monitoring and chargeback - captures DBU consumption,\n",
-          "compute hours, storage usage, and API calls. Enables cost optimization by identifying\n",
-          "expensive workloads and idle resources."
+          "Dimension table containing all unique Databricks SKU identifiers.\n",
+          "Business: Master reference for product/service pricing categories."
         ],
         "column_configs": [
           {
-            "column_name": "usage_date",
+            "column_name": "cloud",
             "description": [
-              "Calendar date of usage for time-based filtering"
-            ],
-            "synonyms": [
-              "date",
-              "day",
-              "billing date"
-            ],
-            "get_example_values": true
-          },
-          {
-            "column_name": "workspace_id",
-            "description": [
-              "Workspace identifier for workspace-level cost analysis"
-            ],
-            "synonyms": [
-              "workspace",
-              "environment"
-            ],
-            "build_value_dictionary": true
+              "Cloud provider for this SKU"
+            ]
           },
           {
             "column_name": "sku_name",
             "description": [
-              "Product SKU category (JOBS_COMPUTE, SQL, etc.)"
-            ],
-            "synonyms": [
-              "sku",
-              "product",
-              "service"
+              "SKU identifier determining pricing rate"
             ],
             "get_example_values": true,
             "build_value_dictionary": true
           },
           {
-            "column_name": "cloud",
+            "column_name": "usage_unit",
             "description": [
-              "Cloud provider: AWS, AZURE, or GCP"
-            ],
-            "synonyms": [
-              "cloud provider",
-              "provider"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "billing_origin_product",
-            "description": [
-              "Product that originated the usage: JOBS, SQL, DLT, etc."
-            ],
-            "synonyms": [
-              "product",
-              "origin",
-              "billing product"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "usage_quantity",
-            "description": [
-              "DBUs or other units consumed"
-            ]
-          },
-          {
-            "column_name": "list_cost",
-            "description": [
-              "Calculated cost: usage_quantity * list_price"
-            ],
-            "synonyms": [
-              "cost",
-              "spend",
-              "dollars"
-            ]
-          },
-          {
-            "column_name": "is_tagged",
-            "description": [
-              "Boolean: true if custom tags are present"
-            ],
-            "synonyms": [
-              "tagged",
-              "has tags"
-            ]
-          },
-          {
-            "column_name": "custom_tags",
-            "description": [
-              "Map of custom tags (team, project, cost_center, etc.)"
-            ]
-          },
-          {
-            "column_name": "product_features_is_serverless",
-            "description": [
-              "Boolean: true if serverless compute"
-            ],
-            "synonyms": [
-              "serverless",
-              "serverless compute"
-            ],
-            "get_example_values": true
-          },
-          {
-            "column_name": "identity_metadata_run_as",
-            "description": [
-              "User or service principal who ran the workload"
-            ],
-            "synonyms": [
-              "owner",
-              "user",
-              "run by"
-            ]
-          },
-          {
-            "column_name": "identity_metadata_owned_by",
-            "description": [
-              "Resource owner for chargeback"
-            ],
-            "synonyms": [
-              "owner",
-              "resource owner"
-            ]
-          },
-          {
-            "column_name": "usage_metadata_job_name",
-            "description": [
-              "Job name for job-level cost attribution"
-            ],
-            "synonyms": [
-              "job",
-              "workflow"
+              "Measurement unit: DBU, GB, API calls, tokens"
             ]
           }
         ]
@@ -271,16 +153,23 @@
         ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.dim_sku",
+        "identifier": "${catalog}.${gold_schema}.fact_usage",
         "description": [
-          "Dimension table containing all unique Databricks SKU identifiers.\n",
-          "Business: Master reference for product/service pricing categories."
+          "Fact table tracking all billable Databricks usage across your account.\n",
+          "Business: Primary source for cost monitoring and chargeback - captures DBU consumption,\n",
+          "compute hours, storage usage, and API calls. Enables cost optimization by identifying\n",
+          "expensive workloads and idle resources."
         ],
         "column_configs": [
           {
-            "column_name": "sku_name",
+            "column_name": "billing_origin_product",
             "description": [
-              "SKU identifier determining pricing rate"
+              "Product that originated the usage: JOBS, SQL, DLT, etc."
+            ],
+            "synonyms": [
+              "product",
+              "origin",
+              "billing product"
             ],
             "get_example_values": true,
             "build_value_dictionary": true
@@ -288,85 +177,125 @@
           {
             "column_name": "cloud",
             "description": [
-              "Cloud provider for this SKU"
+              "Cloud provider: AWS, AZURE, or GCP"
+            ],
+            "synonyms": [
+              "cloud provider",
+              "provider"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "custom_tags",
+            "description": [
+              "Map of custom tags (team, project, cost_center, etc.)"
             ]
           },
           {
-            "column_name": "usage_unit",
+            "column_name": "identity_metadata_owned_by",
             "description": [
-              "Measurement unit: DBU, GB, API calls, tokens"
-            ]
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics",
-        "description": [
-          "Lakehouse Monitoring profile metrics for cost analysis.\n",
-          "Contains custom metrics: total_daily_cost, tag_coverage_pct, serverless_ratio.\n",
-          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
-        ],
-        "column_configs": [
-          {
-            "column_name": "window",
-            "description": [
-              "Time window for aggregation (struct with start/end)"
+              "Resource owner for chargeback"
+            ],
+            "synonyms": [
+              "owner",
+              "resource owner"
             ]
           },
           {
-            "column_name": "column_name",
+            "column_name": "identity_metadata_run_as",
             "description": [
-              "Column name - use ':table' for custom metrics"
+              "User or service principal who ran the workload"
+            ],
+            "synonyms": [
+              "owner",
+              "user",
+              "run by"
             ]
           },
           {
-            "column_name": "log_type",
+            "column_name": "is_tagged",
             "description": [
-              "Log type - use 'INPUT' for monitoring queries"
+              "Boolean: true if custom tags are present"
+            ],
+            "synonyms": [
+              "tagged",
+              "has tags"
             ]
           },
           {
-            "column_name": "slice_key",
+            "column_name": "list_cost",
             "description": [
-              "Slicing dimension: workspace_id, sku_name, cloud, is_tagged, product_features_is_serverless"
-            ]
-          },
-          {
-            "column_name": "slice_value",
-            "description": [
-              "Value of the slicing dimension"
-            ]
-          },
-          {
-            "column_name": "total_daily_cost",
-            "description": [
-              "Custom metric: Total daily cost"
+              "Calculated cost: usage_quantity * list_price"
             ],
             "synonyms": [
               "cost",
               "spend",
-              "daily spend"
+              "dollars"
             ]
           },
           {
-            "column_name": "tag_coverage_pct",
+            "column_name": "product_features_is_serverless",
             "description": [
-              "Custom metric: Percentage of cost with tags"
+              "Boolean: true if serverless compute"
             ],
             "synonyms": [
-              "tag coverage",
-              "tagging rate"
+              "serverless",
+              "serverless compute"
+            ],
+            "get_example_values": true
+          },
+          {
+            "column_name": "sku_name",
+            "description": [
+              "Product SKU category (JOBS_COMPUTE, SQL, etc.)"
+            ],
+            "synonyms": [
+              "sku",
+              "product",
+              "service"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "usage_date",
+            "description": [
+              "Calendar date of usage for time-based filtering"
+            ],
+            "synonyms": [
+              "date",
+              "day",
+              "billing date"
+            ],
+            "get_example_values": true
+          },
+          {
+            "column_name": "usage_metadata_job_name",
+            "description": [
+              "Job name for job-level cost attribution"
+            ],
+            "synonyms": [
+              "job",
+              "workflow"
             ]
           },
           {
-            "column_name": "serverless_ratio",
+            "column_name": "usage_quantity",
             "description": [
-              "Custom metric: Serverless vs classic ratio"
+              "DBUs or other units consumed"
+            ]
+          },
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Workspace identifier for workspace-level cost analysis"
             ],
             "synonyms": [
-              "serverless percentage",
-              "serverless adoption"
-            ]
+              "workspace",
+              "environment"
+            ],
+            "build_value_dictionary": true
           }
         ]
       },
@@ -378,18 +307,6 @@
           "\u26a0\ufe0f CRITICAL: Always include filter: drift_type='CONSECUTIVE', column_name=':table'"
         ],
         "column_configs": [
-          {
-            "column_name": "window",
-            "description": [
-              "Time window for drift calculation"
-            ]
-          },
-          {
-            "column_name": "drift_type",
-            "description": [
-              "Drift type - use 'CONSECUTIVE' for period comparison"
-            ]
-          },
           {
             "column_name": "column_name",
             "description": [
@@ -418,6 +335,12 @@
             ]
           },
           {
+            "column_name": "drift_type",
+            "description": [
+              "Drift type - use 'CONSECUTIVE' for period comparison"
+            ]
+          },
+          {
             "column_name": "tag_coverage_drift",
             "description": [
               "Period-over-period change in tag coverage"
@@ -426,11 +349,96 @@
               "tagging drift",
               "tag trend"
             ]
+          },
+          {
+            "column_name": "window",
+            "description": [
+              "Time window for drift calculation"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics",
+        "description": [
+          "Lakehouse Monitoring profile metrics for cost analysis.\n",
+          "Contains custom metrics: total_daily_cost, tag_coverage_pct, serverless_ratio.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for custom metrics"
+            ]
+          },
+          {
+            "column_name": "log_type",
+            "description": [
+              "Log type - use 'INPUT' for monitoring queries"
+            ]
+          },
+          {
+            "column_name": "serverless_ratio",
+            "description": [
+              "Custom metric: Serverless vs classic ratio"
+            ],
+            "synonyms": [
+              "serverless percentage",
+              "serverless adoption"
+            ]
+          },
+          {
+            "column_name": "slice_key",
+            "description": [
+              "Slicing dimension: workspace_id, sku_name, cloud, is_tagged, product_features_is_serverless"
+            ]
+          },
+          {
+            "column_name": "slice_value",
+            "description": [
+              "Value of the slicing dimension"
+            ]
+          },
+          {
+            "column_name": "tag_coverage_pct",
+            "description": [
+              "Custom metric: Percentage of cost with tags"
+            ],
+            "synonyms": [
+              "tag coverage",
+              "tagging rate"
+            ]
+          },
+          {
+            "column_name": "total_daily_cost",
+            "description": [
+              "Custom metric: Total daily cost"
+            ],
+            "synonyms": [
+              "cost",
+              "spend",
+              "daily spend"
+            ]
+          },
+          {
+            "column_name": "window",
+            "description": [
+              "Time window for aggregation (struct with start/end)"
+            ]
           }
         ]
       }
     ],
     "metric_views": [
+      {
+        "identifier": "${catalog}.${gold_schema}.commit_tracking",
+        "description": [
+          "Contract and commitment monitoring.\n",
+          "PURPOSE: Track budget vs actual spending and commitment burn rates.\n",
+          "BEST FOR: Commit utilization | Budget tracking | Remaining budget | Burn rate"
+        ]
+      },
       {
         "identifier": "${catalog}.${gold_schema}.cost_analytics",
         "description": [
@@ -440,6 +448,35 @@
           "KEY MEASURES: total_cost, total_dbu, tag_coverage_pct, serverless_ratio, wow_growth_pct, mom_growth_pct"
         ],
         "column_configs": [
+          {
+            "column_name": "project_tag",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "serverless_ratio",
+            "synonyms": [
+              "serverless percentage",
+              "serverless adoption"
+            ]
+          },
+          {
+            "column_name": "sku_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "tag_coverage_pct",
+            "synonyms": [
+              "tag coverage",
+              "tagging rate"
+            ]
+          },
+          {
+            "column_name": "team_tag",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
           {
             "column_name": "total_cost",
             "synonyms": [
@@ -460,44 +497,7 @@
             "column_name": "workspace_name",
             "get_example_values": true,
             "build_value_dictionary": true
-          },
-          {
-            "column_name": "sku_name",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "tag_coverage_pct",
-            "synonyms": [
-              "tag coverage",
-              "tagging rate"
-            ]
-          },
-          {
-            "column_name": "serverless_ratio",
-            "synonyms": [
-              "serverless percentage",
-              "serverless adoption"
-            ]
-          },
-          {
-            "column_name": "team_tag",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "project_tag",
-            "get_example_values": true,
-            "build_value_dictionary": true
           }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.commit_tracking",
-        "description": [
-          "Contract and commitment monitoring.\n",
-          "PURPOSE: Track budget vs actual spending and commitment burn rates.\n",
-          "BEST FOR: Commit utilization | Budget tracking | Remaining budget | Burn rate"
         ]
       }
     ]

@@ -76,27 +76,70 @@ class GenieSpaceValidator:
         table_ids = []
         
         if 'tables' in self.data.get('data_sources', {}):
+            # Check if tables are sorted by identifier
+            identifiers = []
             for i, table in enumerate(self.data['data_sources']['tables']):
                 if 'identifier' not in table:
                     self.errors.append(f"Table {i} missing 'identifier'")
                 else:
                     identifier = table['identifier']
+                    identifiers.append(identifier)
                     table_ids.append(identifier)
                     
                     # Validate 3-part name pattern
                     if not self._is_valid_identifier(identifier):
                         self.errors.append(f"Invalid table identifier: {identifier}")
+            
+            # Check sorting
+            sorted_identifiers = sorted(identifiers)
+            if identifiers != sorted_identifiers:
+                self.errors.append(
+                    f"Tables must be sorted by identifier. "
+                    f"Expected order: {', '.join(sorted_identifiers[:3])}..."
+                )
+            
+            # Check column_configs sorting within each table
+            for i, table in enumerate(self.data['data_sources']['tables']):
+                if 'column_configs' in table:
+                    column_names = [c['column_name'] for c in table['column_configs']]
+                    sorted_column_names = sorted(column_names)
+                    if column_names != sorted_column_names:
+                        self.errors.append(
+                            f"Table {i} ({table.get('identifier', 'unknown')}): "
+                            f"column_configs must be sorted by column_name"
+                        )
         
         if 'metric_views' in self.data.get('data_sources', {}):
+            # Collect metric view identifiers
+            mv_identifiers = []
             for i, mv in enumerate(self.data['data_sources']['metric_views']):
                 if 'identifier' not in mv:
                     self.errors.append(f"Metric view {i} missing 'identifier'")
                 else:
                     identifier = mv['identifier']
+                    mv_identifiers.append(identifier)
                     table_ids.append(identifier)
                     
                     if not self._is_valid_identifier(identifier):
                         self.errors.append(f"Invalid metric view identifier: {identifier}")
+                    
+                    # Check column_configs sorting within metric view
+                    if 'column_configs' in mv:
+                        column_names = [c['column_name'] for c in mv['column_configs']]
+                        sorted_column_names = sorted(column_names)
+                        if column_names != sorted_column_names:
+                            self.errors.append(
+                                f"Metric view {i} ({identifier}): "
+                                f"column_configs must be sorted by column_name"
+                            )
+            
+            # Check metric_views sorting
+            sorted_mv_identifiers = sorted(mv_identifiers)
+            if mv_identifiers != sorted_mv_identifiers:
+                self.errors.append(
+                    f"Metric views must be sorted by identifier. "
+                    f"Expected order: {', '.join(sorted_mv_identifiers[:3])}..."
+                )
         
         return table_ids
     
