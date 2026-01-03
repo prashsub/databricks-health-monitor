@@ -3854,6 +3854,795 @@
           }
         }
       ]
+    },
+    {
+      "name": "reliability_lakehouse_monitoring",
+      "displayName": "Lakehouse Monitoring - fact_job_run_timeline",
+      "layout": [
+        {
+          "widget": {
+            "name": "reliability_time_start_filter",
+            "queries": [
+              {
+                "name": "param_ds_monitor_reliability_aggregate_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_derived_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_drift_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_drift",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_slice_keys_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_slice_keys",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_slice_values_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_reliability_aggregate_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_reliability_derived_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_reliability_drift_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_reliability_slice_keys_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_reliability_slice_values_time_start"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Start Time:"
+              },
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "reliability_time_end_filter",
+            "queries": [
+              {
+                "name": "param_ds_monitor_reliability_aggregate_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_derived_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_drift_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_drift",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_slice_keys_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_slice_keys",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_slice_values_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_reliability_aggregate_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_reliability_derived_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_reliability_drift_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_reliability_slice_keys_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_reliability_slice_values_time_end"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "End Time:"
+              },
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "reliability_slice_key_filter",
+            "queries": [
+              {
+                "name": "source_query",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_slice_keys",
+                  "fields": [
+                    {
+                      "name": "slice_key",
+                      "expression": "`slice_key`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_aggregate_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_derived_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_drift_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_drift",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_slice_values_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_slice_values_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Slice Key",
+                    "fieldName": "slice_key",
+                    "queryName": "source_query"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_reliability_aggregate_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_reliability_derived_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_reliability_drift_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_reliability_slice_values_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_reliability_slice_values_slice_key"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slice Key:"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "reliability_slice_value_filter",
+            "queries": [
+              {
+                "name": "source_query",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_slice_values",
+                  "fields": [
+                    {
+                      "name": "slice_value",
+                      "expression": "`slice_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_aggregate_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_derived_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_drift_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_drift",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_reliability_slice_values_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Slice Value",
+                    "fieldName": "slice_value",
+                    "queryName": "source_query"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_reliability_aggregate_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_reliability_derived_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_reliability_drift_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_reliability_slice_values_slice_value"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slice Value:"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "reliability_aggregate_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_aggregate",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    },
+                    {
+                      "name": "success_count",
+                      "expression": "`success_count`"
+                    },
+                    {
+                      "name": "failure_count",
+                      "expression": "`failure_count`"
+                    },
+                    {
+                      "name": "timeout_count",
+                      "expression": "`timeout_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Total Runs",
+                      "fieldName": "total_runs"
+                    },
+                    {
+                      "displayName": "Success Count",
+                      "fieldName": "success_count"
+                    },
+                    {
+                      "displayName": "Failure Count",
+                      "fieldName": "failure_count"
+                    },
+                    {
+                      "displayName": "Timeout Count",
+                      "fieldName": "timeout_count"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track reliability aggregate metrics over time",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Reliability Aggregate Metrics Over Time"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "reliability_derived_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_derived",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "success_rate",
+                      "expression": "`success_rate`"
+                    },
+                    {
+                      "name": "failure_rate",
+                      "expression": "`failure_rate`"
+                    },
+                    {
+                      "name": "timeout_rate",
+                      "expression": "`timeout_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Success Rate",
+                      "fieldName": "success_rate"
+                    },
+                    {
+                      "displayName": "Failure Rate",
+                      "fieldName": "failure_rate"
+                    },
+                    {
+                      "displayName": "Timeout Rate",
+                      "fieldName": "timeout_rate"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track reliability business ratios over time",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Reliability KPI Trends"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "reliability_drift_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_drift",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "success_rate_drift",
+                      "expression": "`success_rate_drift`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Success Rate Drift",
+                      "fieldName": "success_rate_drift"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track period-over-period changes",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Drift Metrics (Period Comparison)"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "reliability_aggregate_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_reliability_aggregate",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start",
+                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
+                    "type": "datetime",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 0,
+                    "title": "Window Start"
+                  },
+                  {
+                    "fieldName": "window_end",
+                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
+                    "type": "datetime",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 1,
+                    "title": "Window End"
+                  },
+                  {
+                    "fieldName": "total_runs",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 2,
+                    "title": "Total Runs"
+                  },
+                  {
+                    "fieldName": "success_count",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 3,
+                    "title": "Success Count"
+                  },
+                  {
+                    "fieldName": "failure_count",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 4,
+                    "title": "Failure Count"
+                  },
+                  {
+                    "fieldName": "timeout_count",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 5,
+                    "title": "Timeout Count"
+                  },
+                  {
+                    "fieldName": "distinct_jobs",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 6,
+                    "title": "Distinct Jobs"
+                  }
+                ]
+              },
+              "itemsPerPage": 25,
+              "condensed": true,
+              "withRowNumber": false
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ],
   "datasets": [
@@ -4791,7 +5580,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(success_rate_drift, 0) * 100, 1) AS success_rate_drift, ROUND(COALESCE(duration_drift_pct, 0), 1) AS duration_drift, ROUND(COALESCE(run_count_drift_pct, 0), 1) AS volume_drift FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start",
+      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  ROUND(COALESCE(avg_delta, 0) * 100, 1) AS drift_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE window.start >= :time_range.min\n  AND drift_type = 'CONSECUTIVE'\n  AND column_name = ':table'\nORDER BY window.start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -4992,7 +5781,7 @@
     },
     {
       "name": "ds_outliers",
-      "query": "WITH job_stats AS (SELECT COALESCE(j.name, f.job_id) AS job_name, f.job_id, COUNT(*) AS runs, AVG(TIMESTAMPDIFF(SECOND, f.period_run_date, f.period_end_time)) AS avg_duration, PERCENTILE(TIMESTAMPDIFF(SECOND, f.period_run_date, f.period_end_time), 0.9) AS p90_duration, MAX(TIMESTAMPDIFF(SECOND, f.period_run_date, f.period_end_time)) AS max_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id AND f.workspace_id = j.workspace_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.result_state IS NOT NULL GROUP BY COALESCE(j.name, f.job_id), f.job_id HAVING COUNT(*) > 5) SELECT job_name, runs, ROUND(avg_duration / 60, 1) AS avg_cost, ROUND(p90_duration / 60, 1) AS p90_cost, ROUND(max_duration / 60, 1) AS max_cost, ROUND((max_duration - p90_duration) / 60, 1) AS deviation FROM job_stats ORDER BY deviation DESC LIMIT 20",
+      "query": "WITH job_stats AS (SELECT COALESCE(j.name, f.job_id) AS job_name, f.job_id, COUNT(*) AS runs, AVG(TIMESTAMPDIFF(SECOND, f.run_date, f.period_end_time)) AS avg_duration, PERCENTILE(TIMESTAMPDIFF(SECOND, f.run_date, f.period_end_time), 0.9) AS p90_duration, MAX(TIMESTAMPDIFF(SECOND, f.run_date, f.period_end_time)) AS max_duration FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id AND f.workspace_id = j.workspace_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.result_state IS NOT NULL GROUP BY COALESCE(j.name, f.job_id), f.job_id HAVING COUNT(*) > 5) SELECT job_name, runs, ROUND(avg_duration / 60, 1) AS avg_cost, ROUND(p90_duration / 60, 1) AS p90_cost, ROUND(max_duration / 60, 1) AS max_cost, ROUND((max_duration - p90_duration) / 60, 1) AS deviation FROM job_stats ORDER BY deviation DESC LIMIT 20",
       "displayName": "Outliers",
       "parameters": [
         {
@@ -5113,6 +5902,296 @@
       "displayName": "ds_select_job_status",
       "query": "SELECT 'All' AS status UNION ALL SELECT 'SUCCESS' UNION ALL SELECT 'FAILED' UNION ALL SELECT 'CANCELED'",
       "parameters": []
+    },
+    {
+      "name": "ds_monitor_reliability_aggregate",
+      "displayName": "Reliability Aggregate Metrics",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  total_runs,\n  success_count,\n  failure_count,\n  timeout_count,\n  distinct_jobs\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_reliability_derived",
+      "displayName": "Reliability Derived KPIs",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  success_rate,\n  failure_rate,\n  timeout_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_reliability_drift",
+      "displayName": "Reliability Drift Metrics",
+      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  success_rate_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.start <= :monitor_time_end\n  AND drift_type = 'CONSECUTIVE'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_reliability_slice_keys",
+      "displayName": "Reliability Slice Keys",
+      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_key\n  FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_key IS NOT NULL\n)\nSELECT 'No Slice' AS slice_key\nUNION ALL\nSELECT slice_key FROM profile_metrics\nORDER BY slice_key",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_reliability_slice_values",
+      "displayName": "Reliability Slice Values",
+      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_value, COALESCE(slice_key, 'No Slice') AS sk\n  FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_value IS NOT NULL\n)\nSELECT 'No Slice' AS slice_value\nUNION ALL\nSELECT slice_value FROM profile_metrics WHERE sk = :monitor_slice_key\nORDER BY slice_value",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "uiSettings": {

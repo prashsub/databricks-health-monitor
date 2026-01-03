@@ -1,5 +1,13 @@
 # 09 - Evaluation and LLM Judges
 
+> **✅ Implementation Status: COMPLETE**
+>
+> All evaluation components are implemented in `src/agents/evaluation/`:
+> - `evaluator.py` - Dataset creation and evaluation runner with built-in scorers
+> - `judges.py` - Generic + domain-specific LLM judges (9 total)
+> - `production_monitor.py` - Real-time quality monitoring with `mlflow.genai.assess()`
+> - `__init__.py` - Clean exports for all evaluation functions
+
 ## Overview
 
 MLflow 3.0 provides comprehensive evaluation capabilities for GenAI applications, including built-in scorers, LLM judges, and custom evaluation metrics. This document covers the complete evaluation setup for the Health Monitor agent system.
@@ -727,6 +735,13 @@ evaluation_data.to_parquet("evaluation_sets/manual_eval_set.parquet")
 
 ## Running Evaluations
 
+> **✅ Implementation Status: COMPLETE**
+>
+> All evaluation components are implemented in `src/agents/evaluation/`:
+> - `evaluator.py` - Evaluation runner with `create_evaluation_dataset()` and `run_evaluation()`
+> - `judges.py` - All domain-specific LLM judges (cost, security, performance, reliability, quality)
+> - `production_monitor.py` - Real-time quality assessment with `mlflow.genai.assess()`
+
 ### Full Evaluation Pipeline
 
 ```python
@@ -865,58 +880,127 @@ for domain in ["cost", "security", "performance", "reliability", "quality"]:
 
 ## Production Monitoring
 
+> **✅ Implementation Status: COMPLETE**
+>
+> Production monitoring is implemented in `src/agents/evaluation/production_monitor.py`:
+> - `monitor_response_quality()` - Real-time assessment using `mlflow.genai.assess()`
+> - `trigger_quality_alert()` - Alert triggering for low-quality responses
+> - Integrates all built-in and domain-specific scorers
+
 ### Using mlflow.genai.assess()
 
 Monitor agent quality in production:
 
 ```python
-import mlflow.genai
+# src/agents/evaluation/production_monitor.py
+import mlflow
+from mlflow.genai.scorers import Relevance, Safety, Correctness, GuidelinesAdherence
+from .judges import (
+    domain_accuracy_judge,
+    response_relevance_judge,
+    actionability_judge,
+    source_citation_judge,
+    cost_accuracy_judge,
+    security_compliance_judge,
+    performance_accuracy_judge,
+    reliability_accuracy_judge,
+    quality_accuracy_judge,
+)
 
-def assess_production_response(
-    query: str,
-    response: str,
-    context: dict = None
-):
-    """Assess a production response for quality."""
+def monitor_response_quality(
+    inputs: dict,
+    outputs: dict,
+    guidelines: list = None,
+) -> dict:
+    """
+    Assess the quality of an agent's response in real-time.
     
-    # Run lightweight assessment
+    Args:
+        inputs: Dictionary of inputs to the agent (e.g., {"query": "..."}).
+        outputs: Dictionary of outputs from the agent (e.g., {"response": "...", "sources": [...]}).
+        guidelines: Optional list of guidelines for GuidelinesAdherence scorer.
+    
+    Returns:
+        A dictionary of scores for various quality metrics.
+    """
+    # Define the scorers to use for real-time assessment
+    scorers = [
+        Relevance(),
+        Safety(),
+        Correctness(),
+        GuidelinesAdherence(guidelines=guidelines or []),
+        domain_accuracy_judge,
+        response_relevance_judge,
+        actionability_judge,
+        source_citation_judge,
+        cost_accuracy_judge,
+        security_compliance_judge,
+        performance_accuracy_judge,
+        reliability_accuracy_judge,
+        quality_accuracy_judge,
+    ]
+    
+    # Run the assessment
     assessment = mlflow.genai.assess(
+        inputs=inputs,
+        outputs=outputs,
+        scorers=scorers,
+    )
+    
+    # Log the scores to MLflow (e.g., as metrics in the current run)
+    if mlflow.active_run():
+        for metric_name, score_value in assessment.scores.items():
+            mlflow.log_metric(f"prod_monitor/{metric_name}", score_value)
+    
+    return assessment.scores
+
+
+def trigger_quality_alert(scores: dict, threshold: float = 0.6) -> bool:
+    """
+    Trigger an alert based on quality scores.
+    
+    Args:
+        scores: Dictionary of quality scores.
+        threshold: The minimum acceptable score for any metric.
+    
+    Returns:
+        True if an alert should be triggered, False otherwise.
+    """
+    for metric, score in scores.items():
+        if score < threshold:
+            print(f"ALERT: {metric} score ({score:.2f}) is below threshold ({threshold:.2f})!")
+            # In a real system, this would trigger an actual alert (e.g., PagerDuty, Slack)
+            return True
+    return False
+```
+
+### Usage in Agent Prediction
+
+```python
+# In orchestrator/agent.py predict() method
+from evaluation import monitor_response_quality, trigger_quality_alert
+
+def predict(self, messages, context=None, custom_inputs=None):
+    # ... generate response ...
+    
+    # Monitor quality in production
+    scores = monitor_response_quality(
         inputs={"query": query},
-        outputs={"response": response},
-        scorers=[
-            Relevance(),
-            Safety(),
-            GuidelinesAdherence(guidelines=[
-                "Include time context",
-                "Format costs as USD",
-                "Cite sources"
-            ])
+        outputs={
+            "response": response.messages[0].content,
+            "sources": response.custom_outputs.get("sources", [])
+        },
+        guidelines=[
+            "Include time context in data responses",
+            "Format costs as USD currency",
+            "Provide actionable recommendations"
         ]
     )
     
-    # Log assessment results
-    mlflow.log_metrics({
-        "prod_relevance": assessment.scores["relevance"],
-        "prod_safety": assessment.scores["safety"],
-        "prod_guidelines": assessment.scores["guidelines_adherence"]
-    })
+    # Alert if quality degraded
+    trigger_quality_alert(scores, threshold=0.6)
     
-    # Alert if quality is low
-    if assessment.scores["relevance"] < 0.6:
-        trigger_quality_alert(query, response, assessment)
-    
-    return assessment
-
-def trigger_quality_alert(query: str, response: str, assessment):
-    """Trigger alert for low-quality responses."""
-    alert_trigger.trigger_alert(
-        alert_type="quality_degradation",
-        context={
-            "query": query[:100],
-            "relevance_score": str(assessment.scores["relevance"]),
-            "safety_score": str(assessment.scores["safety"])
-        }
-    )
+    return response
 ```
 
 ## Judge Alignment

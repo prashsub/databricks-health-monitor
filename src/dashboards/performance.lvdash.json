@@ -4707,13 +4707,629 @@
           }
         }
       ]
+    },
+    {
+      "name": "performance_lakehouse_monitoring",
+      "displayName": "Lakehouse Monitoring - fact_query_history",
+      "layout": [
+        {
+          "widget": {
+            "name": "performance_time_start_filter",
+            "queries": [
+              {
+                "name": "param_ds_monitor_performance_aggregate_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_performance_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_derived_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_performance_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_slice_keys_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_performance_slice_keys",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_slice_values_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_performance_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_performance_aggregate_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_performance_derived_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_performance_slice_keys_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_performance_slice_values_time_start"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Start Time:"
+              },
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "performance_time_end_filter",
+            "queries": [
+              {
+                "name": "param_ds_monitor_performance_aggregate_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_performance_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_derived_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_performance_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_slice_keys_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_performance_slice_keys",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_slice_values_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_performance_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_performance_aggregate_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_performance_derived_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_performance_slice_keys_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_performance_slice_values_time_end"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "End Time:"
+              },
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "performance_slice_key_filter",
+            "queries": [
+              {
+                "name": "source_query",
+                "query": {
+                  "datasetName": "ds_monitor_performance_slice_keys",
+                  "fields": [
+                    {
+                      "name": "slice_key",
+                      "expression": "`slice_key`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_aggregate_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_performance_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_derived_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_performance_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_slice_values_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_performance_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_slice_values_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_performance_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Slice Key",
+                    "fieldName": "slice_key",
+                    "queryName": "source_query"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_performance_aggregate_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_performance_derived_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_performance_slice_values_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_performance_slice_values_slice_key"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slice Key:"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "performance_slice_value_filter",
+            "queries": [
+              {
+                "name": "source_query",
+                "query": {
+                  "datasetName": "ds_monitor_performance_slice_values",
+                  "fields": [
+                    {
+                      "name": "slice_value",
+                      "expression": "`slice_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_aggregate_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_performance_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_derived_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_performance_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_performance_slice_values_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_performance_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Slice Value",
+                    "fieldName": "slice_value",
+                    "queryName": "source_query"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_performance_aggregate_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_performance_derived_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_performance_slice_values_slice_value"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slice Value:"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "performance_aggregate_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_performance_aggregate",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    },
+                    {
+                      "name": "successful_queries",
+                      "expression": "`successful_queries`"
+                    },
+                    {
+                      "name": "failed_queries",
+                      "expression": "`failed_queries`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Total Queries",
+                      "fieldName": "total_queries"
+                    },
+                    {
+                      "displayName": "Successful Queries",
+                      "fieldName": "successful_queries"
+                    },
+                    {
+                      "displayName": "Failed Queries",
+                      "fieldName": "failed_queries"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track performance aggregate metrics over time",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Performance Aggregate Metrics Over Time"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "performance_derived_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_performance_derived",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "query_success_rate",
+                      "expression": "`query_success_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Query Success Rate",
+                      "fieldName": "query_success_rate"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track performance business ratios over time",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Performance KPI Trends"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "performance_aggregate_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_performance_aggregate",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start",
+                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
+                    "type": "datetime",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 0,
+                    "title": "Window Start"
+                  },
+                  {
+                    "fieldName": "window_end",
+                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
+                    "type": "datetime",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 1,
+                    "title": "Window End"
+                  },
+                  {
+                    "fieldName": "total_queries",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 2,
+                    "title": "Total Queries"
+                  },
+                  {
+                    "fieldName": "successful_queries",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 3,
+                    "title": "Successful Queries"
+                  },
+                  {
+                    "fieldName": "failed_queries",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 4,
+                    "title": "Failed Queries"
+                  }
+                ]
+              },
+              "itemsPerPage": 25,
+              "condensed": true,
+              "withRowNumber": false
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ],
   "datasets": [
     {
       "name": "ds_kpi_queries",
       "displayName": "KPI: Queries",
-      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, FORMAT_NUMBER(COUNT(DISTINCT executed_by_user_id), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS query_count, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, FORMAT_NUMBER(COUNT(DISTINCT executed_by_user_id), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -4833,7 +5449,7 @@
     {
       "name": "ds_slowest_queries",
       "displayName": "Slowest Queries",
-      "query": "SELECT query_id, executed_by_user_id AS user_identity_email, warehouse_name, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, execution_status FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max ORDER BY total_duration_ms DESC LIMIT 20",
+      "query": "SELECT statement_id, executed_by_user_id AS user_identity_email, compute_type, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, execution_status FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max ORDER BY total_duration_ms DESC LIMIT 20",
       "parameters": [
         {
           "displayName": "time_range",
@@ -4857,7 +5473,7 @@
     {
       "name": "ds_slow_by_user",
       "displayName": "Slow by User",
-      "query": "SELECT executed_by_user_id AS user_identity_email, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
+      "query": "SELECT executed_by_user_id AS user_identity_email, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS query_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
       "parameters": [
         {
           "displayName": "time_range",
@@ -4881,7 +5497,7 @@
     {
       "name": "ds_slow_by_warehouse",
       "displayName": "Slow by Warehouse",
-      "query": "SELECT warehouse_name, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
+      "query": "SELECT compute_type, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS query_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
       "parameters": [
         {
           "displayName": "time_range",
@@ -4929,7 +5545,7 @@
     {
       "name": "ds_failed_queries",
       "displayName": "Failed Queries",
-      "query": "SELECT query_id, executed_by_user_id AS user_identity_email, warehouse_name, error_message, start_time AS execution_time FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_execution_status = 'FAILED' ORDER BY start_time DESC LIMIT 30",
+      "query": "SELECT statement_id, executed_by_user_id AS user_identity_email, compute_type, error_message, start_time AS execution_time FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_status = 'FAILED' ORDER BY start_time DESC LIMIT 30",
       "parameters": [
         {
           "displayName": "time_range",
@@ -4953,7 +5569,7 @@
     {
       "name": "ds_failed_by_error",
       "displayName": "Failed by Error",
-      "query": "SELECT COALESCE(SUBSTRING(error_message, 1, 50), 'Unknown') AS error_category, COUNT(*) AS failure_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_execution_status = 'FAILED' GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "query": "SELECT COALESCE(SUBSTRING(error_message, 1, 50), 'Unknown') AS error_category, COUNT(*) AS failed_queries FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_status = 'FAILED' GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5001,7 +5617,7 @@
     {
       "name": "ds_warehouse_perf",
       "displayName": "Warehouse Performance",
-      "query": "SELECT warehouse_name, COUNT(*) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS failure_rate FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY total_queries DESC",
+      "query": "SELECT compute_type, COUNT(*) AS query_count, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS failure_rate FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY query_count DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5025,7 +5641,7 @@
     {
       "name": "ds_queries_by_warehouse",
       "displayName": "Queries by Warehouse",
-      "query": "SELECT warehouse_name, COUNT(*) AS query_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "query": "SELECT compute_type, COUNT(*) AS query_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5078,17 +5694,17 @@
     {
       "name": "ds_ml_regression",
       "displayName": "ML: Regression",
-      "query": "SELECT 'query-001' AS query_id, 0.0 AS baseline_duration, 0.0 AS current_duration, 0.0 AS regression_pct, 'N/A' AS root_cause WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS query_id, 0.0 AS baseline_duration, 0.0 AS current_duration, 0.0 AS regression_pct, 'Pending' AS root_cause LIMIT 1"
+      "query": "SELECT 'query-001' AS statement_id, 0.0 AS baseline_duration, 0.0 AS current_duration, 0.0 AS regression_pct, 'N/A' AS root_cause WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS statement_id, 0.0 AS baseline_duration, 0.0 AS current_duration, 0.0 AS regression_pct, 'Pending' AS root_cause LIMIT 1"
     },
     {
       "name": "ds_ml_warehouse",
       "displayName": "ML: Warehouse",
-      "query": "SELECT 'warehouse-001' AS warehouse_name, 'N/A' AS recommendation, 'N/A' AS reason, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS warehouse_name, 'Pending' AS recommendation, 'N/A' AS reason, 0.0 AS confidence LIMIT 1"
+      "query": "SELECT 'warehouse-001' AS compute_type, 'N/A' AS recommendation, 'N/A' AS reason, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS compute_type, 'Pending' AS recommendation, 'N/A' AS reason, 0.0 AS confidence LIMIT 1"
     },
     {
       "name": "ds_monitor_latest",
       "displayName": "Monitor: Latest",
-      "query": "SELECT \n  ROUND(AVG(avg_execution_duration_ms), 0) AS avg_duration_ms,\n  ROUND(AVG(total_queries), 0) AS total_queries,\n  ROUND(AVG(success_rate) * 100, 1) AS success_rate_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max",
+      "query": "SELECT \n  ROUND(AVG(avg_duration_sec), 0) AS avg_duration_ms,\n  ROUND(AVG(query_count), 0) AS query_count,\n  ROUND(AVG(query_success_rate) * 100, 1) AS query_success_rate_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5112,7 +5728,7 @@
     {
       "name": "ds_monitor_trend",
       "displayName": "Monitor: Trend",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  AVG(avg_execution_duration_ms) AS avg_duration_ms,\n  SUM(total_queries) AS total_queries\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  AVG(avg_duration_sec) AS avg_duration_ms,\n  SUM(query_count) AS query_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5136,7 +5752,7 @@
     {
       "name": "ds_monitor_volume",
       "displayName": "Monitor: Volume",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  SUM(total_queries) AS query_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  SUM(query_count) AS query_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5160,7 +5776,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  column_name,\n  drift_type,\n  ROUND(ks_test * 100, 2) AS ks_stat_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\nWHERE window.start BETWEEN :time_range.min AND :time_range.max\nAND drift_type = 'CONSECUTIVE'\nORDER BY window.start DESC",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  column_name,\n  drift_type,\n  ROUND(ks_test.statistic * 100, 2) AS ks_stat_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\nWHERE window.start BETWEEN :time_range.min AND :time_range.max\nAND drift_type = 'CONSECUTIVE'\nORDER BY window.start DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5184,7 +5800,7 @@
     {
       "name": "ds_monitor_detailed",
       "displayName": "Monitor: Detailed",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  column_name,\n  ROUND(avg, 2) AS avg_value,\n  ROUND(stddev, 2) AS stddev_value\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nORDER BY window.start DESC LIMIT 100",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  column_name,\n  ROUND(COALESCE(avg, 0), 2) AS avg_value,\n  ROUND(COALESCE(stddev, 0), 2) AS stddev_value,\n  COALESCE(count, 0) AS record_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\nORDER BY window.start DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5573,7 +6189,7 @@
     {
       "name": "ds_monitor_cpu_trend",
       "displayName": "Monitor: CPU Trend",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  ROUND(AVG(avg), 2) AS avg_cpu_percent\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE log_type = 'INPUT' AND column_name LIKE '%cpu%'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  ROUND(AVG(COALESCE(avg, 0)), 2) AS avg_cpu_percent\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\nGROUP BY DATE(window.start)\nORDER BY date",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5597,7 +6213,7 @@
     {
       "name": "ds_monitor_memory_trend",
       "displayName": "Monitor: Memory Trend",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  ROUND(AVG(avg), 2) AS avg_memory_percent\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE log_type = 'INPUT' AND column_name LIKE '%memory%'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  ROUND(AVG(COALESCE(avg, 0)), 2) AS avg_memory_percent\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\nGROUP BY DATE(window.start)\nORDER BY date",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5826,6 +6442,229 @@
       "displayName": "ds_select_warehouse_type",
       "query": "SELECT 'All' AS warehouse_type UNION ALL SELECT 'CLASSIC' UNION ALL SELECT 'PRO' UNION ALL SELECT 'SERVERLESS'",
       "parameters": []
+    },
+    {
+      "name": "ds_monitor_performance_aggregate",
+      "displayName": "Performance Aggregate Metrics",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  query_count,\n  successful_queries,\n  failed_queries,\n  avg_duration_sec,\n  p50_duration_sec,\n  p95_duration_sec\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_performance_derived",
+      "displayName": "Performance Derived KPIs",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  query_success_rate,\n  spill_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_performance_slice_keys",
+      "displayName": "Performance Slice Keys",
+      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_key\n  FROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_key IS NOT NULL\n)\nSELECT 'No Slice' AS slice_key\nUNION ALL\nSELECT slice_key FROM profile_metrics\nORDER BY slice_key",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_performance_slice_values",
+      "displayName": "Performance Slice Values",
+      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_value, COALESCE(slice_key, 'No Slice') AS sk\n  FROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_value IS NOT NULL\n)\nSELECT 'No Slice' AS slice_value\nUNION ALL\nSELECT slice_value FROM profile_metrics WHERE sk = :monitor_slice_key\nORDER BY slice_value",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "uiSettings": {

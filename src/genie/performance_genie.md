@@ -8,7 +8,15 @@
 
 ## ████ SECTION B: SPACE DESCRIPTION ████
 
-**Description:** Natural language interface for Databricks query and cluster performance analytics. Enables DBAs, platform engineers, and FinOps to query execution metrics, warehouse utilization, cluster efficiency, and right-sizing opportunities without SQL. Powered by 3 Metric Views, 16 TVFs, 7 ML Models, and Lakehouse Monitoring performance metrics.
+**Description:** Natural language interface for Databricks query and cluster performance analytics. Enables DBAs, platform engineers, and FinOps to query execution metrics, warehouse utilization, cluster efficiency, and right-sizing opportunities without SQL.
+
+**Powered by:**
+- 3 Metric Views (query_performance, cluster_utilization, cluster_efficiency)
+- 16 Table-Valued Functions (query analysis, cluster utilization, right-sizing)
+- 7 ML Prediction Tables (optimization, capacity planning, right-sizing)
+- 4 Lakehouse Monitoring Tables (query and cluster drift/profile metrics)
+- 5 Dimension Tables (warehouse, cluster, node_type, workspace, date)
+- 3 Fact Tables (query history, warehouse events, node timeline)
 
 ---
 
@@ -70,17 +78,19 @@
 | `get_jobs_on_legacy_dbr` | Legacy DBR jobs | "legacy DBR" |
 | `get_cluster_right_sizing_recommendations` | Right-sizing suggestions | "right-sizing" |
 
-### ML Prediction Tables 🤖
+### ML Prediction Tables 🤖 (7 Models)
 
-| Table Name | Purpose |
-|------------|---------|
-| `query_optimization_classifications` | Queries flagged for optimization |
-| `query_optimization_recommendations` | Specific optimization suggestions |
-| `cache_hit_predictions` | Cache effectiveness predictions |
-| `job_duration_predictions` | Job completion time estimates |
-| `cluster_capacity_recommendations` | Optimal cluster capacity |
-| `cluster_rightsizing_recommendations` | Right-sizing with savings |
-| `dbr_migration_risk_scores` | DBR migration risk assessment |
+| Table Name | Purpose | Model | Key Columns |
+|---|---|---|---|
+| `query_optimization_classifications` | Queries flagged for optimization (multi-label) | Query Performance Optimizer | `needs_partition_pruning`, `needs_caching`, `needs_broadcast_join`, `optimization_flags` |
+| `query_optimization_recommendations` | Specific optimization suggestions | Query Optimization Recommender | `optimization_categories`, `estimated_improvement_pct`, `priority` |
+| `cache_hit_predictions` | Cache effectiveness predictions | Cache Hit Predictor | `cache_hit_probability`, `cache_optimization_potential` |
+| `job_duration_predictions` | Job completion time estimates with confidence | Job Duration Predictor | `predicted_duration_sec`, `confidence_interval_lower`, `confidence_interval_upper` |
+| `cluster_capacity_recommendations` | Optimal cluster capacity planning | Cluster Capacity Planner | `predicted_peak_utilization`, `recommended_nodes`, `scaling_recommendation` |
+| `cluster_rightsizing_recommendations` | Right-sizing with savings estimates | Cluster Right-Sizing Recommender | `current_size`, `recommended_size`, `recommended_action`, `potential_savings_usd` |
+| `dbr_migration_risk_scores` | DBR migration risk assessment | DBR Migration Risk Scorer | `risk_level`, `risk_score`, `migration_recommendation`, `testing_requirements` |
+
+**Training Source:** `src/ml/performance/` | **Inference:** `src/ml/inference/batch_inference_all_models.py`
 
 ### Lakehouse Monitoring Tables 📊
 
@@ -161,14 +171,17 @@ ORDER BY window.start DESC;
 | `cluster_name` | By cluster name |
 | `driver` | Driver vs worker |
 
-### Dimension Tables (from gold_layer_design/yaml/compute/, query_performance/, shared/)
+### Dimension Tables (5 Tables)
+
+**Sources:** `gold_layer_design/yaml/compute/`, `query_performance/`, `shared/`
 
 | Table Name | Purpose | Key Columns | YAML Source |
-|------------|---------|-------------|-------------|
-| `dim_warehouse` | Warehouse metadata | warehouse_id, warehouse_name, size, type | query_performance/dim_warehouse.yaml |
-| `dim_cluster` | Cluster metadata | cluster_id, cluster_name, node_type, dbr_version | compute/dim_cluster.yaml |
-| `dim_node_type` | Node type specs | node_type_id, num_cores, memory_gb, gpu_count | compute/dim_node_type.yaml |
-| `dim_workspace` | Workspace reference | workspace_id, workspace_name | shared/dim_workspace.yaml |
+|---|---|---|---|
+| `dim_warehouse` | Warehouse metadata | `warehouse_id`, `warehouse_name`, `cluster_size`, `warehouse_type` | query_performance/dim_warehouse.yaml |
+| `dim_cluster` | Cluster metadata | `cluster_id`, `cluster_name`, `node_type_id`, `dbr_version`, `autoscale_config` | compute/dim_cluster.yaml |
+| `dim_node_type` | Node type specs | `node_type_id`, `vcpus`, `memory_mb`, `hourly_dbu_rate` | compute/dim_node_type.yaml |
+| `dim_workspace` | Workspace reference | `workspace_id`, `workspace_name`, `region`, `cloud_provider` | shared/dim_workspace.yaml |
+| `dim_date` | Date dimension for time analysis | `date_key`, `day_of_week`, `month`, `quarter`, `year`, `is_weekend` | shared/dim_date.yaml |
 
 ### Fact Tables (from gold_layer_design/yaml/compute/, query_performance/)
 
@@ -248,7 +261,7 @@ You are a Databricks performance analyst. Follow these rules:
 
 ---
 
-## ████ SECTION F: TABLE-VALUED FUNCTIONS ████
+## ████ SECTION G: TABLE-VALUED FUNCTIONS ████
 
 ### Query TVFs
 

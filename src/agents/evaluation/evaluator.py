@@ -1,0 +1,554 @@
+"""
+Agent Evaluation Framework
+==========================
+
+Comprehensive evaluation using MLflow 3.0 GenAI features.
+Includes built-in scorers, domain-specific judges, and batch evaluation.
+
+Reference:
+    https://docs.databricks.com/en/mlflow/mlflow-genai.html
+    28-mlflow-genai-patterns.mdc cursor rule
+
+Usage:
+    from agents.evaluation import run_full_evaluation, evaluate_domain
+
+    # Run full evaluation
+    results = run_full_evaluation(agent, eval_data)
+
+    # Run domain-specific evaluation
+    cost_results = evaluate_domain(agent, cost_eval_data, "cost")
+"""
+
+from typing import Dict, List, Optional, Any
+import pandas as pd
+import mlflow
+import mlflow.genai
+from mlflow.genai import Relevance, Safety, Correctness, GuidelinesAdherence
+from mlflow.genai import scorer, Score
+
+from .judges import (
+    domain_accuracy_judge,
+    response_relevance_judge,
+    actionability_judge,
+    source_citation_judge,
+    cost_accuracy_judge,
+    security_compliance_judge,
+    performance_accuracy_judge,
+    reliability_accuracy_judge,
+    quality_accuracy_judge,
+)
+from ..config import settings
+
+
+# =============================================================================
+# Health Monitor Guidelines for GuidelinesAdherence Scorer
+# =============================================================================
+
+HEALTH_MONITOR_GUIDELINES = """
+You are evaluating responses from a Databricks Health Monitor agent.
+The agent should follow these guidelines:
+
+1. ACCURACY: Provide factually correct information about Databricks platform metrics
+2. COMPLETENESS: Answer all parts of multi-part questions
+3. ACTIONABILITY: Include specific, actionable recommendations when appropriate
+4. CITATIONS: Reference data sources (Genie Spaces, dashboards, tables)
+5. DOMAIN FOCUS: Stay focused on the relevant domain(s) - Cost, Security, Performance, Reliability, Quality
+6. CROSS-DOMAIN: Identify correlations across domains when they exist (e.g., expensive failing jobs)
+7. USER CONTEXT: Respect user preferences and role (manager vs analyst detail level)
+8. FORMATTING: Use clear structure with headers, bullet points, and organized sections
+9. CONFIDENCE: Express appropriate uncertainty when data is incomplete
+10. SECURITY: Never expose sensitive credentials or PII in responses
+"""
+
+
+# =============================================================================
+# Built-in Scorers Configuration
+# =============================================================================
+
+def get_builtin_scorers() -> List:
+    """
+    Get configured built-in MLflow GenAI scorers.
+
+    Returns:
+        List of built-in scorer instances.
+    """
+    return [
+        # Relevance: Does the response address the query?
+        Relevance(
+            model=f"endpoints:/{settings.llm_endpoint}",
+            name="relevance"
+        ),
+
+        # Safety: Is the response free from harmful content?
+        Safety(
+            model=f"endpoints:/{settings.llm_endpoint}",
+            name="safety"
+        ),
+
+        # Correctness: Is the response factually accurate?
+        # Requires 'expected_response' in evaluation data
+        Correctness(
+            model=f"endpoints:/{settings.llm_endpoint}",
+            name="correctness"
+        ),
+
+        # GuidelinesAdherence: Does the response follow our guidelines?
+        GuidelinesAdherence(
+            model=f"endpoints:/{settings.llm_endpoint}",
+            guidelines=HEALTH_MONITOR_GUIDELINES,
+            name="guidelines_adherence"
+        ),
+    ]
+
+
+def get_custom_scorers() -> List:
+    """
+    Get all custom LLM judge scorers.
+
+    Returns:
+        List of custom scorer functions decorated with @scorer.
+    """
+    return [
+        # Generic judges
+        domain_accuracy_judge,
+        response_relevance_judge,
+        actionability_judge,
+        source_citation_judge,
+    ]
+
+
+def get_domain_scorers(domain: str) -> List:
+    """
+    Get domain-specific scorers.
+
+    Args:
+        domain: Domain name (cost, security, performance, reliability, quality)
+
+    Returns:
+        List of domain-specific scorer functions.
+    """
+    domain_judge_map = {
+        "cost": [cost_accuracy_judge],
+        "security": [security_compliance_judge],
+        "performance": [performance_accuracy_judge],
+        "reliability": [reliability_accuracy_judge],
+        "quality": [quality_accuracy_judge],
+    }
+
+    return domain_judge_map.get(domain.lower(), [])
+
+
+# =============================================================================
+# Evaluation Data Creation
+# =============================================================================
+
+def create_evaluation_dataset(
+    queries: List[str],
+    expected_responses: List[str] = None,
+    expected_domains: List[List[str]] = None,
+    contexts: List[Dict] = None,
+) -> pd.DataFrame:
+    """
+    Create an evaluation dataset from query lists.
+
+    Args:
+        queries: List of test queries
+        expected_responses: Optional expected responses for correctness
+        expected_domains: Optional expected domains for routing accuracy
+        contexts: Optional user contexts for each query
+
+    Returns:
+        DataFrame suitable for mlflow.genai.evaluate()
+
+    Example:
+        eval_data = create_evaluation_dataset(
+            queries=[
+                "Why did costs spike yesterday?",
+                "Which jobs are failing most?"
+            ],
+            expected_domains=[
+                ["COST"],
+                ["RELIABILITY"]
+            ]
+        )
+    """
+    data = {
+        "inputs": [{"query": q} for q in queries],
+    }
+
+    if expected_responses:
+        data["expected_response"] = expected_responses
+
+    if expected_domains:
+        data["expectations"] = [{"domains": d} for d in expected_domains]
+
+    if contexts:
+        # Merge context into inputs
+        for i, ctx in enumerate(contexts):
+            if ctx:
+                data["inputs"][i]["context"] = ctx
+
+    return pd.DataFrame(data)
+
+
+def create_synthetic_eval_set(
+    agent,
+    num_examples: int = 20,
+    domains: List[str] = None,
+) -> pd.DataFrame:
+    """
+    Generate synthetic evaluation examples using MLflow.
+
+    Args:
+        agent: Agent instance for generation
+        num_examples: Number of examples to generate
+        domains: Optional domain filter
+
+    Returns:
+        DataFrame with synthetic evaluation data.
+    """
+    domains = domains or ["cost", "security", "performance", "reliability", "quality"]
+
+    # Domain-specific example queries for synthesis
+    domain_seed_queries = {
+        "cost": [
+            "Why did costs spike yesterday?",
+            "What are the top 10 most expensive jobs?",
+            "Show DBU usage by workspace",
+        ],
+        "security": [
+            "Who accessed sensitive data this week?",
+            "Show failed login attempts",
+            "What permission changes were made?",
+        ],
+        "performance": [
+            "Which queries are running slowest?",
+            "Show cluster utilization trends",
+            "What's the warehouse queue time?",
+        ],
+        "reliability": [
+            "Which jobs failed today?",
+            "What's our job success rate?",
+            "Show SLA compliance metrics",
+        ],
+        "quality": [
+            "Which tables have stale data?",
+            "Show data quality issues",
+            "What schema changes happened this week?",
+        ],
+    }
+
+    # Collect seed queries for selected domains
+    seed_queries = []
+    for domain in domains:
+        seed_queries.extend(domain_seed_queries.get(domain.lower(), []))
+
+    try:
+        # Use MLflow synthetic generation if available
+        synthetic_data = mlflow.genai.synthesize_evaluation_set(
+            model=agent,
+            num_examples=num_examples,
+            seed_queries=seed_queries[:10],  # Use up to 10 seeds
+        )
+        return synthetic_data
+    except Exception as e:
+        print(f"Synthetic generation failed: {e}")
+        # Fall back to manual dataset
+        return create_evaluation_dataset(
+            queries=seed_queries[:num_examples],
+            expected_domains=[[d.upper()] for d in domains for _ in range(3)][:num_examples],
+        )
+
+
+# =============================================================================
+# Evaluation Runners
+# =============================================================================
+
+@mlflow.trace(name="run_full_evaluation", span_type="AGENT")
+def run_full_evaluation(
+    agent,
+    eval_data: pd.DataFrame,
+    experiment_name: str = None,
+    include_builtin: bool = True,
+    include_custom: bool = True,
+    include_domain_specific: bool = True,
+    domains: List[str] = None,
+) -> Dict[str, Any]:
+    """
+    Run comprehensive evaluation with all scorers.
+
+    Args:
+        agent: Agent instance to evaluate
+        eval_data: Evaluation dataset (DataFrame with 'inputs' column)
+        experiment_name: MLflow experiment name for logging
+        include_builtin: Include built-in MLflow scorers
+        include_custom: Include custom LLM judges
+        include_domain_specific: Include domain-specific judges
+        domains: Domains to include for domain-specific evaluation
+
+    Returns:
+        Evaluation results dict with metrics and detailed scores.
+
+    Example:
+        results = run_full_evaluation(
+            agent=my_agent,
+            eval_data=eval_df,
+            experiment_name="/Shared/health_monitor/evaluation",
+            domains=["cost", "reliability"]
+        )
+    """
+    # Set experiment
+    if experiment_name:
+        mlflow.set_experiment(experiment_name)
+
+    # Collect scorers
+    scorers = []
+
+    if include_builtin:
+        scorers.extend(get_builtin_scorers())
+
+    if include_custom:
+        scorers.extend(get_custom_scorers())
+
+    if include_domain_specific:
+        domains = domains or ["cost", "security", "performance", "reliability", "quality"]
+        for domain in domains:
+            scorers.extend(get_domain_scorers(domain))
+
+    print(f"Running evaluation with {len(scorers)} scorers...")
+    print(f"Scorers: {[getattr(s, 'name', s.__name__) for s in scorers]}")
+
+    with mlflow.start_run(run_name="full_evaluation") as run:
+        # Log evaluation config
+        mlflow.log_params({
+            "num_examples": len(eval_data),
+            "num_scorers": len(scorers),
+            "include_builtin": include_builtin,
+            "include_custom": include_custom,
+            "include_domain_specific": include_domain_specific,
+        })
+
+        # Run evaluation
+        results = mlflow.genai.evaluate(
+            model=agent,
+            data=eval_data,
+            scorers=scorers,
+        )
+
+        # Log aggregate metrics
+        if hasattr(results, "metrics"):
+            for metric_name, metric_value in results.metrics.items():
+                mlflow.log_metric(metric_name, metric_value)
+
+        print(f"Evaluation complete. Run ID: {run.info.run_id}")
+
+        return {
+            "run_id": run.info.run_id,
+            "metrics": results.metrics if hasattr(results, "metrics") else {},
+            "tables": results.tables if hasattr(results, "tables") else {},
+            "results": results,
+        }
+
+
+@mlflow.trace(name="evaluate_domain", span_type="AGENT")
+def evaluate_domain(
+    agent,
+    eval_data: pd.DataFrame,
+    domain: str,
+    experiment_name: str = None,
+) -> Dict[str, Any]:
+    """
+    Run domain-specific evaluation.
+
+    Args:
+        agent: Agent instance to evaluate
+        eval_data: Evaluation dataset
+        domain: Domain to evaluate (cost, security, etc.)
+        experiment_name: MLflow experiment name
+
+    Returns:
+        Domain-specific evaluation results.
+
+    Example:
+        cost_results = evaluate_domain(
+            agent=my_agent,
+            eval_data=cost_eval_df,
+            domain="cost"
+        )
+    """
+    if experiment_name:
+        mlflow.set_experiment(experiment_name)
+
+    # Domain-specific scorers
+    scorers = [
+        Relevance(model=f"endpoints:/{settings.llm_endpoint}"),
+        domain_accuracy_judge,
+        actionability_judge,
+    ]
+
+    # Add domain-specific judge
+    scorers.extend(get_domain_scorers(domain))
+
+    print(f"Evaluating {domain.upper()} domain with {len(scorers)} scorers...")
+
+    with mlflow.start_run(run_name=f"{domain}_evaluation") as run:
+        mlflow.log_params({
+            "domain": domain,
+            "num_examples": len(eval_data),
+        })
+
+        results = mlflow.genai.evaluate(
+            model=agent,
+            data=eval_data,
+            scorers=scorers,
+        )
+
+        return {
+            "run_id": run.info.run_id,
+            "domain": domain,
+            "metrics": results.metrics if hasattr(results, "metrics") else {},
+            "results": results,
+        }
+
+
+# =============================================================================
+# Predefined Evaluation Sets
+# =============================================================================
+
+def get_standard_eval_set() -> pd.DataFrame:
+    """
+    Get a standard evaluation set for the Health Monitor agent.
+
+    Returns:
+        DataFrame with diverse test queries across all domains.
+    """
+    queries = [
+        # Cost domain
+        "Why did costs spike yesterday?",
+        "What are the top 10 most expensive jobs?",
+        "Show DBU usage by workspace for the last month",
+        "Which teams are over budget?",
+
+        # Security domain
+        "Who accessed sensitive data in the last 24 hours?",
+        "Show failed login attempts this week",
+        "What permission changes were made yesterday?",
+        "Are there any suspicious access patterns?",
+
+        # Performance domain
+        "Which queries are running slowest?",
+        "Show cluster utilization for production workspaces",
+        "What's causing warehouse queue times?",
+        "Identify queries that need optimization",
+
+        # Reliability domain
+        "Which jobs failed today?",
+        "What's our overall job success rate?",
+        "Show SLA compliance for critical pipelines",
+        "Which tasks have the highest failure rate?",
+
+        # Quality domain
+        "Which tables have stale data?",
+        "Show data quality metrics for the gold layer",
+        "What schema changes happened this week?",
+        "Which tables are missing documentation?",
+
+        # Cross-domain
+        "Which expensive jobs are also failing frequently?",
+        "Are slow queries causing job failures?",
+        "Show the correlation between cost and performance issues",
+    ]
+
+    expected_domains = [
+        ["COST"], ["COST"], ["COST"], ["COST"],
+        ["SECURITY"], ["SECURITY"], ["SECURITY"], ["SECURITY"],
+        ["PERFORMANCE"], ["PERFORMANCE"], ["PERFORMANCE"], ["PERFORMANCE"],
+        ["RELIABILITY"], ["RELIABILITY"], ["RELIABILITY"], ["RELIABILITY"],
+        ["QUALITY"], ["QUALITY"], ["QUALITY"], ["QUALITY"],
+        ["COST", "RELIABILITY"], ["PERFORMANCE", "RELIABILITY"], ["COST", "PERFORMANCE"],
+    ]
+
+    return create_evaluation_dataset(
+        queries=queries,
+        expected_domains=expected_domains,
+    )
+
+
+# =============================================================================
+# Quick Evaluation Helpers
+# =============================================================================
+
+def quick_evaluate(
+    agent,
+    queries: List[str],
+    include_builtin: bool = True,
+) -> Dict[str, Any]:
+    """
+    Quick evaluation with minimal setup.
+
+    Args:
+        agent: Agent to evaluate
+        queries: List of test queries
+        include_builtin: Include built-in scorers
+
+    Returns:
+        Evaluation results.
+    """
+    eval_data = create_evaluation_dataset(queries=queries)
+
+    scorers = []
+    if include_builtin:
+        scorers.extend(get_builtin_scorers())
+    scorers.extend([domain_accuracy_judge, response_relevance_judge])
+
+    results = mlflow.genai.evaluate(
+        model=agent,
+        data=eval_data,
+        scorers=scorers,
+    )
+
+    return {
+        "metrics": results.metrics if hasattr(results, "metrics") else {},
+        "results": results,
+    }
+
+
+def evaluate_single_response(
+    query: str,
+    response: str,
+    expected_domains: List[str] = None,
+) -> Dict[str, Score]:
+    """
+    Evaluate a single query-response pair.
+
+    Args:
+        query: User query
+        response: Agent response
+        expected_domains: Expected domains for accuracy check
+
+    Returns:
+        Dict of scorer name to Score object.
+    """
+    inputs = {"query": query}
+    outputs = {"response": response}
+    expectations = {"domains": expected_domains} if expected_domains else None
+
+    scores = {}
+
+    # Run each custom judge
+    judges = [
+        ("domain_accuracy", domain_accuracy_judge),
+        ("response_relevance", response_relevance_judge),
+        ("actionability", actionability_judge),
+        ("source_citation", source_citation_judge),
+    ]
+
+    for name, judge in judges:
+        try:
+            score = judge(inputs, outputs, expectations)
+            scores[name] = score
+        except Exception as e:
+            scores[name] = Score(value=0.0, rationale=f"Error: {str(e)}")
+
+    return scores
+

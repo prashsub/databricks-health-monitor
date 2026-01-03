@@ -238,7 +238,7 @@ Then incrementally add assets as they're deployed.
 ---
 
 **📄 See also:**
-- `src/genie/DEPLOYMENT_STATUS_CURRENT.md` - Detailed diagnostic guide
+- `docs/deployment/genie-spaces/deployment-status-current.md` - Detailed diagnostic guide
 - `src/genie/DEPLOYMENT_UPDATES.md` - API integration changes
 - `src/genie/PREREQUISITES.md` - Missing prerequisites analysis
 

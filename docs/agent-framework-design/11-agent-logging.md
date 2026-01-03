@@ -1,5 +1,14 @@
 # 11 - Agent Logging
 
+> **✅ Implementation Status: COMPLETE**
+>
+> Agent logging is implemented in `src/agents/orchestrator/agent.py`:
+> - `HealthMonitorAgent` class implementing `ChatAgent` interface
+> - `predict()` method returning `ChatAgentResponse`
+> - `predict_stream()` method for streaming support (basic implementation)
+> - `log_agent()` function for MLflow model registration
+> - Model signature, resources, and pip requirements configured
+
 ## Overview
 
 MLflow provides comprehensive agent logging capabilities for registering, versioning, and deploying GenAI agents. This document covers the complete agent logging workflow for the Health Monitor system.
@@ -137,25 +146,31 @@ class HealthMonitorAgent(ChatAgent):
     
     def predict_stream(
         self,
-        context: Any,
-        messages: list[ChatAgentMessage],
-        params: Optional[Dict[str, Any]] = None
-    ) -> Iterator[ChatAgentChunk]:
+        messages: List[ChatAgentMessage],
+        context: Optional[ChatContext] = None,
+        custom_inputs: Optional[Dict[str, Any]] = None,
+    ):
         """
-        Stream a response token by token.
+        Stream responses for real-time interaction.
         
-        Note: Streaming is optional but provides better UX for long responses.
+        Yields response chunks as they become available.
+        
+        Note: This is a basic implementation that yields the complete response.
+        For true token-by-token streaming, integrate with LangGraph's streaming
+        capabilities or the underlying LLM's streaming API.
+        
+        Args:
+            messages: List of chat messages (conversation history)
+            context: Optional chat context
+            custom_inputs: Optional parameters (user_id, session_id, etc.)
+        
+        Yields:
+            ChatAgentResponse objects containing response chunks
         """
-        # For now, return non-streaming response as single chunk
-        response = self.predict(context, messages, params)
-        
-        yield ChatAgentChunk(
-            delta=ChatAgentMessage(
-                role="assistant",
-                content=response.messages[0].content
-            ),
-            metadata=response.metadata
-        )
+        # For now, use non-streaming and yield complete response
+        # TODO: Implement true streaming with LangGraph's stream() method
+        response = self.predict(messages, context, custom_inputs)
+        yield response
 ```
 
 ## Logging Agents

@@ -27,7 +27,7 @@
 - ✅ Data assets documented
 - ✅ TVF signatures and examples
 
-**Inventory:** See [`src/genie/GENIE_SPACES_INVENTORY.md`](../src/genie/GENIE_SPACES_INVENTORY.md)
+**Inventory:** See [`docs/reference/genie-spaces-inventory.md`](../docs/reference/genie-spaces-inventory.md)
 
 ---
 

@@ -264,7 +264,7 @@ for wh in warehouses:
 2. ✅ `src/genie/deploy_genie_space.py` - Fixed API calls, improved error handling
 3. ✅ `resources/semantic/genie_spaces_deployment_job.yml` - Updated job config
 4. ✅ `src/genie/DEPLOYMENT_UPDATES.md` - Comprehensive deployment guide
-5. ✅ `src/genie/DEPLOYMENT_STATUS.md` - This troubleshooting document
+5. ✅ `docs/deployment/genie-spaces/deployment-status.md` - This troubleshooting document
 
 ---
 
@@ -279,7 +279,7 @@ for wh in warehouses:
 - [Genie Space Export/Import API](../../.cursor/rules/semantic-layer/29-genie-space-export-import-api.mdc)
 
 ### Project Documentation
-- [Genie Spaces Inventory](./GENIE_SPACES_INVENTORY.md)
+- [Genie Spaces Inventory](../../reference/genie-spaces-inventory.md)
 - [Deployment Updates](./DEPLOYMENT_UPDATES.md)
 
 ---

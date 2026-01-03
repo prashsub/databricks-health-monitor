@@ -8,7 +8,15 @@
 
 ## ████ SECTION B: SPACE DESCRIPTION ████
 
-**Description:** Natural language interface for data quality, freshness, and governance analytics. Enables data stewards, governance teams, and data engineers to query table health, lineage, and quality metrics without SQL. Powered by Data Quality Metric Views, 7 Quality TVFs, 3 ML Models for quality prediction, and Lakehouse Monitoring profile metrics.
+**Description:** Natural language interface for data quality, freshness, and governance analytics. Enables data stewards, governance teams, and data engineers to query table health, lineage, and quality metrics without SQL.
+
+**Powered by:**
+- 2 Metric Views (data_quality, ml_intelligence)
+- 7 Table-Valued Functions (freshness, quality, lineage queries)
+- 3 ML Prediction Tables (drift detection, schema prediction, freshness alerts)
+- 3 Lakehouse Monitoring Tables (quality drift and profile metrics)
+- 4 Dimension Tables (experiment, served_entities, workspace, date)
+- 12 Fact Tables (lineage, classification, DQ monitoring, optimization)
 
 ---
 
@@ -60,13 +68,15 @@
 | `get_table_activity_status` | Activity status | "inactive tables" |
 | `get_pipeline_data_lineage` | Pipeline lineage | "pipeline dependencies" |
 
-### ML Prediction Tables 🤖
+### ML Prediction Tables 🤖 (3 Models)
 
-| Table Name | Purpose |
-|------------|---------|
-| `quality_anomaly_predictions` | Quality anomaly detection |
-| `quality_trend_predictions` | Quality score forecasts |
-| `freshness_alert_predictions` | Staleness probability predictions |
+| Table Name | Purpose | Model | Key Columns |
+|---|---|---|---|
+| `quality_anomaly_predictions` | Data drift and quality anomaly detection | Data Drift Detector | `drift_score`, `is_drifted`, `drift_columns`, `table_name` |
+| `quality_trend_predictions` | Schema change probability and quality forecasts | Schema Change Predictor | `change_probability`, `predicted_change_type`, `risk_factors` |
+| `freshness_alert_predictions` | Staleness probability predictions | Schema Evolution Predictor | `staleness_probability`, `predicted_delay_hours`, `expected_stale_date` |
+
+**Training Source:** `src/ml/quality/` | **Inference:** `src/ml/inference/batch_inference_all_models.py`
 
 ### Lakehouse Monitoring Tables 📊
 
@@ -123,13 +133,16 @@ ORDER BY window.start DESC;
 | `table_name` | Per-table metrics |
 | `has_critical_violations` | Critical issues filter |
 
-### Dimension Tables (from gold_layer_design/yaml/mlflow/, model_serving/, shared/)
+### Dimension Tables (4 Tables)
+
+**Sources:** `gold_layer_design/yaml/mlflow/`, `model_serving/`, `shared/`
 
 | Table Name | Purpose | Key Columns | YAML Source |
-|------------|---------|-------------|-------------|
-| `dim_experiment` | MLflow experiments | experiment_id, experiment_name | mlflow/dim_experiment.yaml |
-| `dim_served_entities` | Model serving endpoints | entity_id, entity_name, endpoint_name | model_serving/dim_served_entities.yaml |
-| `dim_workspace` | Workspace reference | workspace_id, workspace_name | shared/dim_workspace.yaml |
+|---|---|---|---|
+| `dim_experiment` | MLflow experiments | `experiment_id`, `experiment_name`, `artifact_location` | mlflow/dim_experiment.yaml |
+| `dim_served_entities` | Model serving endpoints | `entity_id`, `entity_name`, `endpoint_name`, `entity_version` | model_serving/dim_served_entities.yaml |
+| `dim_workspace` | Workspace reference | `workspace_id`, `workspace_name`, `region`, `cloud_provider` | shared/dim_workspace.yaml |
+| `dim_date` | Date dimension for time analysis | `date_key`, `day_of_week`, `month`, `quarter`, `year`, `is_weekend` | shared/dim_date.yaml |
 
 ### Fact Tables (from gold_layer_design/yaml/governance/, data_classification/, data_quality_monitoring/, storage/, mlflow/, model_serving/, marketplace/)
 
@@ -220,7 +233,7 @@ You are a data quality and governance analyst. Follow these rules:
 
 ---
 
-## ████ SECTION F: TABLE-VALUED FUNCTIONS ████
+## ████ SECTION G: TABLE-VALUED FUNCTIONS ████
 
 ### TVF Quick Reference
 

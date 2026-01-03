@@ -4220,6 +4220,804 @@
           }
         }
       ]
+    },
+    {
+      "name": "cost_lakehouse_monitoring",
+      "displayName": "Lakehouse Monitoring - fact_usage",
+      "layout": [
+        {
+          "widget": {
+            "name": "cost_time_start_filter",
+            "queries": [
+              {
+                "name": "param_ds_monitor_cost_aggregate_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_cost_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_derived_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_cost_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_drift_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_cost_drift",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_slice_keys_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_cost_slice_keys",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_slice_values_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_cost_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_cost_aggregate_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_cost_derived_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_cost_drift_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_cost_slice_keys_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_cost_slice_values_time_start"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Start Time:"
+              },
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "cost_time_end_filter",
+            "queries": [
+              {
+                "name": "param_ds_monitor_cost_aggregate_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_cost_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_derived_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_cost_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_drift_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_cost_drift",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_slice_keys_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_cost_slice_keys",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_slice_values_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_cost_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_cost_aggregate_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_cost_derived_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_cost_drift_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_cost_slice_keys_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_cost_slice_values_time_end"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "End Time:"
+              },
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "cost_slice_key_filter",
+            "queries": [
+              {
+                "name": "source_query",
+                "query": {
+                  "datasetName": "ds_monitor_cost_slice_keys",
+                  "fields": [
+                    {
+                      "name": "slice_key",
+                      "expression": "`slice_key`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_aggregate_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_cost_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_derived_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_cost_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_drift_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_cost_drift",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_slice_values_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_cost_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_slice_values_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_cost_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Slice Key",
+                    "fieldName": "slice_key",
+                    "queryName": "source_query"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_cost_aggregate_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_cost_derived_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_cost_drift_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_cost_slice_values_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_cost_slice_values_slice_key"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slice Key:"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "cost_slice_value_filter",
+            "queries": [
+              {
+                "name": "source_query",
+                "query": {
+                  "datasetName": "ds_monitor_cost_slice_values",
+                  "fields": [
+                    {
+                      "name": "slice_value",
+                      "expression": "`slice_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_aggregate_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_cost_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_derived_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_cost_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_drift_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_cost_drift",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_cost_slice_values_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_cost_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Slice Value",
+                    "fieldName": "slice_value",
+                    "queryName": "source_query"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_cost_aggregate_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_cost_derived_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_cost_drift_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_cost_slice_values_slice_value"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slice Value:"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "cost_aggregate_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_cost_aggregate",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_daily_cost",
+                      "expression": "`total_daily_cost`"
+                    },
+                    {
+                      "name": "total_daily_dbu",
+                      "expression": "`total_daily_dbu`"
+                    },
+                    {
+                      "name": "tagged_cost_total",
+                      "expression": "`tagged_cost_total`"
+                    },
+                    {
+                      "name": "untagged_cost_total",
+                      "expression": "`untagged_cost_total`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Total Daily Cost",
+                      "fieldName": "total_daily_cost"
+                    },
+                    {
+                      "displayName": "Total Daily Dbu",
+                      "fieldName": "total_daily_dbu"
+                    },
+                    {
+                      "displayName": "Tagged Cost Total",
+                      "fieldName": "tagged_cost_total"
+                    },
+                    {
+                      "displayName": "Untagged Cost Total",
+                      "fieldName": "untagged_cost_total"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track cost aggregate metrics over time",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Cost Aggregate Metrics Over Time"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "cost_derived_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_cost_derived",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "tag_coverage_pct",
+                      "expression": "`tag_coverage_pct`"
+                    },
+                    {
+                      "name": "serverless_ratio",
+                      "expression": "`serverless_ratio`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Tag Coverage Pct",
+                      "fieldName": "tag_coverage_pct"
+                    },
+                    {
+                      "displayName": "Serverless Ratio",
+                      "fieldName": "serverless_ratio"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track cost business ratios over time",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Cost KPI Trends"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "cost_drift_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_cost_drift",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "cost_drift_pct",
+                      "expression": "`cost_drift_pct`"
+                    },
+                    {
+                      "name": "tag_coverage_drift",
+                      "expression": "`tag_coverage_drift`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Cost Drift Pct",
+                      "fieldName": "cost_drift_pct"
+                    },
+                    {
+                      "displayName": "Tag Coverage Drift",
+                      "fieldName": "tag_coverage_drift"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track period-over-period changes",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Drift Metrics (Period Comparison)"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "cost_aggregate_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_cost_aggregate",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start",
+                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
+                    "type": "datetime",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 0,
+                    "title": "Window Start"
+                  },
+                  {
+                    "fieldName": "window_end",
+                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
+                    "type": "datetime",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 1,
+                    "title": "Window End"
+                  },
+                  {
+                    "fieldName": "total_daily_cost",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 2,
+                    "title": "Total Daily Cost"
+                  },
+                  {
+                    "fieldName": "total_daily_dbu",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 3,
+                    "title": "Total Daily Dbu"
+                  },
+                  {
+                    "fieldName": "tagged_cost_total",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 4,
+                    "title": "Tagged Cost Total"
+                  },
+                  {
+                    "fieldName": "untagged_cost_total",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 5,
+                    "title": "Untagged Cost Total"
+                  },
+                  {
+                    "fieldName": "serverless_cost",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 6,
+                    "title": "Serverless Cost"
+                  },
+                  {
+                    "fieldName": "dlt_cost",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 7,
+                    "title": "Dlt Cost"
+                  }
+                ]
+              },
+              "itemsPerPage": 25,
+              "condensed": true,
+              "withRowNumber": false
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ],
   "datasets": [
@@ -5040,7 +5838,7 @@
     {
       "name": "ds_monitor_cost_trend",
       "displayName": "Monitor: Cost Trend",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(total_cost, 0), 2) AS total_cost, ROUND(COALESCE(total_dbu, 0), 0) AS total_dbu FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS total_cost,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS avg_cost,\n  ROUND(COALESCE(dlt_cost, 0), 2) AS dlt_cost\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\nORDER BY window.start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5064,7 +5862,7 @@
     {
       "name": "ds_monitor_serverless",
       "displayName": "Monitor: Serverless",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(serverless_percentage, 0) * 100, 1) AS serverless_pct, ROUND(COALESCE(tag_coverage, 0) * 100, 1) AS tag_coverage_pct FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "query": "SELECT window.start AS window_start, ROUND(COALESCE(serverless_ratio, 0) * 100, 1) AS serverless_pct, ROUND(COALESCE(tag_coverage_pct, 0) * 100, 1) AS tag_coverage_pct FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5088,7 +5886,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(total_cost_drift_pct, 0), 1) AS cost_drift_pct, ROUND(COALESCE(serverless_adoption_drift, 0), 2) AS serverless_drift FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start",
+      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  ROUND(COALESCE(avg_delta, 0) * 100, 1) AS cost_drift_pct,\n  ROUND(COALESCE(count_delta, 0), 0) AS record_count_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\nWHERE window.start >= :time_range.min\n  AND window.start <= :time_range.max\n  AND drift_type = 'CONSECUTIVE'\n  AND column_name = ':table'\nORDER BY window.start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5112,7 +5910,7 @@
     {
       "name": "ds_monitor_summary",
       "displayName": "Monitor: Summary",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(total_cost, 0), 2) AS total_cost, ROUND(COALESCE(total_dbu, 0), 0) AS total_dbu, ROUND(COALESCE(serverless_percentage, 0) * 100, 1) AS serverless_pct, ROUND(COALESCE(tag_coverage, 0) * 100, 1) AS tag_coverage_pct, COALESCE(unique_users, 0) AS unique_users FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start DESC",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS total_cost,\n  COALESCE(count, 0) AS record_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE log_type = 'INPUT'\n  AND column_name = ':table'\nORDER BY window.start DESC\nLIMIT 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5512,6 +6310,296 @@
       "displayName": "ds_select_tag_status",
       "query": "SELECT 'All' AS tag_status UNION ALL SELECT 'Tagged' UNION ALL SELECT 'Untagged'",
       "parameters": []
+    },
+    {
+      "name": "ds_monitor_cost_aggregate",
+      "displayName": "Cost Aggregate Metrics",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  total_daily_cost,\n  total_daily_dbu,\n  tagged_cost_total,\n  untagged_cost_total,\n  serverless_cost,\n  dlt_cost\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_cost_derived",
+      "displayName": "Cost Derived KPIs",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  tag_coverage_pct,\n  serverless_ratio\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_cost_drift",
+      "displayName": "Cost Drift Metrics",
+      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  cost_drift_pct,\n  tag_coverage_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.start <= :monitor_time_end\n  AND drift_type = 'CONSECUTIVE'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_cost_slice_keys",
+      "displayName": "Cost Slice Keys",
+      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_key\n  FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_key IS NOT NULL\n)\nSELECT 'No Slice' AS slice_key\nUNION ALL\nSELECT slice_key FROM profile_metrics\nORDER BY slice_key",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_cost_slice_values",
+      "displayName": "Cost Slice Values",
+      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_value, COALESCE(slice_key, 'No Slice') AS sk\n  FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_value IS NOT NULL\n)\nSELECT 'No Slice' AS slice_value\nUNION ALL\nSELECT slice_value FROM profile_metrics WHERE sk = :monitor_slice_key\nORDER BY slice_value",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "uiSettings": {

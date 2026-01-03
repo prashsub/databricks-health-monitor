@@ -8,7 +8,15 @@
 
 ## ████ SECTION B: SPACE DESCRIPTION ████
 
-**Description:** Natural language interface for Databricks security, audit, and compliance analytics. Enables security teams, compliance officers, and administrators to query access patterns, audit trails, and security events without SQL. Powered by Security Events Metric Views, 10 Security TVFs, 4 ML Models for anomaly detection, and Lakehouse Monitoring security drift metrics.
+**Description:** Natural language interface for Databricks security, audit, and compliance analytics. Enables security teams, compliance officers, and administrators to query access patterns, audit trails, and security events without SQL.
+
+**Powered by:**
+- 2 Metric Views (security_events, governance_analytics)
+- 10 Table-Valued Functions (user activity, sensitive access, audit queries)
+- 4 ML Prediction Tables (threat detection, risk scoring, access classification)
+- 2 Lakehouse Monitoring Tables (security drift and profile metrics)
+- 3 Dimension Tables (workspace, user, date)
+- 6 Fact Tables (audit logs, lineage, network traffic, clean rooms)
 
 ---
 
@@ -63,14 +71,16 @@
 | `get_user_activity_patterns` | Temporal patterns | "activity patterns" |
 | `get_service_account_audit` | Service account activity | "service accounts" |
 
-### ML Prediction Tables 🤖
+### ML Prediction Tables 🤖 (4 Models)
 
-| Table Name | Purpose |
-|------------|---------|
-| `access_anomaly_predictions` | Unusual access pattern detection |
-| `user_risk_scores` | User risk assessment (0-100) |
-| `access_classifications` | Normal vs suspicious classification |
-| `off_hours_baseline_predictions` | Expected off-hours activity |
+| Table Name | Purpose | Model | Key Columns |
+|---|---|---|---|
+| `access_anomaly_predictions` | Unusual access pattern detection | Security Threat Detector | `threat_score`, `is_threat`, `threat_indicators`, `user_identity` |
+| `user_risk_scores` | User risk assessment (0-100) | Compliance Risk Classifier | `risk_score`, `risk_level`, `risk_category`, `risk_factors` |
+| `access_classifications` | Normal vs suspicious access classification | Access Pattern Analyzer | `pattern_class`, `probability`, `pattern_description` |
+| `off_hours_baseline_predictions` | Expected off-hours activity baseline | Off-Hours Baseline Predictor | `expected_activity_level`, `baseline_deviation`, `alert_threshold` |
+
+**Training Source:** `src/ml/security/` | **Inference:** `src/ml/inference/batch_inference_all_models.py`
 
 ### Lakehouse Monitoring Tables 📊
 
@@ -129,11 +139,15 @@ ORDER BY window.start DESC;
 | `action_name` | By action type |
 | `user_identity_email` | Events by user |
 
-### Dimension Tables (from gold_layer_design/yaml/shared/)
+### Dimension Tables (3 Tables)
+
+**Sources:** `gold_layer_design/yaml/shared/`
 
 | Table Name | Purpose | Key Columns | YAML Source |
-|------------|---------|-------------|-------------|
-| `dim_workspace` | Workspace reference | workspace_id, workspace_name | shared/dim_workspace.yaml |
+|---|---|---|---|
+| `dim_workspace` | Workspace reference | `workspace_id`, `workspace_name`, `region`, `cloud_provider` | shared/dim_workspace.yaml |
+| `dim_user` | User information for access analysis | `user_id`, `user_name`, `email`, `department_tag`, `is_service_principal` | shared/dim_user.yaml |
+| `dim_date` | Date dimension for time analysis | `date_key`, `day_of_week`, `month`, `quarter`, `year`, `is_weekend`, `is_business_hours` | shared/dim_date.yaml |
 
 ### Fact Tables (from gold_layer_design/yaml/security/, governance/)
 
@@ -217,7 +231,7 @@ You are a Databricks security and compliance analyst. Follow these rules:
 
 ---
 
-## ████ SECTION F: TABLE-VALUED FUNCTIONS ████
+## ████ SECTION G: TABLE-VALUED FUNCTIONS ████
 
 ### TVF Quick Reference
 

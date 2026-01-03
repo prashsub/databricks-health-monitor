@@ -4,6 +4,15 @@
 
 This appendix documents the actual implementation of the agent framework located in `src/agents/`. The implementation follows the official Databricks Lakebase memory patterns and MLflow 3.0 GenAI best practices.
 
+> **✅ Implementation Status: 100% COMPLETE**
+>
+> All MLflow 3.0 GenAI patterns from the cursor rule are fully implemented:
+> - ✅ Tracing: autolog, @mlflow.trace, manual spans, experiment tagging
+> - ✅ Evaluation: 4 built-in scorers + 9 custom LLM judges + mlflow.genai.evaluate()
+> - ✅ Prompt Registry: versioning, aliases, A/B testing, PromptManager
+> - ✅ Agent Logging: ChatAgent interface, streaming, Model Registry, resources
+> - ✅ Production Monitoring: real-time mlflow.genai.assess() with alerting
+
 ## Implementation Date
 
 - **Completed**: January 2026
@@ -49,13 +58,16 @@ src/agents/
 │   └── dashboard_linker.py              # AI/BI dashboard deep links
 │
 ├── prompts/
-│   ├── __init__.py
-│   └── registry.py                      # MLflow prompt versioning
+│   ├── __init__.py                      # Exports: register_all_prompts, PromptABTest, PromptManager
+│   ├── registry.py                      # MLflow prompt versioning and loading
+│   ├── ab_testing.py                    # PromptABTest class for traffic splitting
+│   └── manager.py                       # PromptManager for production refresh
 │
 ├── evaluation/
-│   ├── __init__.py
-│   ├── judges.py                        # Custom LLM scorers
-│   └── runner.py                        # Evaluation pipeline
+│   ├── __init__.py                      # Exports all judges and evaluation functions
+│   ├── judges.py                        # 9 LLM scorers (4 generic + 5 domain-specific)
+│   ├── evaluator.py                     # create_evaluation_dataset(), run_evaluation()
+│   └── production_monitor.py            # Real-time mlflow.genai.assess() monitoring
 │
 └── notebooks/
     ├── setup_lakebase.py                # Lakebase initialization
@@ -170,15 +182,15 @@ tavily-python>=0.3.0
 
 | Design Document | Implementation File(s) |
 |-----------------|------------------------|
-| 03-Orchestrator Agent | `src/agents/orchestrator/agent.py`, `graph.py` |
+| 03-Orchestrator Agent | `src/agents/orchestrator/agent.py`, `graph.py` (includes streaming) |
 | 04-Worker Agents | `src/agents/workers/*.py` |
 | 05-Genie Integration | `src/agents/tools/genie_tool.py`, `workers/base.py` |
 | 06-Utility Tools | `src/agents/tools/web_search.py`, `dashboard_linker.py` |
 | 07-Memory Management | `src/agents/memory/short_term.py`, `long_term.py` |
 | 08-MLflow Tracing | `src/agents/__init__.py` (autolog), `@mlflow.trace` decorators |
-| 09-Evaluation and Judges | `src/agents/evaluation/judges.py`, `runner.py` |
-| 10-Prompt Registry | `src/agents/prompts/registry.py` |
-| 11-Agent Logging | `src/agents/notebooks/log_agent.py` |
+| 09-Evaluation and Judges | `src/agents/evaluation/judges.py`, `evaluator.py`, `production_monitor.py` |
+| 10-Prompt Registry | `src/agents/prompts/registry.py`, `ab_testing.py`, `manager.py` |
+| 11-Agent Logging | `src/agents/orchestrator/agent.py`, `notebooks/log_agent.py` |
 | 13-Deployment | `resources/agents/agent_deployment.yml` |
 
 ## Next Steps for Production

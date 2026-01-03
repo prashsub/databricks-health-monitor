@@ -2252,13 +2252,629 @@
           }
         }
       ]
+    },
+    {
+      "name": "security_lakehouse_monitoring",
+      "displayName": "Lakehouse Monitoring - fact_audit_logs",
+      "layout": [
+        {
+          "widget": {
+            "name": "security_time_start_filter",
+            "queries": [
+              {
+                "name": "param_ds_monitor_security_aggregate_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_security_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_derived_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_security_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_slice_keys_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_security_slice_keys",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_slice_values_time_start",
+                "query": {
+                  "datasetName": "ds_monitor_security_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_start",
+                      "keyword": "monitor_time_start"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_security_aggregate_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_security_derived_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_security_slice_keys_time_start"
+                  },
+                  {
+                    "parameterName": "monitor_time_start",
+                    "queryName": "param_ds_monitor_security_slice_values_time_start"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Start Time:"
+              },
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "security_time_end_filter",
+            "queries": [
+              {
+                "name": "param_ds_monitor_security_aggregate_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_security_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_derived_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_security_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_slice_keys_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_security_slice_keys",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_slice_values_time_end",
+                "query": {
+                  "datasetName": "ds_monitor_security_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_time_end",
+                      "keyword": "monitor_time_end"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_security_aggregate_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_security_derived_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_security_slice_keys_time_end"
+                  },
+                  {
+                    "parameterName": "monitor_time_end",
+                    "queryName": "param_ds_monitor_security_slice_values_time_end"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "End Time:"
+              },
+              "version": 2,
+              "widgetType": "filter-date-picker"
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "security_slice_key_filter",
+            "queries": [
+              {
+                "name": "source_query",
+                "query": {
+                  "datasetName": "ds_monitor_security_slice_keys",
+                  "fields": [
+                    {
+                      "name": "slice_key",
+                      "expression": "`slice_key`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_aggregate_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_security_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_derived_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_security_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_slice_values_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_security_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_slice_values_slice_key",
+                "query": {
+                  "datasetName": "ds_monitor_security_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_key",
+                      "keyword": "monitor_slice_key"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Slice Key",
+                    "fieldName": "slice_key",
+                    "queryName": "source_query"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_security_aggregate_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_security_derived_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_security_slice_values_slice_key"
+                  },
+                  {
+                    "parameterName": "monitor_slice_key",
+                    "queryName": "param_ds_monitor_security_slice_values_slice_key"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slice Key:"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "security_slice_value_filter",
+            "queries": [
+              {
+                "name": "source_query",
+                "query": {
+                  "datasetName": "ds_monitor_security_slice_values",
+                  "fields": [
+                    {
+                      "name": "slice_value",
+                      "expression": "`slice_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_aggregate_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_security_aggregate",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_derived_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_security_derived",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monitor_security_slice_values_slice_value",
+                "query": {
+                  "datasetName": "ds_monitor_security_slice_values",
+                  "parameters": [
+                    {
+                      "name": "monitor_slice_value",
+                      "keyword": "monitor_slice_value"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "Slice Value",
+                    "fieldName": "slice_value",
+                    "queryName": "source_query"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_security_aggregate_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_security_derived_slice_value"
+                  },
+                  {
+                    "parameterName": "monitor_slice_value",
+                    "queryName": "param_ds_monitor_security_slice_values_slice_value"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Slice Value:"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "security_aggregate_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_security_aggregate",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    },
+                    {
+                      "name": "distinct_users",
+                      "expression": "`distinct_users`"
+                    },
+                    {
+                      "name": "admin_actions",
+                      "expression": "`admin_actions`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Total Events",
+                      "fieldName": "total_events"
+                    },
+                    {
+                      "displayName": "Distinct Users",
+                      "fieldName": "distinct_users"
+                    },
+                    {
+                      "displayName": "Admin Actions",
+                      "fieldName": "admin_actions"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track security aggregate metrics over time",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Security Aggregate Metrics Over Time"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "security_derived_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_security_derived",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "admin_action_rate",
+                      "expression": "`admin_action_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Time"
+                  },
+                  "displayName": "Window",
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fields": [
+                    {
+                      "displayName": "Admin Action Rate",
+                      "fieldName": "admin_action_rate"
+                    }
+                  ],
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "description": "Track security business ratios over time",
+                "showDescription": true,
+                "showTitle": true,
+                "title": "Security KPI Trends"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "security_aggregate_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_security_aggregate",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start",
+                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
+                    "type": "datetime",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 0,
+                    "title": "Window Start"
+                  },
+                  {
+                    "fieldName": "window_end",
+                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
+                    "type": "datetime",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 1,
+                    "title": "Window End"
+                  },
+                  {
+                    "fieldName": "total_events",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 2,
+                    "title": "Total Events"
+                  },
+                  {
+                    "fieldName": "distinct_users",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 3,
+                    "title": "Distinct Users"
+                  },
+                  {
+                    "fieldName": "admin_actions",
+                    "numberFormat": "0.00",
+                    "type": "float",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 4,
+                    "title": "Admin Actions"
+                  }
+                ]
+              },
+              "itemsPerPage": 25,
+              "condensed": true,
+              "withRowNumber": false
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ],
   "datasets": [
     {
       "name": "ds_kpi_events",
       "displayName": "KPI: Events",
-      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events, FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events, FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS distinct_users FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2282,7 +2898,7 @@
     {
       "name": "ds_kpi_high_risk",
       "displayName": "KPI: High Risk",
-      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' OR action_name LIKE '%revoke%' THEN 1 ELSE 0 END), 0) AS high_risk_events FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' OR action_name LIKE '%revoke%' THEN 1 ELSE 0 END), 0) AS sensitive_action_count FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2354,7 +2970,7 @@
     {
       "name": "ds_kpi_admin",
       "displayName": "KPI: Admin",
-      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%' THEN 1 ELSE 0 END), 0) AS admin_actions FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max",
+      "query": "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%' THEN 1 ELSE 0 END), 0) AS distinct_actions FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2378,7 +2994,7 @@
     {
       "name": "ds_event_trend",
       "displayName": "Event Trend",
-      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS event_count, COUNT(DISTINCT user_identity_email) AS unique_users FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS event_count, COUNT(DISTINCT user_identity_email) AS distinct_users FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2466,7 +3082,7 @@
     {
       "name": "ds_permission_changes",
       "displayName": "Permission Changes",
-      "query": "SELECT user_identity_email, action_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max AND (action_name LIKE '%grant%' OR action_name LIKE '%revoke%' OR action_name LIKE '%permission%') ORDER BY event_time DESC LIMIT 30",
+      "query": "SELECT user_identity_email, action_name, COALESCE(get_json_object(to_json(request_params), '$.securable_full_name'), COALESCE(get_json_object(to_json(request_params), '$.full_name'), get_json_object(to_json(request_params), '$.name')), 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max AND (action_name LIKE '%grant%' OR action_name LIKE '%revoke%' OR action_name LIKE '%permission%') ORDER BY event_time DESC LIMIT 30",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2554,7 +3170,7 @@
     {
       "name": "ds_admin_actions",
       "displayName": "Admin Actions",
-      "query": "SELECT user_identity_email, action_name, service_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max AND (action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%') ORDER BY event_time DESC LIMIT 30",
+      "query": "SELECT user_identity_email, action_name, service_name, COALESCE(get_json_object(to_json(request_params), '$.securable_full_name'), COALESCE(get_json_object(to_json(request_params), '$.full_name'), get_json_object(to_json(request_params), '$.name')), 'N/A') AS target_entity, event_time FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max AND (action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%') ORDER BY event_time DESC LIMIT 30",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2658,7 +3274,7 @@
     {
       "name": "ds_data_access",
       "displayName": "Data Access",
-      "query": "SELECT user_identity_email, action_name, COALESCE(request_params_securable_full_name, request_params_full_name, 'N/A') AS target_table, COUNT(*) AS access_count FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max AND service_name = 'unityCatalog' GROUP BY 1, 2, 3 ORDER BY 4 DESC LIMIT 30",
+      "query": "SELECT user_identity_email, action_name, COALESCE(get_json_object(to_json(request_params), '$.securable_full_name'), COALESCE(get_json_object(to_json(request_params), '$.full_name'), get_json_object(to_json(request_params), '$.name')), 'N/A') AS target_table, COUNT(*) AS access_count FROM ${catalog}.${gold_schema}.fact_audit_logs  WHERE event_time BETWEEN :time_range.min AND :time_range.max AND service_name = 'unityCatalog' GROUP BY 1, 2, 3 ORDER BY 4 DESC LIMIT 30",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2777,7 +3393,7 @@
     {
       "name": "ds_monitor_latest",
       "displayName": "Monitor: Latest",
-      "query": "SELECT \n  ROUND(SUM(total_events), 0) AS total_events,\n  ROUND(AVG(unique_users), 0) AS avg_unique_users,\n  ROUND(AVG(high_risk_events), 0) AS avg_high_risk\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max",
+      "query": "SELECT \n  ROUND(SUM(total_events), 0) AS total_events,\n  ROUND(AVG(distinct_users), 0) AS avg_distinct_users,\n  ROUND(AVG(sensitive_action_count), 0) AS avg_high_risk\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2801,7 +3417,7 @@
     {
       "name": "ds_monitor_trend",
       "displayName": "Monitor: Trend",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  SUM(total_events) AS total_events,\n  SUM(high_risk_events) AS high_risk_events\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  SUM(total_events) AS total_events,\n  SUM(sensitive_action_count) AS sensitive_action_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2825,7 +3441,7 @@
     {
       "name": "ds_monitor_access",
       "displayName": "Monitor: Access",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  SUM(denied_events) AS denied_events,\n  SUM(permission_changes) AS permission_changes\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  SUM(failed_action_count) AS failed_action_count,\n  SUM(permission_changes) AS permission_changes\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2849,7 +3465,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  column_name,\n  drift_type,\n  ROUND(ks_test * 100, 2) AS ks_stat_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_drift_metrics\nWHERE window.start BETWEEN :time_range.min AND :time_range.max\nAND drift_type = 'CONSECUTIVE'\nORDER BY window.start DESC",
+      "query": "SELECT \n  DATE(window.start) AS date,\n  column_name,\n  drift_type,\n  ROUND(ks_test.statistic * 100, 2) AS ks_stat_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_drift_metrics\nWHERE window.start BETWEEN :time_range.min AND :time_range.max\nAND drift_type = 'CONSECUTIVE'\nORDER BY window.start DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2873,7 +3489,7 @@
     {
       "name": "ds_monitor_detailed",
       "displayName": "Monitor: Detailed",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  column_name,\n  ROUND(avg, 2) AS avg_value,\n  ROUND(count, 0) AS count_value\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE log_type = 'INPUT'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nORDER BY window.start DESC LIMIT 100",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  column_name,\n  ROUND(COALESCE(avg, 0), 2) AS avg_value,\n  COALESCE(count, 0) AS record_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\nORDER BY window.start DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2925,6 +3541,229 @@
       "displayName": "ds_select_action",
       "query": "SELECT DISTINCT action_name FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE action_name IS NOT NULL ORDER BY 1 LIMIT 50",
       "parameters": []
+    },
+    {
+      "name": "ds_monitor_security_aggregate",
+      "displayName": "Security Aggregate Metrics",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  total_events,\n  distinct_users,\n  distinct_actions\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_security_derived",
+      "displayName": "Security Derived KPIs",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  sensitive_action_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_security_slice_keys",
+      "displayName": "Security Slice Keys",
+      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_key\n  FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_key IS NOT NULL\n)\nSELECT 'No Slice' AS slice_key\nUNION ALL\nSELECT slice_key FROM profile_metrics\nORDER BY slice_key",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_monitor_security_slice_values",
+      "displayName": "Security Slice Values",
+      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_value, COALESCE(slice_key, 'No Slice') AS sk\n  FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_value IS NOT NULL\n)\nSELECT 'No Slice' AS slice_value\nUNION ALL\nSELECT slice_value FROM profile_metrics WHERE sk = :monitor_slice_key\nORDER BY slice_value",
+      "parameters": [
+        {
+          "displayName": "monitor_time_start",
+          "keyword": "monitor_time_start",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now-12M/M"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_time_end",
+          "keyword": "monitor_time_end",
+          "dataType": "DATETIME",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATETIME",
+              "values": [
+                {
+                  "value": "now/s"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_key",
+          "keyword": "monitor_slice_key",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "No Slice"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "uiSettings": {

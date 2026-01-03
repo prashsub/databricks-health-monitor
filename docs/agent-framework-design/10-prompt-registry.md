@@ -1,5 +1,13 @@
 # 10 - Prompt Registry
 
+> **✅ Implementation Status: COMPLETE**
+>
+> All prompt registry components are implemented in `src/agents/prompts/`:
+> - `registry.py` - Prompt definitions, registration, and loading functions
+> - `ab_testing.py` - `PromptABTest` class for traffic splitting and variant selection
+> - `manager.py` - `PromptManager` class for production prompt management with refresh
+> - `__init__.py` - Clean exports for all prompt functions and classes
+
 ## Overview
 
 MLflow 3.0 Prompt Registry provides version control for prompts, enabling A/B testing, rollback, and production management. This document covers prompt versioning for the Health Monitor agent system.
@@ -426,133 +434,211 @@ mlflow.genai.log_prompt(
 
 ## A/B Testing Prompts
 
+> **✅ Implementation Status: COMPLETE**
+>
+> A/B testing is implemented in `src/agents/prompts/ab_testing.py`:
+> - `PromptABTest` class with consistent hashing for deterministic variant selection
+> - Traffic splitting based on user_id hash
+> - Methods for variant selection and prompt name generation
+
 ### Setup A/B Test
 
 ```python
-import random
+# src/agents/prompts/ab_testing.py
+import hashlib
+from typing import Dict
 
 class PromptABTest:
-    """A/B testing for prompts."""
+    """
+    Manages A/B testing for prompts.
     
-    def __init__(
-        self,
-        prompt_name: str,
-        variant_a_alias: str = "production",
-        variant_b_alias: str = "staging",
-        traffic_split: float = 0.1  # 10% to variant B
-    ):
-        self.prompt_name = prompt_name
-        self.variant_a = variant_a_alias
-        self.variant_b = variant_b_alias
-        self.traffic_split = traffic_split
+    Allows splitting traffic between different prompt variants (e.g., "control", "variant_A").
+    The variant is determined by hashing the user_id, ensuring consistent assignment.
+    """
     
-    def get_prompt(self, user_id: str = None) -> tuple:
+    def __init__(self, variants: Dict[str, float]):
         """
-        Get prompt variant for A/B test.
+        Initialize the A/B test with variant weights.
+        
+        Args:
+            variants: A dictionary where keys are variant names (e.g., "control", "variant_A")
+                      and values are their respective traffic weights (sum must be 1.0).
+        Example:
+            ab_test = PromptABTest({"control": 0.5, "variant_A": 0.5})
+        """
+        if sum(variants.values()) != 1.0:
+            raise ValueError("Variant weights must sum to 1.0")
+        self.variants = variants
+        self._variant_names = list(variants.keys())
+        self._cumulative_weights = []
+        cumulative_sum = 0.0
+        for variant, weight in variants.items():
+            cumulative_sum += weight
+            self._cumulative_weights.append((variant, cumulative_sum))
+    
+    def select_variant(self, user_id: str) -> str:
+        """
+        Select a prompt variant for a given user ID.
+        
+        Uses consistent hashing to ensure the same user always gets the same variant.
+        
+        Args:
+            user_id: The ID of the user for whom to select a variant.
         
         Returns:
-            (prompt_content, variant_name)
+            The name of the selected prompt variant.
         """
-        # Deterministic assignment based on user_id if provided
-        if user_id:
-            # Hash user_id for consistent assignment
-            hash_value = hash(user_id) % 100
-            use_variant_b = hash_value < (self.traffic_split * 100)
-        else:
-            use_variant_b = random.random() < self.traffic_split
+        # Hash the user_id to get a consistent number between 0 and 1
+        hash_object = hashlib.sha256(user_id.encode())
+        hash_digest = int(hash_object.hexdigest(), 16)
+        normalized_hash = hash_digest / (2**256 - 1)  # Normalize to [0, 1)
         
-        variant = self.variant_b if use_variant_b else self.variant_a
-        
-        prompt = mlflow.genai.load_prompt(
-            f"prompts:/{self.prompt_name}/{variant}"
-        )
-        
-        return prompt, variant
+        # Determine variant based on cumulative weights
+        for variant, cumulative_weight in self._cumulative_weights:
+            if normalized_hash < cumulative_weight:
+                return variant
+        return self._variant_names[-1]  # Fallback to the last variant
     
-    def log_variant(self, variant: str, metrics: dict):
-        """Log A/B test metrics."""
-        mlflow.log_metrics({
-            f"ab_test_{variant}_{k}": v
-            for k, v in metrics.items()
-        })
+    def get_variant_prompt_name(self, base_prompt_name: str, user_id: str) -> str:
+        """
+        Get the full prompt name for a user, including the A/B test variant.
+        
+        Args:
+            base_prompt_name: The base name of the prompt (e.g., "orchestrator").
+            user_id: The ID of the user.
+        
+        Returns:
+            The full prompt name including the variant (e.g., "orchestrator_control").
+        """
+        variant = self.select_variant(user_id)
+        return f"{base_prompt_name}_{variant}"
+
 
 # Usage
-ab_test = PromptABTest(
-    prompt_name="health_monitor_orchestrator_prompt",
-    variant_a_alias="production",
-    variant_b_alias="staging",
-    traffic_split=0.1
-)
+ab_test = PromptABTest({"control": 0.9, "variant_A": 0.1})
 
-# Get prompt for user
-prompt, variant = ab_test.get_prompt(user_id="user@example.com")
+# Get variant for user - always consistent for same user_id
+variant = ab_test.select_variant(user_id="user@example.com")
+print(f"Selected variant: {variant}")
 
-# After getting response, log metrics
-ab_test.log_variant(variant, {
-    "latency_ms": 1500,
-    "relevance_score": 0.85,
-    "user_rating": 4
-})
+# Get full prompt name with variant suffix
+prompt_name = ab_test.get_variant_prompt_name("orchestrator", "user@example.com")
+print(f"Prompt name: {prompt_name}")  # e.g., "orchestrator_control"
 ```
 
 ## Prompt Management in Production
 
+> **✅ Implementation Status: COMPLETE**
+>
+> Prompt management is implemented in `src/agents/prompts/manager.py`:
+> - `PromptManager` class with automatic loading and periodic refresh
+> - Thread-safe prompt loading with refresh interval
+> - Fallback to hardcoded prompts if registry unavailable
+> - Singleton pattern with `get_prompt_manager()` function
+
 ### Loading Prompts at Startup
 
 ```python
-class PromptManager:
-    """Centralized prompt management for production."""
-    
-    def __init__(self, environment: str = "production"):
-        self.environment = environment
-        self.prompts = {}
-        self._load_all_prompts()
-    
-    def _load_all_prompts(self):
-        """Load all prompts at startup."""
-        
-        alias = self.environment
-        
-        for key, config in HEALTH_MONITOR_PROMPTS.items():
-            try:
-                self.prompts[key] = mlflow.genai.load_prompt(
-                    f"prompts:/{config['name']}/{alias}"
-                )
-                print(f"Loaded {key} prompt from {alias}")
-            except Exception as e:
-                print(f"Failed to load {key} prompt: {e}")
-                # Fallback to default
-                self.prompts[key] = self._get_default_prompt(key)
-    
-    def get(self, prompt_key: str) -> str:
-        """Get a prompt by key."""
-        if prompt_key not in self.prompts:
-            raise ValueError(f"Unknown prompt: {prompt_key}")
-        return self.prompts[prompt_key]
-    
-    def refresh(self, prompt_key: str = None):
-        """Refresh prompts from registry."""
-        if prompt_key:
-            config = HEALTH_MONITOR_PROMPTS[prompt_key]
-            self.prompts[prompt_key] = mlflow.genai.load_prompt(
-                f"prompts:/{config['name']}/{self.environment}"
-            )
-        else:
-            self._load_all_prompts()
-    
-    def _get_default_prompt(self, key: str) -> str:
-        """Return default prompt as fallback."""
-        defaults = {
-            "orchestrator": "You are a helpful assistant for Databricks monitoring.",
-            "intent_classifier": "Classify the query into domains: cost, security, performance, reliability, quality.",
-            # ... other defaults
-        }
-        return defaults.get(key, "You are a helpful assistant.")
+# src/agents/prompts/manager.py
+import mlflow
+import mlflow.genai
+import time
+import threading
+from typing import Dict, Optional
 
-# Global prompt manager
-prompt_manager = PromptManager(
-    environment=os.environ.get("ENVIRONMENT", "production")
-)
+from .registry import load_prompt, ORCHESTRATOR_PROMPT, INTENT_CLASSIFIER_PROMPT, SYNTHESIZER_PROMPT
+
+
+class PromptManager:
+    """
+    Manages loading and refreshing prompts from the MLflow Prompt Registry.
+    
+    This class ensures that the agent always uses the latest production-aliased
+    prompts, with a fallback to hardcoded defaults if the registry is unavailable.
+    It also supports periodic refreshing of prompts.
+    """
+    
+    def __init__(self, refresh_interval_seconds: int = 300):
+        """
+        Initialize the PromptManager.
+        
+        Args:
+            refresh_interval_seconds: How often to refresh prompts from the registry (in seconds).
+        """
+        self._prompts: Dict[str, str] = {}
+        self._refresh_interval = refresh_interval_seconds
+        self._last_refresh_time: float = 0.0
+        self._lock = threading.Lock()
+        self._load_all_prompts()  # Initial load
+    
+    def _load_all_prompts(self) -> None:
+        """Load all required prompts from MLflow registry or use fallbacks."""
+        with self._lock:
+            print("Loading/refreshing prompts from MLflow registry...")
+            prompt_names = [
+                "orchestrator",
+                "intent_classifier",
+                "synthesizer",
+                "worker_cost",
+                "worker_security",
+                "worker_performance",
+                "worker_reliability",
+                "worker_quality",
+            ]
+            for name in prompt_names:
+                try:
+                    # Attempt to load by production alias
+                    prompt_content = load_prompt(name, alias="production")
+                    if not prompt_content:
+                        raise ValueError(f"Prompt '{name}' not found with 'production' alias.")
+                    self._prompts[name] = prompt_content
+                    print(f"  Loaded '{name}' from registry.")
+                except Exception as e:
+                    print(f"  WARNING: Failed to load '{name}': {e}. Using fallback.")
+                    # Fallback to hardcoded prompts
+                    if name == "orchestrator":
+                        self._prompts[name] = ORCHESTRATOR_PROMPT
+                    elif name == "intent_classifier":
+                        self._prompts[name] = INTENT_CLASSIFIER_PROMPT
+                    elif name == "synthesizer":
+                        self._prompts[name] = SYNTHESIZER_PROMPT
+                    else:
+                        self._prompts[name] = f"You are a {name.replace('worker_', '')} specialist."
+            
+            self._last_refresh_time = time.time()
+            print("Prompts loaded.")
+    
+    def get_prompt(self, name: str) -> str:
+        """Get a prompt by name, refreshing if necessary."""
+        # Check if refresh is needed
+        if time.time() - self._last_refresh_time > self._refresh_interval:
+            self._load_all_prompts()
+        
+        return self._prompts.get(name, "")
+    
+    def refresh_prompts(self) -> None:
+        """Manually trigger a refresh of all prompts."""
+        self._load_all_prompts()
+
+
+# Singleton instance
+_prompt_manager: Optional[PromptManager] = None
+
+def get_prompt_manager() -> PromptManager:
+    """Get the singleton PromptManager instance."""
+    global _prompt_manager
+    if _prompt_manager is None:
+        _prompt_manager = PromptManager()
+    return _prompt_manager
+
+
+# Usage
+prompt_manager = get_prompt_manager()
+orchestrator_prompt = prompt_manager.get_prompt("orchestrator")
+print(f"Loaded prompt: {orchestrator_prompt[:100]}...")
+
+# Manual refresh when needed
+prompt_manager.refresh_prompts()
 ```
 
 ## Next Steps

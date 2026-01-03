@@ -49,6 +49,7 @@ from src.ml.utils.training_base import (
     setup_training_environment,
     get_run_name,
     get_standard_tags,
+    prepare_training_data,
 )
 
 mlflow.set_registry_uri("databricks-uc")
@@ -100,24 +101,8 @@ def create_training_set(spark, fe, registry, catalog, feature_schema):
 
 # COMMAND ----------
 
-def prepare_training_data(training_df, feature_names):
-    print("\nPreparing training data...")
-    pdf = training_df.select(feature_names + [LABEL_COLUMN]).toPandas()
-    
-    for c in pdf.columns:
-        pdf[c] = pd.to_numeric(pdf[c], errors='coerce')
-    pdf = pdf.fillna(0).replace([np.inf, -np.inf], 0)
-    
-    X = pdf[feature_names]
-    y = pdf[LABEL_COLUMN]
-    
-    if len(X) < 10:
-        print(f"⚠ Warning: Only {len(X)} samples available")
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    print(f"  Train: {len(X_train)}, Test: {len(X_test)}")
-    
-    return X_train, X_test, y_train, y_test
+# NOTE: Using standardized prepare_training_data from training_base.py
+# This ensures proper float64 casting for consistency between training and inference
 
 # COMMAND ----------
 
@@ -178,7 +163,7 @@ def main():
     
     try:
         training_set, training_df, feature_names = create_training_set(spark, fe, registry, catalog, feature_schema)
-        X_train, X_test, y_train, y_test = prepare_training_data(training_df, feature_names)
+        X_train, X_test, y_train, y_test = prepare_training_data(training_df, feature_names, LABEL_COLUMN)
         model, metrics, hyperparams = train_model(X_train, y_train, X_test, y_test)
         result = log_model(fe, model, training_set, X_train, metrics, hyperparams, catalog, feature_schema, feature_table_full)
         

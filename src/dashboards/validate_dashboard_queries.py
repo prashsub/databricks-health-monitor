@@ -95,10 +95,11 @@ def extract_queries_from_dashboard(dashboard_path: Path, catalog: str, gold_sche
         query = re.sub(r':time_key\b', "'Day'", query)
         query = re.sub(r':date_range\b', "'Last 30 Days'", query)
         
-        # Workspace and environment parameters  
-        query = re.sub(r':workspace_filter\b', "'All'", query)
+        # Workspace and environment parameters
+        # Use ARRAY('All') for workspace params since they're used in EXPLODE()
+        query = re.sub(r':workspace_filter\b', "ARRAY('All')", query)
         query = re.sub(r':workspace_name\b', "'All'", query)
-        query = re.sub(r':param_workspace\b', "'All'", query)
+        query = re.sub(r':param_workspace\b', "ARRAY('All')", query)
         
         # SKU and product parameters
         query = re.sub(r':sku_type\b', "'All'", query)
@@ -117,6 +118,14 @@ def extract_queries_from_dashboard(dashboard_path: Path, catalog: str, gold_sche
         query = re.sub(r':annual_commit\b', "1000000", query)
         query = re.sub(r':top_n\b', "10", query)
         query = re.sub(r':limit\b', "100", query)
+        
+        # Lakehouse Monitoring parameters (slice filters)
+        query = re.sub(r':monitor_time_start\b', "CURRENT_DATE() - INTERVAL 12 MONTHS", query)
+        query = re.sub(r':monitor_time_end\b', "CURRENT_DATE()", query)
+        query = re.sub(r':monitor_slice_key\b', "'No Slice'", query)
+        query = re.sub(r':monitor_slice_value\b', "'No Slice'", query)
+        query = re.sub(r':slice_key\b', "'No Slice'", query)
+        query = re.sub(r':slice_value\b', "'No Slice'", query)
         
         # Catch remaining parameters - replace with string 'All' for validation
         # Skip :table (Lakehouse Monitoring literal) and patterns inside quoted strings
@@ -137,7 +146,14 @@ def extract_queries_from_dashboard(dashboard_path: Path, catalog: str, gold_sche
 # COMMAND ----------
 
 def validate_query(spark: SparkSession, query_info: Dict) -> Dict:
-    """Validate a single SQL query by explaining it (doesn't execute)."""
+    """Validate a single SQL query by executing it with LIMIT 1.
+    
+    Using SELECT LIMIT 1 instead of EXPLAIN because:
+    - EXPLAIN may not catch all column resolution errors
+    - EXPLAIN may not catch type mismatches
+    - SELECT LIMIT 1 validates the full execution path
+    - Only returns 1 row, so it's still fast
+    """
     
     result = {
         'dashboard': query_info['dashboard'],
@@ -148,9 +164,18 @@ def validate_query(spark: SparkSession, query_info: Dict) -> Dict:
     }
     
     try:
-        # Use EXPLAIN to validate without executing
-        # This catches syntax and column resolution errors
-        spark.sql(f"EXPLAIN {query_info['query']}")
+        # Wrap query with LIMIT 1 for fast validation
+        # This catches ALL errors - syntax, columns, types, runtime
+        original_query = query_info['query'].strip().rstrip(';')
+        
+        # Handle queries that already have LIMIT - wrap in subquery
+        if 'LIMIT' in original_query.upper():
+            validation_query = f"SELECT * FROM ({original_query}) AS validation_subquery LIMIT 1"
+        else:
+            validation_query = f"{original_query} LIMIT 1"
+        
+        # Actually execute the query
+        spark.sql(validation_query).collect()
         result['valid'] = True
         
     except Exception as e:
@@ -294,17 +319,33 @@ def main():
         all_queries.extend(queries)
         print(f"   {dash_file.name}: {len(queries)} datasets")
     
-    print(f"\n🔍 Validating {len(all_queries)} queries...")
+    print(f"\n🔍 Validating {len(all_queries)} queries using SELECT LIMIT 1...")
+    print("   (This executes each query to catch ALL errors)")
     print("-" * 80)
+    
+    import time
+    start_time = time.time()
     
     # Validate each query
     results = []
+    failed_queries = []
+    
     for i, query_info in enumerate(all_queries):
+        query_start = time.time()
         result = validate_query(spark, query_info)
+        query_duration = time.time() - query_start
+        result['duration_sec'] = round(query_duration, 2)
         results.append(result)
         
         status = "✓" if result['valid'] else "✗"
-        print(f"  [{i+1}/{len(all_queries)}] {status} {query_info['dashboard']}.{query_info['dataset']}")
+        duration_str = f"({query_duration:.1f}s)" if query_duration > 1 else ""
+        print(f"  [{i+1}/{len(all_queries)}] {status} {query_info['dashboard']}.{query_info['dataset']} {duration_str}")
+        
+        if not result['valid']:
+            failed_queries.append(result)
+    
+    total_duration = time.time() - start_time
+    print(f"\n⏱️ Total validation time: {total_duration:.1f} seconds")
     
     # Generate report
     report = generate_validation_report(results)

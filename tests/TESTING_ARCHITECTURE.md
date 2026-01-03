@@ -192,7 +192,7 @@ def mock_dbutils():
         "catalog": "test_catalog",
         "gold_schema": "system_gold",
         "bronze_schema": "system_bronze",
-        "feature_schema": "system_gold_features",
+        "feature_schema": "system_gold_ml",
     })
 
 @pytest.fixture

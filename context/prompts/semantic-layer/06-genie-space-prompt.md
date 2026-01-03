@@ -259,6 +259,149 @@ LIMIT 10;
 
 ---
 
+## ████████████████████████████████████████████████████████████████
+## █                                                              █
+## █  SECTION H: JSON EXPORT FOR API DEPLOYMENT                   █
+## █  ─────────────────────────────────────────────────────────── █
+## █  REQUIRED: GenieSpaceExport JSON for programmatic deployment █
+## █  Enables automated deployment via REST API                   █
+## █  ⚠️ INCLUDES BENCHMARK SQL - THIS IS WHAT GETS VALIDATED     █
+## █                                                              █
+## ████████████████████████████████████████████████████████████████
+
+**Purpose:** Enable automated deployment using Databricks REST API instead of manual UI setup.
+
+**⚠️ CRITICAL:** The `benchmarks` section in the JSON is what gets validated before deployment. The benchmark SQL in Section G (markdown) is for human documentation only.
+
+**Format:**
+```json
+{
+  "version": 1,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "question": ["Sample question 1 from Section C"]
+      },
+      {
+        "id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "question": ["Sample question 2 from Section C"]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_table_name",
+        "description": ["Table description"],
+        "column_configs": [
+          {
+            "column_name": "column1",
+            "description": ["Column description"],
+            "synonyms": ["synonym1", "synonym2"],
+            "get_example_values": true
+          }
+        ]
+      }
+    ],
+    "metric_views": [
+      {
+        "identifier": "${catalog}.${gold_schema}.metric_view_name",
+        "description": ["Metric view description"],
+        "column_configs": [
+          {
+            "column_name": "dimension1"
+          },
+          {
+            "column_name": "measure1"
+          }
+        ]
+      }
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "cccccccccccccccccccccccccccccccc",
+        "content": ["General instructions from Section E (line by line)"]
+      }
+    ],
+    "sql_functions": [
+      {
+        "id": "dddddddddddddddddddddddddddddddd",
+        "identifier": "${catalog}.${gold_schema}.get_function_name"
+      }
+    ]
+  },
+  "benchmarks": {
+    "questions": [
+      {
+        "id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "question": ["Benchmark question 1 from Section G"],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  column1,\n",
+              "  MEASURE(measure1) as metric\n",
+              "FROM ${catalog}.${gold_schema}.metric_view\n",
+              "WHERE date_column >= CURRENT_DATE() - 30\n",
+              "ORDER BY metric DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ffffffffffffffffffffffffffffffff",
+        "question": ["Benchmark question 2 from Section G"],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_function_name(\n",
+              "  'param_value',\n",
+              "  CURRENT_DATE() - 30,\n",
+              "  CURRENT_DATE()\n",
+              ");"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Requirements:**
+1. **Save as:** `{space_name}_genie_export.json` (e.g., `cost_intelligence_genie_export.json`)
+2. **IDs:** Use 32-char hex strings (UUID without dashes)
+3. **String arrays:** All `question`, `description`, `content` fields are arrays (split at newlines)
+4. **Variables:** Use `${catalog}` and `${gold_schema}` for template substitution
+5. **Sorting:** ALL arrays must be sorted:
+   - `tables` by `identifier` (alphabetical)
+   - `metric_views` by `identifier` (alphabetical)
+   - `column_configs` by `column_name` (alphabetical)
+   - `sql_functions` by `identifier` (alphabetical)
+6. **Benchmarks:** Copy ALL benchmark questions from Section G into the `benchmarks.questions` array
+   - Each question must have exactly ONE answer with `format: "SQL"`
+   - SQL content is split into array of lines (for better diffs)
+   - The SQL here is what gets validated before deployment
+
+**⚠️ CRITICAL VALIDATION FLOW:**
+1. Pre-deployment validation reads `benchmarks.questions[].answer[].content` from JSON
+2. Joins the content array into a single SQL string
+3. Substitutes `${catalog}` and `${gold_schema}` variables
+4. Runs `EXPLAIN` on each SQL query to validate syntax, columns, tables
+5. Deployment only proceeds if ALL benchmark SQL queries are valid
+
+**⚠️ REQUIREMENT: Generate valid GenieSpaceExport JSON with ALL benchmark questions from Section G.**
+
+**Reference:** See `.cursor/rules/semantic-layer/29-genie-space-export-import-api.mdc` for complete schema.
+
+---
+
 # ✅ DELIVERABLE CHECKLIST
 
 Before submitting, verify ALL sections are complete:
@@ -272,8 +415,9 @@ Before submitting, verify ALL sections are complete:
 | **E. General Instructions** | ≤20 lines, behavior rules | ☐ |
 | **F. TVFs** | All functions with signatures | ☐ |
 | **G. Benchmark Questions** | 10-15 with SQL answers | ☐ |
+| **H. JSON Export** | GenieSpaceExport format | ☐ |
 
-**🔴 ALL 7 SECTIONS MUST BE COMPLETE. NO EXCEPTIONS. 🔴**
+**🔴 ALL 8 SECTIONS MUST BE COMPLETE. NO EXCEPTIONS. 🔴**
 
 ---
 
@@ -304,7 +448,70 @@ Genie Spaces enable **business users to query data using natural language**:
 
 ---
 
-## Step 1: Genie Space Setup (UI-Based)
+## API Deployment Checklist (NEW - Recommended)
+
+**Using Section H JSON Export for automated deployment:**
+
+### Pre-Creation Verification
+- [ ] All metric views deployed and tested
+- [ ] All TVFs deployed and tested
+- [ ] All Gold tables exist with descriptions
+- [ ] SQL benchmark questions validated (run `EXPLAIN` on each)
+
+### JSON Structure Requirements
+- [ ] All `tables` sorted alphabetically by `identifier`
+- [ ] All `metric_views` sorted alphabetically by `identifier`
+- [ ] All `column_configs` sorted alphabetically by `column_name`
+- [ ] All `sql_functions` sorted alphabetically by `identifier`
+- [ ] IDs are 32-char hex strings (UUID without dashes)
+- [ ] Variables use `${catalog}` and `${gold_schema}` format
+- [ ] String fields are arrays (split at newlines)
+
+### Pre-Deployment Validation Steps
+1. **Validate Benchmark SQL:** Run validation task to check all SQL queries
+   ```bash
+   databricks bundle run -t dev genie_spaces_deployment_job --profile {profile}
+   ```
+2. **Check for errors:** Validation task catches syntax, column, and table errors
+3. **Fix issues:** Update markdown Section G and regenerate JSON Section H
+
+### Deployment Workflow
+```bash
+# 1. Place JSON file in src/genie/ folder
+# File name: {space_name}_genie_export.json
+
+# 2. Deploy bundle (syncs JSON to workspace)
+databricks bundle deploy -t dev --profile {profile}
+
+# 3. Run deployment job (validates + deploys)
+databricks bundle run -t dev genie_spaces_deployment_job --profile {profile}
+```
+
+### Deployment Output
+```
+Task validate_genie_spaces: SUCCESS
+  ✓ Validated 12 benchmark queries
+  ✓ All SQL syntax correct
+  ✓ All columns exist
+  ✓ All tables/functions exist
+
+Task deploy_genie_spaces: SUCCESS
+  ✓ Created Genie Space: {space_name}
+  ✓ Space ID: abc123...
+```
+
+### Benefits of API Deployment
+- ✅ **Version Control:** JSON is tracked in Git
+- ✅ **Validation:** Pre-deployment SQL validation catches errors
+- ✅ **Repeatability:** Deploy to dev/staging/prod environments
+- ✅ **Updates:** Use same JSON to update existing spaces
+- ✅ **CI/CD Ready:** Integrate into deployment pipelines
+
+**Reference:** `.cursor/rules/semantic-layer/29-genie-space-export-import-api.mdc`
+
+---
+
+## Step 1: Genie Space Setup (UI-Based - Legacy)
 
 ### Create Genie Space
 
@@ -426,34 +633,97 @@ Use the benchmark questions from Section G to:
 
 ## Implementation Checklist
 
-### Phase 1: Preparation (30 min)
+### Choose Deployment Method
+
+**Option 1: API Deployment (RECOMMENDED)**
+- ✅ Version controlled
+- ✅ Automated validation
+- ✅ Repeatable across environments
+- ✅ CI/CD ready
+
+**Option 2: UI Deployment (Legacy)**
+- Manual configuration
+- No pre-validation
+- Harder to replicate
+- Suitable for one-off spaces
+
+---
+
+### API Deployment Workflow
+
+#### Phase 1: Preparation (30 min)
 - [ ] Ensure Metric Views are created and tested
 - [ ] Ensure TVFs are created and tested
 - [ ] Document all trusted assets
 - [ ] List common business questions
 
-### Phase 2: Genie Space Setup (30 min)
+#### Phase 2: Markdown Documentation (60 min)
+- [ ] Create Sections A-G (Space Name through Benchmark Questions)
+- [ ] Document all data assets
+- [ ] Write concise General Instructions (≤20 lines)
+- [ ] Create 10-15 benchmark questions with SQL
+
+#### Phase 3: JSON Export Generation (30 min)
+- [ ] Generate Section H JSON from Sections A-G
+- [ ] Verify all IDs are 32-char hex (UUID without dashes)
+- [ ] Verify all arrays are sorted (tables, metric_views, column_configs)
+- [ ] Verify variables use `${catalog}` and `${gold_schema}` format
+- [ ] Save as `{space_name}_genie_export.json` in `src/genie/`
+
+#### Phase 4: Pre-Deployment Validation (5 min)
+- [ ] Run validation task: `databricks bundle run genie_spaces_deployment_job`
+- [ ] Review validation output (all benchmark SQL queries checked)
+- [ ] Fix any SQL syntax/column/table errors
+- [ ] Re-run validation until all queries pass
+
+#### Phase 5: Deployment (5 min)
+- [ ] Deploy bundle: `databricks bundle deploy -t dev`
+- [ ] Run deployment job (validation + deployment)
+- [ ] Verify Genie Space created successfully
+- [ ] Note Space ID from output
+
+#### Phase 6: Testing (15 min)
+- [ ] Open Genie Space in Databricks UI
+- [ ] Test sample questions from Section C
+- [ ] Verify benchmark questions work correctly
+- [ ] Refine instructions if needed (update JSON and redeploy)
+
+**Total Time:** ~2.5 hours (vs 3-4 hours for manual UI setup)
+
+---
+
+### UI Deployment Workflow (Legacy)
+
+#### Phase 1: Preparation (30 min)
+- [ ] Ensure Metric Views are created and tested
+- [ ] Ensure TVFs are created and tested
+- [ ] Document all trusted assets
+- [ ] List common business questions
+
+#### Phase 2: Genie Space Setup (30 min)
 - [ ] Create Genie Space in UI
 - [ ] Add name and description (Sections A & B)
 - [ ] Select SQL warehouse
 - [ ] Grant permissions to user groups
 
-### Phase 3: Add Trusted Assets (15 min)
+#### Phase 3: Add Trusted Assets (15 min)
 - [ ] Add all Metric Views (Section D)
 - [ ] Add all Table-Valued Functions (Section F)
 - [ ] Add dimension tables (Section D)
 - [ ] Verify all assets accessible
 
-### Phase 4: Agent Instructions (15 min)
+#### Phase 4: Agent Instructions (15 min)
 - [ ] Add General Instructions (Section E)
 - [ ] Add Sample Questions to UI (Section C)
 
-### Phase 5: Testing (30 min)
+#### Phase 5: Testing (30 min)
 - [ ] Test each Benchmark Question (Section G)
 - [ ] Compare generated SQL to expected SQL
 - [ ] Verify result accuracy
 - [ ] Document issues
 - [ ] Refine instructions as needed
+
+**Total Time:** ~2 hours initial + ongoing manual maintenance
 
 ---
 
@@ -521,7 +791,7 @@ LIMIT 10;
 
 ## Summary
 
-**🔴 MANDATORY OUTPUT: Complete Genie Space Setup Document with 7 sections:**
+**🔴 MANDATORY OUTPUT: Complete Genie Space Setup Document with 8 sections:**
 
 | # | Section | What to Provide |
 |---|---------|-----------------|
@@ -532,10 +802,13 @@ LIMIT 10;
 | E | General Instructions | ≤20 lines of behavior rules |
 | F | TVFs | All functions with signatures |
 | G | Benchmark Questions | 10-15 questions with SQL answers |
+| H | JSON Export | GenieSpaceExport format for API deployment |
 
-**Time Estimate:** 1-2 hours
+**Time Estimate:** 1-2 hours (markdown) + 30 min (JSON generation)
 
-**Next Action:** Create document with all 7 sections, then configure in Databricks UI
+**Deployment Options:**
+1. **Manual:** Create document with sections A-G, then configure in Databricks UI
+2. **Automated (RECOMMENDED):** Create document with all 8 sections, deploy via REST API using JSON from Section H
 
 
 

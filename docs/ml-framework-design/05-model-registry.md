@@ -40,9 +40,9 @@ fe.log_model(
 {catalog}.{schema}.{model_name}
 
 Examples:
-prashanth_catalog.gold_features.cost_anomaly_detector
-prashanth_catalog.gold_features.budget_forecaster
-prashanth_catalog.gold_features.failure_predictor
+prashanth_catalog.gold_ml.cost_anomaly_detector
+prashanth_catalog.gold_ml.budget_forecaster
+prashanth_catalog.gold_ml.failure_predictor
 ```
 
 ### Registration Requirements
@@ -420,7 +420,7 @@ client.delete_registered_model(name=model_name)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ Model: prashanth_catalog.gold_features.cost_anomaly_detector               │
+│ Model: prashanth_catalog.gold_ml.cost_anomaly_detector               │
 ├────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │ [Overview] [Lineage] [Permissions] [Tags]                                  │

@@ -6,7 +6,16 @@
 > - Lakebase `CheckpointSaver` and `DatabricksStore` for memory
 > - LangGraph `StateGraph` for orchestration
 > - MLflow 3.0 tracing with `@mlflow.trace` decorators
+> - MLflow 3.0 evaluation with built-in scorers and custom domain judges
+> - MLflow 3.0 prompt registry with A/B testing and production management
 > - Placeholder Genie Space IDs (to be configured during deployment)
+>
+> **Key Files:**
+> - `evaluation/evaluator.py` - Evaluation runner with built-in scorers
+> - `evaluation/judges.py` - 9 LLM judges (generic + domain-specific)
+> - `evaluation/production_monitor.py` - Real-time quality monitoring
+> - `prompts/ab_testing.py` - A/B testing for prompts
+> - `prompts/manager.py` - Production prompt management
 >
 > See [Appendix D: Implementation Reference](appendices/D-implementation-reference.md) for file structure.
 
@@ -19,12 +28,12 @@ This document provides a step-by-step implementation guide for the Health Monito
 | Phase | Duration | Status | Deliverables |
 |-------|----------|--------|--------------|
 | 1. Environment Setup | 2 days | ✅ Complete | Dependencies, config, settings |
-| 2. Orchestrator Agent | 1 week | ✅ Complete | LangGraph supervisor, intent classification |
+| 2. Orchestrator Agent | 1 week | ✅ Complete | LangGraph supervisor, intent classification, streaming |
 | 3. Worker Agents | 1 week | ✅ Complete | 5 domain specialists (placeholder Genie IDs) |
 | 4. Utility Tools | 3 days | ✅ Complete | Web search, dashboard linker |
 | 5. Memory Integration | 3 days | ✅ Complete | CheckpointSaver, DatabricksStore |
-| 6. MLflow Integration | 1 week | ✅ Complete | Autolog, tracing, prompt registry |
-| 7. Evaluation Pipeline | 3 days | ✅ Complete | LLM judges, evaluation runner |
+| 6. MLflow Integration | 1 week | ✅ Complete | Autolog, tracing, prompt registry, A/B testing, PromptManager |
+| 7. Evaluation Pipeline | 3 days | ✅ Complete | Built-in scorers, 9 LLM judges, production monitoring |
 | 8. Deployment | 2 days | 🔜 Pending | Model Serving, Apps frontend |
 | **Total** | **~5 weeks** | **7/8 Complete** | Production-ready agent system |
 
@@ -550,42 +559,165 @@ def log_agent(agent, version: str):
 
 ## Phase 7: Evaluation Pipeline (3 Days)
 
+> **✅ Implementation Status: COMPLETE**
+>
+> Evaluation is implemented in `src/agents/evaluation/`:
+> - `evaluator.py` - `create_evaluation_dataset()` and `run_evaluation()` with all scorers
+> - `judges.py` - 9 LLM judges (4 generic + 5 domain-specific)
+> - `production_monitor.py` - Real-time quality monitoring with `mlflow.genai.assess()`
+
 ### Step 7.1: Create Evaluation Set
 
 ```python
-# evaluation_sets/create_eval_set.py
+# src/agents/evaluation/evaluator.py
+from typing import List, Dict, Any, Optional
 import pandas as pd
 
-eval_data = pd.DataFrame([
-    {"query": "Why did costs spike yesterday?", "category": "cost"},
-    {"query": "Who accessed sensitive data?", "category": "security"},
-    {"query": "What are the slowest queries?", "category": "performance"},
-    {"query": "Which jobs failed today?", "category": "reliability"},
-    {"query": "Which tables have quality issues?", "category": "quality"},
-    {"query": "Are expensive jobs also failing?", "category": "multi_domain"}
-])
+def create_evaluation_dataset(
+    queries: List[str],
+    expected_outputs: Optional[List[Dict[str, Any]]] = None,
+) -> pd.DataFrame:
+    """
+    Create a Pandas DataFrame suitable for MLflow evaluation.
+    
+    Args:
+        queries: List of input queries.
+        expected_outputs: Optional list of dictionaries with expected outputs
+                          (e.g., {"domains": ["COST"], "relevance": 1.0}).
+    
+    Returns:
+        A Pandas DataFrame with "query" and "expected_outputs" columns.
+    """
+    if expected_outputs and len(queries) != len(expected_outputs):
+        raise ValueError("Length of queries and expected_outputs must match.")
+    
+    data = {"query": queries}
+    if expected_outputs:
+        data["expected_outputs"] = expected_outputs
+    
+    return pd.DataFrame(data)
 
-eval_data.to_parquet("evaluation_sets/health_monitor_eval.parquet")
+
+# Usage
+eval_data = create_evaluation_dataset(
+    queries=[
+        "Why did costs spike yesterday?",
+        "Who accessed sensitive data?",
+        "What are the slowest queries?",
+        "Which jobs failed today?",
+        "Which tables have quality issues?",
+        "Are expensive jobs also failing?",
+    ],
+    expected_outputs=[
+        {"domains": ["COST"], "category": "cost"},
+        {"domains": ["SECURITY"], "category": "security"},
+        {"domains": ["PERFORMANCE"], "category": "performance"},
+        {"domains": ["RELIABILITY"], "category": "reliability"},
+        {"domains": ["QUALITY"], "category": "quality"},
+        {"domains": ["COST", "RELIABILITY"], "category": "multi_domain"},
+    ]
+)
 ```
 
 ### Step 7.2: Run Evaluation
 
 ```python
-# src/agents/evaluation/run_eval.py
-import mlflow.genai
-from mlflow.genai.scorers import Relevance, Safety, Correctness
+# src/agents/evaluation/evaluator.py
+import mlflow
+from mlflow.genai.scorers import Relevance, Safety, Correctness, GuidelinesAdherence
+from .judges import (
+    domain_accuracy_judge,
+    response_relevance_judge,
+    actionability_judge,
+    source_citation_judge,
+    cost_accuracy_judge,
+    security_compliance_judge,
+    performance_accuracy_judge,
+    reliability_accuracy_judge,
+    quality_accuracy_judge,
+)
 
-def run_evaluation(agent, eval_data):
-    results = mlflow.genai.evaluate(
-        model=agent,
-        data=eval_data,
-        scorers=[Relevance(), Safety(), Correctness()]
+def run_evaluation(
+    model,
+    eval_data: pd.DataFrame,
+    experiment_name: str = "/Shared/health_monitor/agent_evaluations",
+    run_name: str = None,
+    guidelines: Optional[List[str]] = None,
+):
+    """
+    Run a comprehensive MLflow evaluation on the agent.
+    
+    Includes:
+    - Built-in scorers: Relevance, Safety, Correctness, GuidelinesAdherence
+    - Custom domain judges: cost, security, performance, reliability, quality
+    """
+    mlflow.set_experiment(experiment_name)
+    
+    # Define all scorers
+    scorers = [
+        # Built-in scorers
+        Relevance(),
+        Safety(),
+        Correctness(),
+        GuidelinesAdherence(guidelines=guidelines or []),
+        # Custom LLM judges (generic)
+        domain_accuracy_judge,
+        response_relevance_judge,
+        actionability_judge,
+        source_citation_judge,
+        # Custom LLM judges (domain-specific)
+        cost_accuracy_judge,
+        security_compliance_judge,
+        performance_accuracy_judge,
+        reliability_accuracy_judge,
+        quality_accuracy_judge,
+    ]
+    
+    with mlflow.start_run(run_name=run_name or "agent_evaluation") as run:
+        results = mlflow.genai.evaluate(
+            model=model,
+            data=eval_data,
+            scorers=scorers,
+        )
+        
+        print("Evaluation results:")
+        print(results.metrics)
+        return run
+```
+
+### Step 7.3: Production Monitoring
+
+```python
+# src/agents/evaluation/production_monitor.py
+import mlflow
+
+def monitor_response_quality(inputs: dict, outputs: dict, guidelines: list = None) -> dict:
+    """
+    Assess the quality of an agent's response in real-time using mlflow.genai.assess().
+    
+    This runs lightweight scoring on every production response.
+    """
+    assessment = mlflow.genai.assess(
+        inputs=inputs,
+        outputs=outputs,
+        scorers=[...],  # All scorers
     )
     
-    print(f"Relevance: {results.metrics['relevance/mean']:.2%}")
-    print(f"Safety: {results.metrics['safety/mean']:.2%}")
+    # Log metrics to MLflow
+    if mlflow.active_run():
+        for metric_name, score in assessment.scores.items():
+            mlflow.log_metric(f"prod_monitor/{metric_name}", score)
     
-    return results
+    return assessment.scores
+
+
+def trigger_quality_alert(scores: dict, threshold: float = 0.6) -> bool:
+    """Trigger alert if any quality score falls below threshold."""
+    for metric, score in scores.items():
+        if score < threshold:
+            print(f"ALERT: {metric} score ({score:.2f}) below threshold!")
+            return True
+    return False
 ```
 
 ## Phase 8: Deployment (2 Days)
@@ -638,8 +770,14 @@ if prompt := st.chat_input("Ask about costs, jobs, security..."):
 ### Phase 6-7 Completion
 - [x] MLflow autolog enabled (`src/agents/__init__.py`)
 - [x] Prompt registry implemented (`src/agents/prompts/registry.py`)
+- [x] Prompt A/B testing implemented (`src/agents/prompts/ab_testing.py`)
+- [x] Prompt manager for production (`src/agents/prompts/manager.py`)
 - [x] Agent logging notebook (`src/agents/notebooks/log_agent.py`)
-- [x] LLM judges implemented (`src/agents/evaluation/judges.py`)
+- [x] Built-in scorers integrated (`evaluation/evaluator.py`)
+- [x] All 9 LLM judges implemented (`src/agents/evaluation/judges.py`)
+- [x] Evaluation runner with `mlflow.genai.evaluate()` (`evaluation/evaluator.py`)
+- [x] Production monitoring with `mlflow.genai.assess()` (`evaluation/production_monitor.py`)
+- [x] Streaming support in agent (`orchestrator/agent.py`)
 
 ### Phase 8 Completion (Pending)
 - [ ] Configure Genie Space IDs (environment variables)

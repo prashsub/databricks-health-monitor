@@ -28,8 +28,19 @@ resources:
             environment_version: "4"
       
       tasks:
-        # Deploy all Genie Spaces from JSON exports
+        # Task 1: Validate all benchmark SQL queries (catches ALL issues at once)
+        - task_key: validate_genie_spaces
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+        
+        # Task 2: Deploy all Genie Spaces from JSON exports (only if validation passes)
         - task_key: deploy_genie_spaces
+          depends_on:
+            - task_key: validate_genie_spaces
           environment_key: default
           notebook_task:
             notebook_path: ../../src/genie/deploy_genie_space.py

@@ -8,7 +8,17 @@
 
 ## ████ SECTION B: SPACE DESCRIPTION ████
 
-**Description:** Comprehensive natural language interface for Databricks platform health monitoring. Enables leadership, platform administrators, and SREs to query costs, job reliability, query performance, cluster efficiency, security audit, and data quality - all in one unified space. Powered by 10 Metric Views, 60 Table-Valued Functions, 25 ML Models, and 8 Lakehouse Monitors with 87 custom metrics.
+**Description:** Comprehensive natural language interface for Databricks platform health monitoring. Enables leadership, platform administrators, and SREs to query costs, job reliability, query performance, cluster efficiency, security audit, and data quality - all in one unified space.
+
+**Powered by (25 tables max, curated for executive view):**
+- 5 Metric Views (1 per domain - cost, job, query, security, quality)
+- 60 Table-Valued Functions (full access across all domains)
+- 5 ML Prediction Tables (anomaly detection per domain)
+- 5 Lakehouse Monitoring Tables (profile metrics per domain)
+- 4 Dimension Tables (core shared dimensions)
+- 6 Fact Tables (primary fact per domain)
+
+**⚠️ For detailed domain analysis, use domain-specific Genie Spaces.**
 
 ---
 
@@ -44,20 +54,17 @@
 
 ## ████ SECTION D: DATA ASSETS ████
 
-### Metric Views (10 Total - PRIMARY Source)
+### Metric Views (5 - One per Domain)
 
 | Metric View | Domain | Purpose | Key Measures |
 |-------------|--------|---------|--------------|
 | `cost_analytics` | 💰 Cost | Comprehensive cost metrics | total_cost, total_dbus, tag_coverage_percentage |
-| `commit_tracking` | 💰 Cost | Budget tracking | commit_amount, consumed_amount, burn_rate |
-| `job_performance` | 🔄 Reliability | Job execution | success_rate, failure_rate, p95_duration |
-| `query_performance` | ⚡ Performance | Query metrics | avg_duration, p95_duration, sla_breach_rate |
-| `cluster_utilization` | ⚡ Performance | Resource metrics | avg_cpu, avg_memory, total_node_hours |
-| `cluster_efficiency` | ⚡ Performance | Efficiency metrics | p95_cpu, saturation_hours, idle_hours |
-| `security_events` | 🔒 Security | Audit metrics | total_events, failed_events, high_risk_events |
-| `governance_analytics` | 🔒 Security | Lineage metrics | read_events, write_events, active_tables |
-| `data_quality` | ✅ Quality | Quality metrics | quality_score, completeness, validity |
-| `ml_intelligence` | 🤖 ML | Inference metrics | prediction_count, accuracy, drift_score |
+| `job_performance` | 🔄 Reliability | Job execution metrics | success_rate, failure_rate, p95_duration |
+| `query_performance` | ⚡ Performance | Query execution metrics | avg_duration, p95_duration, sla_breach_rate |
+| `security_events` | 🔒 Security | Audit event metrics | total_events, failed_events, high_risk_events |
+| `data_quality` | ✅ Quality | Data quality metrics | quality_score, completeness, validity |
+
+**📌 Additional metric views available in domain-specific spaces:** `commit_tracking`, `cluster_utilization`, `cluster_efficiency`, `governance_analytics`, `ml_intelligence`
 
 ### Table-Valued Functions (60 Total)
 
@@ -141,62 +148,34 @@
 | `get_table_activity_status` | Activity status |
 | `get_pipeline_data_lineage` | Lineage |
 
-### ML Prediction Tables (25 Models)
+### ML Prediction Tables (5 - Key Anomaly & Health Tables)
 
-#### Cost ML (6)
-- `cost_anomaly_predictions` - Anomaly detection
-- `cost_forecast_predictions` - 30-day forecast
-- `tag_recommendations` - Tag suggestions
-- `user_cost_segments` - User clustering
-- `migration_recommendations` - AP migration
-- `budget_alert_predictions` - Budget alerts
+| Table Name | Domain | Purpose | Key Columns |
+|---|---|---|---|
+| `cost_anomaly_predictions` | 💰 Cost | Detect unusual spending patterns | `anomaly_score`, `is_anomaly`, `workspace_id` |
+| `job_failure_predictions` | 🔄 Reliability | Predict job failure probability | `failure_probability`, `will_fail`, `risk_factors` |
+| `pipeline_health_scores` | 🔄 Reliability | Overall pipeline health (0-100) | `health_score`, `health_status`, `trend` |
+| `access_anomaly_predictions` | 🔒 Security | Detect unusual access patterns | `threat_score`, `is_threat`, `user_identity` |
+| `quality_anomaly_predictions` | ✅ Quality | Detect data drift/quality issues | `drift_score`, `is_drifted`, `table_name` |
 
-#### Performance ML (7)
-- `job_duration_predictions` - Duration estimates
-- `query_optimization_classifications` - Optimization flags
-- `query_optimization_recommendations` - Optimization suggestions
-- `cache_hit_predictions` - Cache predictions
-- `cluster_capacity_recommendations` - Capacity planning
-- `cluster_rightsizing_recommendations` - Right-sizing
-- `dbr_migration_risk_scores` - Migration risk
+**📌 Full ML model catalog (25 models) available in domain-specific spaces:**
+- **Cost:** budget_forecast, tag_recommendations, job_cost_optimizer, chargeback, commitment
+- **Performance:** job_duration, query_optimization, cache_hit, cluster_capacity, rightsizing, dbr_migration
+- **Reliability:** retry_success, incident_impact, self_healing
+- **Security:** user_risk_scores, access_classifications, off_hours_baseline
+- **Quality:** quality_trend, freshness_alert
 
-#### Reliability ML (5)
-- `job_failure_predictions` - Failure probability
-- `retry_success_predictions` - Retry success
-- `pipeline_health_scores` - Health scores
-- `incident_impact_predictions` - Blast radius
-- `self_healing_recommendations` - Self-healing
+### Lakehouse Monitoring Tables (5 - Profile Metrics Only)
 
-#### Security ML (4)
-- `access_anomaly_predictions` - Access anomalies
-- `user_risk_scores` - User risk
-- `access_classifications` - Access classification
-- `off_hours_baseline_predictions` - Baseline
-
-#### Quality ML (3)
-- `quality_anomaly_predictions` - Quality anomalies
-- `quality_trend_predictions` - Quality forecast
-- `freshness_alert_predictions` - Freshness alerts
-
-### Lakehouse Monitoring Tables (16)
-
-| Table | Domain | Metrics |
+| Table | Domain | Key Custom Metrics |
 |-------|--------|---------|
-| `fact_usage_profile_metrics` | Cost | 13 metrics |
-| `fact_usage_drift_metrics` | Cost | Drift |
-| `fact_job_run_timeline_profile_metrics` | Reliability | 14 metrics |
-| `fact_job_run_timeline_drift_metrics` | Reliability | Drift |
-| `fact_query_history_profile_metrics` | Performance | 13 metrics |
-| `fact_query_history_drift_metrics` | Performance | Drift |
-| `fact_node_timeline_profile_metrics` | Performance | 11 metrics |
-| `fact_node_timeline_drift_metrics` | Performance | Drift |
-| `fact_audit_logs_profile_metrics` | Security | 14 metrics |
-| `fact_audit_logs_drift_metrics` | Security | Drift |
-| `fact_table_quality_profile_metrics` | Quality | 10 metrics |
-| `fact_governance_metrics_profile_metrics` | Quality | 12 metrics |
-| `fact_table_quality_drift_metrics` | Quality | Drift |
-| `fact_model_serving_profile_metrics` | ML | Inference metrics |
-| `fact_model_serving_drift_metrics` | ML | Drift |
+| `fact_usage_profile_metrics` | 💰 Cost | total_daily_cost, serverless_ratio, tag_coverage_pct |
+| `fact_job_run_timeline_profile_metrics` | 🔄 Reliability | success_rate, failure_count, p90_duration |
+| `fact_query_history_profile_metrics` | ⚡ Performance | p99_duration_ms, sla_breach_rate, queries_per_second |
+| `fact_audit_logs_profile_metrics` | 🔒 Security | sensitive_access_rate, failure_rate, off_hours_rate |
+| `fact_table_quality_profile_metrics` | ✅ Quality | quality_score, completeness_rate, validity_rate |
+
+**📌 Drift metrics (_drift_metrics) available in domain-specific spaces for trend analysis.**
 
 #### ⚠️ CRITICAL: Custom Metrics Query Patterns
 
@@ -288,6 +267,8 @@ WHERE drift_type = 'CONSECUTIVE' -- Period-over-period comparison
 | Table | Purpose | YAML Source |
 |-------|---------|-------------|
 | `dim_workspace` | Workspace reference | shared/dim_workspace.yaml |
+| `dim_user` | User information | shared/dim_user.yaml |
+| `dim_date` | Date dimension for time analysis | shared/dim_date.yaml |
 
 ---
 
@@ -375,7 +356,7 @@ You are a comprehensive Databricks platform health analyst. Follow these rules:
 
 ---
 
-## ████ SECTION F: TABLE-VALUED FUNCTIONS ████
+## ████ SECTION G: TABLE-VALUED FUNCTIONS ████
 
 ### Domain Routing Guide
 
@@ -414,11 +395,11 @@ You are a comprehensive Databricks platform health analyst. Follow these rules:
 | Model | Prediction Table | Question Trigger |
 |-------|-----------------|------------------|
 | `cost_anomaly_detector` | `cost_anomaly_predictions` | "unusual spending" |
-| `budget_forecaster` | `cost_forecast_predictions` | "forecast cost" |
-| `job_cost_optimizer` | `migration_recommendations` | "reduce cost" |
+| `budget_forecaster` | `budget_forecast_predictions` | "forecast cost" |
+| `job_cost_optimizer` | `job_cost_optimizer_predictions` | "reduce job cost" |
 | `tag_recommender` | `tag_recommendations` | "suggest tags" |
-| `commitment_recommender` | `budget_alert_predictions` | "commit level" |
-| `chargeback_attribution` | — | "allocate cost" |
+| `commitment_recommender` | `commitment_recommendations` | "commit level" |
+| `chargeback_attribution` | `chargeback_predictions` | "allocate cost" |
 
 #### 🔄 Reliability Domain (5 Models)
 | Model | Prediction Table | Question Trigger |
@@ -703,8 +684,10 @@ WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 | Table-Valued Functions | 60 |
 | ML Prediction Tables | 25 |
 | Lakehouse Monitoring Tables | 16 |
+| Dimension Tables | 15 |
+| Fact Tables | 23 |
 | Custom Metrics | 87 |
-| **Total Semantic Assets** | 198 |
+| **Total Semantic Assets** | 236 |
 
 ---
 

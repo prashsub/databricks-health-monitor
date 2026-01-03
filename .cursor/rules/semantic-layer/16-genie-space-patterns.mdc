@@ -22,7 +22,7 @@ When creating Genie Spaces for natural language analytics, follow a structured a
 | **A. Space Name** | Exact Genie Space name | `{Project} {Domain} Analytics Space` |
 | **B. Space Description** | 2-3 sentence purpose | Natural language interface for... |
 | **C. Sample Questions** | 10-15 user-facing questions | Grouped by domain |
-| **D. Data Assets** | ALL tables & metric views | Table format with purpose |
+| **D. Data Assets** | ALL 6 asset types: Metric Views, TVFs, ML Tables, Lakehouse Monitoring, Dims, Facts | Table format with purpose |
 | **E. General Instructions** | **≤20 LINES** LLM behavior rules | Concise numbered list |
 | **F. TVFs** | ALL functions with signatures | Table + detailed specs |
 | **G. Benchmark Questions** | 10-15 with **EXACT SQL** | Question + Working SQL + Expected result |
@@ -76,6 +76,15 @@ Powered by {key data assets}.
 
 ## ████ SECTION D: DATA ASSETS ████
 
+**⚠️ REQUIRED: Document ALL 6 data asset types in this order:**
+
+1. **Metric Views** (PRIMARY - Use for aggregates and dashboards)
+2. **Table-Valued Functions (TVFs)** (Use for parameterized queries and lists)
+3. **ML Prediction Tables** (Use for forecasts, anomalies, recommendations)
+4. **Lakehouse Monitoring Tables** (Use for custom metrics and drift detection)
+5. **Dimension Tables** (Reference data from Gold layer)
+6. **Fact Tables** (Transactional data from Gold layer)
+
 **REQUIRED FORMAT:**
 
 ```markdown
@@ -84,17 +93,65 @@ Powered by {key data assets}.
 ### Metric Views (PRIMARY - Use First)
 | Metric View Name | Purpose | Key Measures |
 |------------------|---------|--------------|
-| {view_name} | {purpose} | {measures} |
+| `{view_name}` | {purpose} | {measure1}, {measure2}, {measure3} |
 
-### Dimension Tables
-| Table Name | Purpose | Key Columns |
-|------------|---------|-------------|
-| dim_{entity} | {purpose} | {columns} |
+### Table-Valued Functions ({N} TVFs)
+| Function Name | Purpose | When to Use |
+|---------------|---------|-------------|
+| `get_{query}` | {purpose} | "{trigger phrase}" |
 
-### Fact Tables (if needed)
-| Table Name | Purpose | Grain |
-|------------|---------|-------|
-| fact_{entity} | {purpose} | {grain} |
+### ML Prediction Tables 🤖
+| Table Name | Purpose |
+|------------|---------|
+| `{model}_predictions` | {what it predicts} |
+| `{model}_recommendations` | {what it recommends} |
+
+### Lakehouse Monitoring Tables 📊
+| Table Name | Purpose |
+|------------|---------|
+| `{fact_table}_profile_metrics` | Custom metrics ({metric1}, {metric2}) |
+| `{fact_table}_drift_metrics` | Drift detection ({drift_metric1}) |
+
+#### ⚠️ CRITICAL: Custom Metrics Query Patterns
+**Always include these filters when querying Lakehouse Monitoring tables:**
+
+```sql
+-- ✅ REQUIRED for ALL _profile_metrics tables
+SELECT 
+  window.start AS window_start,
+  {custom_metric_1},
+  {custom_metric_2}
+FROM ${catalog}.${gold_schema}.{fact_table}_profile_metrics
+WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
+  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
+  AND slice_key IS NULL          -- For overall metrics
+ORDER BY window.start DESC;
+
+-- ✅ REQUIRED for ALL _drift_metrics tables
+SELECT 
+  window.start AS window_start,
+  {drift_metric_1}
+FROM ${catalog}.${gold_schema}.{fact_table}_drift_metrics
+WHERE drift_type = 'CONSECUTIVE'
+  AND column_name = ':table'
+ORDER BY window.start DESC;
+```
+
+#### Available Slicing Dimensions
+| Slice Key | Use Case |
+|-----------|----------|
+| `{dimension_1}` | {use case} |
+| `{dimension_2}` | {use case} |
+
+### Dimension Tables (from gold_layer_design/yaml/{domain}/)
+| Table Name | Purpose | Key Columns | YAML Source |
+|------------|---------|-------------|-------------|
+| `dim_{entity}` | {purpose} | {key_columns} | {domain}/dim_{entity}.yaml |
+
+### Fact Tables (from gold_layer_design/yaml/{domain}/)
+| Table Name | Purpose | Grain | YAML Source |
+|------------|---------|-------|-------------|
+| `fact_{entity}` | {purpose} | {grain_description} | {domain}/fact_{entity}.yaml |
 ```
 
 ---
@@ -189,12 +246,23 @@ Before submitting ANY Genie Space document:
 | **A. Space Name** | Exact name provided | ☐ |
 | **B. Space Description** | 2-3 sentences | ☐ |
 | **C. Sample Questions** | 10-15 questions | ☐ |
-| **D. Data Assets** | All tables & metric views | ☐ |
+| **D. Data Assets** | ALL 6 asset types documented | ☐ |
 | **E. General Instructions** | ≤20 lines | ☐ |
 | **F. TVFs** | All functions with signatures | ☐ |
 | **G. Benchmark Questions** | 10-15 with SQL answers | ☐ |
 
-**🔴 ALL 7 SECTIONS REQUIRED. NO EXCEPTIONS. 🔴**
+### Section D: Data Assets Checklist
+
+| Asset Type | Requirement | Complete? |
+|------------|-------------|-----------|
+| Metric Views | Listed with purpose & key measures | ☐ |
+| Table-Valued Functions | Listed with purpose & triggers | ☐ |
+| ML Prediction Tables | Listed with prediction purpose | ☐ |
+| Lakehouse Monitoring Tables | Listed with custom metrics & query patterns | ☐ |
+| Dimension Tables | Listed with YAML source reference | ☐ |
+| Fact Tables | Listed with grain & YAML source reference | ☐ |
+
+**🔴 ALL 7 SECTIONS + ALL 6 DATA ASSET TYPES REQUIRED. NO EXCEPTIONS. 🔴**
 
 ---
 

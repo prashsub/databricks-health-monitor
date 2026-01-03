@@ -8,7 +8,15 @@
 
 ## ████ SECTION B: SPACE DESCRIPTION ████
 
-**Description:** Natural language interface for Databricks job reliability and execution analytics. Enables DevOps, data engineers, and SREs to query job success rates, failure patterns, and performance metrics without SQL. Powered by Job Performance Metric Views, 12 Table-Valued Functions, 5 ML Models for failure prediction, and Lakehouse Monitoring drift metrics.
+**Description:** Natural language interface for Databricks job reliability and execution analytics. Enables DevOps, data engineers, and SREs to query job success rates, failure patterns, and performance metrics without SQL.
+
+**Powered by:**
+- 1 Metric View (job_performance)
+- 12 Table-Valued Functions (job status, failure analysis, cost queries)
+- 5 ML Prediction Tables (failure prediction, retry success, health scoring)
+- 2 Lakehouse Monitoring Tables (reliability drift and profile metrics)
+- 5 Dimension Tables (job, job_task, pipeline, workspace, date)
+- 3 Fact Tables (job runs, task runs, pipeline updates)
 
 ---
 
@@ -64,15 +72,17 @@
 | `get_job_failure_costs` | Failure impact costs | "failure costs" |
 | `get_job_run_duration_analysis` | Duration statistics | "duration analysis" |
 
-### ML Prediction Tables 🤖
+### ML Prediction Tables 🤖 (5 Models)
 
-| Table Name | Purpose |
-|------------|---------|
-| `job_failure_predictions` | Predicted failure probability by job |
-| `retry_success_predictions` | Retry success probability |
-| `pipeline_health_scores` | Pipeline health scores (0-100) |
-| `incident_impact_predictions` | Blast radius estimates |
-| `self_healing_recommendations` | Self-healing action suggestions |
+| Table Name | Purpose | Model | Key Columns |
+|---|---|---|---|
+| `job_failure_predictions` | Predicted failure probability before execution | Job Failure Predictor | `failure_probability`, `will_fail`, `risk_factors`, `job_name` |
+| `retry_success_predictions` | Predict whether failed job will succeed on retry | Retry Success Predictor | `retry_success_prob`, `error_type`, `termination_code` |
+| `pipeline_health_scores` | Overall pipeline/job health scores (0-100) | Pipeline Health Scorer | `health_score`, `health_status`, `trend_indicator` |
+| `incident_impact_predictions` | Estimate blast radius of job failures | Incident Impact Estimator | `affected_jobs`, `downstream_consumers`, `severity` |
+| `self_healing_recommendations` | Recommend self-healing actions with confidence | Self-Healing Recommender | `recommended_action`, `confidence`, `success_probability` |
+
+**Training Source:** `src/ml/reliability/` | **Inference:** `src/ml/inference/batch_inference_all_models.py`
 
 ### Lakehouse Monitoring Tables 📊
 
@@ -131,14 +141,17 @@ ORDER BY window.start DESC;
 | `trigger_type` | Scheduled vs manual |
 | `termination_code` | Failures by termination code |
 
-### Dimension Tables (from gold_layer_design/yaml/lakeflow/, shared/)
+### Dimension Tables (5 Tables)
+
+**Sources:** `gold_layer_design/yaml/lakeflow/`, `shared/`
 
 | Table Name | Purpose | Key Columns | YAML Source |
-|------------|---------|-------------|-------------|
-| `dim_job` | Job metadata | job_id, job_name, owner, schedule_type | lakeflow/dim_job.yaml |
-| `dim_job_task` | Task metadata | task_key, task_type, depends_on | lakeflow/dim_job_task.yaml |
-| `dim_pipeline` | DLT pipeline metadata | pipeline_id, pipeline_name, catalog, schema | lakeflow/dim_pipeline.yaml |
-| `dim_workspace` | Workspace reference | workspace_id, workspace_name | shared/dim_workspace.yaml |
+|---|---|---|---|
+| `dim_job` | Job metadata | `job_id`, `job_name`, `creator_user_name`, `schedule_type`, `job_type` | lakeflow/dim_job.yaml |
+| `dim_job_task` | Task metadata | `task_key`, `task_type`, `depends_on`, `cluster_spec` | lakeflow/dim_job_task.yaml |
+| `dim_pipeline` | DLT pipeline metadata | `pipeline_id`, `pipeline_name`, `catalog`, `schema`, `channel` | lakeflow/dim_pipeline.yaml |
+| `dim_workspace` | Workspace reference | `workspace_id`, `workspace_name`, `region`, `cloud_provider` | shared/dim_workspace.yaml |
+| `dim_date` | Date dimension for time analysis | `date_key`, `day_of_week`, `month`, `quarter`, `year`, `is_weekend` | shared/dim_date.yaml |
 
 ### Fact Tables (from gold_layer_design/yaml/lakeflow/)
 
@@ -219,7 +232,7 @@ You are a Databricks job reliability analyst. Follow these rules:
 
 ---
 
-## ████ SECTION F: TABLE-VALUED FUNCTIONS ████
+## ████ SECTION G: TABLE-VALUED FUNCTIONS ████
 
 ### TVF Quick Reference
 

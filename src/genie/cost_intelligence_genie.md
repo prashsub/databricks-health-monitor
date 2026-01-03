@@ -8,7 +8,15 @@
 
 ## ████ SECTION B: SPACE DESCRIPTION ████
 
-**Description:** Natural language interface for Databricks cost analytics and FinOps. Enables finance teams, platform administrators, and executives to query billing, usage, and cost optimization insights without SQL. Powered by Cost Analytics Metric Views, 15 Table-Valued Functions, 6 ML Models, and Lakehouse Monitoring custom metrics.
+**Description:** Natural language interface for Databricks cost analytics and FinOps. Enables finance teams, platform administrators, and executives to query billing, usage, and cost optimization insights without SQL.
+
+**Powered by:**
+- 2 Metric Views (cost_analytics, commit_tracking)
+- 15 Table-Valued Functions (parameterized cost queries)
+- 6 ML Prediction Tables (anomaly detection, forecasting, recommendations)
+- 2 Lakehouse Monitoring Tables (cost drift and custom metrics)
+- 7 Dimension Tables (workspace, SKU, cluster, node_type, job, user, date)
+- 5 Fact Tables (usage, pricing, node timeline, job runs)
 
 ---
 
@@ -68,16 +76,16 @@
 | `get_cost_growth_by_period` | Period-over-period comparison | "compare this quarter to last" |
 | `get_all_purpose_cluster_cost` | ALL_PURPOSE cluster costs | "ALL_PURPOSE migration", "cluster savings" |
 
-### ML Prediction Tables 🤖
+### ML Prediction Tables 🤖 (6 Models)
 
-| Table Name | Purpose |
-|------------|---------|
-| `cost_anomaly_predictions` | Detected cost anomalies with scores |
-| `cost_forecast_predictions` | 30-day cost forecasts |
-| `tag_recommendations` | Suggested tags for untagged resources |
-| `user_cost_segments` | User behavior clustering |
-| `migration_recommendations` | ALL_PURPOSE to JOBS migration candidates |
-| `budget_alert_predictions` | Prioritized budget alerts |
+| Table Name | Purpose | Model | Key Columns |
+|---|---|---|---|
+| `cost_anomaly_predictions` | Detected cost anomalies with severity scores | Cost Anomaly Detector | `anomaly_score`, `is_anomaly`, `workspace_id`, `usage_date` |
+| `budget_forecast_predictions` | 30-day cost forecasts with confidence intervals | Budget Forecaster | `forecast_amount`, `lower_bound`, `upper_bound`, `forecast_date` |
+| `tag_recommendations` | Suggested tags for untagged resources | Tag Recommender | `recommended_tags`, `confidence`, `resource_id`, `resource_type` |
+| `job_cost_optimizer_predictions` | Job right-sizing and cost optimization | Job Cost Optimizer | `current_cost`, `optimized_cost`, `savings_potential`, `recommendation` |
+| `chargeback_predictions` | Cost allocation by team/project | Chargeback Attribution | `team`, `project`, `allocated_cost`, `allocation_method` |
+| `commitment_recommendations` | Commit level recommendations for discount optimization | Commitment Recommender | `current_commit`, `recommended_commit`, `projected_savings` |
 
 ### Lakehouse Monitoring Tables 📊
 
@@ -134,20 +142,31 @@ ORDER BY window.start DESC;
 | `is_tagged` | Tagged vs untagged |
 | `product_features_is_serverless` | Serverless vs classic |
 
-### Dimension Tables (from gold_layer_design/yaml/billing/, shared/)
+### Dimension Tables (7 Tables)
+
+**Sources:** `gold_layer_design/yaml/billing/`, `compute/`, `lakeflow/`, `shared/`
 
 | Table Name | Purpose | Key Columns | YAML Source |
-|------------|---------|-------------|-------------|
-| `dim_workspace` | Workspace details | workspace_id, workspace_name, region | shared/dim_workspace.yaml |
-| `dim_sku` | SKU reference | sku_name, sku_category, list_price | billing/dim_sku.yaml |
+|---|---|---|---|
+| `dim_workspace` | Workspace details for cost allocation | `workspace_id`, `workspace_name`, `region`, `cloud_provider` | shared/dim_workspace.yaml |
+| `dim_sku` | SKU reference for cost categorization | `sku_name`, `sku_category`, `list_price`, `is_serverless` | billing/dim_sku.yaml |
+| `dim_cluster` | Cluster metadata for compute cost analysis | `cluster_id`, `cluster_name`, `node_type_id`, `cluster_source` | compute/dim_cluster.yaml |
+| `dim_node_type` | Node specifications for right-sizing | `node_type_id`, `num_cores`, `memory_gb`, `hourly_cost` | compute/dim_node_type.yaml |
+| `dim_job` | Job metadata for job cost attribution | `job_id`, `job_name`, `owner`, `schedule_type` | lakeflow/dim_job.yaml |
+| `dim_user` | User information for chargeback | `user_id`, `user_name`, `email`, `department_tag` | shared/dim_user.yaml |
+| `dim_date` | Date dimension for time analysis | `date_key`, `day_of_week`, `month_name`, `is_weekend` | shared/dim_date.yaml |
 
-### Fact Tables (from gold_layer_design/yaml/billing/)
+### Fact Tables (5 Tables)
+
+**Sources:** `gold_layer_design/yaml/billing/`, `compute/`, `lakeflow/`
 
 | Table Name | Purpose | Grain | YAML Source |
-|------------|---------|-------|-------------|
-| `fact_usage` | Billing usage | Daily usage by workspace/SKU/user | billing/fact_usage.yaml |
+|---|---|---|---|
+| `fact_usage` | Primary billing usage table | Daily usage by workspace/SKU/user | billing/fact_usage.yaml |
 | `fact_account_prices` | Account-specific pricing | Per SKU per account | billing/fact_account_prices.yaml |
 | `fact_list_prices` | List prices over time | Per SKU per effective date | billing/fact_list_prices.yaml |
+| `fact_node_timeline` | Cluster node usage timeline | Per node per time interval | compute/fact_node_timeline.yaml |
+| `fact_job_run_timeline` | Job execution with cost | Per job run | lakeflow/fact_job_run_timeline.yaml |
 
 ---
 
@@ -223,7 +242,7 @@ You are a Databricks FinOps analyst. Follow these rules:
 
 ---
 
-## ████ SECTION F: TABLE-VALUED FUNCTIONS ████
+## ████ SECTION G: TABLE-VALUED FUNCTIONS ████
 
 ### TVF Quick Reference
 
@@ -269,72 +288,7 @@ You are a Databricks FinOps analyst. Follow these rules:
 
 ---
 
-## ████ SECTION G: ML MODEL INTEGRATION (6 Models) ████
-
-### Cost ML Models Quick Reference
-
-| ML Model | Prediction Table | Key Columns | Use When |
-|----------|-----------------|-------------|----------|
-| `cost_anomaly_detector` | `cost_anomaly_predictions` | `anomaly_score`, `is_anomaly` | "Is this spending unusual?" |
-| `budget_forecaster` | `cost_forecast_predictions` | `predicted_cost`, `confidence_interval` | "Forecast next month" |
-| `job_cost_optimizer` | `migration_recommendations` | `potential_savings`, `migration_risk` | "Where can we save?" |
-| `tag_recommender` | `tag_recommendations` | `recommended_tag`, `confidence` | "Suggest tags" |
-| `commitment_recommender` | `budget_alert_predictions` | `recommended_commitment` | "Commit level?" |
-| `chargeback_attribution` | — | Cost allocation | "Allocate costs" |
-
-### ML Model Usage Patterns
-
-#### cost_anomaly_detector (Anomaly Detection)
-- **Question Triggers:** "anomaly", "unusual", "spike", "abnormal", "outlier"
-- **Query Pattern:**
-```sql
-SELECT workspace_name, usage_date, actual_cost, anomaly_score, is_anomaly
-FROM ${catalog}.${gold_schema}.cost_anomaly_predictions
-WHERE prediction_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  AND is_anomaly = TRUE
-ORDER BY anomaly_score ASC;
-```
-- **Interpretation:** `anomaly_score < -0.5` = High confidence anomaly
-
-#### budget_forecaster (Cost Forecasting)
-- **Question Triggers:** "forecast", "predict", "next month", "project", "estimate"
-- **Query Pattern:**
-```sql
-SELECT forecast_date, predicted_cost, lower_bound, upper_bound, confidence_pct
-FROM ${catalog}.${gold_schema}.cost_forecast_predictions
-WHERE workspace_id = 'ALL'
-ORDER BY forecast_date;
-```
-- **Interpretation:** Compare `predicted_cost` with actuals; alert if `actual > upper_bound`
-
-#### tag_recommender (Tag Suggestions)
-- **Question Triggers:** "recommend tags", "suggest tags", "auto-tag", "what tags should"
-- **Query Pattern:**
-```sql
-SELECT resource_name, recommended_tag_key, recommended_tag_value, confidence_score
-FROM ${catalog}.${gold_schema}.tag_recommendations
-WHERE confidence_score > 0.7
-ORDER BY confidence_score DESC;
-```
-
-### ML vs Other Methods Decision Tree
-
-```
-USER QUESTION                           → USE THIS
-────────────────────────────────────────────────────
-"Will cost exceed budget?"              → ML: cost_forecast_predictions
-"Is this spending unusual?"             → ML: cost_anomaly_predictions  
-"How can we reduce costs?"              → ML: migration_recommendations
-"What tags should we apply?"            → ML: tag_recommendations
-────────────────────────────────────────────────────
-"What is the current cost?"             → Metric View: cost_analytics
-"Is cost trending up?"                  → Custom Metrics: _drift_metrics
-"Top 10 by cost"                        → TVF: get_top_cost_contributors
-```
-
----
-
-## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
+## ████ SECTION G: BENCHMARK QUESTIONS WITH SQL ████
 
 ### Question 1: "What is our total spend this month?"
 **Expected SQL:**

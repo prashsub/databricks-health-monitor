@@ -1344,7 +1344,7 @@
           }
         }
       ],
-      "query": "SELECT 'All' AS workspace_name UNION ALL SELECT DISTINCT workspace_name FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_workspace WHERE workspace_name IS NOT NULL\nAND (\n  'all' IN (SELECT EXPLODE(:param_workspace))\n  OR COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) IN (SELECT EXPLODE(:param_workspace))\n) ORDER BY workspace_name"
+      "query": "SELECT 'All' AS workspace_name \nUNION ALL \nSELECT DISTINCT workspace_name \nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL \nORDER BY workspace_name"
     },
     {
       "name": "select_workspace",
@@ -1367,7 +1367,7 @@
           }
         }
       ],
-      "query": "SELECT DISTINCT \n\n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\n\nFROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_workspace \n\nWHERE workspace_name IS NOT NULL\nAND (\n  'all' IN (SELECT EXPLODE(:param_workspace))\n  OR COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) IN (SELECT EXPLODE(:param_workspace))\n) \n\nORDER BY workspace_name"
+      "query": "SELECT DISTINCT \n  COALESCE(workspace_name, CONCAT('id: ', workspace_id)) AS workspace_name\nFROM ${catalog}.${gold_schema}.dim_workspace \nWHERE workspace_name IS NOT NULL\nORDER BY workspace_name"
     },
     {
       "name": "select_time_key",

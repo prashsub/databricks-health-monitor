@@ -2,7 +2,7 @@
 # Runs batch inference for ALL trained ML models and stores predictions
 #
 # Storage Architecture:
-#   - Feature Tables: ${catalog}.${feature_schema} (e.g., system_gold_features)
+#   - Feature Tables: ${catalog}.${feature_schema} (e.g., system_gold_ml)
 #   - Predictions: ${catalog}.${feature_schema}.{model}_predictions
 #   - Models: Unity Catalog ${catalog}.${feature_schema}.{model_name}
 #

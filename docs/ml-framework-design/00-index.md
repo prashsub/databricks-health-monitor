@@ -51,10 +51,10 @@ ML SYSTEM ARCHITECTURE
 │
 ├── MODEL LAYER (25 Models across 5 Domains)
 │   ├── COST (6)              # Anomaly, forecaster, optimizer, chargeback, commitment, tag
-│   ├── SECURITY (4)          # Threat, access, compliance, permission
-│   ├── PERFORMANCE (7)       # Query forecast, warehouse, regression, cache, capacity, sizing, optimization
+│   ├── SECURITY (4)          # Threat, exfiltration, privilege escalation, user behavior
+│   ├── PERFORMANCE (7)       # Query forecast, warehouse, regression, cache, capacity, DBR migration, optimization
 │   ├── RELIABILITY (5)       # Failure, duration, SLA, retry, health
-│   └── QUALITY (3)           # Drift, schema change, schema evolution
+│   └── QUALITY (3)           # Drift, schema change, freshness
 │
 ├── INFERENCE LAYER (25 Prediction Tables)
 │   └── {model_name}_predictions  # Scored predictions with timestamps
@@ -95,10 +95,10 @@ ML SYSTEM ARCHITECTURE
 | Domain | Models | Algorithms Used | Primary Use Cases |
 |---|:---:|---|---|
 | 💰 Cost | 6 | Isolation Forest, GBR, XGBoost, RF+TF-IDF | Anomaly detection, forecasting, optimization |
-| 🔒 Security | 4 | Isolation Forest, XGBoost, Random Forest | Threat detection, access patterns, compliance |
-| ⚡ Performance | 7 | GBR, Isolation Forest, XGBoost | Query optimization, capacity planning |
-| 🔄 Reliability | 5 | XGBoost, GBR, Random Forest | Failure prediction, SLA monitoring |
-| 📊 Quality | 3 | Isolation Forest, Random Forest, XGBoost | Drift detection, schema change prediction |
+| 🔒 Security | 4 | Isolation Forest (all 4) | Threat detection, exfiltration, behavior analysis |
+| ⚡ Performance | 7 | GBR (4), Isolation Forest (1), XGBoost (1), RF (1) | Query forecasting, capacity planning |
+| 🔄 Reliability | 5 | XGBoost (4), GBR (1) | Failure prediction, SLA monitoring |
+| 📊 Quality | 3 | Isolation Forest (1), RF (1), GBR (1) | Drift detection, schema & freshness prediction |
 
 ## Technology Stack
 
@@ -118,19 +118,23 @@ ML SYSTEM ARCHITECTURE
 
 1. **ALWAYS cast label columns** to DOUBLE (regression) or INT (classification) in `base_df` before `fe.create_training_set()`
 
-2. **ALWAYS use `fe.log_model()`** with `training_set` parameter to embed feature lookup metadata
+2. **ALWAYS binarize labels for XGBClassifier** - convert continuous rates (0-1) to binary (0/1) with `pyspark.sql.functions.when`
 
-3. **ALWAYS provide `signature` and `input_example`** to `fe.log_model()` - Unity Catalog requires both
+3. **ALWAYS use `fe.log_model()`** with `training_set` parameter to embed feature lookup metadata
 
-4. **ALWAYS use float64** for `input_example`: `X_train.head(5).astype('float64')`
+4. **ALWAYS provide `output_schema`** for anomaly detection models (models without labels) - required for Unity Catalog
 
-5. **NEVER use DECIMAL types** in training data - cast to DOUBLE before creating signature
+5. **ALWAYS use `infer_input_example=True`** for models with labels - recommended over manual signature
 
-6. **ALWAYS use `X_train` consistently** - don't mix `X` and `X_train` variable names
+6. **ALWAYS use float64** for all numeric features - cast DECIMAL, INT to DOUBLE in feature tables
 
-7. **ALWAYS return `X_train`** from prepare functions for signature creation
+7. **ALWAYS use standardized `prepare_training_data()`** from training_base.py - ensures float64 casting
 
-8. **ALWAYS verify feature names** match actual feature table columns before training
+8. **NEVER use DECIMAL types** in training data - cast to DOUBLE before creating signature
+
+9. **ALWAYS verify feature names** match actual feature table columns before training
+
+10. **ALWAYS pin MLflow version** across training and inference pipelines (e.g., `mlflow==3.7.0`)
 
 See [Appendix B - Cursor Rule](appendices/B-cursor-rule.md) for the full pattern reference.
 

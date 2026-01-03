@@ -200,6 +200,7 @@ class HealthMonitorAgent(ChatAgent):
                 },
             )
 
+    @mlflow.trace(name="agent_predict_stream", span_type="AGENT")
     def predict_stream(
         self,
         messages: List[ChatAgentMessage],
@@ -209,12 +210,194 @@ class HealthMonitorAgent(ChatAgent):
         """
         Stream responses for real-time interaction.
 
-        Yields response chunks as they become available.
+        Yields ChatAgentResponse chunks as they become available,
+        providing progressive feedback during long-running operations.
+
+        The streaming flow:
+        1. Yield "thinking" status while processing
+        2. Yield intermediate results from worker agents
+        3. Yield final synthesized response
+
+        Args:
+            messages: List of conversation messages
+            context: Optional chat context with user/conversation info
+            custom_inputs: Optional custom inputs (thread_id, etc.)
+
+        Yields:
+            ChatAgentResponse objects with progressive content.
+
+        Example:
+            for chunk in agent.predict_stream(messages):
+                print(chunk.messages[-1].content)
         """
-        # For now, use non-streaming and yield complete response
-        # TODO: Implement true streaming with LangGraph
-        response = self.predict(messages, context, custom_inputs)
-        yield response
+        # Extract the latest user message
+        user_message = messages[-1].content if messages else ""
+
+        # Resolve IDs
+        thread_id = self._resolve_thread_id(custom_inputs, context)
+        user_id = self._resolve_user_id(custom_inputs, context)
+
+        # Update trace with metadata
+        mlflow.update_current_trace(tags={
+            "user_id": user_id,
+            "thread_id": thread_id,
+            "streaming": "true",
+        })
+
+        # Yield initial thinking status
+        yield ChatAgentResponse(
+            messages=[
+                ChatAgentMessage(
+                    role="assistant",
+                    content="🔍 Analyzing your query...",
+                )
+            ],
+            custom_outputs={
+                "thread_id": thread_id,
+                "status": "thinking",
+                "stage": "intent_classification",
+            },
+        )
+
+        # Create initial state
+        initial_state = create_initial_state(
+            query=user_message,
+            user_id=user_id,
+            session_id=thread_id,
+        )
+
+        # Execute graph with streaming
+        checkpoint_config = ShortTermMemory.get_checkpoint_config(thread_id)
+
+        try:
+            with get_checkpoint_saver() as checkpointer:
+                graph = create_orchestrator_graph().compile(
+                    checkpointer=checkpointer
+                )
+
+                # Stream graph execution
+                domains_identified = False
+                worker_responses_started = False
+
+                for event in graph.stream(initial_state, checkpoint_config):
+                    # Check if intent classification is complete
+                    if "intent" in event and not domains_identified:
+                        intent = event.get("intent", {})
+                        domains = intent.get("domains", [])
+                        confidence = intent.get("confidence", 0.0)
+
+                        if domains:
+                            domains_identified = True
+                            domain_str = ", ".join(domains)
+
+                            yield ChatAgentResponse(
+                                messages=[
+                                    ChatAgentMessage(
+                                        role="assistant",
+                                        content=f"📊 Identified domains: {domain_str}. Querying data sources...",
+                                    )
+                                ],
+                                custom_outputs={
+                                    "thread_id": thread_id,
+                                    "status": "processing",
+                                    "stage": "domain_routing",
+                                    "domains": domains,
+                                    "confidence": confidence,
+                                },
+                            )
+
+                    # Check for worker agent responses
+                    if "agent_responses" in event and not worker_responses_started:
+                        responses = event.get("agent_responses", {})
+                        if responses:
+                            worker_responses_started = True
+                            num_responses = len(responses)
+
+                            yield ChatAgentResponse(
+                                messages=[
+                                    ChatAgentMessage(
+                                        role="assistant",
+                                        content=f"✅ Received {num_responses} domain response(s). Synthesizing answer...",
+                                    )
+                                ],
+                                custom_outputs={
+                                    "thread_id": thread_id,
+                                    "status": "synthesizing",
+                                    "stage": "response_synthesis",
+                                    "domains_queried": list(responses.keys()),
+                                },
+                            )
+
+                    # Check for final synthesized response
+                    if "synthesized_response" in event:
+                        response_content = event.get("synthesized_response", "")
+                        if response_content:
+                            # Get final state data
+                            sources = event.get("sources", [])
+                            confidence = event.get("confidence", 0.0)
+                            final_intent = event.get("intent", {})
+
+                            yield ChatAgentResponse(
+                                messages=[
+                                    ChatAgentMessage(
+                                        role="assistant",
+                                        content=response_content,
+                                    )
+                                ],
+                                custom_outputs={
+                                    "thread_id": thread_id,
+                                    "status": "complete",
+                                    "stage": "final",
+                                    "sources": sources,
+                                    "confidence": confidence,
+                                    "domains": final_intent.get("domains", []),
+                                },
+                            )
+                            return
+
+                # If we didn't get a synthesized response from streaming,
+                # fall back to final state
+                final_state = graph.invoke(initial_state, checkpoint_config)
+
+                response_content = final_state.get(
+                    "synthesized_response",
+                    "I was unable to process your request."
+                )
+                sources = final_state.get("sources", [])
+                confidence = final_state.get("confidence", 0.0)
+
+                yield ChatAgentResponse(
+                    messages=[
+                        ChatAgentMessage(
+                            role="assistant",
+                            content=response_content,
+                        )
+                    ],
+                    custom_outputs={
+                        "thread_id": thread_id,
+                        "status": "complete",
+                        "stage": "final",
+                        "sources": sources,
+                        "confidence": confidence,
+                        "domains": final_state.get("intent", {}).get("domains", []),
+                    },
+                )
+
+        except Exception as e:
+            mlflow.log_metric("agent_stream_error", 1)
+            yield ChatAgentResponse(
+                messages=[
+                    ChatAgentMessage(
+                        role="assistant",
+                        content=f"❌ I encountered an error: {str(e)}. Please try again.",
+                    )
+                ],
+                custom_outputs={
+                    "thread_id": thread_id,
+                    "status": "error",
+                    "error": str(e),
+                },
+            )
 
 
 def get_mlflow_resources() -> List:

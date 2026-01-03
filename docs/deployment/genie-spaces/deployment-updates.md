@@ -254,8 +254,8 @@ databricks bundle run -t dev genie_spaces_deployment_job
 - [Genie Space Export/Import API](../../.cursor/rules/semantic-layer/29-genie-space-export-import-api.mdc) - Complete API patterns
 
 ### Project Documentation
-- [Genie Spaces Inventory](./GENIE_SPACES_INVENTORY.md) - Complete inventory of all spaces
-- [Genie Space Verification Report](./GENIE_SPACE_VERIFICATION_REPORT.md) - Latest verification status
+- [Genie Spaces Inventory](../../reference/genie-spaces-inventory.md) - Complete inventory of all spaces
+- [Genie Space Verification Report](../../reference/genie-spaces/verification-report.md) - Latest verification status
 - [Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide
 
 ---

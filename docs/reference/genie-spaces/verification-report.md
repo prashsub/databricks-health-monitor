@@ -168,7 +168,7 @@ Both Genie Space JSON exports have been **updated and verified** to match the la
 1. **Test JSON Exports:** Validate JSON structure with a parser
 2. **Deploy to Workspace:** Use the Genie Space Import API (POST `/api/2.0/genie/spaces`)
 3. **Benchmark Testing:** Run sample questions to verify ML table queries work correctly
-4. **Documentation:** Update `GENIE_SPACES_INVENTORY.md` with ML table references
+4. **Documentation:** Update `docs/reference/genie-spaces-inventory.md` with ML table references
 
 ---
 

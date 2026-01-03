@@ -24,46 +24,45 @@ The Databricks Health Monitor includes **25 production ML models** across 5 doma
 | 2 | 💰 COST | `budget_forecaster` | Gradient Boosting | Regression | `cost_features` | `workspace_id`, `usage_date` |
 | 3 | 💰 COST | `job_cost_optimizer` | Gradient Boosting | Regression | `cost_features` | `workspace_id`, `usage_date` |
 | 4 | 💰 COST | `chargeback_attribution` | Gradient Boosting | Regression | `cost_features` | `workspace_id`, `usage_date` |
-| 5 | 💰 COST | `commitment_recommender` | Gradient Boosting | Regression | `cost_features` | `workspace_id`, `usage_date` |
+| 5 | 💰 COST | `commitment_recommender` | XGBoost | Binary Classification | `cost_features` | `workspace_id`, `usage_date` |
 | 6 | 💰 COST | `tag_recommender` | Random Forest + TF-IDF | Multi-class Classification | `cost_features` | `workspace_id`, `usage_date` |
 | 7 | 🔒 SECURITY | `security_threat_detector` | Isolation Forest | Anomaly Detection | `security_features` | `user_id`, `event_date` |
-| 8 | 🔒 SECURITY | `access_pattern_analyzer` | XGBoost | Binary Classification | `security_features` | `user_id`, `event_date` |
-| 9 | 🔒 SECURITY | `compliance_risk_classifier` | Random Forest | Multi-class Classification | `security_features` | `user_id`, `event_date` |
-| 10 | 🔒 SECURITY | `permission_recommender` | Random Forest | Multi-class Classification | `security_features` | `user_id`, `event_date` |
+| 8 | 🔒 SECURITY | `exfiltration_detector` | Isolation Forest | Anomaly Detection | `security_features` | `user_id`, `event_date` |
+| 9 | 🔒 SECURITY | `privilege_escalation_detector` | Isolation Forest | Anomaly Detection | `security_features` | `user_id`, `event_date` |
+| 10 | 🔒 SECURITY | `user_behavior_baseline` | Isolation Forest | Anomaly Detection | `security_features` | `user_id`, `event_date` |
 | 11 | ⚡ PERFORMANCE | `query_performance_forecaster` | Gradient Boosting | Regression | `performance_features` | `warehouse_id`, `query_date` |
-| 12 | ⚡ PERFORMANCE | `warehouse_optimizer` | XGBoost | Multi-class Classification | `performance_features` | `warehouse_id`, `query_date` |
-| 13 | ⚡ PERFORMANCE | `cache_hit_predictor` | XGBoost | Binary Classification | `performance_features` | `warehouse_id`, `query_date` |
-| 14 | ⚡ PERFORMANCE | `query_optimization_recommender` | XGBoost | Multi-label Classification | `performance_features` | `warehouse_id`, `query_date` |
-| 15 | ⚡ PERFORMANCE | `cluster_sizing_recommender` | Gradient Boosting | Regression | `performance_features` | `warehouse_id`, `query_date` |
-| 16 | ⚡ PERFORMANCE | `cluster_capacity_planner` | Gradient Boosting | Regression | `performance_features` | `warehouse_id`, `query_date` |
-| 17 | ⚡ PERFORMANCE | `regression_detector` | Isolation Forest | Anomaly Detection | `performance_features` | `warehouse_id`, `query_date` |
+| 12 | ⚡ PERFORMANCE | `warehouse_optimizer` | Gradient Boosting | Regression | `performance_features` | `warehouse_id`, `query_date` |
+| 13 | ⚡ PERFORMANCE | `performance_regression_detector` | Isolation Forest | Anomaly Detection | `performance_features` | `warehouse_id`, `query_date` |
+| 14 | ⚡ PERFORMANCE | `cluster_capacity_planner` | Gradient Boosting | Regression | `performance_features` | `warehouse_id`, `query_date` |
+| 15 | ⚡ PERFORMANCE | `dbr_migration_risk_scorer` | Random Forest | Multi-class Classification | `reliability_features` | `job_id`, `run_date` |
+| 16 | ⚡ PERFORMANCE | `cache_hit_predictor` | XGBoost | Binary Classification | `performance_features` | `warehouse_id`, `query_date` |
+| 17 | ⚡ PERFORMANCE | `query_optimization_recommender` | XGBoost | Binary Classification | `performance_features` | `warehouse_id`, `query_date` |
 | 18 | 🔄 RELIABILITY | `job_failure_predictor` | XGBoost | Binary Classification | `reliability_features` | `job_id`, `run_date` |
 | 19 | 🔄 RELIABILITY | `job_duration_forecaster` | Gradient Boosting | Regression | `reliability_features` | `job_id`, `run_date` |
 | 20 | 🔄 RELIABILITY | `sla_breach_predictor` | XGBoost | Binary Classification | `reliability_features` | `job_id`, `run_date` |
-| 21 | 🔄 RELIABILITY | `pipeline_health_scorer` | Gradient Boosting | Regression | `reliability_features` | `job_id`, `run_date` |
-| 22 | 🔄 RELIABILITY | `retry_success_predictor` | XGBoost | Binary Classification | `reliability_features` | `job_id`, `run_date` |
-| 23 | 📊 QUALITY | `data_drift_detector` | Isolation Forest | Anomaly Detection | `quality_features` | `table_name`, `check_date` |
-| 24 | 📊 QUALITY | `schema_change_predictor` | XGBoost | Binary Classification | `quality_features` | `table_name`, `check_date` |
-| 25 | 📊 QUALITY | `schema_evolution_predictor` | Random Forest | Multi-class Classification | `quality_features` | `table_name`, `check_date` |
+| 21 | 🔄 RELIABILITY | `retry_success_predictor` | XGBoost | Binary Classification | `reliability_features` | `job_id`, `run_date` |
+| 22 | 🔄 RELIABILITY | `pipeline_health_scorer` | Gradient Boosting | Regression | `reliability_features` | `job_id`, `run_date` |
+| 23 | 📊 QUALITY | `data_drift_detector` | Isolation Forest | Anomaly Detection | `quality_features` | `catalog_name`, `snapshot_date` |
+| 24 | 📊 QUALITY | `schema_change_predictor` | Random Forest | Binary Classification | `quality_features` | `catalog_name`, `snapshot_date` |
+| 25 | 📊 QUALITY | `data_freshness_predictor` | Gradient Boosting | Regression | `quality_features` | `catalog_name`, `snapshot_date` |
 
 ### Model Type Distribution
 
 | Model Type | Count | Models |
 |---|:---:|---|
-| **Anomaly Detection** | 4 | `cost_anomaly_detector`, `security_threat_detector`, `regression_detector`, `data_drift_detector` |
-| **Regression** | 9 | `budget_forecaster`, `job_cost_optimizer`, `chargeback_attribution`, `commitment_recommender`, `query_performance_forecaster`, `cluster_sizing_recommender`, `cluster_capacity_planner`, `job_duration_forecaster`, `pipeline_health_scorer` |
-| **Binary Classification** | 7 | `access_pattern_analyzer`, `cache_hit_predictor`, `job_failure_predictor`, `sla_breach_predictor`, `retry_success_predictor`, `schema_change_predictor` |
-| **Multi-class Classification** | 4 | `tag_recommender`, `compliance_risk_classifier`, `permission_recommender`, `warehouse_optimizer`, `schema_evolution_predictor` |
-| **Multi-label Classification** | 1 | `query_optimization_recommender` |
+| **Anomaly Detection** | 7 | `cost_anomaly_detector`, `security_threat_detector`, `exfiltration_detector`, `privilege_escalation_detector`, `user_behavior_baseline`, `performance_regression_detector`, `data_drift_detector` |
+| **Regression** | 9 | `budget_forecaster`, `job_cost_optimizer`, `chargeback_attribution`, `query_performance_forecaster`, `warehouse_optimizer`, `cluster_capacity_planner`, `job_duration_forecaster`, `pipeline_health_scorer`, `data_freshness_predictor` |
+| **Binary Classification** | 8 | `commitment_recommender`, `cache_hit_predictor`, `query_optimization_recommender`, `job_failure_predictor`, `sla_breach_predictor`, `retry_success_predictor`, `schema_change_predictor` |
+| **Multi-class Classification** | 1 | `tag_recommender` (TF-IDF + Random Forest), `dbr_migration_risk_scorer` |
 
 ### Algorithm Distribution
 
 | Algorithm | Count | Use Case |
 |---|:---:|---|
-| **Isolation Forest** | 4 | Unsupervised anomaly detection |
+| **Isolation Forest** | 7 | Unsupervised anomaly detection |
 | **Gradient Boosting Regressor** | 9 | Continuous value prediction |
-| **XGBoost Classifier** | 7 | High-performance classification |
-| **Random Forest Classifier** | 5 | Robust multi-class classification |
+| **XGBoost Classifier** | 6 | High-performance binary classification |
+| **Random Forest Classifier** | 3 | Robust multi-class classification |
 
 ---
 

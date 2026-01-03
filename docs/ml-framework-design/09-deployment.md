@@ -222,7 +222,7 @@ variables:
   gold_schema:
     default: gold
   feature_schema:
-    default: gold_features
+    default: gold_ml
 
 targets:
   dev:
@@ -230,13 +230,13 @@ targets:
     default: true
     variables:
       catalog: dev_catalog
-      feature_schema: dev_gold_features
+      feature_schema: dev_gold_ml
   
   prod:
     mode: production
     variables:
       catalog: prod_catalog
-      feature_schema: gold_features
+      feature_schema: gold_ml
 
 include:
   - resources/ml/*.yml
