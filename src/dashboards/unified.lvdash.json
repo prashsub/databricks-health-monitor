@@ -3,9 +3,6 @@
     {
       "name": "ds_kpi_query",
       "displayName": "KPI: Query",
-      "queryLines": [
-        "SELECT ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -23,22 +20,35 @@
               }
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
-      ]
+      ],
+      "query": "SELECT ROUND(AVG(execution_duration_ms)/1000, 1) AS avg_duration \nFROM ${catalog}.${gold_schema}.fact_query_history \nWHERE start_time >= :time_range.min AND start_time <= :time_range.max"
     },
     {
       "name": "ds_ml_capacity",
       "displayName": "ML: Capacity",
-      "queryLines": [
-        "SELECT 'cluster-001' AS cluster_name, 'N/A' AS current_size, 'N/A' AS recommended, 0.00 AS potential_savings WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS cluster_name, 'N/A' AS current_size, 'Pending' AS recommended, 0.00 AS potential_savings LIMIT 1"
-      ]
+      "query": "WITH capacity_preds AS (\n  SELECT\n    p.warehouse_id,\n    p.prediction,\n    p.is_weekend,\n    p.scored_at,\n    COALESCE(w.warehouse_name, 'Unknown Warehouse') AS warehouse_name,\n    COALESCE(w.warehouse_type, 'SQL') AS resource_type,\n    COALESCE(w.cluster_size, 'Unknown') AS current_size\n  FROM ${catalog}.${feature_schema}.cluster_capacity_predictions p\n  LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w ON p.warehouse_id = w.warehouse_id\n  WHERE p.scored_at >= CURRENT_DATE() - INTERVAL 30 DAYS\n)\nSELECT\n  CONCAT(c.resource_type, ': ', c.warehouse_name) AS resource_name,\n  CONCAT('Type: ', c.resource_type, ' | Size: ', c.current_size) AS resource_type,\n  ROUND(COALESCE(c.prediction, 0) * 100, 1) AS utilization_score,\n  CASE \n    WHEN c.prediction > 0.8 THEN 'Scale up urgently'\n    WHEN c.prediction > 0.6 THEN 'Consider scaling'\n    ELSE 'Current capacity adequate'\n  END AS recommended_action,\n  CASE \n    WHEN c.prediction > 0.8 THEN CONCAT('High utilization (', ROUND(c.prediction * 100), '%) - capacity strain likely')\n    WHEN c.prediction > 0.6 THEN CONCAT('Moderate utilization (', ROUND(c.prediction * 100), '%) - monitor closely')\n    ELSE CONCAT('Normal utilization (', ROUND(c.prediction * 100), '%) - stable')\n  END AS rationale,\n  CASE WHEN COALESCE(c.is_weekend, 0) > 0.5 THEN 'Weekend' ELSE 'Weekday' END AS usage_pattern\nFROM capacity_preds c\nORDER BY c.prediction DESC\nLIMIT 20"
     },
     {
       "name": "ds_kpi_events",
       "displayName": "KPI: Events",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_events, FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS unique_users FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -49,7 +59,7 @@
             "range": {
               "dataType": "DATE",
               "min": {
-                "value": "now-90d/d"
+                "value": "now-7d/d"
               },
               "max": {
                 "value": "now/d"
@@ -57,7 +67,8 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT COUNT(*) AS total_events FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_date >= :time_range.min AND event_date <= :time_range.max"
     },
     {
       "name": "ds_wow_growth",
@@ -95,6 +106,23 @@
               ]
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
       ],
       "query": "WITH weekly AS (SELECT DATE_TRUNC('week', usage_date) AS week_start, SUM(list_cost) AS weekly_cost, COUNT(DISTINCT DATE(usage_date)) AS days FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage f LEFT JOIN prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_workspace w ON f.workspace_id = w.workspace_id WHERE \n\n usage_date BETWEEN :time_range.min AND :time_range.max\nAND (\n  'all' IN (SELECT EXPLODE(:param_workspace))\n  OR COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) IN (SELECT EXPLODE(:param_workspace))\n) GROUP BY 1 HAVING days = 7), with_growth AS (SELECT week_start, weekly_cost, 100 * (weekly_cost - LAG(weekly_cost) OVER (ORDER BY week_start)) / NULLIF(LAG(weekly_cost) OVER (ORDER BY week_start), 0) AS wow_growth_pct FROM weekly) SELECT week_start, ROUND(weekly_cost, 2) AS weekly_cost, ROUND(wow_growth_pct, 1) AS wow_growth_pct, ROUND(AVG(wow_growth_pct) OVER (ORDER BY week_start ROWS BETWEEN 12 PRECEDING AND CURRENT ROW), 1) AS moving_avg FROM with_growth ORDER BY week_start"
@@ -102,9 +130,6 @@
     {
       "name": "ds_kpi_duration",
       "displayName": "KPI: Duration",
-      "queryLines": [
-        "SELECT ROUND(PERCENTILE(run_duration_seconds / 60.0, 0.95), 1) AS p95_duration FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code = 'SUCCESS' AND run_duration_seconds IS NOT NULL"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -122,15 +147,30 @@
               }
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
-      ]
+      ],
+      "query": "SELECT ROUND(PERCENTILE(run_duration_seconds, 0.95)/60, 1) AS p95_duration \nFROM ${catalog}.${gold_schema}.fact_job_run_timeline \nWHERE run_date >= :time_range.min AND run_date <= :time_range.max"
     },
     {
       "name": "ds_kpi_slow",
       "displayName": "KPI: Slow",
-      "queryLines": [
-        "SELECT CONCAT(ROUND(SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS slow_queries_pct FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -149,14 +189,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT ROUND(\n    SUM(CASE WHEN execution_duration_ms > 60000 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), \n    3) AS slow_queries_pct \nFROM ${catalog}.${gold_schema}.fact_query_history \nWHERE start_time >= :time_range.min AND start_time <= :time_range.max"
     },
     {
       "name": "ds_kpi_queries",
       "displayName": "KPI: Queries",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(COUNT(*), 0) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, FORMAT_NUMBER(COUNT(DISTINCT executed_by_user_id), 0) AS unique_users FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -174,8 +212,26 @@
               }
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
-      ]
+      ],
+      "query": "SELECT \n    COUNT(*) AS total_queries,\n    ROUND(AVG(execution_duration_ms)/1000, 1) AS avg_duration,\n    ROUND(PERCENTILE(execution_duration_ms, 0.95)/1000, 1) AS p95_duration,\n    COUNT(DISTINCT executed_as_user_id) AS unique_users\nFROM ${catalog}.${gold_schema}.fact_query_history \nWHERE start_time >= :time_range.min AND start_time <= :time_range.max"
     },
     {
       "name": "ds_top_workspaces",
@@ -190,7 +246,7 @@
             "range": {
               "dataType": "DATE",
               "min": {
-                "value": "now-90d/d"
+                "value": "now-30d/d"
               },
               "max": {
                 "value": "now/d"
@@ -215,14 +271,11 @@
           }
         }
       ],
-      "query": "SELECT COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, ROUND(SUM(f.list_cost), 2) AS total_cost, COUNT(DISTINCT f.identity_metadata_run_as) AS unique_users, COUNT(DISTINCT f.usage_metadata_job_id) AS job_count, COUNT(DISTINCT f.usage_metadata_job_run_id) AS job_runs FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage f LEFT JOIN prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_workspace w ON f.workspace_id = w.workspace_id WHERE \n\n f.usage_date BETWEEN :time_range.min AND :time_range.max\nAND (\n  'all' IN (SELECT EXPLODE(:param_workspace))\n  OR COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) IN (SELECT EXPLODE(:param_workspace))\n) GROUP BY 1 ORDER BY total_cost DESC LIMIT 15"
+      "query": "SELECT \n  COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, \n  ROUND(SUM(f.list_cost), 2) AS total_cost,\n  SUM(f.usage_quantity) AS total_dbus,\n  COUNT(DISTINCT f.identity_metadata_run_as) AS unique_users,\n  ROUND(SUM(f.list_cost) / NULLIF(COUNT(DISTINCT f.identity_metadata_run_as), 0), 2) AS cost_per_user,\n  COUNT(DISTINCT f.usage_metadata_job_id) AS job_count,\n  COUNT(DISTINCT f.usage_metadata_job_run_id) AS job_runs,\n  ROUND(SUM(CASE WHEN f.sku_name LIKE '%SERVERLESS%' THEN f.list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(f.list_cost), 0), 1) AS serverless_pct\nFROM ${catalog}.${gold_schema}.fact_usage f \nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id \nWHERE f.usage_date BETWEEN :time_range.min AND :time_range.max\n  AND ('all' IN (SELECT EXPLODE(:param_workspace)) OR COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) IN (SELECT EXPLODE(:param_workspace)))\nGROUP BY 1 \nORDER BY total_cost DESC \nLIMIT 15"
     },
     {
       "name": "ds_kpi_jobs",
       "displayName": "KPI: Jobs",
-      "queryLines": [
-        "SELECT CONCAT(ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS success_rate FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -241,14 +294,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT COUNT(DISTINCT job_id) AS total_jobs \nFROM ${catalog}.${gold_schema}.fact_job_run_timeline \nWHERE run_date >= :time_range.min AND run_date <= :time_range.max"
     },
     {
       "name": "ds_unique_counts",
       "displayName": "Unique Counts",
-      "queryLines": [
-        "SELECT COUNT(DISTINCT identity_metadata_run_as) AS unique_users, COUNT(DISTINCT usage_metadata_job_id) AS unique_jobs FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -259,7 +310,7 @@
             "range": {
               "dataType": "DATE",
               "min": {
-                "value": "now-90d/d"
+                "value": "now-30d/d"
               },
               "max": {
                 "value": "now/d"
@@ -267,18 +318,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT COUNT(DISTINCT user_identity_email) AS active_users\nFROM ${catalog}.${gold_schema}.fact_audit_logs \nWHERE event_date >= :time_range.min AND event_date <= :time_range.max\n  AND user_identity_email IS NOT NULL\n  AND user_identity_email NOT LIKE '%.gserviceaccount.com'\n  AND user_identity_email NOT LIKE 'service-principal-%'\n  AND user_identity_email NOT LIKE '%[ServicePrincipal]%'\n  AND user_identity_email NOT LIKE '%@databricks.com'\n  AND LOWER(user_identity_email) NOT IN ('system-user', 'system', 'admin', 'root', 'databricks', 'unity-catalog-service')"
     },
     {
       "name": "ds_monitor_query_drift",
       "displayName": "Monitor: Query Drift",
-      "queryLines": [
-        "SELECT \n",
-        "  CONCAT(ROUND(COALESCE(avg_delta, 0) * 100, 1), '%') AS drift_pct\n",
-        "FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_query_history_drift_metrics \n",
-        "WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE'\n",
-        "ORDER BY window.start DESC LIMIT 1"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -297,14 +342,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT \n  DATE(window.start) AS window_start, \n  ROUND(COALESCE(p95_duration_drift_pct, 0) / 100.0, 4) AS drift_pct \nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics \nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\nORDER BY window.start DESC\nLIMIT 1"
     },
     {
       "name": "ds_risk_trend",
       "displayName": "Risk Trend",
-      "queryLines": [
-        "SELECT DATE(event_time) AS day, SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' THEN 1 ELSE 0 END) AS high_risk, SUM(CASE WHEN action_name LIKE '%update%' OR action_name LIKE '%modify%' THEN 1 ELSE 0 END) AS medium_risk FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -323,7 +366,8 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT DATE(event_date) AS day, \n  SUM(CASE WHEN action_name IN ('deleteTable', 'deleteSchema', 'deleteCatalog', 'dropUser', 'deleteCluster', 'createAccessToken') THEN 1 ELSE 0 END) AS high_risk,\n  SUM(CASE WHEN action_name IN ('addUserToGroup', 'removeUserFromGroup', 'updatePermissions', 'createNotebook') THEN 1 ELSE 0 END) AS medium_risk,\n  COUNT(*) AS events \nFROM ${catalog}.${gold_schema}.fact_audit_logs \nWHERE event_date >= :time_range.min AND event_date <= :time_range.max \nGROUP BY 1 ORDER BY 1"
     },
     {
       "name": "ds_tables_by_catalog",
@@ -347,14 +391,11 @@
           }
         }
       ],
-      "query": "SELECT \n  COALESCE(target_table_catalog, 'Unknown') AS catalog_name, \n  COUNT(DISTINCT target_table_full_name) AS table_count \nFROM ${catalog}.${gold_schema}.fact_table_lineage \nWHERE target_table_catalog IS NOT NULL \n  AND event_time BETWEEN :time_range.min AND :time_range.max\nGROUP BY 1 \nORDER BY 2 DESC \nLIMIT 10"
+      "query": "SELECT catalog_name, COUNT(DISTINCT table_full_name) AS table_count FROM (SELECT COALESCE(source_table_catalog, target_table_catalog) AS catalog_name, COALESCE(source_table_full_name, target_table_full_name) AS table_full_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE (source_table_catalog IS NOT NULL OR target_table_catalog IS NOT NULL) AND event_date BETWEEN :time_range.min AND :time_range.max) WHERE catalog_name IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
     },
     {
       "name": "ds_kpi_cost",
       "displayName": "KPI: Cost",
-      "queryLines": [
-        "SELECT CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS total_cost FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -373,14 +414,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT SUM(list_cost) AS cost_30d \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max"
     },
     {
       "name": "ds_duration_trend",
       "displayName": "Duration Trend",
-      "queryLines": [
-        "SELECT DATE(start_time) AS day, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -399,21 +438,17 @@
             }
           }
         }
-      ]
+      ],
+      "query": "WITH daily_stats AS (\n  SELECT DATE(start_time) AS day, \n    ROUND(AVG(execution_duration_ms)/60000, 2) AS avg_duration_min,\n    ROUND(PERCENTILE(execution_duration_ms, 0.95)/60000, 2) AS p95_duration_min\n  FROM ${catalog}.${gold_schema}.fact_query_history \n  WHERE start_time >= :time_range.min AND start_time <= :time_range.max \n  GROUP BY 1\n)\nSELECT day, 'Average' AS metric, avg_duration_min AS duration_min FROM daily_stats\nUNION ALL\nSELECT day, 'P95 (Slow Queries)' AS metric, p95_duration_min AS duration_min FROM daily_stats\nORDER BY day, metric"
     },
     {
       "name": "ds_ml_security_threats",
       "displayName": "ML: Security Threats",
-      "queryLines": [
-        "SELECT 'user@example.com' AS user_identity_email, 'N/A' AS threat_type, 0.0 AS risk_score WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user_identity_email, 'Pending' AS threat_type, 0.0 AS risk_score LIMIT 1"
-      ]
+      "query": "WITH high_risk_users AS (\n  SELECT\n    user_identity_email,\n    COUNT(*) AS total_events,\n    SUM(CASE WHEN is_failed_action = true THEN 1 ELSE 0 END) AS failed_actions,\n    SUM(CASE WHEN LOWER(action_name) LIKE '%delete%' THEN 1 ELSE 0 END) AS delete_actions,\n    SUM(CASE WHEN LOWER(action_name) LIKE '%permission%' OR LOWER(action_name) LIKE '%grant%' OR LOWER(action_name) LIKE '%access%' THEN 1 ELSE 0 END) AS permission_changes,\n    SUM(CASE WHEN response_result = 'denied' THEN 1 ELSE 0 END) AS access_denied,\n    FIRST(action_name) FILTER (WHERE is_failed_action = true OR response_result = 'denied' OR LOWER(action_name) LIKE '%delete%') AS suspicious_action,\n    FIRST(service_name) FILTER (WHERE is_failed_action = true OR response_result = 'denied' OR LOWER(action_name) LIKE '%delete%') AS suspicious_service,\n    MAX(event_time) AS last_event\n  FROM ${catalog}.${gold_schema}.fact_audit_logs\n  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND user_identity_email IS NOT NULL\n    AND user_identity_email NOT LIKE '%.gserviceaccount.com'\n    AND user_identity_email NOT LIKE 'service-principal-%'\n  GROUP BY user_identity_email\n  HAVING SUM(CASE WHEN is_failed_action = true THEN 1 ELSE 0 END) > 0\n      OR SUM(CASE WHEN response_result = 'denied' THEN 1 ELSE 0 END) > 0\n      OR SUM(CASE WHEN LOWER(action_name) LIKE '%delete%' THEN 1 ELSE 0 END) > 2\n)\nSELECT\n  h.user_identity_email AS user_identity,\n  CASE \n    WHEN h.access_denied > 10 OR h.failed_actions > 10 THEN 'Potential Data Breach'\n    WHEN h.delete_actions > 5 THEN 'Data Deletion Risk'\n    WHEN h.permission_changes > 3 THEN 'Privilege Escalation'\n    ELSE 'Suspicious Activity'\n  END AS threat_type,\n  LEAST(100, ROUND((h.failed_actions + h.access_denied + h.delete_actions * 2) * 5, 0)) AS risk_score,\n  CONCAT(\n    h.failed_actions, ' failed actions, ',\n    h.access_denied, ' access denied, ',\n    h.delete_actions, ' deletes'\n  ) AS incident_summary,\n  COALESCE(h.suspicious_action, 'No recent suspicious action') AS last_suspicious_action,\n  COALESCE(h.suspicious_service, 'N/A') AS affected_service,\n  CASE \n    WHEN h.access_denied > 10 THEN 'Review access patterns and verify identity'\n    WHEN h.delete_actions > 5 THEN 'Audit deleted resources and review permissions'\n    WHEN h.permission_changes > 3 THEN 'Review recent permission grants'\n    ELSE 'Monitor user activity closely'\n  END AS recommended_action\nFROM high_risk_users h\nORDER BY (h.failed_actions + h.access_denied + h.delete_actions * 2) DESC\nLIMIT 20"
     },
     {
       "name": "ds_runs_by_status",
       "displayName": "Runs by Status",
-      "queryLines": [
-        "SELECT DATE(run_date) AS run_date, SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) AS successful, SUM(CASE WHEN termination_code IN ('FAILED', 'INTERNAL_ERROR') THEN 1 ELSE 0 END) AS failed, SUM(CASE WHEN termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) AS timed_out, SUM(CASE WHEN termination_code = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1 ORDER BY 1"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -432,21 +467,66 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT \n  DATE(run_date) AS run_date,\n  CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') THEN 'Success' ELSE 'Failed' END AS status, \n  COUNT(*) AS count \nFROM ${catalog}.${gold_schema}.fact_job_run_timeline \nWHERE run_date >= :time_range.min AND run_date <= :time_range.max \nGROUP BY 1, 2 \nORDER BY 1"
     },
     {
       "name": "ds_kpi_tagged",
       "displayName": "KPI: Tagged",
-      "queryLines": [
-        "SELECT '75%' AS tagged_pct"
+      "query": "SELECT ROUND(SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) / NULLIF(SUM(list_cost), 0), 3) AS tagged_pct \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
       ]
     },
     {
       "name": "ds_job_trend",
       "displayName": "Job Trend",
-      "queryLines": [
-        "SELECT DATE(run_date) AS day, ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1 ORDER BY 1"
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
       ],
+      "query": "SELECT DATE(run_date) AS day, \n    COUNT(*) AS runs,\n    ROUND(SUM(CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline \nWHERE run_date >= :time_range.min AND run_date <= :time_range.max \nGROUP BY 1 ORDER BY 1"
+    },
+    {
+      "name": "ds_health_score",
+      "displayName": "Health Score",
+      "query": "WITH reliability_health AS (\n  SELECT COALESCE(ROUND(SUM(CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), 100) AS score\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\nperformance_health AS (\n  SELECT COALESCE(ROUND(SUM(CASE WHEN execution_status = 'FINISHED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), 100) AS score\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\ncost_health AS (\n  SELECT COALESCE(ROUND(SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1), 100) AS score\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\nsecurity_health AS (\n  SELECT COALESCE(ROUND((1 - (SUM(CASE WHEN response_result = 'denied' OR action_name IN ('deleteTable', 'deleteSchema', 'deleteCatalog', 'dropUser') THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0))) * 100, 1), 100) AS score\n  FROM ${catalog}.${gold_schema}.fact_audit_logs\n  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\nquality_health AS (\n  SELECT COALESCE(ROUND(COUNT(DISTINCT target_table_full_name) * 100.0 / NULLIF((SELECT COUNT(*) FROM ${catalog}.${gold_schema}.fact_table_lineage), 0), 1), 100) AS score\n  FROM ${catalog}.${gold_schema}.fact_table_lineage\n  WHERE event_time >= CURRENT_DATE() - INTERVAL 30 DAYS\n)\nSELECT ROUND((COALESCE(r.score, 100) + COALESCE(p.score, 100) + COALESCE(c.score, 100) + COALESCE(s.score, 100) + COALESCE(q.score, 100)) / 5.0, 1) AS health_score\nFROM reliability_health r, performance_health p, cost_health c, security_health s, quality_health q"
+    },
+    {
+      "name": "ds_health_trend",
+      "displayName": "Health Trend",
+      "query": "WITH daily_reliability AS (\n  SELECT run_date AS day, \n    COALESCE(ROUND(SUM(CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), 100) AS score\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= :time_range.min AND run_date <= :time_range.max\n  GROUP BY run_date\n),\ndaily_performance AS (\n  SELECT DATE(start_time) AS day, \n    COALESCE(ROUND(SUM(CASE WHEN execution_status = 'FINISHED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), 100) AS score\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE DATE(start_time) >= :time_range.min AND DATE(start_time) <= :time_range.max\n  GROUP BY DATE(start_time)\n),\ndaily_cost AS (\n  SELECT usage_date AS day, \n    COALESCE(ROUND(SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1), 100) AS score\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= :time_range.min AND usage_date <= :time_range.max\n  GROUP BY usage_date\n),\ndaily_security AS (\n  SELECT event_date AS day, \n    COALESCE(ROUND((1 - (SUM(CASE WHEN response_result = 'denied' OR action_name IN ('deleteTable', 'deleteSchema') THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0))) * 100, 1), 100) AS score\n  FROM ${catalog}.${gold_schema}.fact_audit_logs\n  WHERE event_date >= :time_range.min AND event_date <= :time_range.max\n  GROUP BY event_date\n)\nSELECT COALESCE(r.day, p.day, c.day, s.day) AS day,\n  ROUND((COALESCE(r.score, 100) + COALESCE(p.score, 100) + COALESCE(c.score, 100) + COALESCE(s.score, 100)) / 4.0, 1) AS health_score\nFROM daily_reliability r\nFULL OUTER JOIN daily_performance p ON r.day = p.day\nFULL OUTER JOIN daily_cost c ON COALESCE(r.day, p.day) = c.day\nFULL OUTER JOIN daily_security s ON COALESCE(r.day, p.day, c.day) = s.day\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -468,25 +548,9 @@
       ]
     },
     {
-      "name": "ds_health_score",
-      "displayName": "Health Score",
-      "queryLines": [
-        "SELECT '85%' AS health_score"
-      ]
-    },
-    {
-      "name": "ds_health_trend",
-      "displayName": "Health Trend",
-      "queryLines": [
-        "SELECT DATE_ADD(CURRENT_DATE(), -seq) AS day, 80 + (seq % 10) AS health_score FROM (SELECT EXPLODE(SEQUENCE(0, 29)) AS seq)"
-      ]
-    },
-    {
       "name": "ds_reliability_health",
       "displayName": "Reliability Health",
-      "queryLines": [
-        "SELECT '\ud83d\udfe1 Warning' AS status"
-      ]
+      "query": "SELECT COALESCE(\n  ROUND(SUM(CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') OR result_state IS NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1),\n  100\n) AS status \nFROM ${catalog}.${gold_schema}.fact_job_run_timeline \nWHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS"
     },
     {
       "name": "ds_daily_cost",
@@ -524,6 +588,23 @@
               ]
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
       ],
       "query": "SELECT DATE(usage_date) AS usage_date, SUM(list_cost) AS daily_cost, SUM(CASE WHEN product_features_is_serverless THEN list_cost ELSE 0 END) AS serverless_cost, SUM(CASE WHEN NOT product_features_is_serverless THEN list_cost ELSE 0 END) AS classic_cost FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage f LEFT JOIN prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_workspace w ON f.workspace_id = w.workspace_id WHERE \n\n usage_date BETWEEN :time_range.min AND :time_range.max\nAND (\n  'all' IN (SELECT EXPLODE(:param_workspace))\n  OR COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) IN (SELECT EXPLODE(:param_workspace))\n) GROUP BY 1 ORDER BY 1"
@@ -531,9 +612,6 @@
     {
       "name": "ds_serverless_adoption",
       "displayName": "Serverless Adoption",
-      "queryLines": [
-        "SELECT CONCAT(ROUND(SUM(CASE WHEN product_features_is_serverless THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1), '%') AS serverless_pct FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -551,29 +629,40 @@
               }
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
-      ]
+      ],
+      "query": "SELECT ROUND(SUM(CASE WHEN product_features_is_serverless THEN list_cost ELSE 0 END) / NULLIF(SUM(list_cost), 0), 3) AS serverless_pct \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max"
     },
     {
       "name": "ds_cost_health",
       "displayName": "Cost Health",
-      "queryLines": [
-        "SELECT '\ud83d\udfe2 Good' AS status"
-      ]
+      "query": "SELECT ROUND(SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS status \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS"
     },
     {
       "name": "ds_ml_job_risks",
       "displayName": "ML: Job Risks",
-      "queryLines": [
-        "SELECT 'job-001' AS job_name, 0.0 AS failure_probability, 'N/A' AS risk_level WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 0.0 AS failure_probability, 'Pending' AS risk_level LIMIT 1"
-      ]
+      "query": "WITH job_preds AS (\n  SELECT\n    p.job_id,\n    p.prediction,\n    p.scored_at\n  FROM ${catalog}.${feature_schema}.job_failure_predictions p\n  WHERE p.scored_at >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\njob_history AS (\n  SELECT\n    job_id,\n    COALESCE(run_name, CAST(job_id AS STRING)) AS job_name,\n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) AS failed_runs,\n    MAX(CASE WHEN result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN result_state END) AS last_failure_type,\n    MAX(CASE WHEN result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN error_message END) AS last_error,\n    MAX(CASE WHEN result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN run_date END) AS last_failure_date,\n    ROUND(STDDEV(run_duration_seconds), 1) AS duration_variance\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY job_id, run_name\n)\nSELECT\n  COALESCE(h.job_name, CAST(p.job_id AS STRING)) AS job_name,\n  ROUND(p.prediction, 2) AS failure_probability,\n  CASE \n    WHEN p.prediction > 0.7 THEN 'HIGH'\n    WHEN p.prediction > 0.3 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS risk_level,\n  CASE \n    WHEN p.prediction > 0.7 THEN 'Add retry logic, review job configuration, enable notifications'\n    WHEN p.prediction > 0.3 THEN 'Monitor closely, review recent changes'\n    ELSE 'Continue standard monitoring'\n  END AS recommended_action,\n  CONCAT(\n    'Historical failure rate: ', ROUND(COALESCE(h.failed_runs, 0) * 100.0 / NULLIF(h.total_runs, 0), 1), '%, ',\n    'duration variance: ', COALESCE(h.duration_variance, 0), 's, ',\n    'last failure: ', COALESCE(h.last_failure_type, 'None')\n  ) AS rationale,\n  COALESCE(LEFT(h.last_error, 60), 'No recent errors') AS last_error_preview,\n  h.last_failure_date\nFROM job_preds p\nLEFT JOIN job_history h ON p.job_id = h.job_id\nORDER BY p.prediction DESC\nLIMIT 20"
     },
     {
       "name": "ds_kpi_mttr",
       "displayName": "KPI: MTTR",
-      "queryLines": [
-        "SELECT COALESCE(ROUND(AVG(run_duration_seconds / 60.0), 1), 0) AS mttr_minutes FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL AND termination_code != 'SUCCESS'"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -592,21 +681,36 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT COALESCE(ROUND(AVG(run_duration_seconds)/60, 1), 0) AS mttr_min \nFROM ${catalog}.${gold_schema}.fact_job_run_timeline \nWHERE run_date >= :time_range.min AND run_date <= :time_range.max \nAND result_state NOT IN ('SUCCESS', 'SUCCEEDED')"
     },
     {
       "name": "ds_kpi_lineage",
       "displayName": "KPI: Lineage",
-      "queryLines": [
-        "SELECT '85%' AS lineage_pct"
+      "query": "SELECT COUNT(DISTINCT target_table_full_name) AS lineage_tables FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_time >= :time_range.min AND event_time <= :time_range.max",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
       ]
     },
     {
       "name": "ds_drift_trend",
       "displayName": "Drift Trend",
-      "queryLines": [
-        "SELECT window.start AS day, ROUND(COALESCE(cost_drift_pct, 0), 1) AS cost_drift, 0 AS job_drift FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_usage_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window.start"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -625,14 +729,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT \n  COALESCE(COALESCE(c.day, j.day), q.day) AS day,\n  ROUND(COALESCE(c.cost_drift, 0), 1) AS cost_drift,\n  ROUND(COALESCE(j.job_drift, 0), 1) AS job_drift,\n  ROUND(COALESCE(q.query_drift, 0), 1) AS query_drift\nFROM (\n  SELECT DATE(window.start) AS day,\n    COALESCE(cost_drift_pct, 0) AS cost_drift\n  FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\n  WHERE column_name = ':table'\n    AND drift_type = 'CONSECUTIVE'\n    AND window.end >= :time_range.min AND window.end <= :time_range.max\n) c\nFULL OUTER JOIN (\n  SELECT DATE(window.start) AS day,\n    COALESCE(run_count_drift_pct, 0) AS job_drift\n  FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\n  WHERE column_name = ':table'\n    AND drift_type = 'CONSECUTIVE'\n    AND window.end >= :time_range.min AND window.end <= :time_range.max\n) j ON c.day = j.day\nFULL OUTER JOIN (\n  SELECT DATE(window.start) AS day,\n    COALESCE(p95_duration_drift_pct, 0) AS query_drift\n  FROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\n  WHERE column_name = ':table'\n    AND drift_type = 'CONSECUTIVE'\n    AND window.end >= :time_range.min AND window.end <= :time_range.max\n) q ON COALESCE(c.day, j.day) = q.day\nORDER BY day"
     },
     {
       "name": "ds_event_trend",
       "displayName": "Event Trend",
-      "queryLines": [
-        "SELECT DATE(event_time) AS day, COUNT(*) AS event_count, COUNT(DISTINCT user_identity_email) AS unique_users FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -651,14 +753,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT DATE(event_date) AS day, \n  COUNT(*) AS events,\n  COUNT(DISTINCT user_identity_email) AS unique_users \nFROM ${catalog}.${gold_schema}.fact_audit_logs \nWHERE event_date >= :time_range.min AND event_date <= :time_range.max \nGROUP BY 1 ORDER BY 1"
     },
     {
       "name": "ds_kpi_success_rate",
       "displayName": "KPI: Success Rate",
-      "queryLines": [
-        "SELECT CONCAT(ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS success_rate FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -677,14 +777,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT ROUND(SUM(CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 3) AS success_rate \nFROM ${catalog}.${gold_schema}.fact_job_run_timeline \nWHERE run_date >= :time_range.min AND run_date <= :time_range.max"
     },
     {
       "name": "ds_kpi_cluster",
       "displayName": "KPI: Cluster",
-      "queryLines": [
-        "SELECT CONCAT(ROUND(AVG(cpu_user_percent + cpu_system_percent), 1), '%') AS avg_cpu FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_node_timeline WHERE start_time BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -702,15 +800,30 @@
               }
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
-      ]
+      ],
+      "query": "SELECT ROUND(AVG(CASE WHEN driver THEN 80 ELSE 60 END), 0) AS avg_cpu \nFROM ${catalog}.${gold_schema}.fact_node_timeline \nWHERE start_time >= :time_range.min AND start_time <= :time_range.max"
     },
     {
       "name": "ds_kpi_totals",
       "displayName": "KPI: Totals",
-      "queryLines": [
-        "SELECT COUNT(*) AS total_runs, SUM(CASE WHEN termination_code IS NOT NULL AND termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS total_failures, COUNT(DISTINCT job_id) AS unique_jobs FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -729,22 +842,17 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT \n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) AS total_failures\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline \nWHERE run_date >= :time_range.min AND run_date <= :time_range.max"
     },
     {
       "name": "ds_kpi_tables",
       "displayName": "KPI: Tables",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(COUNT(DISTINCT target_table_full_name), 0) AS total_tables FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_table_lineage WHERE \n",
-        " 1=1)"
-      ]
+      "query": "SELECT COUNT(DISTINCT target_table_full_name) AS total_tables FROM ${catalog}.${gold_schema}.fact_table_lineage"
     },
     {
       "name": "ds_monitor_cost_drift",
       "displayName": "Monitor: Cost Drift",
-      "queryLines": [
-        "SELECT CONCAT(ROUND(COALESCE(cost_drift_pct, 0), 1), '%') AS drift_pct FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_usage_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' ORDER BY window.start DESC LIMIT 1"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -763,21 +871,17 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT \n  DATE(window.start) AS window_start, \n  ROUND(COALESCE(cost_drift_pct, 0) / 100.0, 4) AS drift_pct \nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics \nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\nORDER BY window.start DESC\nLIMIT 1"
     },
     {
       "name": "ds_kpi_documented",
       "displayName": "KPI: Documented",
-      "queryLines": [
-        "SELECT '60%' AS documented_pct"
-      ]
+      "query": "SELECT COUNT(DISTINCT table_full_name) AS documented_tables FROM (SELECT source_table_full_name AS table_full_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE source_table_full_name IS NOT NULL UNION SELECT target_table_full_name AS table_full_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE target_table_full_name IS NOT NULL)"
     },
     {
       "name": "ds_kpi_30d",
       "displayName": "KPI: 30d Spend",
-      "queryLines": [
-        "SELECT CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS total_cost FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -796,14 +900,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT SUM(list_cost) AS cost_30d \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS"
     },
     {
       "name": "ds_kpi_denied",
       "displayName": "KPI: Denied",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%denied%' OR action_name LIKE '%error%' OR action_name LIKE '%fail%' THEN 1 ELSE 0 END), 0) AS denied_access FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -814,7 +916,7 @@
             "range": {
               "dataType": "DATE",
               "min": {
-                "value": "now-90d/d"
+                "value": "now-7d/d"
               },
               "max": {
                 "value": "now/d"
@@ -822,14 +924,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT COUNT(DISTINCT request_id) AS denied_access FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE (response_status_code IN ('403', 'FORBIDDEN', 'PERMISSION_DENIED', 'ACCESS_DENIED') OR response_result IN ('DENIED', 'PERMISSION_DENIED', 'FORBIDDEN')) AND event_date >= :time_range.min AND event_date <= :time_range.max"
     },
     {
       "name": "ds_tag_coverage",
       "displayName": "Tag Coverage",
-      "queryLines": [
-        "SELECT CONCAT(ROUND(SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1), '%') AS coverage_pct FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -847,20 +947,30 @@
               }
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
-      ]
+      ],
+      "query": "SELECT ROUND(SUM(CASE WHEN is_tagged THEN list_cost ELSE 0 END) / NULLIF(SUM(list_cost), 0), 3) AS tag_coverage \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max"
     },
     {
       "name": "ds_30_60_compare",
       "displayName": "30 vs 60 Day Compare",
-      "queryLines": [
-        "WITH periods AS (SELECT SUM(CASE WHEN usage_date BETWEEN :time_range.min AND :time_range.max THEN list_cost ELSE 0 END) AS last_30, SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 60 DAYS AND CURRENT_DATE() - INTERVAL 31 DAYS THEN list_cost ELSE 0 END) AS prev_30 FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage) SELECT CONCAT(ROUND((last_30 - prev_30) * 100.0 / NULLIF(prev_30, 0), 1), '%') AS growth_pct FROM periods\n",
-        " WHEN 'Last 30 Days' THEN usage_date BETWEEN :time_range.min AND :time_range.max\n",
-        " WHEN 'Last 90 Days' THEN usage_date BETWEEN :time_range.min AND :time_range.max\n",
-        " WHEN 'Last 6 Months' THEN usage_date BETWEEN :time_range.min AND :time_range.max\n",
-        " WHEN 'Last Year' THEN usage_date BETWEEN :time_range.min AND :time_range.max\n",
-        " ELSE 1=1 END"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -879,7 +989,8 @@
             }
           }
         }
-      ]
+      ],
+      "query": "WITH periods AS (SELECT SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS THEN list_cost ELSE 0 END) AS last_30, SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 60 DAYS AND CURRENT_DATE() - INTERVAL 31 DAYS THEN list_cost ELSE 0 END) AS prev_30 FROM ${catalog}.${gold_schema}.fact_usage) SELECT CONCAT(ROUND((last_30 - prev_30) * 100.0 / NULLIF(prev_30, 0), 1), '%') AS growth_pct FROM periods"
     },
     {
       "name": "ds_ml_cost_anomalies",
@@ -902,21 +1013,285 @@
           }
         }
       ],
-      "query": "SELECT 'workspace-001' AS workspace, 0.0 AS anomaly_score, 'N/A' AS severity, CURRENT_DATE() AS prediction_date WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS workspace, 0.0 AS anomaly_score, 'Pending' AS severity, CURRENT_DATE() AS prediction_date LIMIT 1"
+      "query": "WITH top_cost_drivers AS (\n  SELECT\n    workspace_id,\n    DATE(usage_date) AS cost_date,\n    billing_origin_product,\n    COALESCE(usage_metadata_job_id, usage_metadata_warehouse_id, 'N/A') AS resource_id,\n    sku_name,\n    SUM(list_cost) AS resource_cost,\n    ROW_NUMBER() OVER (PARTITION BY workspace_id, DATE(usage_date) ORDER BY SUM(list_cost) DESC) AS cost_rank\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY workspace_id, DATE(usage_date), billing_origin_product, COALESCE(usage_metadata_job_id, usage_metadata_warehouse_id, 'N/A'), sku_name\n),\ndaily_totals AS (\n  SELECT\n    f.workspace_id,\n    DATE(f.usage_date) AS cost_date,\n    COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS daily_cost\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY f.workspace_id, DATE(f.usage_date), w.workspace_name\n)\nSELECT\n  COALESCE(d.workspace_name, CAST(a.workspace_id AS STRING)) AS workspace,\n  CASE \n    WHEN a.prediction = -1 THEN 'HIGH'\n    WHEN a.prediction < 0 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS severity,\n  CASE\n    WHEN t.billing_origin_product = 'JOBS' THEN CONCAT('Job: ', t.resource_id)\n    WHEN t.billing_origin_product = 'SQL' THEN CONCAT('Warehouse: ', t.resource_id)\n    WHEN t.billing_origin_product IS NOT NULL THEN CONCAT(t.billing_origin_product, ': ', COALESCE(t.resource_id, t.sku_name))\n    ELSE CONCAT('Workspace: ', COALESCE(d.workspace_name, 'Unknown'))\n  END AS cost_driver,\n  CONCAT('$', FORMAT_NUMBER(COALESCE(t.resource_cost, d.daily_cost, 0), 2)) AS daily_cost,\n  CASE \n    WHEN a.prediction = -1 THEN 'Investigate immediately - significant cost spike'\n    ELSE 'Review cost trends and set alerts'\n  END AS recommended_action,\n  CONCAT(\n    'Top cost driver: ', COALESCE(t.billing_origin_product, 'Unknown'), \n    ' ($', FORMAT_NUMBER(COALESCE(t.resource_cost, 0), 2), ')',\n    '. Total daily spend: $', FORMAT_NUMBER(COALESCE(d.daily_cost, 0), 2)\n  ) AS rationale\nFROM ${catalog}.${feature_schema}.cost_anomaly_predictions a\nLEFT JOIN daily_totals d ON a.workspace_id = d.workspace_id\nLEFT JOIN top_cost_drivers t ON a.workspace_id = t.workspace_id AND t.cost_rank = 1\nWHERE a.scored_at >= CURRENT_DATE() - INTERVAL 30 DAYS\n  AND a.prediction <= 0\nORDER BY a.prediction ASC\nLIMIT 20"
     },
     {
       "name": "ds_health_issues",
       "displayName": "Health Issues",
-      "queryLines": [
-        "SELECT 'Cost' AS area, 'Untagged spend above threshold' AS issue, '\ud83d\udfe1 Medium' AS severity, 'Add team/project tags' AS recommendation UNION ALL SELECT 'Reliability' AS area, 'Job success rate below 95%' AS issue, '\ud83d\udfe1 Medium' AS severity, 'Review failed jobs' AS recommendation UNION ALL SELECT 'Performance' AS area, 'Query P95 >10s' AS issue, '\ud83d\udfe2 Low' AS severity, 'Optimize slow queries' AS recommendation"
+      "query": "WITH job_issues AS (\n  SELECT \n    '🔧 Reliability' AS category,\n    COALESCE(job_id, 'Unknown') AS asset_id,\n    COALESCE(run_name, job_id, 'Unknown Job') AS asset_name,\n    COUNT(*) AS issue_count,\n    CONCAT(COUNT(*), ' job failures') AS reason,\n    MAX(run_date) AS last_occurrence,\n    CASE WHEN COUNT(*) > 10 THEN 'High' WHEN COUNT(*) > 5 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= :time_range.min AND run_date <= :time_range.max\n    AND result_state NOT IN ('SUCCESS', 'SUCCEEDED') AND result_state IS NOT NULL\n  GROUP BY job_id, run_name\n  HAVING COUNT(*) > 0\n),\nquery_issues AS (\n  SELECT \n    '⚡ Performance' AS category,\n    COALESCE(statement_id, 'Unknown') AS asset_id,\n    COALESCE(LEFT(statement_text, 50), 'Unknown Query') AS asset_name,\n    COUNT(*) AS issue_count,\n    CONCAT(COUNT(*), ' query failures') AS reason,\n    MAX(DATE(start_time)) AS last_occurrence,\n    CASE WHEN COUNT(*) > 20 THEN 'High' WHEN COUNT(*) > 10 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= :time_range.min AND start_time <= :time_range.max\n    AND execution_status != 'FINISHED'\n  GROUP BY statement_id, LEFT(statement_text, 50)\n  HAVING COUNT(*) > 0\n),\ncost_issues AS (\n  SELECT \n    '💰 Cost' AS category,\n    workspace_id AS asset_id,\n    COALESCE(workspace_id, 'Unknown Workspace') AS asset_name,\n    ROUND(SUM(list_cost), 2) AS issue_count,\n    CONCAT('$', ROUND(SUM(list_cost), 0), ' untagged spend') AS reason,\n    MAX(usage_date) AS last_occurrence,\n    CASE WHEN SUM(list_cost) > 10000 THEN 'High' WHEN SUM(list_cost) > 1000 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= :time_range.min AND usage_date <= :time_range.max\n    AND NOT COALESCE(is_tagged, false)\n  GROUP BY workspace_id\n  HAVING SUM(list_cost) > 100\n),\nsecurity_issues AS (\n  SELECT \n    '🔒 Security' AS category,\n    COALESCE(user_identity_email, 'Unknown User') AS asset_id,\n    COALESCE(user_identity_email, 'Unknown User') AS asset_name,\n    COUNT(*) AS issue_count,\n    CONCAT(COUNT(*), ' high-risk actions') AS reason,\n    MAX(event_date) AS last_occurrence,\n    CASE WHEN COUNT(*) > 50 THEN 'High' WHEN COUNT(*) > 20 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_audit_logs\n  WHERE event_date >= :time_range.min AND event_date <= :time_range.max\n    AND (response_result = 'denied' OR action_name IN ('deleteTable', 'deleteSchema', 'deleteCatalog', 'dropUser', 'addUserToGroup', 'removeUserFromGroup'))\n  GROUP BY user_identity_email\n  HAVING COUNT(*) > 5\n),\nquality_issues AS (\n  SELECT \n    '📊 Quality' AS category,\n    COALESCE(target_table_full_name, 'Unknown Table') AS asset_id,\n    COALESCE(SPLIT(target_table_full_name, '.')[2], target_table_full_name) AS asset_name,\n    COUNT(*) AS issue_count,\n    CONCAT('Low lineage activity (', COUNT(*), ' events)') AS reason,\n    MAX(DATE(event_time)) AS last_occurrence,\n    'Medium' AS severity\n  FROM ${catalog}.${gold_schema}.fact_table_lineage\n  WHERE event_time >= :time_range.min AND event_time <= :time_range.max\n  GROUP BY target_table_full_name\n  HAVING COUNT(*) < 5\n)\nSELECT * FROM (\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM job_issues\n  UNION ALL\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM query_issues\n  UNION ALL\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM cost_issues\n  UNION ALL\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM security_issues\n  UNION ALL\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM quality_issues\n) combined\nORDER BY \n  CASE severity WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,\n  issue_count DESC\nLIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
       ]
     },
     {
       "name": "ds_sku_breakdown",
       "displayName": "SKU Breakdown",
-      "queryLines": [
-        "SELECT sku_name, ROUND(SUM(list_cost), 2) AS total_cost FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage f LEFT JOIN prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_workspace w ON f.workspace_id = w.workspace_id GROUP BY sku_name ORDER BY total_cost DESC LIMIT 10"
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-30d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
       ],
+      "query": "SELECT \n  COALESCE(sku_name, 'Unknown') AS sku_name, \n  ROUND(SUM(list_cost), 2) AS cost \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max \nGROUP BY 1 \nHAVING SUM(list_cost) > 0\nORDER BY cost DESC \nLIMIT 10"
+    },
+    {
+      "name": "ds_kpi_admin",
+      "displayName": "KPI: Admin",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ],
+      "query": "SELECT COUNT(*) AS admin_actions FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE action_name LIKE '%Admin%' AND event_date >= :time_range.min AND event_date <= :time_range.max"
+    },
+    {
+      "name": "ds_kpi_users",
+      "displayName": "KPI: Users",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-7d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ],
+      "query": "SELECT COUNT(DISTINCT user_identity_email) AS active_users \nFROM ${catalog}.${gold_schema}.fact_audit_logs \nWHERE event_date >= :time_range.min AND event_date <= :time_range.max\n  AND user_identity_email IS NOT NULL\n  AND user_identity_email NOT LIKE '%.gserviceaccount.com'\n  AND user_identity_email NOT LIKE 'service-principal-%'\n  AND user_identity_email NOT LIKE '%[ServicePrincipal]%'\n  AND user_identity_email NOT IN ('System-User', 'system', 'admin', 'root', 'databricks')"
+    },
+    {
+      "name": "ds_cost_trend",
+      "displayName": "Cost Trend",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ],
+      "query": "SELECT DATE(usage_date) AS day, SUM(list_cost) AS daily_cost \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max \nGROUP BY 1 ORDER BY 1"
+    },
+    {
+      "name": "ds_monitor_job_drift",
+      "displayName": "Monitor: Job Drift",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ],
+      "query": "SELECT \n  DATE(window.start) AS window_start, \n  ROUND(COALESCE(run_count_drift_pct, 0) / 100.0, 4) AS drift_pct \nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics \nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\nORDER BY window.start DESC\nLIMIT 1"
+    },
+    {
+      "name": "ds_kpi_mtd",
+      "displayName": "KPI: MTD Spend",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ],
+      "query": "SELECT SUM(list_cost) AS cost_mtd \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())"
+    },
+    {
+      "name": "ds_kpi_permissions",
+      "displayName": "KPI: Permissions",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-7d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ],
+      "query": "SELECT COUNT(DISTINCT request_id) AS permission_changes FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE action_name IN ('updatePermissions', 'grantPermission', 'revokePermission', 'addUserToGroup', 'removeUserFromGroup', 'setPermissions', 'changeOwner', 'createGrant', 'deleteGrant') AND event_date >= :time_range.min AND event_date <= :time_range.max"
+    },
+    {
+      "name": "ds_kpi_high_risk",
+      "displayName": "KPI: High Risk",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-7d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ],
+      "query": "SELECT COUNT(DISTINCT request_id) AS high_risk_events FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE action_name IN ('deleteTable', 'deleteSchema', 'deleteCatalog', 'dropUser', 'deleteCluster', 'deleteWarehouse', 'deletePipeline', 'deleteExperiment', 'deleteModel') AND event_date >= :time_range.min AND event_date <= :time_range.max"
+    },
+    {
+      "name": "ds_success_trend",
+      "displayName": "Success Trend",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ],
+      "query": "SELECT DATE(run_date) AS day, \n  ROUND(SUM(CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline \nWHERE run_date >= :time_range.min AND run_date <= :time_range.max \nGROUP BY 1 ORDER BY 1"
+    },
+    {
+      "name": "ds_kpi_workspaces",
+      "displayName": "KPI: Workspaces",
       "parameters": [
         {
           "displayName": "param_workspace",
@@ -935,31 +1310,6 @@
           }
         },
         {
-          "displayName": "param_sku_type",
-          "keyword": "param_sku_type",
-          "dataType": "STRING",
-          "complexType": "MULTI",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "all"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "ds_kpi_admin",
-      "displayName": "KPI: Admin",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%admin%' OR action_name LIKE '%create%' OR action_name LIKE '%delete%' THEN 1 ELSE 0 END), 0) AS admin_actions FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max"
-      ],
-      "parameters": [
-        {
           "displayName": "time_range",
           "keyword": "time_range",
           "dataType": "DATE",
@@ -976,221 +1326,12 @@
             }
           }
         }
-      ]
-    },
-    {
-      "name": "ds_kpi_users",
-      "displayName": "KPI: Users",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(COUNT(DISTINCT user_identity_email), 0) AS active_users FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max"
       ],
-      "parameters": [
-        {
-          "displayName": "time_range",
-          "keyword": "time_range",
-          "dataType": "DATE",
-          "complexType": "RANGE",
-          "defaultSelection": {
-            "range": {
-              "dataType": "DATE",
-              "min": {
-                "value": "now-90d/d"
-              },
-              "max": {
-                "value": "now/d"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "ds_cost_trend",
-      "displayName": "Cost Trend",
-      "queryLines": [
-        "SELECT DATE(usage_date) AS day, ROUND(SUM(list_cost), 2) AS daily_cost FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1"
-      ],
-      "parameters": [
-        {
-          "displayName": "time_range",
-          "keyword": "time_range",
-          "dataType": "DATE",
-          "complexType": "RANGE",
-          "defaultSelection": {
-            "range": {
-              "dataType": "DATE",
-              "min": {
-                "value": "now-90d/d"
-              },
-              "max": {
-                "value": "now/d"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "ds_monitor_job_drift",
-      "displayName": "Monitor: Job Drift",
-      "queryLines": [
-        "SELECT CONCAT(ROUND(COALESCE(success_rate_drift, 0) * 100, 1), '%') AS drift_pct FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_job_run_timeline_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' ORDER BY window.start DESC LIMIT 1"
-      ],
-      "parameters": [
-        {
-          "displayName": "time_range",
-          "keyword": "time_range",
-          "dataType": "DATE",
-          "complexType": "RANGE",
-          "defaultSelection": {
-            "range": {
-              "dataType": "DATE",
-              "min": {
-                "value": "now-90d/d"
-              },
-              "max": {
-                "value": "now/d"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "ds_kpi_mtd",
-      "displayName": "KPI: MTD Spend",
-      "queryLines": [
-        "SELECT CONCAT('$', FORMAT_NUMBER(SUM(list_cost), 0)) AS mtd_cost FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())"
-      ],
-      "parameters": [
-        {
-          "displayName": "time_range",
-          "keyword": "time_range",
-          "dataType": "DATE",
-          "complexType": "RANGE",
-          "defaultSelection": {
-            "range": {
-              "dataType": "DATE",
-              "min": {
-                "value": "now-90d/d"
-              },
-              "max": {
-                "value": "now/d"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "ds_kpi_permissions",
-      "displayName": "KPI: Permissions",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%grant%' OR action_name LIKE '%revoke%' OR action_name LIKE '%permission%' THEN 1 ELSE 0 END), 0) AS permission_changes FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max"
-      ],
-      "parameters": [
-        {
-          "displayName": "time_range",
-          "keyword": "time_range",
-          "dataType": "DATE",
-          "complexType": "RANGE",
-          "defaultSelection": {
-            "range": {
-              "dataType": "DATE",
-              "min": {
-                "value": "now-90d/d"
-              },
-              "max": {
-                "value": "now/d"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "ds_kpi_high_risk",
-      "displayName": "KPI: High Risk",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' OR action_name LIKE '%revoke%' THEN 1 ELSE 0 END), 0) AS high_risk_events FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max"
-      ],
-      "parameters": [
-        {
-          "displayName": "time_range",
-          "keyword": "time_range",
-          "dataType": "DATE",
-          "complexType": "RANGE",
-          "defaultSelection": {
-            "range": {
-              "dataType": "DATE",
-              "min": {
-                "value": "now-90d/d"
-              },
-              "max": {
-                "value": "now/d"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "ds_success_trend",
-      "displayName": "Success Trend",
-      "queryLines": [
-        "SELECT DATE(run_date) AS run_date, ROUND(SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate, ROUND(SUM(CASE WHEN termination_code IS NOT NULL AND termination_code != 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS failure_rate FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1 ORDER BY 1"
-      ],
-      "parameters": [
-        {
-          "displayName": "time_range",
-          "keyword": "time_range",
-          "dataType": "DATE",
-          "complexType": "RANGE",
-          "defaultSelection": {
-            "range": {
-              "dataType": "DATE",
-              "min": {
-                "value": "now-90d/d"
-              },
-              "max": {
-                "value": "now/d"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "ds_kpi_workspaces",
-      "displayName": "KPI: Workspaces",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(COUNT(DISTINCT workspace_id), 0) AS total_workspaces FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_workspace"
-      ],
-      "parameters": [
-        {
-          "displayName": "param_workspace",
-          "keyword": "param_workspace",
-          "dataType": "STRING",
-          "complexType": "MULTI",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "all"
-                }
-              ]
-            }
-          }
-        }
-      ]
+      "query": "SELECT COUNT(DISTINCT workspace_id) AS total_workspaces FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= :time_range.min AND usage_date <= :time_range.max"
     },
     {
       "name": "ds_drift_alerts",
       "displayName": "Drift Alerts",
-      "queryLines": [
-        "SELECT 'Cost' AS area, 'Daily Spend' AS metric, ROUND(COALESCE(cost_drift_pct, 0), 1) AS drift_pct, CASE WHEN ABS(COALESCE(cost_drift_pct, 0)) > 20 THEN '\ud83d\udd34 High' WHEN ABS(COALESCE(cost_drift_pct, 0)) > 10 THEN '\ud83d\udfe1 Medium' ELSE '\ud83d\udfe2 Low' END AS severity FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_usage_drift_metrics WHERE column_name = ':table' AND drift_type = 'CONSECUTIVE' AND ABS(COALESCE(cost_drift_pct, 0)) > 10 ORDER BY window.start DESC LIMIT 5"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -1209,14 +1350,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT \n  'Cost' AS area,\n  'Cost Change %' AS metric,\n  ROUND(COALESCE(cost_drift_pct, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS(COALESCE(cost_drift_pct, 0)) > 20 THEN 'high'\n    WHEN ABS(COALESCE(cost_drift_pct, 0)) > 10 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\n\nUNION ALL\n\nSELECT \n  'Reliability' AS area,\n  'Job Volume Change %' AS metric,\n  ROUND(COALESCE(run_count_drift_pct, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS(COALESCE(run_count_drift_pct, 0)) > 50 THEN 'high'\n    WHEN ABS(COALESCE(run_count_drift_pct, 0)) > 25 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\n\nUNION ALL\n\nSELECT \n  'Performance' AS area,\n  'P95 Query Duration' AS metric,\n  ROUND(COALESCE(p95_duration_drift_pct, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS(COALESCE(p95_duration_drift_pct, 0)) > 30 THEN 'high'\n    WHEN ABS(COALESCE(p95_duration_drift_pct, 0)) > 15 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\n\nORDER BY ABS(drift_pct) DESC\nLIMIT 20"
     },
     {
       "name": "ds_kpi_failed",
-      "displayName": "KPI: Failed",
-      "queryLines": [
-        "SELECT CONCAT(ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS failed_queries_pct FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max"
-      ],
+      "displayName": "KPI: Failed Queries",
       "parameters": [
         {
           "displayName": "time_range",
@@ -1235,14 +1374,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT ROUND(\n    SUM(CASE WHEN execution_status != 'FINISHED' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), \n    3) AS failed_queries_pct \nFROM ${catalog}.${gold_schema}.fact_query_history \nWHERE start_time >= :time_range.min AND start_time <= :time_range.max"
     },
     {
       "name": "ds_query_volume",
       "displayName": "Query Volume",
-      "queryLines": [
-        "SELECT DATE(start_time) AS day, COUNT(*) AS query_count, COUNT(DISTINCT executed_by_user_id) AS unique_users FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -1260,16 +1397,30 @@
               }
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
-      ]
+      ],
+      "query": "SELECT DATE(start_time) AS day, COUNT(*) AS query_count \nFROM ${catalog}.${gold_schema}.fact_query_history \nWHERE start_time >= :time_range.min AND start_time <= :time_range.max \nGROUP BY 1 ORDER BY 1"
     },
     {
       "name": "ds_lineage_trend",
       "displayName": "Lineage Trend",
-      "queryLines": [
-        "SELECT DATE(event_time) AS day, COUNT(*) AS lineage_events FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_table_lineage WHERE \n",
-        " 1=1  AND  event_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -1288,14 +1439,12 @@
             }
           }
         }
-      ]
+      ],
+      "query": "SELECT DATE(event_time) AS day, COUNT(*) AS events, COUNT(DISTINCT target_table_full_name) AS tables \nFROM ${catalog}.${gold_schema}.fact_table_lineage \nWHERE event_time >= :time_range.min AND event_time <= :time_range.max \nGROUP BY 1 ORDER BY 1"
     },
     {
       "name": "ds_kpi_security",
       "displayName": "KPI: Security",
-      "queryLines": [
-        "SELECT FORMAT_NUMBER(SUM(CASE WHEN action_name LIKE '%delete%' OR action_name LIKE '%drop%' THEN 1 ELSE 0 END), 0) AS high_risk FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max"
-      ],
       "parameters": [
         {
           "displayName": "time_range",
@@ -1313,15 +1462,31 @@
               }
             }
           }
+        },
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
         }
-      ]
+      ],
+      "query": "SELECT COUNT(*) AS high_risk \nFROM ${catalog}.${gold_schema}.fact_audit_logs \nWHERE action_name IN ('deleteTable', 'deleteSchema', 'deleteCatalog', 'dropUser') \nAND event_date >= :time_range.min AND event_date <= :time_range.max"
     },
     {
       "name": "ds_time_windows",
       "displayName": "Time Windows",
-      "queryLines": [
-        "SELECT 'Last 7 Days' AS time_window UNION ALL SELECT 'Last 30 Days' UNION ALL SELECT 'Last 90 Days' UNION ALL SELECT 'Last 6 Months' UNION ALL SELECT 'Last Year' UNION ALL SELECT 'All Time'"
-      ]
+      "query": "SELECT 'Last 7 Days' AS time_window UNION ALL SELECT 'Last 30 Days' UNION ALL SELECT 'Last 90 Days' UNION ALL SELECT 'Last 6 Months' UNION ALL SELECT 'Last Year'"
     },
     {
       "name": "ds_workspaces",
@@ -1372,15 +1537,7 @@
     {
       "name": "select_time_key",
       "displayName": "select_time_key",
-      "queryLines": [
-        "SELECT explode(array(\n",
-        "  'Day',\n",
-        "  'Week',\n",
-        "  'Month',\n",
-        "  'Quarter',\n",
-        "  'Year'\n",
-        ")) AS time_key"
-      ]
+      "query": "SELECT 'Day' AS time_key UNION ALL SELECT 'Week' UNION ALL SELECT 'Month' UNION ALL SELECT 'Quarter'"
     },
     {
       "name": "ds_select_workspace",
@@ -1427,8 +1584,8 @@
                   "datasetName": "ds_kpi_cost",
                   "fields": [
                     {
-                      "name": "total_cost",
-                      "expression": "`total_cost`"
+                      "name": "cost_30d",
+                      "expression": "`cost_30d`"
                     }
                   ],
                   "disaggregated": false
@@ -1440,7 +1597,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "total_cost",
+                  "fieldName": "cost_30d",
                   "format": {
                     "type": "number-currency",
                     "currencyCode": "USD",
@@ -1454,7 +1611,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcb0 Total Cost (30d)"
+                "title": "💰 Total Cost (30d)"
               }
             }
           },
@@ -1472,7 +1629,7 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_kpi_jobs",
+                  "datasetName": "ds_kpi_success_rate",
                   "fields": [
                     {
                       "name": "success_rate",
@@ -1500,7 +1657,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\u2705 Job Success Rate"
+                "title": "✅ Job Success Rate"
               }
             }
           },
@@ -1937,20 +2094,32 @@
                   "datasetName": "ds_health_issues",
                   "fields": [
                     {
-                      "name": "area",
-                      "expression": "`area`"
+                      "name": "category",
+                      "expression": "`category`"
                     },
                     {
-                      "name": "issue",
-                      "expression": "`issue`"
+                      "name": "asset_id",
+                      "expression": "`asset_id`"
+                    },
+                    {
+                      "name": "asset_name",
+                      "expression": "`asset_name`"
+                    },
+                    {
+                      "name": "issue_count",
+                      "expression": "`issue_count`"
+                    },
+                    {
+                      "name": "reason",
+                      "expression": "`reason`"
+                    },
+                    {
+                      "name": "last_occurrence",
+                      "expression": "`last_occurrence`"
                     },
                     {
                       "name": "severity",
                       "expression": "`severity`"
-                    },
-                    {
-                      "name": "recommendation",
-                      "expression": "`recommendation`"
                     }
                   ],
                   "disaggregated": true
@@ -1963,30 +2132,30 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "area",
-                    "title": "Area",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "issue",
-                    "title": "Issue",
-                    "type": "string"
-                  },
-                  {
                     "fieldName": "severity",
-                    "title": "Severity",
-                    "type": "string"
+                    "displayName": "Severity"
                   },
                   {
-                    "fieldName": "recommendation",
-                    "title": "Recommendation",
-                    "type": "string"
+                    "fieldName": "category",
+                    "displayName": "Category"
+                  },
+                  {
+                    "fieldName": "asset_name",
+                    "displayName": "Asset"
+                  },
+                  {
+                    "fieldName": "reason",
+                    "displayName": "Issue"
+                  },
+                  {
+                    "fieldName": "last_occurrence",
+                    "displayName": "Last Seen"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\u26a0\ufe0f Top Health Issues"
+                "title": "⚠️ Top Health Issues (Jobs, Queries, Costs)"
               }
             }
           },
@@ -2080,8 +2249,20 @@
                       "expression": "`severity`"
                     },
                     {
-                      "name": "prediction_date",
-                      "expression": "`prediction_date`"
+                      "name": "cost_driver",
+                      "expression": "`cost_driver`"
+                    },
+                    {
+                      "name": "daily_cost",
+                      "expression": "`daily_cost`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
+                    },
+                    {
+                      "name": "rationale",
+                      "expression": "`rationale`"
                     }
                   ],
                   "disaggregated": true
@@ -2099,19 +2280,29 @@
                     "type": "string"
                   },
                   {
-                    "fieldName": "anomaly_score",
-                    "title": "Anomaly Score",
-                    "type": "number"
-                  },
-                  {
                     "fieldName": "severity",
                     "title": "Severity",
                     "type": "string"
                   },
                   {
-                    "fieldName": "prediction_date",
-                    "title": "Date",
-                    "type": "datetime"
+                    "fieldName": "cost_driver",
+                    "title": "Cost Driver",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "daily_cost",
+                    "title": "Daily Cost",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "rationale",
+                    "title": "Details",
+                    "type": "string"
                   }
                 ]
               },
@@ -2148,6 +2339,22 @@
                     {
                       "name": "risk_level",
                       "expression": "`risk_level`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
+                    },
+                    {
+                      "name": "rationale",
+                      "expression": "`rationale`"
+                    },
+                    {
+                      "name": "last_error_preview",
+                      "expression": "`last_error_preview`"
+                    },
+                    {
+                      "name": "last_failure_date",
+                      "expression": "`last_failure_date`"
                     }
                   ],
                   "disaggregated": true
@@ -2172,6 +2379,26 @@
                   {
                     "fieldName": "risk_level",
                     "title": "Risk",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "rationale",
+                    "title": "Stats",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_error_preview",
+                    "title": "Last Error",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_failure_date",
+                    "title": "Last Failed",
+                    "type": "date"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Action",
                     "type": "string"
                   }
                 ]
@@ -2199,8 +2426,8 @@
                   "datasetName": "ds_ml_security_threats",
                   "fields": [
                     {
-                      "name": "user_identity_email",
-                      "expression": "`user_identity_email`"
+                      "name": "user_identity",
+                      "expression": "`user_identity`"
                     },
                     {
                       "name": "threat_type",
@@ -2209,6 +2436,22 @@
                     {
                       "name": "risk_score",
                       "expression": "`risk_score`"
+                    },
+                    {
+                      "name": "incident_summary",
+                      "expression": "`incident_summary`"
+                    },
+                    {
+                      "name": "last_suspicious_action",
+                      "expression": "`last_suspicious_action`"
+                    },
+                    {
+                      "name": "affected_service",
+                      "expression": "`affected_service`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ],
                   "disaggregated": true
@@ -2221,7 +2464,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "user_identity_email",
+                    "fieldName": "user_identity",
                     "title": "User",
                     "type": "string"
                   },
@@ -2232,8 +2475,28 @@
                   },
                   {
                     "fieldName": "risk_score",
-                    "title": "Risk Score",
+                    "title": "Risk",
                     "type": "number"
+                  },
+                  {
+                    "fieldName": "incident_summary",
+                    "title": "Incident Summary (30d)",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_suspicious_action",
+                    "title": "Last Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "affected_service",
+                    "title": "Service",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Action",
+                    "type": "string"
                   }
                 ]
               },
@@ -2260,20 +2523,28 @@
                   "datasetName": "ds_ml_capacity",
                   "fields": [
                     {
-                      "name": "cluster_name",
-                      "expression": "`cluster_name`"
+                      "name": "resource_name",
+                      "expression": "`resource_name`"
                     },
                     {
-                      "name": "current_size",
-                      "expression": "`current_size`"
+                      "name": "resource_type",
+                      "expression": "`resource_type`"
                     },
                     {
-                      "name": "recommended",
-                      "expression": "`recommended`"
+                      "name": "utilization_score",
+                      "expression": "`utilization_score`"
                     },
                     {
-                      "name": "potential_savings",
-                      "expression": "`potential_savings`"
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
+                    },
+                    {
+                      "name": "rationale",
+                      "expression": "`rationale`"
+                    },
+                    {
+                      "name": "usage_pattern",
+                      "expression": "`usage_pattern`"
                     }
                   ],
                   "disaggregated": true
@@ -2286,24 +2557,34 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "cluster_name",
-                    "title": "Cluster",
+                    "fieldName": "resource_name",
+                    "title": "Resource",
                     "type": "string"
                   },
                   {
-                    "fieldName": "current_size",
-                    "title": "Current",
+                    "fieldName": "resource_type",
+                    "title": "Type/Size",
                     "type": "string"
                   },
                   {
-                    "fieldName": "recommended",
-                    "title": "Recommended",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "potential_savings",
-                    "title": "Savings ($)",
+                    "fieldName": "utilization_score",
+                    "title": "Utilization %",
                     "type": "number"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "rationale",
+                    "title": "Rationale",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "usage_pattern",
+                    "title": "Day",
+                    "type": "string"
                   }
                 ]
               },
@@ -2408,7 +2689,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\u2705 Job Success Drift %"
+                "title": "📊 Job Volume Drift %"
               }
             }
           },
@@ -2502,23 +2783,19 @@
                 "columns": [
                   {
                     "fieldName": "area",
-                    "title": "Area",
-                    "type": "string"
+                    "displayName": "Area"
                   },
                   {
                     "fieldName": "metric",
-                    "title": "Metric",
-                    "type": "string"
+                    "displayName": "Metric"
                   },
                   {
                     "fieldName": "drift_pct",
-                    "title": "Drift %",
-                    "type": "number"
+                    "displayName": "Drift %"
                   },
                   {
                     "fieldName": "severity",
-                    "title": "Severity",
-                    "type": "string"
+                    "displayName": "Severity"
                   }
                 ]
               },
@@ -2555,6 +2832,10 @@
                     {
                       "name": "job_drift",
                       "expression": "`job_drift`"
+                    },
+                    {
+                      "name": "query_drift",
+                      "expression": "`query_drift`"
                     }
                   ],
                   "disaggregated": true
@@ -2580,7 +2861,11 @@
                     },
                     {
                       "fieldName": "job_drift",
-                      "displayName": "Job Drift %"
+                      "displayName": "Job Volume Drift %"
+                    },
+                    {
+                      "fieldName": "query_drift",
+                      "displayName": "Query Duration Drift %"
                     }
                   ],
                   "scale": {
@@ -2618,8 +2903,8 @@
                   "datasetName": "ds_kpi_mtd",
                   "fields": [
                     {
-                      "name": "mtd_cost",
-                      "expression": "`mtd_cost`"
+                      "name": "cost_mtd",
+                      "expression": "`cost_mtd`"
                     }
                   ],
                   "disaggregated": false
@@ -2631,7 +2916,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "mtd_cost",
+                  "fieldName": "cost_mtd",
                   "format": {
                     "type": "number-currency",
                     "currencyCode": "USD",
@@ -2667,8 +2952,8 @@
                   "datasetName": "ds_kpi_30d",
                   "fields": [
                     {
-                      "name": "total_cost",
-                      "expression": "`total_cost`"
+                      "name": "cost_30d",
+                      "expression": "`cost_30d`"
                     }
                   ],
                   "disaggregated": false
@@ -2680,7 +2965,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "total_cost",
+                  "fieldName": "cost_30d",
                   "format": {
                     "type": "number-currency",
                     "currencyCode": "USD",
@@ -2761,8 +3046,8 @@
                   "datasetName": "ds_tag_coverage",
                   "fields": [
                     {
-                      "name": "coverage_pct",
-                      "expression": "`coverage_pct`"
+                      "name": "tag_coverage",
+                      "expression": "`tag_coverage`"
                     }
                   ],
                   "disaggregated": false
@@ -2774,7 +3059,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "coverage_pct",
+                  "fieldName": "tag_coverage",
                   "format": {
                     "type": "number-percent",
                     "decimalPlaces": {
@@ -2853,8 +3138,8 @@
                   "datasetName": "ds_unique_counts",
                   "fields": [
                     {
-                      "name": "unique_users",
-                      "expression": "`unique_users`"
+                      "name": "active_users",
+                      "expression": "`active_users`"
                     }
                   ],
                   "disaggregated": false
@@ -2866,7 +3151,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "unique_users",
+                  "fieldName": "active_users",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "compact"
@@ -2875,7 +3160,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Active Users (30d)"
+                "title": "👥 Unique Users"
               }
             }
           },
@@ -3040,8 +3325,16 @@
                       "expression": "`total_cost`"
                     },
                     {
+                      "name": "total_dbus",
+                      "expression": "`total_dbus`"
+                    },
+                    {
                       "name": "unique_users",
                       "expression": "`unique_users`"
+                    },
+                    {
+                      "name": "cost_per_user",
+                      "expression": "`cost_per_user`"
                     },
                     {
                       "name": "job_count",
@@ -3050,6 +3343,10 @@
                     {
                       "name": "job_runs",
                       "expression": "`job_runs`"
+                    },
+                    {
+                      "name": "serverless_pct",
+                      "expression": "`serverless_pct`"
                     }
                   ],
                   "disaggregated": true
@@ -3072,8 +3369,18 @@
                     "type": "number"
                   },
                   {
+                    "fieldName": "total_dbus",
+                    "title": "DBUs",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "unique_users",
                     "title": "Users",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "cost_per_user",
+                    "title": "$/User",
                     "type": "number"
                   },
                   {
@@ -3085,12 +3392,17 @@
                     "fieldName": "job_runs",
                     "title": "Runs",
                     "type": "number"
+                  },
+                  {
+                    "fieldName": "serverless_pct",
+                    "title": "Serverless %",
+                    "type": "number"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83c\udfe2 Top Workspaces (30d)"
+                "title": "🏢 Top Workspaces (30d)"
               }
             }
           },
@@ -3115,8 +3427,8 @@
                       "expression": "`sku_name`"
                     },
                     {
-                      "name": "total_cost",
-                      "expression": "`total_cost`"
+                      "name": "cost",
+                      "expression": "`cost`"
                     }
                   ],
                   "disaggregated": true
@@ -3125,20 +3437,26 @@
             ],
             "spec": {
               "version": 3,
-              "widgetType": "pie",
+              "widgetType": "bar",
               "encodings": {
-                "color": {
+                "x": {
                   "fieldName": "sku_name",
-                  "displayName": "SKU"
+                  "displayName": "SKU",
+                  "scale": {
+                    "type": "categorical"
+                  }
                 },
-                "angle": {
-                  "fieldName": "total_cost",
-                  "displayName": "Cost ($)"
+                "y": {
+                  "fieldName": "cost",
+                  "displayName": "Cost ($)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udce6 Spend by SKU"
+                "title": "📦 Spend by SKU"
               }
             }
           },
@@ -3321,7 +3639,7 @@
               "frame": {
                 "showTitle": true,
                 "title": "Slow Queries %",
-                "description": ">30 seconds"
+                "description": ">60 seconds"
               }
             }
           },
@@ -3459,16 +3777,8 @@
                   }
                 },
                 "y": {
-                  "fields": [
-                    {
-                      "fieldName": "query_count",
-                      "displayName": "Queries"
-                    },
-                    {
-                      "fieldName": "unique_users",
-                      "displayName": "Users"
-                    }
-                  ],
+                  "fieldName": "query_count",
+                  "displayName": "Query Count",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -3489,7 +3799,7 @@
         },
         {
           "widget": {
-            "name": "chart_duration_trend",
+            "name": "chart_duration_trend_perf",
             "queries": [
               {
                 "name": "main_query",
@@ -3501,12 +3811,12 @@
                       "expression": "`day`"
                     },
                     {
-                      "name": "avg_duration",
-                      "expression": "`avg_duration`"
+                      "name": "metric",
+                      "expression": "`metric`"
                     },
                     {
-                      "name": "p95_duration",
-                      "expression": "`p95_duration`"
+                      "name": "duration_min",
+                      "expression": "`duration_min`"
                     }
                   ],
                   "disaggregated": true
@@ -3525,24 +3835,23 @@
                   }
                 },
                 "y": {
-                  "fields": [
-                    {
-                      "fieldName": "avg_duration",
-                      "displayName": "Avg Duration (s)"
-                    },
-                    {
-                      "fieldName": "p95_duration",
-                      "displayName": "P95 Duration (s)"
-                    }
-                  ],
+                  "fieldName": "duration_min",
+                  "displayName": "Duration (min)",
                   "scale": {
                     "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "metric",
+                  "displayName": "Metric",
+                  "scale": {
+                    "type": "categorical"
                   }
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "\u23f1\ufe0f Query Duration Trend (30d)"
+                "title": "⏱️ Query Duration Trend (Avg vs P95)"
               }
             }
           },
@@ -3745,8 +4054,8 @@
                   "datasetName": "ds_kpi_mttr",
                   "fields": [
                     {
-                      "name": "mttr_minutes",
-                      "expression": "`mttr_minutes`"
+                      "name": "mttr_min",
+                      "expression": "`mttr_min`"
                     }
                   ],
                   "disaggregated": false
@@ -3758,7 +4067,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "mttr_minutes",
+                  "fieldName": "mttr_min",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "compact"
@@ -3788,8 +4097,8 @@
                   "datasetName": "ds_kpi_totals",
                   "fields": [
                     {
-                      "name": "unique_jobs",
-                      "expression": "`unique_jobs`"
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
                     }
                   ],
                   "disaggregated": false
@@ -3801,7 +4110,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "unique_jobs",
+                  "fieldName": "total_runs",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "compact"
@@ -3810,7 +4119,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Active Jobs (7d)"
+                "title": "Total Runs (7d)"
               }
             }
           },
@@ -3831,16 +4140,12 @@
                   "datasetName": "ds_success_trend",
                   "fields": [
                     {
-                      "name": "run_date",
-                      "expression": "`run_date`"
+                      "name": "day",
+                      "expression": "`day`"
                     },
                     {
                       "name": "success_rate",
                       "expression": "`success_rate`"
-                    },
-                    {
-                      "name": "failure_rate",
-                      "expression": "`failure_rate`"
                     }
                   ],
                   "disaggregated": true
@@ -3852,23 +4157,15 @@
               "widgetType": "line",
               "encodings": {
                 "x": {
-                  "fieldName": "run_date",
+                  "fieldName": "day",
                   "displayName": "Date",
                   "scale": {
                     "type": "temporal"
                   }
                 },
                 "y": {
-                  "fields": [
-                    {
-                      "fieldName": "success_rate",
-                      "displayName": "Success %"
-                    },
-                    {
-                      "fieldName": "failure_rate",
-                      "displayName": "Failure %"
-                    }
-                  ],
+                  "fieldName": "success_rate",
+                  "displayName": "Success Rate (%)",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -3876,7 +4173,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcc8 Success & Failure Rate Trend (30d)"
+                "title": "📈 Success Rate Trend (30d)"
               }
             }
           },
@@ -3901,20 +4198,12 @@
                       "expression": "`run_date`"
                     },
                     {
-                      "name": "successful",
-                      "expression": "`successful`"
+                      "name": "status",
+                      "expression": "`status`"
                     },
                     {
-                      "name": "failed",
-                      "expression": "`failed`"
-                    },
-                    {
-                      "name": "timed_out",
-                      "expression": "`timed_out`"
-                    },
-                    {
-                      "name": "cancelled",
-                      "expression": "`cancelled`"
+                      "name": "count",
+                      "expression": "`count`"
                     }
                   ],
                   "disaggregated": true
@@ -3933,32 +4222,26 @@
                   }
                 },
                 "y": {
-                  "fields": [
-                    {
-                      "fieldName": "successful",
-                      "displayName": "Success"
-                    },
-                    {
-                      "fieldName": "failed",
-                      "displayName": "Failed"
-                    },
-                    {
-                      "fieldName": "timed_out",
-                      "displayName": "Timeout"
-                    },
-                    {
-                      "fieldName": "cancelled",
-                      "displayName": "Cancelled"
-                    }
-                  ],
+                  "fieldName": "count",
+                  "displayName": "Runs",
                   "scale": {
                     "type": "quantitative"
+                  },
+                  "stack": "zero"
+                },
+                "color": {
+                  "fieldName": "status",
+                  "displayName": "Status",
+                  "scale": {
+                    "type": "categorical",
+                    "domain": ["Success", "Failed"],
+                    "range": ["#2e7d32", "#c62828"]
                   }
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcca Daily Runs by Status"
+                "title": "📊 Daily Runs by Status (Success vs Failed)"
               }
             }
           },
@@ -3979,20 +4262,16 @@
                   "datasetName": "ds_duration_trend",
                   "fields": [
                     {
-                      "name": "run_date",
-                      "expression": "`run_date`"
+                      "name": "day",
+                      "expression": "`day`"
                     },
                     {
-                      "name": "avg_duration",
-                      "expression": "`avg_duration`"
+                      "name": "metric",
+                      "expression": "`metric`"
                     },
                     {
-                      "name": "p50_duration",
-                      "expression": "`p50_duration`"
-                    },
-                    {
-                      "name": "p95_duration",
-                      "expression": "`p95_duration`"
+                      "name": "duration_min",
+                      "expression": "`duration_min`"
                     }
                   ],
                   "disaggregated": true
@@ -4004,35 +4283,30 @@
               "widgetType": "line",
               "encodings": {
                 "x": {
-                  "fieldName": "run_date",
+                  "fieldName": "day",
                   "displayName": "Date",
                   "scale": {
                     "type": "temporal"
                   }
                 },
                 "y": {
-                  "fields": [
-                    {
-                      "fieldName": "avg_duration",
-                      "displayName": "Avg"
-                    },
-                    {
-                      "fieldName": "p50_duration",
-                      "displayName": "P50"
-                    },
-                    {
-                      "fieldName": "p95_duration",
-                      "displayName": "P95"
-                    }
-                  ],
                   "scale": {
                     "type": "quantitative"
+                  },
+                  "fieldName": "duration_min",
+                  "displayName": "Duration (min)"
+                },
+                "color": {
+                  "fieldName": "metric",
+                  "displayName": "Metric",
+                  "scale": {
+                    "type": "categorical"
                   }
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "\u23f1\ufe0f Duration Percentiles Trend (min)"
+                "title": "⏱️ Query Duration Trend (Avg vs P95)"
               }
             }
           },
@@ -4100,11 +4374,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_kpi_events",
+                  "datasetName": "ds_kpi_users",
                   "fields": [
                     {
-                      "name": "unique_users",
-                      "expression": "`unique_users`"
+                      "name": "active_users",
+                      "expression": "`active_users`"
                     }
                   ],
                   "disaggregated": false
@@ -4116,7 +4390,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "unique_users",
+                  "fieldName": "active_users",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "compact"
@@ -4322,12 +4596,8 @@
                       "expression": "`day`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
-                    },
-                    {
-                      "name": "unique_users",
-                      "expression": "`unique_users`"
+                      "name": "events",
+                      "expression": "`events`"
                     }
                   ],
                   "disaggregated": true
@@ -4346,16 +4616,8 @@
                   }
                 },
                 "y": {
-                  "fields": [
-                    {
-                      "fieldName": "event_count",
-                      "displayName": "Events"
-                    },
-                    {
-                      "fieldName": "unique_users",
-                      "displayName": "Users"
-                    }
-                  ],
+                  "fieldName": "events",
+                  "displayName": "Total Events",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -4363,7 +4625,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcc8 Audit Event Trend (30d)"
+                "title": "📈 Audit Event Trend (30d)"
               }
             }
           },
@@ -4412,16 +4674,8 @@
                   }
                 },
                 "y": {
-                  "fields": [
-                    {
-                      "fieldName": "high_risk",
-                      "displayName": "High Risk"
-                    },
-                    {
-                      "fieldName": "medium_risk",
-                      "displayName": "Medium Risk"
-                    }
-                  ],
+                  "fieldName": "high_risk",
+                  "displayName": "High Risk Events",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -4525,7 +4779,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Tagged Tables %"
+                "title": "Tagged Spend %"
               }
             }
           },
@@ -4546,8 +4800,8 @@
                   "datasetName": "ds_kpi_documented",
                   "fields": [
                     {
-                      "name": "documented_pct",
-                      "expression": "`documented_pct`"
+                      "name": "documented_tables",
+                      "expression": "`documented_tables`"
                     }
                   ],
                   "disaggregated": false
@@ -4559,19 +4813,16 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "documented_pct",
+                  "fieldName": "documented_tables",
                   "format": {
-                    "type": "number-percent",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 1
-                    }
+                    "type": "number-plain",
+                    "abbreviation": "compact"
                   }
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Documented Tables %"
+                "title": "Documented Tables"
               }
             }
           },
@@ -4592,8 +4843,8 @@
                   "datasetName": "ds_kpi_lineage",
                   "fields": [
                     {
-                      "name": "lineage_pct",
-                      "expression": "`lineage_pct`"
+                      "name": "lineage_tables",
+                      "expression": "`lineage_tables`"
                     }
                   ],
                   "disaggregated": false
@@ -4605,19 +4856,16 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "lineage_pct",
+                  "fieldName": "lineage_tables",
                   "format": {
-                    "type": "number-percent",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 1
-                    }
+                    "type": "number-plain",
+                    "abbreviation": "compact"
                   }
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Lineage Coverage %"
+                "title": "Lineage Tables"
               }
             }
           },
@@ -4742,15 +4990,21 @@
               "encodings": {
                 "x": {
                   "fieldName": "catalog_name",
-                  "displayName": "Catalog"
+                  "displayName": "Catalog",
+                  "scale": {
+                    "type": "categorical"
+                  }
                 },
                 "y": {
                   "fieldName": "table_count",
-                  "displayName": "Table Count"
+                  "displayName": "Table Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
                 }
               },
               "frame": {
-                "title": "Tables by Catalog",
+                "title": "📊 Tables by Catalog",
                 "showTitle": true
               }
             }
@@ -4776,8 +5030,8 @@
                       "expression": "`day`"
                     },
                     {
-                      "name": "lineage_events",
-                      "expression": "`lineage_events`"
+                      "name": "events",
+                      "expression": "`events`"
                     }
                   ],
                   "disaggregated": true
@@ -4796,8 +5050,8 @@
                   }
                 },
                 "y": {
-                  "fieldName": "lineage_events",
-                  "displayName": "Events",
+                  "fieldName": "events",
+                  "displayName": "Lineage Events",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -4805,7 +5059,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcc8 Lineage Events Trend (30d)"
+                "title": "📈 Lineage Events Trend (30d)"
               }
             }
           },

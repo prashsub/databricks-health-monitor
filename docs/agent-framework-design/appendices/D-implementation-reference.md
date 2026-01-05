@@ -69,14 +69,21 @@ src/agents/
 │   ├── evaluator.py                     # create_evaluation_dataset(), run_evaluation()
 │   └── production_monitor.py            # Real-time mlflow.genai.assess() monitoring
 │
+├── setup/                               # Agent infrastructure setup (Asset Bundle tasks)
+│   ├── __init__.py
+│   ├── create_schemas.py                # Creates agent/inference/memory schemas
+│   ├── register_prompts.py              # Registers prompts to MLflow
+│   └── log_agent_model.py               # Logs agent to Model Registry
+│
 └── notebooks/
     ├── setup_lakebase.py                # Lakebase initialization
-    ├── register_prompts.py              # Prompt registration
-    ├── log_agent.py                     # Model Registry logging
+    ├── register_prompts.py              # Prompt registration (deprecated, use setup/)
+    ├── log_agent.py                     # Model Registry logging (deprecated, use setup/)
     └── run_evaluation.py                # Quality evaluation
 
 resources/agents/
-└── agent_deployment.yml                 # Databricks Asset Bundle configuration
+├── agent_setup_job.yml                  # Creates schemas, prompts, model
+└── agent_serving_endpoint.yml           # Model Serving endpoint configuration
 ```
 
 ## Key Implementation Differences from Design
@@ -146,23 +153,112 @@ load_context → classify_intent → [routing] → synthesize → save_context �
 The following environment variables must be configured for production:
 
 ```bash
+# =========================================================================
+# Unity Catalog Configuration (CONSOLIDATED - single schema)
+# =========================================================================
+# Dev pattern: prashanth_subrahmanyam_catalog.dev_<user>_system_gold_agent
+# Prod pattern: main.system_gold_agent
+#
+# All agent data (models, tables, volumes) in ONE schema to avoid sprawl
+CATALOG=prashanth_subrahmanyam_catalog
+AGENT_SCHEMA=dev_prashanth_subrahmanyam_system_gold_agent
+
+# =========================================================================
 # Genie Space IDs (required)
+# =========================================================================
 COST_GENIE_SPACE_ID=<your-cost-genie-space-id>
 SECURITY_GENIE_SPACE_ID=<your-security-genie-space-id>
 PERFORMANCE_GENIE_SPACE_ID=<your-performance-genie-space-id>
 RELIABILITY_GENIE_SPACE_ID=<your-reliability-genie-space-id>
 QUALITY_GENIE_SPACE_ID=<your-quality-genie-space-id>
 
+# =========================================================================
 # Lakebase (defaults provided)
+# =========================================================================
 LAKEBASE_INSTANCE_NAME=health_monitor_memory
 
+# =========================================================================
 # LLM Endpoints (defaults provided)
+# =========================================================================
 LLM_ENDPOINT=databricks-meta-llama-3-3-70b-instruct
 EMBEDDING_ENDPOINT=databricks-gte-large-en
 
+# =========================================================================
 # Utility Tools (optional)
+# =========================================================================
 TAVILY_API_KEY=<your-tavily-api-key>
 ```
+
+## Schema Storage Layout (Consolidated)
+
+**Single schema to avoid sprawl** - all agent data lives in one schema:
+
+```
+Unity Catalog: prashanth_subrahmanyam_catalog (dev) / main (prod)
+│
+└── dev_prashanth_subrahmanyam_system_gold_agent/   # CONSOLIDATED Agent Schema
+    │
+    ├── [MODEL] ──────────────────────────────────────
+    │   └── health_monitor_agent           # Registered ChatAgent model
+    │
+    ├── [TABLES] Structured Data ─────────────────────
+    │   │
+    │   │ Config & Experimentation:
+    │   ├── agent_config                   # Runtime configuration
+    │   ├── ab_test_assignments            # A/B test user assignments
+    │   │
+    │   │ Evaluation:
+    │   ├── evaluation_datasets            # Benchmark test datasets
+    │   ├── evaluation_results             # Offline evaluation metrics
+    │   │
+    │   │ Inference Logs (auto-captured by Model Serving):
+    │   ├── inference_request_logs         # Input requests
+    │   ├── inference_response_logs        # Responses with metrics
+    │   │
+    │   │ Memory (Lakebase-managed):
+    │   ├── memory_short_term              # Conversation context (TTL: 24h)
+    │   └── memory_long_term               # User preferences (TTL: 365d)
+    │
+    └── [VOLUMES] Unstructured Data ──────────────────
+        ├── runbooks/                      # RAG knowledge base
+        │   ├── troubleshooting/           # Troubleshooting guides
+        │   └── best_practices/            # Best practices docs
+        ├── embeddings/                    # Pre-computed vectors
+        └── artifacts/                     # Model checkpoints, files
+
+MLflow:
+├── Experiments/
+│   ├── /Shared/health_monitor/agent_traces      # All traces
+│   ├── /Shared/health_monitor/agent_models      # Model training runs
+│   ├── /Shared/health_monitor/prompts           # Prompt versions
+│   └── /Shared/health_monitor/agent_evaluations # Evaluation runs
+│
+└── Model Registry/
+    └── prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_agent.health_monitor_agent
+        ├── Version 1 (alias: production)
+        └── Version 2 (alias: staging)
+```
+
+### Storage Type Reference
+
+| Data Type | Storage | Table/Volume Name |
+|-----------|---------|-------------------|
+| **Agent Model** | UC Model | `health_monitor_agent` |
+| **Config** | UC Table | `agent_config` |
+| **A/B Tests** | UC Table | `ab_test_assignments` |
+| **Evaluation Data** | UC Tables | `evaluation_datasets`, `evaluation_results` |
+| **Inference Logs** | UC Tables | `inference_request_logs`, `inference_response_logs` |
+| **Memory** | UC Tables | `memory_short_term`, `memory_long_term` |
+| **Runbooks (RAG)** | UC Volume | `runbooks/` |
+| **Embeddings** | UC Volume | `embeddings/` |
+| **Artifacts** | UC Volume | `artifacts/` |
+
+### Why Consolidated?
+
+- **Avoids schema sprawl**: 1 schema instead of 3
+- **Simpler permissions**: Grant access to one schema
+- **Easier discovery**: All agent assets in one place
+- **Table prefixes**: `inference_*`, `memory_*`, `evaluation_*` for organization
 
 ## Dependencies
 

@@ -68,11 +68,13 @@ resources:
             workload_size: Small
             scale_to_zero_enabled: true
         
-        # Auto-capture for inference tables
+        # Auto-capture for inference tables (CONSOLIDATED schema)
+        # All agent data in single schema to avoid sprawl
+        # Tables: inference_request_logs, inference_response_logs
         auto_capture_config:
-          catalog_name: health_monitor
-          schema_name: inference
-          table_name_prefix: orchestrator
+          catalog_name: ${var.catalog}
+          schema_name: ${var.agent_schema}
+          table_name_prefix: inference
           enabled: true
         
         # Rate limiting
@@ -125,10 +127,11 @@ client.serving_endpoints.create(
                 scale_to_zero_enabled=True
             )
         ],
+        # CONSOLIDATED: All agent data in single schema
         auto_capture_config=AutoCaptureConfigInput(
-            catalog_name="health_monitor",
-            schema_name="inference",
-            table_name_prefix="orchestrator",
+            catalog_name=settings.catalog,  # prashanth_subrahmanyam_catalog
+            schema_name=settings.agent_schema,  # dev_<user>_system_gold_agent
+            table_name_prefix="inference",  # Creates inference_request_logs, inference_response_logs
             enabled=True
         )
     )
@@ -289,11 +292,12 @@ databricks apps get health_monitor_chat
 ### Table Schema
 
 ```sql
--- Auto-created inference table schema
--- health_monitor.inference.orchestrator_request_logs
--- health_monitor.inference.orchestrator_response_logs
+-- CONSOLIDATED: All agent data in single schema
+-- Tables use prefix: inference_request_logs, inference_response_logs
+-- Dev: prashanth_subrahmanyam_catalog.dev_<user>_system_gold_agent.inference_*
+-- Prod: main.system_gold_agent.inference_*
 
--- Query inference logs
+-- Query inference logs (example using dev schema)
 SELECT
     request_id,
     timestamp,
@@ -302,7 +306,7 @@ SELECT
     response.confidence,
     response.sources,
     latency_ms
-FROM health_monitor.inference.orchestrator_response_logs
+FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_agent.inference_response_logs
 WHERE timestamp > current_timestamp() - INTERVAL 24 HOURS
 ORDER BY timestamp DESC
 LIMIT 100;
@@ -313,7 +317,8 @@ LIMIT 100;
 ### Key Metrics Query
 
 ```sql
--- Monitoring dashboard metrics
+-- Monitoring dashboard metrics (CONSOLIDATED schema)
+-- Replace ${catalog} and ${agent_schema} with actual values
 WITH hourly_stats AS (
     SELECT
         date_trunc('hour', timestamp) AS hour,
@@ -322,7 +327,7 @@ WITH hourly_stats AS (
         PERCENTILE(latency_ms, 0.95) AS p95_latency_ms,
         SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) AS error_count,
         AVG(response.confidence) AS avg_confidence
-    FROM health_monitor.inference.orchestrator_response_logs
+    FROM ${catalog}.${agent_schema}.inference_response_logs
     WHERE timestamp > current_timestamp() - INTERVAL 7 DAYS
     GROUP BY 1
 )
@@ -341,13 +346,13 @@ ORDER BY hour DESC;
 ### Domain Distribution Query
 
 ```sql
--- Query distribution by domain
+-- Query distribution by domain (CONSOLIDATED schema)
 SELECT
     date_trunc('day', timestamp) AS day,
     response.domains[0] AS primary_domain,
     COUNT(*) AS query_count,
     AVG(response.confidence) AS avg_confidence
-FROM health_monitor.inference.orchestrator_response_logs
+FROM ${catalog}.${agent_schema}.inference_response_logs
 WHERE timestamp > current_timestamp() - INTERVAL 30 DAYS
 GROUP BY 1, 2
 ORDER BY 1 DESC, 3 DESC;
@@ -369,7 +374,7 @@ resources:
             COUNT(*) as total,
             SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as errors,
             SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*) as error_rate
-          FROM health_monitor.inference.orchestrator_response_logs
+          FROM ${var.catalog}.${var.agent_schema}.inference_response_logs
           WHERE timestamp > current_timestamp() - INTERVAL 1 HOUR
         warehouse_id: ${var.warehouse_id}
       
@@ -393,7 +398,7 @@ resources:
         query: |
           SELECT 
             PERCENTILE(latency_ms, 0.95) as p95_latency
-          FROM health_monitor.inference.orchestrator_response_logs
+          FROM ${var.catalog}.${var.agent_schema}.inference_response_logs
           WHERE timestamp > current_timestamp() - INTERVAL 1 HOUR
         warehouse_id: ${var.warehouse_id}
       
@@ -489,7 +494,8 @@ async def health_check():
     # Check memory tables
     try:
         spark = SparkSession.getActiveSession()
-        spark.sql("SELECT 1 FROM health_monitor.memory.short_term LIMIT 1")
+        # CONSOLIDATED: Memory tables in same schema with prefix
+        spark.sql(f"SELECT 1 FROM {settings.catalog}.{settings.agent_schema}.memory_short_term LIMIT 1")
         checks["memory_tables"] = True
     except:
         pass

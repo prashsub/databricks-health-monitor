@@ -85,10 +85,8 @@ frontend-framework-design/
 │   ├── 03-agentic-ai-first.md     # Agent layer (180 pages)
 │   └── 04-closed-loop-architecture.md # Autonomy (100 pages)
 │
-├── design-system/                 # 🎨 DESIGN TOKENS
-│   ├── colors.md
-│   ├── typography.md
-│   └── components.md
+├── design-system/                 # 🎨 DESIGN TOKENS (Legacy)
+│   └── README.md                  # Points to figma/02-04 for actual tokens
 │
 └── summaries/                     # 📊 EXECUTIVE SUMMARIES
     └── *.md                       # For stakeholder communication
@@ -100,16 +98,16 @@ frontend-framework-design/
 
 | # | Screen | Description | Figma Guide | PRD Reference |
 |---|--------|-------------|-------------|---------------|
-| 1 | **Executive Overview** | KPI tiles, alerts, trends | [02-executive-overview](figma/02-executive-overview.md) | 01-base-prd §5.1 |
-| 2 | **Global Explorer** | Single pane of glass | [03-global-explorer](figma/03-global-explorer.md) | 01-base-prd §5.2 |
-| 3 | **Cost Domain** | Cost analytics | [04-domain-pages](figma/04-domain-pages.md) | 01-base-prd §5.3 |
-| 4 | **Reliability Domain** | Job health | [04-domain-pages](figma/04-domain-pages.md) | 01-base-prd §5.4 |
-| 5 | **Performance Domain** | System performance | [04-domain-pages](figma/04-domain-pages.md) | 02-ml §3 |
-| 6 | **Security Domain** | Governance & security | [04-domain-pages](figma/04-domain-pages.md) | 01-base-prd §5.5 |
-| 7 | **Quality Domain** | Data quality | [04-domain-pages](figma/04-domain-pages.md) | 02-ml §4 |
-| 8 | **Signal Detail** | Drilldown view | [05-signal-detail](figma/05-signal-detail.md) | 03-agentic §6 |
-| 9 | **Chat Interface** | AI conversation | [06-chat-interface](figma/06-chat-interface.md) | 03-agentic §5 |
-| 10 | **Alert Center** | Alert management | [07-alert-center](figma/07-alert-center.md) | 04-closed §4 |
+| 1 | **Executive Overview** | KPI tiles, alerts, trends | [05-executive-overview](figma/05-executive-overview.md) | 01-base-prd §5.1 |
+| 2 | **Global Explorer** | Single pane of glass | [06-global-explorer](figma/06-global-explorer.md) | 01-base-prd §5.2 |
+| 3 | **Cost Domain** | Cost analytics | [07-domain-pages](figma/07-domain-pages.md) | 01-base-prd §5.3 |
+| 4 | **Reliability Domain** | Job health | [07-domain-pages](figma/07-domain-pages.md) | 01-base-prd §5.4 |
+| 5 | **Performance Domain** | System performance | [07-domain-pages](figma/07-domain-pages.md) | 02-ml §3 |
+| 6 | **Security Domain** | Governance & security | [07-domain-pages](figma/07-domain-pages.md) | 01-base-prd §5.5 |
+| 7 | **Quality Domain** | Data quality | [07-domain-pages](figma/07-domain-pages.md) | 02-ml §4 |
+| 8 | **Signal Detail** | Drilldown view | [08-signal-detail](figma/08-signal-detail.md) | 03-agentic §6 |
+| 9 | **Chat Interface** | AI conversation | [09-chat-interface](figma/09-chat-interface.md) | 03-agentic §5 |
+| 10 | **Alert Center** | Alert management | [10-alert-center](figma/10-alert-center.md) | 04-closed §4 |
 
 ---
 

@@ -113,17 +113,11 @@ def get_model_configs(catalog: str, feature_schema: str) -> List[Dict]:
         {"model_name": "user_behavior_baseline", "feature_table": "security_features", "output_table": "user_behavior_predictions", "domain": "SECURITY"},
         
         # PERFORMANCE DOMAIN
-        # NOTE: query_performance_forecaster, warehouse_optimizer, cluster_capacity_planner DISABLED
-        # These models have stale feature metadata from old training runs.
-        # FIX: Delete models from Unity Catalog, then retrain:
-        #   DROP MODEL catalog.schema.query_performance_forecaster;
-        #   DROP MODEL catalog.schema.warehouse_optimizer;
-        #   DROP MODEL catalog.schema.cluster_capacity_planner;
-        # {"model_name": "query_performance_forecaster", "feature_table": "performance_features", "output_table": "query_performance_predictions", "domain": "PERFORMANCE"},
-        # {"model_name": "warehouse_optimizer", "feature_table": "performance_features", "output_table": "warehouse_optimizer_predictions", "domain": "PERFORMANCE"},
+        {"model_name": "query_performance_forecaster", "feature_table": "performance_features", "output_table": "query_performance_predictions", "domain": "PERFORMANCE"},
+        {"model_name": "warehouse_optimizer", "feature_table": "performance_features", "output_table": "warehouse_optimizer_predictions", "domain": "PERFORMANCE"},
+        {"model_name": "cluster_capacity_planner", "feature_table": "performance_features", "output_table": "cluster_capacity_predictions", "domain": "PERFORMANCE"},
         {"model_name": "performance_regression_detector", "feature_table": "performance_features", "output_table": "performance_regression_predictions", "domain": "PERFORMANCE"},
-        # {"model_name": "cluster_capacity_planner", "feature_table": "performance_features", "output_table": "cluster_capacity_predictions", "domain": "PERFORMANCE"},
-        {"model_name": "dbr_migration_risk_scorer", "feature_table": "reliability_features", "output_table": "dbr_migration_predictions", "domain": "PERFORMANCE"},  # Uses reliability_features per training script
+        {"model_name": "dbr_migration_risk_scorer", "feature_table": "reliability_features", "output_table": "dbr_migration_predictions", "domain": "PERFORMANCE"},
         {"model_name": "cache_hit_predictor", "feature_table": "performance_features", "output_table": "cache_hit_predictions", "domain": "PERFORMANCE"},
         {"model_name": "query_optimization_recommender", "feature_table": "performance_features", "output_table": "query_optimization_predictions", "domain": "PERFORMANCE"},
         
@@ -136,14 +130,10 @@ def get_model_configs(catalog: str, feature_schema: str) -> List[Dict]:
         
         # QUALITY DOMAIN
         # All quality models use quality_features (catalog_name, snapshot_date as keys)
+        # NOTE: schema_change_predictor REMOVED - system.information_schema doesn't track schema history,
+        # so schema_changes_7d is always 0 (single-class data, cannot train classifier)
         {"model_name": "data_drift_detector", "feature_table": "quality_features", "output_table": "data_drift_predictions", "domain": "QUALITY"},
-        # NOTE: schema_change_predictor and data_freshness_predictor DISABLED
-        # These models have stale feature metadata (expect warehouse_id, query_date from old training)
-        # FIX: Delete models from Unity Catalog, then retrain:
-        #   DROP MODEL catalog.schema.schema_change_predictor;
-        #   DROP MODEL catalog.schema.data_freshness_predictor;
-        # {"model_name": "schema_change_predictor", "feature_table": "quality_features", "output_table": "schema_change_predictions", "domain": "QUALITY"},
-        # {"model_name": "data_freshness_predictor", "feature_table": "quality_features", "output_table": "freshness_predictions", "domain": "QUALITY"},
+        {"model_name": "data_freshness_predictor", "feature_table": "quality_features", "output_table": "freshness_predictions", "domain": "QUALITY"},
     ]
 
 # COMMAND ----------
@@ -227,10 +217,15 @@ def run_inference_simple(
         return "SUCCESS", final_count, None
         
     except Exception as e:
+        import traceback
+        # Get full stack trace for debugging
+        full_trace = traceback.format_exc()
+        print(f"    ❌ FULL ERROR TRACE:\n{full_trace}")
+        
         error_msg = str(e)
-        # Truncate for readability
-        if len(error_msg) > 300:
-            error_msg = error_msg[:300] + "..."
+        # Truncate for summary but keep full trace in logs
+        if len(error_msg) > 500:
+            error_msg = error_msg[:500] + "..."
         return "FAILED", 0, error_msg
 
 # COMMAND ----------

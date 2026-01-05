@@ -271,14 +271,8 @@ resources:
               gold_schema: ${var.gold_schema}
               feature_schema: ${var.feature_schema}
         
-        - task_key: train_schema_change_predictor
-          environment_key: ml_training
-          notebook_task:
-            notebook_path: ../../src/ml/quality/train_schema_change_predictor.py
-            base_parameters:
-              catalog: ${var.catalog}
-              gold_schema: ${var.gold_schema}
-              feature_schema: ${var.feature_schema}
+        # NOTE: train_schema_change_predictor REMOVED - system.information_schema doesn't track
+        # schema history, so schema_changes_7d is always 0 (cannot train classifier with single class)
         
         - task_key: train_freshness_predictor
           environment_key: ml_training
@@ -317,7 +311,6 @@ resources:
             - task_key: train_retry_success_predictor
             - task_key: train_pipeline_health_scorer
             - task_key: train_drift_detector
-            - task_key: train_schema_change_predictor
             - task_key: train_freshness_predictor
           environment_key: ml_training
           notebook_task:

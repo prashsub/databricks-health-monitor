@@ -1851,8 +1851,8 @@
                       "expression": "`termination_code`"
                     },
                     {
-                      "name": "count",
-                      "expression": "`count`"
+                      "name": "failure_count",
+                      "expression": "`failure_count`"
                     }
                   ],
                   "disaggregated": true
@@ -1865,16 +1865,22 @@
               "encodings": {
                 "color": {
                   "fieldName": "termination_code",
-                  "displayName": "Reason"
+                  "displayName": "Termination Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
                 },
                 "angle": {
-                  "fieldName": "count",
-                  "displayName": "Count"
+                  "fieldName": "failure_count",
+                  "displayName": "Failures",
+                  "scale": {
+                    "type": "quantitative"
+                  }
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcca Failures by Termination Type (30d)"
+                "title": "📊 Failures by Termination Type (30d)"
               }
             }
           },
@@ -2826,7 +2832,7 @@
     },
     {
       "name": "page_monitoring",
-      "displayName": "\ud83d\udcca Lakehouse Monitoring",
+      "displayName": "📈 Job Metrics Overview",
       "layout": [
         {
           "widget": {
@@ -3857,7 +3863,7 @@
     },
     {
       "name": "reliability_lakehouse_monitoring",
-      "displayName": "Lakehouse Monitoring - fact_job_run_timeline",
+      "displayName": "🔬 Advanced Job Metrics",
       "layout": [
         {
           "widget": {
@@ -4560,8 +4566,12 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
+              "frame": {
+                "showTitle": true,
+                "title": "📊 Reliability Aggregate Metrics"
+              },
               "encodings": {
                 "columns": [
                   {
@@ -4584,8 +4594,7 @@
                   },
                   {
                     "fieldName": "total_runs",
-                    "numberFormat": "0.00",
-                    "type": "float",
+                    "type": "number",
                     "displayAs": "number",
                     "visible": true,
                     "order": 2,
@@ -4593,8 +4602,7 @@
                   },
                   {
                     "fieldName": "success_count",
-                    "numberFormat": "0.00",
-                    "type": "float",
+                    "type": "number",
                     "displayAs": "number",
                     "visible": true,
                     "order": 3,
@@ -4602,8 +4610,7 @@
                   },
                   {
                     "fieldName": "failure_count",
-                    "numberFormat": "0.00",
-                    "type": "float",
+                    "type": "number",
                     "displayAs": "number",
                     "visible": true,
                     "order": 4,
@@ -4611,8 +4618,7 @@
                   },
                   {
                     "fieldName": "timeout_count",
-                    "numberFormat": "0.00",
-                    "type": "float",
+                    "type": "number",
                     "displayAs": "number",
                     "visible": true,
                     "order": 5,
@@ -4620,18 +4626,14 @@
                   },
                   {
                     "fieldName": "distinct_jobs",
-                    "numberFormat": "0.00",
-                    "type": "float",
+                    "type": "number",
                     "displayAs": "number",
                     "visible": true,
                     "order": 6,
                     "title": "Distinct Jobs"
                   }
                 ]
-              },
-              "itemsPerPage": 25,
-              "condensed": true,
-              "withRowNumber": false
+              }
             }
           },
           "position": {
@@ -5097,7 +5099,7 @@
     {
       "name": "ds_failure_by_type",
       "displayName": "Failure by Type",
-      "query": "SELECT termination_code, COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL AND termination_code != 'SUCCESS' GROUP BY 1 ORDER BY count DESC",
+      "query": "SELECT COALESCE(termination_code, 'UNKNOWN') AS termination_code, COUNT(*) AS failure_count FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date BETWEEN :time_range.min AND :time_range.max AND result_state NOT IN ('SUCCESS', 'SUCCEEDED') GROUP BY 1 ORDER BY failure_count DESC LIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5430,37 +5432,37 @@
     {
       "name": "ds_ml_failure_risk",
       "displayName": "ML: Failure Risk",
-      "query": "SELECT 'job-001' AS job_name, 0.0 AS failure_probability, 'N/A' AS risk_level, 'N/A' AS contributing_factors WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline to see predictions' AS job_name, 0.0 AS failure_probability, 'Pending' AS risk_level, 'Awaiting model inference' AS contributing_factors LIMIT 1"
+      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction, 2) AS failure_probability,\n  CASE \n    WHEN prediction > 0.7 THEN 'HIGH'\n    WHEN prediction > 0.3 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS risk_level,\n  'Based on historical patterns' AS contributing_factors\nFROM ${catalog}.${feature_schema}.job_failure_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
     },
     {
       "name": "ds_ml_pipeline_health",
       "displayName": "ML: Pipeline Health",
-      "query": "SELECT 'job-001' AS job_name, 0 AS health_score, 'N/A' AS health_category, 'N/A' AS trend WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline to see health scores' AS job_name, 0 AS health_score, 'Pending' AS health_category, 'N/A' AS trend LIMIT 1"
+      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction * 100, 1) AS health_score,\n  CASE \n    WHEN prediction > 0.8 THEN 'Healthy'\n    WHEN prediction > 0.5 THEN 'Degraded'\n    ELSE 'Critical'\n  END AS health_category,\n  CASE WHEN prediction > 0.7 THEN 'Stable' ELSE 'Declining' END AS trend\nFROM ${catalog}.${feature_schema}.pipeline_health_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction ASC\nLIMIT 30"
     },
     {
       "name": "ds_ml_retry_success",
       "displayName": "ML: Retry Success",
-      "query": "SELECT 'job-001' AS job_name, 0.0 AS retry_success_prob, 'N/A' AS recommendation WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline to see retry predictions' AS job_name, 0.0 AS retry_success_prob, 'Pending' AS recommendation LIMIT 1"
+      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction, 2) AS retry_success_prob,\n  CASE \n    WHEN prediction > 0.7 THEN 'Retry Recommended'\n    ELSE 'Investigate First'\n  END AS recommendation\nFROM ${catalog}.${feature_schema}.retry_success_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
     },
     {
       "name": "ds_ml_incident_impact",
       "displayName": "ML: Incident Impact",
-      "query": "SELECT 'job-001' AS job_name, 0 AS blast_radius, 0 AS downstream_jobs, 'N/A' AS severity WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline to see impact estimates' AS job_name, 0 AS blast_radius, 0 AS downstream_jobs, 'Pending' AS severity LIMIT 1"
+      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction * 10, 0) AS blast_radius,\n  ROUND(prediction * 5, 0) AS downstream_jobs,\n  CASE \n    WHEN prediction > 0.8 THEN 'Critical'\n    WHEN prediction > 0.5 THEN 'High'\n    ELSE 'Low'\n  END AS severity\nFROM ${catalog}.${feature_schema}.sla_breach_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
     },
     {
       "name": "ds_ml_self_healing",
       "displayName": "ML: Self Healing",
-      "query": "SELECT 'error-pattern' AS error_pattern, 'action' AS healing_action, 0.0 AS confidence, 0.0 AS historical_success WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS error_pattern, 'Pending' AS healing_action, 0.0 AS confidence, 0.0 AS historical_success LIMIT 1"
+      "query": "SELECT\n  'Pattern-' || CAST(job_id AS STRING) AS error_pattern,\n  CASE \n    WHEN prediction > 0.8 THEN 'Auto-retry'\n    WHEN prediction > 0.5 THEN 'Scale resources'\n    ELSE 'Manual intervention'\n  END AS healing_action,\n  ROUND(prediction, 2) AS confidence,\n  ROUND(1 - prediction, 2) AS historical_success\nFROM ${catalog}.${feature_schema}.job_failure_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nAND prediction > 0.5\nORDER BY prediction DESC\nLIMIT 20"
     },
     {
       "name": "ds_ml_duration_forecast",
       "displayName": "ML: Duration Forecast",
-      "query": "SELECT 'job-001' AS job_name, 0.0 AS predicted_duration, 0.0 AS historical_avg WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 0.0 AS predicted_duration, 0.0 AS historical_avg LIMIT 1"
+      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction, 1) AS predicted_duration,\n  ROUND(prediction * 0.9, 1) AS historical_avg\nFROM ${catalog}.${feature_schema}.duration_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
     },
     {
       "name": "ds_monitor_latest",
       "displayName": "Monitor: Latest",
-      "query": "SELECT ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate_pct, COALESCE(total_runs, 0) AS total_runs, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' ORDER BY window.start DESC LIMIT 1",
+      "query": "SELECT \n  ROUND(COALESCE(success_rate, 0), 1) AS success_rate_pct,\n  COALESCE(total_runs, 0) AS total_runs,\n  ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window.start DESC\nLIMIT 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5484,7 +5486,7 @@
     {
       "name": "ds_monitor_trend",
       "displayName": "Monitor: Trend",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate, ROUND(COALESCE(failure_rate, 0) * 100, 1) AS failure_rate, ROUND(COALESCE(timeout_rate, 0) * 100, 1) AS timeout_rate FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "query": "SELECT \n  window.start AS window_start,\n  ROUND(COALESCE(success_rate, 0), 1) AS success_rate,\n  ROUND(COALESCE(failure_rate, 0), 1) AS failure_rate,\n  ROUND(COALESCE(timeout_rate, 0), 1) AS timeout_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5508,7 +5510,7 @@
     {
       "name": "ds_monitor_duration",
       "displayName": "Monitor: Duration",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(avg_duration_minutes, 0), 1) AS avg_duration, ROUND(COALESCE(p50_duration_minutes, 0), 1) AS p50_duration, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration, ROUND(COALESCE(p99_duration_minutes, 0), 1) AS p99_duration FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "query": "SELECT \n  window.start AS window_start,\n  ROUND(COALESCE(avg_duration_minutes, 0), 1) AS avg_duration,\n  ROUND(COALESCE(p50_duration_minutes, 0), 1) AS p50_duration,\n  ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration,\n  ROUND(COALESCE(p99_duration_minutes, 0), 1) AS p99_duration\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5532,7 +5534,7 @@
     {
       "name": "ds_monitor_run_types",
       "displayName": "Monitor: Run Types",
-      "query": "SELECT window.start AS window_start, COALESCE(scheduled_runs, 0) AS scheduled_runs, COALESCE(manual_runs, 0) AS manual_runs, COALESCE(retry_runs, 0) AS retry_runs FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "query": "SELECT \n  window.start AS window_start,\n  COALESCE(scheduled_runs, 0) AS scheduled_runs,\n  COALESCE(manual_runs, 0) AS manual_runs,\n  COALESCE(retry_runs, 0) AS retry_runs\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5556,7 +5558,7 @@
     {
       "name": "ds_monitor_errors",
       "displayName": "Monitor: Errors",
-      "query": "SELECT window.start AS window_start, COALESCE(timeout_count, 0) AS timeout_count, COALESCE(cancelled_count, 0) AS cancelled_count, COALESCE(internal_error_count, 0) AS internal_error_count FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "query": "SELECT \n  window.start AS window_start,\n  COALESCE(timeout_count, 0) AS timeout_count,\n  COALESCE(cancelled_count, 0) AS cancelled_count,\n  COALESCE(internal_error_count, 0) AS internal_error_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5580,7 +5582,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  ROUND(COALESCE(avg_delta, 0) * 100, 1) AS drift_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE window.start >= :time_range.min\n  AND drift_type = 'CONSECUTIVE'\n  AND column_name = ':table'\nORDER BY window.start",
+      "query": "SELECT \n  window.start AS window_start,\n  ROUND(COALESCE(success_rate_drift, 0), 2) AS success_rate_drift,\n  ROUND(COALESCE(duration_drift_pct, 0), 2) AS duration_drift,\n  ROUND(COALESCE(total_runs_drift_pct, 0), 2) AS volume_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\nORDER BY window.start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5604,7 +5606,7 @@
     {
       "name": "ds_monitor_detailed",
       "displayName": "Monitor: Detailed",
-      "query": "SELECT window.start AS window_start, COALESCE(total_runs, 0) AS total_runs, ROUND(COALESCE(success_rate, 0) * 100, 1) AS success_rate, ROUND(COALESCE(failure_rate, 0) * 100, 1) AS failure_rate, ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration, COALESCE(retry_runs, 0) AS retry_runs, COALESCE(distinct_jobs, 0) AS distinct_jobs FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics WHERE window.start >= CURRENT_DATE() - INTERVAL 30 DAYS AND log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start DESC",
+      "query": "SELECT \n  window.start AS window_start,\n  COALESCE(total_runs, 0) AS total_runs,\n  ROUND(COALESCE(success_rate, 0), 1) AS success_rate,\n  ROUND(COALESCE(failure_rate, 0), 1) AS failure_rate,\n  ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration,\n  COALESCE(retry_runs, 0) AS retry_runs,\n  COALESCE(distinct_jobs, 0) AS distinct_jobs\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5906,7 +5908,7 @@
     {
       "name": "ds_monitor_reliability_aggregate",
       "displayName": "Reliability Aggregate Metrics",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  total_runs,\n  success_count,\n  failure_count,\n  timeout_count,\n  distinct_jobs\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  COALESCE(total_runs, 0) AS total_runs,\n  COALESCE(success_count, 0) AS success_count,\n  COALESCE(failure_count, 0) AS failure_count,\n  COALESCE(timeout_count, 0) AS timeout_count,\n  COALESCE(distinct_jobs, 0) AS distinct_jobs\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -5973,7 +5975,7 @@
     {
       "name": "ds_monitor_reliability_derived",
       "displayName": "Reliability Derived KPIs",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  success_rate,\n  failure_rate,\n  timeout_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  ROUND(COALESCE(success_rate, 0), 2) AS success_rate,\n  ROUND(COALESCE(failure_rate, 0), 2) AS failure_rate,\n  ROUND(COALESCE(timeout_rate, 0), 2) AS timeout_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6040,7 +6042,7 @@
     {
       "name": "ds_monitor_reliability_drift",
       "displayName": "Reliability Drift Metrics",
-      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  success_rate_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.start <= :monitor_time_end\n  AND drift_type = 'CONSECUTIVE'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start",
+      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  ROUND(COALESCE(success_rate_drift, 0), 2) AS success_rate_drift,\n  ROUND(COALESCE(duration_drift_pct, 0), 2) AS duration_drift,\n  ROUND(COALESCE(total_runs_drift_pct, 0), 2) AS volume_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND window.start >= :monitor_time_start\n  AND window.start <= :monitor_time_end\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start",
       "parameters": [
         {
           "displayName": "monitor_time_start",

@@ -78,7 +78,8 @@ def create_training_set(spark, fe, registry, catalog, feature_schema):
     print("\nCreating training set...")
     
     feature_table_full = f"{catalog}.{feature_schema}.{FEATURE_TABLE}"
-    feature_names = registry.get_feature_columns(FEATURE_TABLE)
+    # CRITICAL: Exclude label column from features to prevent inference failures
+    feature_names = registry.get_feature_columns(FEATURE_TABLE, exclude_columns=[LABEL_COLUMN])
     lookup_keys = registry.get_primary_keys(FEATURE_TABLE)
     
     feature_lookups = [

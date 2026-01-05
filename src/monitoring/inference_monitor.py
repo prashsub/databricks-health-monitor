@@ -30,9 +30,14 @@ if MONITORING_AVAILABLE:
 # Widget parameters
 dbutils.widgets.text("catalog", "health_monitor", "Target Catalog")
 dbutils.widgets.text("gold_schema", "gold", "Gold Schema")
+dbutils.widgets.text("ml_schema", "", "ML Schema (defaults to {gold_schema}_ml)")
 
 catalog = dbutils.widgets.get("catalog")
 gold_schema = dbutils.widgets.get("gold_schema")
+
+# ML schema - defaults to {gold_schema}_ml if not explicitly provided
+ml_schema_param = dbutils.widgets.get("ml_schema")
+ml_schema = ml_schema_param if ml_schema_param else f"{gold_schema}_ml"
 
 # COMMAND ----------
 
@@ -240,14 +245,20 @@ def get_cost_anomaly_inference_metrics():
     ]
 
 
-def create_cost_anomaly_inference_monitor(workspace_client, catalog: str, gold_schema: str, spark=None):
+def create_cost_anomaly_inference_monitor(workspace_client, catalog: str, ml_schema: str, spark=None):
     """
     Create inference monitor for cost anomaly predictions.
     
     Monitors the ML model that detects cost anomalies to ensure
     prediction quality and detect model drift.
+    
+    Args:
+        workspace_client: Databricks WorkspaceClient
+        catalog: Target catalog
+        ml_schema: ML schema containing prediction tables (e.g., gold_ml)
+        spark: SparkSession for creating monitoring schema
     """
-    table_name = f"{catalog}.{gold_schema}.cost_anomaly_predictions"
+    table_name = f"{catalog}.{ml_schema}.cost_anomaly_predictions"
 
     # Clean up existing monitor
     delete_monitor_if_exists(workspace_client, table_name, spark)
@@ -404,14 +415,20 @@ def get_failure_predictor_inference_metrics():
     ]
 
 
-def create_failure_predictor_inference_monitor(workspace_client, catalog: str, gold_schema: str, spark=None):
+def create_failure_predictor_inference_monitor(workspace_client, catalog: str, ml_schema: str, spark=None):
     """
     Create inference monitor for job failure predictions.
     
     Monitors the ML model that predicts job failures to track
     classification performance over time.
+    
+    Args:
+        workspace_client: Databricks WorkspaceClient
+        catalog: Target catalog
+        ml_schema: ML schema containing prediction tables (e.g., gold_ml)
+        spark: SparkSession for creating monitoring schema
     """
-    table_name = f"{catalog}.{gold_schema}.failure_predictions"
+    table_name = f"{catalog}.{ml_schema}.failure_predictions"
 
     # Clean up existing monitor
     delete_monitor_if_exists(workspace_client, table_name, spark)
@@ -446,20 +463,26 @@ def create_failure_predictor_inference_monitor(workspace_client, catalog: str, g
 
 # COMMAND ----------
 
-def create_inference_monitor(workspace_client, catalog: str, gold_schema: str, spark=None):
+def create_inference_monitor(workspace_client, catalog: str, ml_schema: str, spark=None):
     """
     Create all inference monitors for ML models.
+    
+    Args:
+        workspace_client: Databricks WorkspaceClient
+        catalog: Target catalog
+        ml_schema: ML schema containing prediction tables (e.g., gold_ml)
+        spark: SparkSession for creating monitoring schema
     
     Returns dict of monitor results.
     """
     results = {}
 
     # Cost Anomaly Inference Monitor
-    cost_table = f"{catalog}.{gold_schema}.cost_anomaly_predictions"
+    cost_table = f"{catalog}.{ml_schema}.cost_anomaly_predictions"
     print(f"\n  [1/2] Cost Anomaly Inference Monitor")
     print(f"        Table: {cost_table}")
     try:
-        monitor = create_cost_anomaly_inference_monitor(workspace_client, catalog, gold_schema, spark)
+        monitor = create_cost_anomaly_inference_monitor(workspace_client, catalog, ml_schema, spark)
         if monitor:
             print(f"        [✓] Created successfully")
             results["cost_anomaly"] = "OK"
@@ -476,11 +499,11 @@ def create_inference_monitor(workspace_client, catalog: str, gold_schema: str, s
             results["cost_anomaly"] = "FAIL"
 
     # Failure Predictor Inference Monitor
-    failure_table = f"{catalog}.{gold_schema}.failure_predictions"
+    failure_table = f"{catalog}.{ml_schema}.failure_predictions"
     print(f"\n  [2/2] Failure Predictor Inference Monitor")
     print(f"        Table: {failure_table}")
     try:
-        monitor = create_failure_predictor_inference_monitor(workspace_client, catalog, gold_schema, spark)
+        monitor = create_failure_predictor_inference_monitor(workspace_client, catalog, ml_schema, spark)
         if monitor:
             print(f"        [✓] Created successfully")
             results["failure_predictor"] = "OK"
@@ -506,8 +529,9 @@ def main():
     print("=" * 70)
     print("ML INFERENCE MONITOR SETUP")
     print("=" * 70)
-    print(f"  Catalog: {catalog}")
-    print(f"  Schema: {gold_schema}")
+    print(f"  Catalog:    {catalog}")
+    print(f"  Gold Schema: {gold_schema}")
+    print(f"  ML Schema:   {ml_schema}")
     print("-" * 70)
     
     if not check_monitoring_available():
@@ -518,7 +542,7 @@ def main():
     workspace_client = WorkspaceClient()
 
     try:
-        results = create_inference_monitor(workspace_client, catalog, gold_schema, spark)
+        results = create_inference_monitor(workspace_client, catalog, ml_schema, spark)
 
         ok_count = sum(1 for v in results.values() if v == "OK")
         skip_count = sum(1 for v in results.values() if v == "SKIP")

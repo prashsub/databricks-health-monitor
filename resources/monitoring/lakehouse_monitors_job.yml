@@ -119,6 +119,7 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
+              ml_schema: ${var.feature_schema}
 
       # No schedule - run on demand after Gold setup
       # Timeout: 60 minutes (monitor creation can take time)

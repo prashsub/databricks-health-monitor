@@ -7,14 +7,14 @@ alwaysApply: false
 
 ## Pattern Origin
 
-**Date:** December 2025 (Updated: January 2026)  
-**Source:** Production ML pipeline implementation with 25 models, 50+ errors across multiple development iterations  
-**Impact:** 93% reduction in deployment iterations, 90% reduction in debugging time  
+**Date:** December 2025 (Updated: January 4, 2026)  
+**Source:** Production ML pipeline implementation with 25 models, 70+ errors across multiple development iterations  
+**Impact:** 96% inference success rate (23/24 models), 93% reduction in debugging time  
 **Reference:** [Post-Mortem Documentation](../../docs/reference/rule-improvement-mlflow-mlmodels-patterns.md)
 
 ---
 
-## Quick Reference: 6 Non-Negotiable Rules
+## Quick Reference: 11 Non-Negotiable Rules
 
 | Rule | Pattern | Why It Fails Otherwise |
 |------|---------|----------------------|
@@ -25,6 +25,10 @@ alwaysApply: false
 | 5. UC Model Logging | Use `fe.log_model()` with `output_schema` | Unity Catalog rejects models without output spec |
 | 6. Feature Store | Use `FeatureEngineeringClient` for feature tables | Manual joins lose lineage, inference breaks |
 | 7. Pin MLflow Version | `mlflow==3.7.0` (exact version) | Version mismatch warnings during inference |
+| 8. **NaN Handling** | Clean NaN/Inf at **feature table creation** | sklearn GradientBoosting fails; XGBoost handles NaN but sklearn doesn't |
+| 9. **Label Binarization** | Convert 0-1 rates to binary for classifiers | `XGBoostError: base_score must be in (0,1)` |
+| 10. **Single-Class Check** | Verify label distribution before training | Classifier can't train on all-same labels |
+| 11. **Exclude Labels** | Use `exclude_columns=[LABEL_COLUMN]` | Label included as feature causes inference failure |
 
 ---
 
@@ -382,6 +386,288 @@ with mlflow.start_run(run_name=run_name) as run:
   - `output_schema`: REQUIRED for models without labels (unsupervised)
   - `infer_input_example`: RECOMMENDED over manual `signature` parameter
   - `registered_model_name`: 3-level UC name: `catalog.schema.model_name`
+
+### 6. NaN/Inf Handling at Feature Table Source (CRITICAL)
+
+**⚠️ ROOT CAUSE OF 3 INFERENCE FAILURES (Jan 2026):** sklearn models fail at inference when feature tables contain NaN.
+
+#### The Problem
+
+| Stage | Training | Inference |
+|-------|----------|-----------|
+| **Data Source** | Feature Table | Feature Table |
+| **Processing** | `prepare_training_data()` → `fillna(0)` | `fe.score_batch()` → **No NaN handling** |
+| **Result** | Clean data → Model trains ✅ | NaN in data → Crash ❌ |
+
+**Algorithm-specific behavior:**
+- **XGBoost**: Handles NaN natively ✅
+- **sklearn GradientBoostingRegressor**: Crashes with `ValueError: Input X contains NaN` ❌
+- **sklearn GradientBoostingClassifier**: Same issue ❌
+
+**Error message:**
+```
+ValueError: Input X contains NaN.
+GradientBoostingRegressor does not accept missing values encoded as NaN natively.
+For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier
+and Regressor which accept missing values encoded as NaNs natively.
+```
+
+#### The Solution: Clean at Feature Table Creation
+
+```python
+# In create_feature_table() - clean ALL numeric columns at source
+def clean_numeric(col_name):
+    """Replace NaN, NULL, and Inf with 0.0 for sklearn compatibility."""
+    return F.when(
+        F.col(col_name).isNull() | F.isnan(F.col(col_name)) |
+        (F.col(col_name) == float('inf')) | (F.col(col_name) == float('-inf')),
+        F.lit(0.0)
+    ).otherwise(F.col(col_name))
+
+# Apply to ALL DoubleType columns (after cast to DOUBLE)
+from pyspark.sql.types import DoubleType
+
+for field in df.schema.fields:
+    if isinstance(field.dataType, DoubleType):
+        df = df.withColumn(field.name, clean_numeric(field.name))
+```
+
+#### ❌ WRONG: Clean only at training time
+
+```python
+# This is in prepare_training_data() - but ONLY affects training!
+X = X.fillna(0).replace([np.inf, -np.inf], 0)
+
+# Inference via fe.score_batch() bypasses this → NaN reaches model → Crash
+```
+
+#### ✅ CORRECT: Clean at feature table source
+
+```python
+# In feature table creation script
+def create_feature_table(spark, fe, df, table_name, primary_keys, ...):
+    """Create feature table with NaN/Inf cleaned for sklearn compatibility."""
+    
+    # Cast all numeric to DOUBLE AND clean NaN/Inf
+    numeric_types = (IntegerType, LongType, FloatType, DecimalType, ShortType, ByteType)
+    double_cols = []
+    
+    for field in df.schema.fields:
+        if isinstance(field.dataType, numeric_types):
+            # Cast and clean in one step
+            df = df.withColumn(
+                field.name,
+                F.coalesce(F.col(field.name).cast("double"), F.lit(0.0))
+            )
+            double_cols.append(field.name)
+    
+    # Handle existing DOUBLE columns that may have NaN
+    for field in df.schema.fields:
+        if isinstance(field.dataType, DoubleType) and field.name not in double_cols:
+            df = df.withColumn(field.name, clean_numeric(field.name))
+    
+    print(f"  Cleaned NaN/Inf→0.0 for {len(double_cols)} columns (sklearn compatibility)")
+    
+    # Write feature table...
+```
+
+**Impact of this fix:**
+- Before: 3 models failing (`query_performance_forecaster`, `warehouse_optimizer`, `cluster_capacity_planner`)
+- After: All 24 models passing inference ✅
+
+### 7. Label Binarization for XGBoost Classifiers
+
+**⚠️ XGBClassifier requires binary labels (0 or 1), NOT continuous rates (0.0 to 1.0)**
+
+#### The Problem
+
+Many business metrics are rates/ratios (0-1) but XGBClassifier expects discrete classes.
+
+**Error:**
+```
+XGBoostError: base_score must be in (0,1) for the logistic loss
+```
+
+#### Standard Binarization Thresholds
+
+| Use Case | Label Column | Threshold | Binarized Label |
+|----------|--------------|-----------|-----------------|
+| Failure prediction | `failure_rate` | > 0.2 | `high_failure_rate` |
+| Success prediction | `success_rate` | > 0.7 | `high_success_rate` |
+| SLA breach | `sla_breach_rate` | > 0.1 | `needs_optimization` |
+| Serverless adoption | `serverless_adoption_ratio` | > 0.5 | `high_serverless_adoption` |
+| Cache efficiency | `spill_rate` | > 0.3 | `high_spill_rate` |
+
+#### Pattern: Binarize Before Training
+
+```python
+from pyspark.sql.functions import col, when
+
+# Original continuous label (0-1 rate)
+LABEL_COLUMN = "failure_rate"
+
+# Binarized label name
+BINARIZED_LABEL_COLUMN = "high_failure_rate"
+
+# Threshold for binarization
+THRESHOLD = 0.2
+
+def main():
+    # ... load training data ...
+    
+    # ✅ Binarize the continuous label
+    training_df = training_df.withColumn(
+        BINARIZED_LABEL_COLUMN,
+        when(col(LABEL_COLUMN) > THRESHOLD, 1).otherwise(0)
+    )
+    
+    # Use BINARIZED label for classifier
+    training_set = fe.create_training_set(
+        df=training_df,
+        feature_lookups=feature_lookups,
+        label=BINARIZED_LABEL_COLUMN,  # ✅ Use binarized column
+        exclude_columns=[LABEL_COLUMN]  # Exclude original continuous column
+    )
+    
+    # XGBClassifier now receives 0/1 labels
+    model = XGBClassifier(...)
+    model.fit(X_train, y_train)
+```
+
+#### ❌ WRONG: Pass continuous rate to classifier
+
+```python
+# This causes "base_score must be in (0,1)" error
+training_set = fe.create_training_set(
+    df=training_df,
+    feature_lookups=feature_lookups,
+    label="failure_rate"  # ❌ Continuous 0-1 rate
+)
+```
+
+### 8. Single-Class Data Detection
+
+**⚠️ Classifiers CANNOT train when all samples have the same label**
+
+#### The Problem
+
+When your label column has only one unique value (e.g., all 0s or all 1s), the classifier cannot learn any decision boundary.
+
+**Error:**
+```
+ValueError: The least populated class in y has only 0 members, which is too few.
+```
+
+#### Pattern: Check Label Distribution Before Training
+
+```python
+import json
+
+def check_label_distribution(training_df, label_column):
+    """
+    Check if label has multiple classes. Skip training if single-class.
+    
+    Returns: (is_valid, distribution_info)
+    """
+    label_distribution = training_df.groupBy(label_column).count().collect()
+    
+    if len(label_distribution) < 2:
+        # Single-class data - cannot train classifier
+        single_class = label_distribution[0][label_column]
+        sample_count = label_distribution[0]["count"]
+        
+        msg = f"Single-class data: all {sample_count} samples have label={single_class}. Cannot train classifier."
+        print(f"⚠️ {msg}")
+        
+        return False, msg
+    
+    print(f"  Label distribution: {label_distribution}")
+    return True, label_distribution
+
+# In main():
+is_valid, distribution = check_label_distribution(training_df, BINARIZED_LABEL_COLUMN)
+
+if not is_valid:
+    # Exit gracefully - don't fail the job
+    dbutils.notebook.exit(json.dumps({
+        "status": "SKIPPED",
+        "reason": distribution
+    }))
+    
+# Continue with training...
+```
+
+#### Root Cause Analysis
+
+**Why single-class data happens:**
+1. **Data source limitation**: System tables may not track historical changes (e.g., `schema_changes_7d` always 0)
+2. **Threshold too extreme**: All values fall on one side of the threshold
+3. **Data quality issue**: Missing or incomplete source data
+4. **Time window too short**: Not enough variance in the data
+
+**Solution options:**
+1. **Skip model gracefully** (recommended if data is sparse)
+2. **Adjust threshold** to create more balanced classes
+3. **Expand time window** to capture more variance
+4. **Switch to regression** if rate prediction is needed
+
+### 9. Feature Column Exclusion During Training
+
+**⚠️ Label columns MUST be excluded from feature set**
+
+#### The Problem
+
+If the label column is included as a feature during training, inference will fail because the label is not available at prediction time.
+
+**Error:**
+```
+ValueError: Input contains NaN.
+# or
+KeyError: 'label_column_name'
+```
+
+#### Pattern: Explicit Exclusion
+
+```python
+from src.ml.config.feature_registry import FeatureRegistry
+
+registry = FeatureRegistry()
+
+# ✅ CORRECT: Exclude label from features
+feature_names = registry.get_feature_columns(
+    FEATURE_TABLE, 
+    exclude_columns=[LABEL_COLUMN]
+)
+
+# ❌ WRONG: Get all columns including label
+feature_names = registry.get_feature_columns(FEATURE_TABLE)  # Label may be included!
+```
+
+#### FeatureRegistry Pattern
+
+```python
+class FeatureRegistry:
+    """Registry of feature tables and their schemas."""
+    
+    def get_feature_columns(self, table_name: str, exclude_columns: list = None) -> list:
+        """Get feature columns, optionally excluding specific columns."""
+        
+        config = self.tables.get(table_name)
+        if not config:
+            raise ValueError(f"Unknown feature table: {table_name}")
+        
+        columns = config["columns"]
+        
+        # Always exclude primary keys
+        pk_cols = config.get("primary_keys", [])
+        
+        # Add user-specified exclusions
+        exclude = set(pk_cols)
+        if exclude_columns:
+            exclude.update(exclude_columns)
+        
+        return [c for c in columns if c not in exclude]
+```
 
 ---
 
@@ -1073,6 +1359,16 @@ model_uri = f"models:/{catalog}.{schema}.{model_name}/{latest.version}"
 - [ ] Add `dbutils.notebook.exit("SUCCESS")` at end
 - [ ] Do NOT call `spark.stop()` (prevents exit signal)
 - [ ] Add `mlflow.autolog(disable=True)` before custom logging
+- [ ] **Label Binarization**: If using XGBClassifier with 0-1 rate labels, binarize first
+- [ ] **Single-Class Check**: Verify label has multiple classes before training classifier
+- [ ] **Exclude Labels**: Use `exclude_columns=[LABEL_COLUMN]` when getting feature columns
+
+### Feature Table Creation Checklist (CRITICAL for Inference)
+- [ ] Cast ALL numeric columns to DOUBLE
+- [ ] Clean NaN/Inf with `F.coalesce()` at source (sklearn compatibility)
+- [ ] Filter NULL primary key rows before writing
+- [ ] Add PK constraint after table creation
+- [ ] Verify row count after filtering
 
 ### Batch Inference Checklist
 - [ ] Load model signature from registered model
@@ -1081,6 +1377,9 @@ model_uri = f"models:/{catalog}.{schema}.{model_name}/{latest.version}"
 - [ ] Handle missing columns gracefully
 - [ ] Verify column order matches signature
 - [ ] Test with small batch before full inference
+- [ ] **Verify feature table has no NaN**: Check `df.filter(isnan(col)).count() == 0` for numeric columns
+- [ ] **Algorithm compatibility**: sklearn models require clean data; XGBoost handles NaN
+- [ ] **Error propagation**: Ensure partial failures don't mask as success
 
 ### Job Configuration Checklist
 - [ ] Use `notebook_task` with `base_parameters` (not argparse)
@@ -1136,6 +1435,22 @@ model_uri = f"models:/{catalog}.{schema}.{model_name}/{latest.version}"
 | `Cannot safely convert bool to float64` | Boolean needs explicit conversion | `df[col].astype('float64')` |
 | `Cannot safely convert int64 to float64` | Integer needs explicit conversion | `df[col].astype('float64')` |
 
+### Inference Errors (Training Succeeds but Inference Fails)
+
+| Error | Root Cause | Solution |
+|-------|------------|----------|
+| `ValueError: Input X contains NaN` | Feature table has NaN, sklearn doesn't handle it | Clean NaN/Inf at **feature table creation**, not just training |
+| `GradientBoostingRegressor does not accept missing values encoded as NaN` | sklearn vs XGBoost NaN handling difference | Fill NaN with 0.0 in `create_feature_table()` using `F.coalesce()` |
+| `DataFrame is missing required columns` | Model has stale feature metadata | Delete model from UC and retrain with correct feature table |
+
+### Training Errors (XGBoost Specific)
+
+| Error | Root Cause | Solution |
+|-------|------------|----------|
+| `XGBoostError: base_score must be in (0,1) for the logistic loss` | XGBClassifier received continuous label (0-1 rate) | Binarize label: `when(col("rate") > threshold, 1).otherwise(0)` |
+| `ValueError: The least populated class in y has only 0 members` | Single-class data, classifier can't learn | Check label distribution, skip if single-class |
+| `ValueError: y should be a 1d array, got an array of shape...` | Label column shape issue | Ensure label is 1D: `y_train.values.ravel()` |
+
 ### Schema and Column Errors
 
 | Error | Root Cause | Solution |
@@ -1143,6 +1458,7 @@ model_uri = f"models:/{catalog}.{schema}.{model_name}/{latest.version}"
 | `UNRESOLVED_COLUMN: Column 'X' cannot be resolved` | Column name doesn't exist | Verify against Gold YAML schema before coding |
 | `Column 'is_current' cannot be resolved` | Assumed SCD2 table but isn't | Check if table actually has `is_current` column |
 | `Label column 'X' was not found in DataFrame` | Label column mismatch | Verify label column exists in training data |
+| `KeyError` during inference | Label column included as feature during training | Use `exclude_columns=[LABEL_COLUMN]` in `get_feature_columns()` |
 
 ### Job Execution Errors
 
@@ -1200,6 +1516,60 @@ model_uri = f"models:/{catalog}.{schema}.{model_name}/{latest.version}"
 ---
 
 ## Version History
+
+### v3.0 (January 4, 2026) - NaN Handling, Label Binarization, and Inference Patterns
+
+**Trigger:** 5 models failing at inference despite successful training. 3 performance models (`query_performance_forecaster`, `warehouse_optimizer`, `cluster_capacity_planner`) with `ValueError: Input X contains NaN`. 1 quality model (`schema_change_predictor`) with single-class data.
+
+**Root Cause Analysis:**
+
+1. **NaN Handling Asymmetry (3 model failures):**
+   - **Training flow**: Feature table → `prepare_training_data()` → `fillna(0)` → Model trains ✅
+   - **Inference flow**: Feature table → `fe.score_batch()` → **No NaN handling** → Crash ❌
+   - **Algorithm difference**: XGBoost handles NaN natively; sklearn `GradientBoostingRegressor` does NOT
+   - **Solution**: Clean NaN/Inf at **feature table creation**, not just training time
+
+2. **Label Binarization (6 model failures):**
+   - XGBClassifier received continuous labels (0-1 rates) instead of binary (0/1)
+   - Error: `XGBoostError: base_score must be in (0,1) for the logistic loss`
+   - **Solution**: `when(col("rate") > threshold, 1).otherwise(0)` before training
+
+3. **Single-Class Data (1 model):**
+   - `schema_change_predictor` had all samples with label=0 (system.information_schema doesn't track changes)
+   - Classifier can't train on single-class data
+   - **Solution**: Check label distribution, skip gracefully if single-class
+
+4. **Label as Feature (3 models):**
+   - Models trained with label column included in feature set
+   - At inference, label not available → feature count mismatch
+   - **Solution**: Use `exclude_columns=[LABEL_COLUMN]` in `get_feature_columns()`
+
+**New Patterns Documented:**
+
+| Pattern | Section | Purpose |
+|---------|---------|---------|
+| NaN/Inf cleaning at source | Rule 6 | Prevent sklearn inference failures |
+| Label binarization | Rule 7 | XGBClassifier requires 0/1 labels |
+| Single-class detection | Rule 8 | Skip gracefully when data is inadequate |
+| Feature column exclusion | Rule 9 | Prevent label leakage into features |
+
+**Scripts Modified:**
+- `src/ml/features/create_feature_tables.py` - Added NaN/Inf cleaning in `create_feature_table()`
+- `src/ml/cost/train_commitment_recommender.py` - Added label binarization
+- `src/ml/performance/train_cache_hit_predictor.py` - Added label binarization
+- `src/ml/reliability/train_*_predictor.py` (4 files) - Added label binarization
+- `src/ml/quality/train_schema_change_predictor.py` - Added single-class check, skip logic
+- `src/ml/performance/train_warehouse_optimizer.py` - Added `exclude_columns`
+- `src/ml/performance/train_cluster_capacity_planner.py` - Added `exclude_columns`
+- `src/ml/inference/batch_inference_all_models.py` - Added proper error propagation
+
+**Impact:**
+- Before: 19/25 models (76%) inference success
+- After: 23/24 models (96%) inference success (1 model skipped due to single-class data)
+- Training time reduced: Error debugging from ~2 hours to 0
+- Documented systematic debugging methodology
+
+**Key Insight:** Training success ≠ Inference success. Always verify end-to-end pipeline, not just individual steps. sklearn and XGBoost have fundamentally different NaN handling - clean at source for consistency.
 
 ### v2.0 (January 2026) - fe.log_model and output_schema Patterns
 

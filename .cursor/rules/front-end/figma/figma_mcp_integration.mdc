@@ -1,0 +1,279 @@
+---
+description: Figma MCP server rules
+alwaysApply: false
+---
+# =========================================================
+# PURPOSE
+# =========================================================
+# Govern how an LLM uses the Figma MCP Server to translate
+# Figma designs into PRODUCTION-QUALITY code.
+#
+# This rule applies ONLY to Phase 3:
+#   - Design already exists (often from Figma Make)
+#   - MCP is used to READ design intent
+#   - LLM generates / modifies real code
+#
+# This rule exists to:
+# - prevent silent divergence from design
+# - prevent token/asset mistakes
+# - prevent component duplication
+# - prevent large, unsafe code changes
+# - ensure MCP is used correctly and efficiently
+#
+# This is a SAFETY-CRITICAL rule file.
+
+# =========================================================
+# CORE MENTAL MODEL (NON-NEGOTIABLE)
+# =========================================================
+# Figma MCP is a READ-ONLY DESIGN CONTEXT PROVIDER.
+#
+# MCP DOES:
+# - expose layout hierarchy
+# - expose components and variants
+# - expose variables/tokens
+# - expose assets (SVGs/images)
+# - expose a React-like structural representation for LLM comprehension
+#
+# MCP DOES NOT:
+# - understand your repo architecture
+# - generate final production code
+# - know your state/data patterns
+# - enforce accessibility or performance
+#
+# Therefore:
+# - MCP output is DESIGN INTENT, not final code
+# - The LLM is responsible for correctness, reuse, and safety
+#
+# If design intent and repo conventions conflict:
+# - DO NOT guess
+# - ASK or FLAG explicitly
+
+# =========================================================
+# SOURCE OF TRUTH CONTRACT
+# =========================================================
+# Visual structure, hierarchy, and tokens → Figma
+# Behavior, state, data flow, performance → Code
+#
+# NEVER infer:
+# - backend behavior
+# - permissions
+# - workflows
+# - business rules
+# from visuals alone.
+
+# =========================================================
+# STRICT PREFLIGHT CHECKLIST (MANDATORY)
+# =========================================================
+# BEFORE WRITING ANY CODE, THE LLM MUST CONFIRM ALL OF THE FOLLOWING:
+
+## PREFLIGHT A — TOOL AVAILABILITY
+- MCP tools are available and responding
+- Figma desktop app is running
+- File is open in Dev Mode
+- MCP server is enabled
+IF NOT → STOP and instruct restart/retry
+
+## PREFLIGHT B — SELECTION SANITY
+- Target selection is SMALL and FOCUSED
+- Selection is:
+#   - a single component
+#   - OR a small layout chunk
+#   - OR a minimal screen section
+- Selection is NOT:
+#   - a full mega-screen
+#   - deeply nested with unrelated sections
+IF TOO LARGE → reduce selection FIRST
+
+## PREFLIGHT C — DESIGN INTENT CLARITY
+- Component purpose is understandable
+- Reuse intent is clear (component vs screen)
+- Variants/states are visible or implied
+IF AMBIGUOUS → STOP and ASK
+
+## PREFLIGHT D — REUSE CHECK
+- Confirm whether an equivalent component already exists in code
+- Confirm design system component mapping (if any)
+IF REUSE IS POSSIBLE → reuse is mandatory
+
+FAIL ANY PREFLIGHT → DO NOT IMPLEMENT
+
+# =========================================================
+# REQUIRED MCP FLOW (DO NOT DEVIATE)
+# =========================================================
+
+## STEP 1 — get_design_context (ALWAYS FIRST)
+- Fetch context ONLY for the exact node(s)
+- Never fetch entire pages unless explicitly required
+- Treat returned structure as:
+#   - hierarchy
+#   - semantics
+#   - variant mapping
+#   - token usage
+
+## STEP 2 — SIZE GUARD
+IF:
+- response is truncated
+- response is slow
+- response is missing elements
+
+THEN:
+- run get_metadata
+- identify minimal sub-nodes
+- re-run get_design_context on smaller scope
+
+## STEP 3 — VARIABLES (EXPLICIT)
+IF styling matters:
+- Explicitly request variables/tokens
+Use phrases like:
+- “List all color, spacing, typography variables used by this selection”
+- “Return variable names and values, not code”
+
+IF YOU EXPECT VARIABLES BUT GET CODE → YOU DID NOT TRIGGER THE RIGHT TOOL
+
+## STEP 4 — SCREENSHOT (MANDATORY)
+- Always run get_screenshot
+- Screenshot is the canonical visual reference
+- All visual validation is done against this
+
+## STEP 5 — ASSETS
+- Fetch assets ONLY AFTER steps 1–4
+- Use MCP asset URLs directly
+- If localhost asset is provided:
+#   - use it as-is
+#   - DO NOT replace
+#   - DO NOT create placeholders
+- DO NOT import icon libraries
+
+## STEP 6 — IMPLEMENTATION
+- Translate design intent into repo conventions
+- Replace raw MCP utilities with design-system tokens
+- Implement states and accessibility
+- Keep changes minimal and scoped
+
+## STEP 7 — VALIDATION
+- Visual parity vs screenshot
+- Token usage correctness
+- Component reuse correctness
+- Accessibility baseline
+- No regressions elsewhere
+
+# =========================================================
+# ANTI-PATTERNS (STRICTLY FORBIDDEN)
+# =========================================================
+DO NOT:
+- Paste MCP output verbatim into the repo
+- Mirror Figma layer nesting 1:1 (“div soup”)
+- Invent tokens or colors silently
+- Import new icon/image libraries
+- Duplicate existing components
+- Inline styles unnecessarily
+- Rename folders or restructure architecture
+- Implement logic inferred from visuals
+- “Fix” design problems without confirmation
+
+# =========================================================
+# COMPONENT IMPLEMENTATION RULES
+# =========================================================
+
+## CI-1: REUSE IS MANDATORY
+- If a component exists in the design system → use it
+- If variation is needed → extend via props/variants
+- Only create new components if reuse is impossible
+
+## CI-2: PRESENTATIONAL BY DEFAULT
+- Components should accept data via props
+- No data fetching unless explicitly instructed
+- No side effects
+
+## CI-3: STATE COMPLETENESS (MINIMUM BAR)
+Every data-driven component MUST support:
+- Loading (skeleton or placeholder)
+- Empty (explanation + next step)
+- Error (message + retry affordance)
+
+## CI-4: TOKEN PURITY
+- All colors, spacing, typography must come from:
+#   - Figma variables
+#   - OR project design tokens
+- Hardcoded values require justification
+
+## CI-5: ACCESSIBILITY BASELINE
+- Keyboard navigation
+- Focus visibility
+- Labels for inputs
+- Semantic HTML where possible
+- No click-only interactions
+
+# =========================================================
+# SCREEN / PAGE RULES
+# =========================================================
+- Screens compose components ONLY
+- Screens must not define new UI patterns
+- Screens manage wiring, not styling
+- If a screen needs new UI → extract a component first
+
+# =========================================================
+# FIDELITY VS SYSTEM CONSISTENCY (TIE-BREAKER)
+# =========================================================
+Priority order:
+1) Design system tokens & components
+2) Visual fidelity (spacing/size tweaks)
+3) Raw MCP utility output
+
+NEVER break:
+- token consistency
+- reuse guarantees
+- accessibility
+
+# =========================================================
+# FAILURE MODE RECOVERY PLAYBOOK
+# =========================================================
+
+## MCP TOOLS NOT LOADING
+- Ensure Figma desktop is running
+- Ensure file is open
+- Restart Figma
+- Restart IDE
+- Retry with smaller selection
+
+## MCP IS SLOW / STUCK
+- Selection is too large
+- Reduce scope aggressively
+- Retry with explicit node selection
+
+## GOT CODE BUT EXPECTED VARIABLES
+- Re-run with explicit variable phrasing
+- Do not guess variable values
+
+## VISUALS DON’T MATCH
+- Compare against screenshot
+- Adjust spacing using tokens
+- Do not invent styles
+
+## UNSURE ABOUT INTENT
+- STOP
+- Ask for clarification
+- Do NOT infer
+
+# =========================================================
+# SCOPE CONTROL (ANTI-ENTROPY)
+# =========================================================
+- One component OR one screen per response
+- Large requests must be broken into steps
+- Minimal diffs preferred
+- Preserve existing patterns
+
+# =========================================================
+# FINAL DECLARATION
+# =========================================================
+# You are not a designer guessing intent.
+# You are an engineer translating explicit design intent into safe code.
+#
+# When in doubt:
+# - choose reuse
+# - choose clarity
+# - choose small steps
+# - ask instead of guessing
+#
+# END
+

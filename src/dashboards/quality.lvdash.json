@@ -795,15 +795,21 @@
               "encodings": {
                 "x": {
                   "fieldName": "catalog_name",
-                  "displayName": "Catalog"
+                  "displayName": "Catalog",
+                  "scale": {
+                    "type": "categorical"
+                  }
                 },
                 "y": {
                   "fieldName": "table_count",
-                  "displayName": "Table Count"
+                  "displayName": "Table Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
                 }
               },
               "frame": {
-                "title": "Tables by Catalog",
+                "title": "📊 Tables by Catalog",
                 "showTitle": true
               }
             }
@@ -1265,15 +1271,21 @@
               "encodings": {
                 "x": {
                   "fieldName": "catalog_name",
-                  "displayName": "Catalog"
+                  "displayName": "Catalog",
+                  "scale": {
+                    "type": "categorical"
+                  }
                 },
                 "y": {
                   "fieldName": "table_count",
-                  "displayName": "Table Count"
+                  "displayName": "Table Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
                 }
               },
               "frame": {
-                "title": "Tables by Catalog",
+                "title": "📊 Tables by Catalog",
                 "showTitle": true
               }
             }
@@ -1815,6 +1827,367 @@
           }
         }
       ]
+    },
+    {
+      "name": "page_lakehouse_monitoring",
+      "displayName": "📈 Governance Metrics Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_monitor_tables",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_gov_latest",
+                  "fields": [
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_events",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Lineage Events",
+                "description": "Total tracked lineage events"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_active_tables",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_gov_latest",
+                  "fields": [
+                    {
+                      "name": "active_tables",
+                      "expression": "`active_tables`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "active_tables",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Tables",
+                "description": "Tables with recent activity"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_distinct_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_gov_latest",
+                  "fields": [
+                    {
+                      "name": "distinct_users",
+                      "expression": "`distinct_users`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "distinct_users",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Distinct Users",
+                "description": "Unique users accessing data"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_gov_trend",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    },
+                    {
+                      "name": "active_tables",
+                      "expression": "`active_tables`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "total_events",
+                  "displayName": "Events",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Lineage Events Trend",
+                "description": "Daily lineage event volume from Lakehouse Monitoring"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_monitor_drift",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_gov_drift",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "event_drift",
+                      "expression": "`event_drift`"
+                    },
+                    {
+                      "name": "user_drift",
+                      "expression": "`user_drift`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "event_drift",
+                  "displayName": "Event Change %",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Drift Detection",
+                "description": "Period-over-period changes in lineage patterns"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "table_monitor_detailed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monitor_gov_detailed",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    },
+                    {
+                      "name": "active_tables",
+                      "expression": "`active_tables`"
+                    },
+                    {
+                      "name": "distinct_users",
+                      "expression": "`distinct_users`"
+                    },
+                    {
+                      "name": "read_events",
+                      "expression": "`read_events`"
+                    },
+                    {
+                      "name": "write_events",
+                      "expression": "`write_events`"
+                    },
+                    {
+                      "name": "read_write_ratio",
+                      "expression": "`read_write_ratio`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start",
+                    "title": "Period",
+                    "type": "datetime",
+                    "dateTimeFormat": "yyyy-MM-dd"
+                  },
+                  {
+                    "fieldName": "total_events",
+                    "title": "Events",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
+                    "fieldName": "active_tables",
+                    "title": "Active Tables",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
+                    "fieldName": "distinct_users",
+                    "title": "Users",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
+                    "fieldName": "read_events",
+                    "title": "Read Events",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
+                    "fieldName": "write_events",
+                    "title": "Write Events",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
+                    "fieldName": "read_write_ratio",
+                    "title": "Read/Write Ratio",
+                    "type": "number",
+                    "numberFormat": "0.00"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Governance Metrics Detail",
+                "description": "Detailed metrics from Lakehouse Monitoring"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
     }
   ],
   "datasets": [
@@ -1905,7 +2278,7 @@
     {
       "name": "ds_tables_by_catalog",
       "displayName": "Tables by Catalog",
-      "query": "SELECT COALESCE(target_table_catalog, 'Unknown') AS catalog_name, COUNT(DISTINCT target_table_full_name) AS table_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE target_table_catalog IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "query": "SELECT catalog_name, COUNT(DISTINCT table_full_name) AS table_count FROM (SELECT COALESCE(source_table_catalog, target_table_catalog) AS catalog_name, COALESCE(source_table_full_name, target_table_full_name) AS table_full_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE source_table_catalog IS NOT NULL OR target_table_catalog IS NOT NULL) WHERE catalog_name IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2167,7 +2540,7 @@
     },
     {
       "name": "ds_summary",
-      "query": "SELECT 'Table storage data not available' AS message, 0 AS placeholder_value",
+      "query": "SELECT COUNT(DISTINCT table_name) AS table_count, COUNT(*) AS total_operations, ROUND(SUM(COALESCE(usage_quantity, 0)), 2) AS total_size_gb, COUNT(DISTINCT CASE WHEN operation_type = 'COMPACTION' THEN table_id END) AS optimized_tables FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_status = 'SUCCESSFUL'",
       "displayName": "Summary",
       "parameters": [
         {
@@ -2190,7 +2563,7 @@
     },
     {
       "name": "ds_optimization_needed",
-      "query": "SELECT COUNT(*) AS count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 AND 1=0 -- fact_information_schema_table_storage not available AND file_count > 100 AND COALESCE(avg_file_size_bytes, 0) < 32*1024*1024",
+      "query": "WITH recent_optimizations AS (SELECT DISTINCT table_id FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_type = 'COMPACTION' AND start_time >= CURRENT_DATE() - INTERVAL 30 DAYS), all_tables AS (SELECT DISTINCT COALESCE(source_table_full_name, target_table_full_name) AS table_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 90 DAYS) SELECT COUNT(*) AS count FROM all_tables WHERE table_name NOT IN (SELECT table_id FROM recent_optimizations WHERE table_id IS NOT NULL)",
       "displayName": "Optimization Needed",
       "parameters": [
         {
@@ -2213,7 +2586,7 @@
     },
     {
       "name": "ds_size_buckets",
-      "query": "SELECT 'Table storage data not available' AS message, 0 AS placeholder_value",
+      "query": "SELECT CASE WHEN total_usage < 1 THEN '< 1 GB' WHEN total_usage < 10 THEN '1-10 GB' WHEN total_usage < 100 THEN '10-100 GB' WHEN total_usage < 1000 THEN '100 GB - 1 TB' ELSE '> 1 TB' END AS size_bucket, COUNT(*) AS table_count FROM (SELECT table_name, SUM(COALESCE(usage_quantity, 0)) AS total_usage FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_status = 'SUCCESSFUL' GROUP BY table_name) GROUP BY 1 ORDER BY CASE WHEN size_bucket = '< 1 GB' THEN 1 WHEN size_bucket = '1-10 GB' THEN 2 WHEN size_bucket = '10-100 GB' THEN 3 WHEN size_bucket = '100 GB - 1 TB' THEN 4 ELSE 5 END",
       "displayName": "Size Buckets",
       "parameters": [
         {
@@ -2236,7 +2609,7 @@
     },
     {
       "name": "ds_file_buckets",
-      "query": "SELECT 'Table storage data not available' AS message, 0 AS placeholder_value",
+      "query": "SELECT operation_type AS file_bucket, COUNT(*) AS table_count FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_status = 'SUCCESSFUL' GROUP BY operation_type ORDER BY table_count DESC",
       "displayName": "File Buckets",
       "parameters": [
         {
@@ -2259,7 +2632,7 @@
     },
     {
       "name": "ds_largest_tables",
-      "query": "SELECT 'Table storage data not available' AS message, 0 AS placeholder_value",
+      "query": "SELECT CONCAT(catalog_name, '.', schema_name, '.', table_name) AS full_table_name, catalog_name, schema_name, table_name, ROUND(SUM(COALESCE(usage_quantity, 0)), 2) AS total_size_gb, COUNT(*) AS optimization_count, MAX(end_time) AS last_optimized FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_status = 'SUCCESSFUL' GROUP BY 1, 2, 3, 4 ORDER BY total_size_gb DESC LIMIT 20",
       "displayName": "Largest Tables",
       "parameters": [
         {
@@ -2282,8 +2655,8 @@
     },
     {
       "name": "ds_needs_compaction",
-      "query": "SELECT 'Table storage data not available' AS message, 0 AS placeholder_value",
-      "displayName": "Neecompaction",
+      "query": "WITH last_compaction AS (SELECT table_name, MAX(end_time) AS last_compacted FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_type = 'COMPACTION' AND operation_status = 'SUCCESSFUL' GROUP BY table_name) SELECT p.catalog_name, p.schema_name, p.table_name, CONCAT(p.catalog_name, '.', p.schema_name, '.', p.table_name) AS full_table_name, c.last_compacted, DATEDIFF(CURRENT_DATE(), c.last_compacted) AS days_since_compaction FROM ${catalog}.${gold_schema}.fact_predictive_optimization p LEFT JOIN last_compaction c ON p.table_name = c.table_name WHERE c.last_compacted < CURRENT_DATE() - INTERVAL 30 DAYS OR c.last_compacted IS NULL GROUP BY 1, 2, 3, 4, 5, 6 ORDER BY days_since_compaction DESC NULLS FIRST LIMIT 20",
+      "displayName": "Needs Compaction",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2305,7 +2678,7 @@
     },
     {
       "name": "ds_empty_tables",
-      "query": "SELECT 'Table storage data not available' AS message, 0 AS placeholder_value",
+      "query": "WITH active_tables AS (SELECT DISTINCT COALESCE(source_table_full_name, target_table_full_name) AS table_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 90 DAYS), optimized_tables AS (SELECT DISTINCT CONCAT(catalog_name, '.', schema_name, '.', table_name) AS table_name FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_status = 'SUCCESSFUL') SELECT a.table_name AS full_table_name, 'No recent optimization' AS status FROM active_tables a LEFT JOIN optimized_tables o ON a.table_name = o.table_name WHERE o.table_name IS NULL LIMIT 20",
       "displayName": "Empty Tables",
       "parameters": [
         {
@@ -2330,6 +2703,26 @@
       "name": "ds_time_windows",
       "displayName": "Time Windows",
       "query": "SELECT 'Last 7 Days' AS time_window UNION ALL SELECT 'Last 30 Days' UNION ALL SELECT 'Last 90 Days' UNION ALL SELECT 'Last 6 Months' UNION ALL SELECT 'Last Year' UNION ALL SELECT 'All Time'"
+    },
+    {
+      "name": "ds_monitor_gov_latest",
+      "displayName": "Monitor: Governance Latest",
+      "query": "SELECT \n  COALESCE(total_lineage_events, 0) AS total_events,\n  COALESCE(active_tables_count, 0) AS active_tables,\n  COALESCE(distinct_users, 0) AS distinct_users,\n  COALESCE(read_event_count, 0) AS read_events,\n  COALESCE(write_event_count, 0) AS write_events\nFROM ${catalog}.${gold_schema}_monitoring.fact_table_lineage_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY window.start DESC\nLIMIT 1"
+    },
+    {
+      "name": "ds_monitor_gov_trend",
+      "displayName": "Monitor: Governance Trend",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(total_lineage_events, 0) AS total_events,\n  COALESCE(active_tables_count, 0) AS active_tables,\n  COALESCE(distinct_users, 0) AS distinct_users\nFROM ${catalog}.${gold_schema}_monitoring.fact_table_lineage_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= CURRENT_DATE() - INTERVAL 30 DAYS\nORDER BY window_start"
+    },
+    {
+      "name": "ds_monitor_gov_drift",
+      "displayName": "Monitor: Governance Drift",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(lineage_volume_drift_pct, 0) AS event_drift,\n  COALESCE(user_count_drift, 0) AS user_drift,\n  COALESCE(active_tables_drift, 0) AS table_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_table_lineage_drift_metrics\nWHERE column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\n  AND window.start >= CURRENT_DATE() - INTERVAL 30 DAYS\nORDER BY window_start"
+    },
+    {
+      "name": "ds_monitor_gov_detailed",
+      "displayName": "Monitor: Governance Detailed",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(total_lineage_events, 0) AS total_events,\n  COALESCE(active_tables_count, 0) AS active_tables,\n  COALESCE(distinct_users, 0) AS distinct_users,\n  COALESCE(read_event_count, 0) AS read_events,\n  COALESCE(write_event_count, 0) AS write_events,\n  COALESCE(read_write_ratio, 0) AS read_write_ratio\nFROM ${catalog}.${gold_schema}_monitoring.fact_table_lineage_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= CURRENT_DATE() - INTERVAL 30 DAYS\nORDER BY window_start DESC\nLIMIT 30"
     },
     {
       "name": "ds_workspaces",
@@ -2385,7 +2778,7 @@
     {
       "name": "ds_select_catalog",
       "displayName": "ds_select_catalog",
-      "query": "SELECT DISTINCT target_table_catalog AS catalog_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE target_table_catalog IS NOT NULL ORDER BY 1",
+      "query": "SELECT DISTINCT catalog_name FROM (SELECT source_table_catalog AS catalog_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE source_table_catalog IS NOT NULL UNION SELECT target_table_catalog AS catalog_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE target_table_catalog IS NOT NULL) ORDER BY 1",
       "parameters": []
     }
   ],

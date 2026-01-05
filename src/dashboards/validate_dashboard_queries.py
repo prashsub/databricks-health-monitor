@@ -75,6 +75,11 @@ def extract_queries_from_dashboard(dashboard_path: Path, catalog: str, gold_sche
         query = query.replace('${catalog}', catalog)
         query = query.replace('${gold_schema}', gold_schema)
         
+        # ML/Feature schema substitution (from Asset Bundle feature_schema variable)
+        feature_schema = gold_schema.replace('_system_gold', '_system_gold_ml')
+        query = query.replace('${feature_schema}', feature_schema)
+        query = query.replace('${ml_schema}', feature_schema)
+        
         # Replace parameters with default values for validation
         # :param_name -> 'All' or default value
         # IMPORTANT: Do NOT replace :table - it's a literal value in Lakehouse Monitoring, not a parameter

@@ -2,7 +2,11 @@
 
 ## Overview
 
-The Databricks Health Monitor includes **25 production ML models** across 5 domains. Each model is designed for a specific operational use case, from detecting cost anomalies to predicting job failures.
+The Databricks Health Monitor includes **21 production ML models** across 5 domains. Each model is designed for a specific operational use case, from detecting cost anomalies to predicting job failures.
+
+> **Note:** 4 models are currently disabled:
+> - `schema_change_predictor` - system.information_schema doesn't track schema history
+> - `query_performance_forecaster`, `warehouse_optimizer`, `cluster_capacity_planner` - inference issues under investigation
 
 ## Model Summary by Domain
 
@@ -10,13 +14,13 @@ The Databricks Health Monitor includes **25 production ML models** across 5 doma
 |---|---|---|
 | **COST** | 6 | Anomaly detection, forecasting, optimization |
 | **SECURITY** | 4 | Threat detection, behavior analysis |
-| **PERFORMANCE** | 7 | Query optimization, capacity planning |
+| **PERFORMANCE** | 4 | Query optimization, anomaly detection |
 | **RELIABILITY** | 5 | Failure prediction, duration forecasting |
-| **QUALITY** | 3 | Data drift, schema changes |
+| **QUALITY** | 2 | Data drift, freshness prediction |
 
 ---
 
-## Quick Reference: All 25 Models
+## Quick Reference: All 24 Models
 
 | # | Domain | Model Name | Algorithm | Model Type | Feature Table | Primary Keys |
 |:---:|:---:|---|---|---|---|---|
@@ -43,8 +47,9 @@ The Databricks Health Monitor includes **25 production ML models** across 5 doma
 | 21 | 🔄 RELIABILITY | `retry_success_predictor` | XGBoost | Binary Classification | `reliability_features` | `job_id`, `run_date` |
 | 22 | 🔄 RELIABILITY | `pipeline_health_scorer` | Gradient Boosting | Regression | `reliability_features` | `job_id`, `run_date` |
 | 23 | 📊 QUALITY | `data_drift_detector` | Isolation Forest | Anomaly Detection | `quality_features` | `catalog_name`, `snapshot_date` |
-| 24 | 📊 QUALITY | `schema_change_predictor` | Random Forest | Binary Classification | `quality_features` | `catalog_name`, `snapshot_date` |
-| 25 | 📊 QUALITY | `data_freshness_predictor` | Gradient Boosting | Regression | `quality_features` | `catalog_name`, `snapshot_date` |
+| 24 | 📊 QUALITY | `data_freshness_predictor` | Gradient Boosting | Regression | `quality_features` | `catalog_name`, `snapshot_date` |
+
+> **Note:** `schema_change_predictor` was removed because `system.information_schema` doesn't track historical schema changes, making `schema_changes_7d` always 0 (single-class data cannot train a classifier).
 
 ### Model Type Distribution
 
@@ -52,8 +57,8 @@ The Databricks Health Monitor includes **25 production ML models** across 5 doma
 |---|:---:|---|
 | **Anomaly Detection** | 7 | `cost_anomaly_detector`, `security_threat_detector`, `exfiltration_detector`, `privilege_escalation_detector`, `user_behavior_baseline`, `performance_regression_detector`, `data_drift_detector` |
 | **Regression** | 9 | `budget_forecaster`, `job_cost_optimizer`, `chargeback_attribution`, `query_performance_forecaster`, `warehouse_optimizer`, `cluster_capacity_planner`, `job_duration_forecaster`, `pipeline_health_scorer`, `data_freshness_predictor` |
-| **Binary Classification** | 8 | `commitment_recommender`, `cache_hit_predictor`, `query_optimization_recommender`, `job_failure_predictor`, `sla_breach_predictor`, `retry_success_predictor`, `schema_change_predictor` |
-| **Multi-class Classification** | 1 | `tag_recommender` (TF-IDF + Random Forest), `dbr_migration_risk_scorer` |
+| **Binary Classification** | 6 | `commitment_recommender`, `cache_hit_predictor`, `query_optimization_recommender`, `job_failure_predictor`, `sla_breach_predictor`, `retry_success_predictor` |
+| **Multi-class Classification** | 2 | `tag_recommender` (TF-IDF + Random Forest), `dbr_migration_risk_scorer` |
 
 ### Algorithm Distribution
 
@@ -62,7 +67,7 @@ The Databricks Health Monitor includes **25 production ML models** across 5 doma
 | **Isolation Forest** | 7 | Unsupervised anomaly detection |
 | **Gradient Boosting Regressor** | 9 | Continuous value prediction |
 | **XGBoost Classifier** | 6 | High-performance binary classification |
-| **Random Forest Classifier** | 3 | Robust multi-class classification |
+| **Random Forest Classifier** | 2 | Robust multi-class classification |
 
 ---
 

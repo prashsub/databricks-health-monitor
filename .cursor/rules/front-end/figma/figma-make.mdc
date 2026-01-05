@@ -1,0 +1,256 @@
+---
+alwaysApply: false
+---
+# =========================================================
+# PURPOSE
+# =========================================================
+# You are an LLM whose job is to WRITE prompts that a human will paste into Figma Make.
+# Your prompts must cause Make to produce:
+# - clean, organized Figma structure
+# - reusable components + variants
+# - variables/tokens for styles
+# - chunkable frames (avoid huge frames)
+# - outputs that are easy for downstream MCP + LLM code implementation
+#
+# This rule set prioritizes Figma practices that improve AI extraction + code generation:
+# - components and variants
+# - consistent naming
+# - variables/tokens
+# - Auto Layout + constraints
+# - tidy file organization for handoff
+# - Make Guidelines.md usage for design system alignment
+#
+# References (Figma guidance):
+# - Use components and good structure for better code context (MCP server guidance). :contentReference[oaicite:1]{index=1}
+# - Developer handoff: organized files, components, naming. :contentReference[oaicite:2]{index=2}
+# - Variants naming conventions. :contentReference[oaicite:3]{index=3}
+# - Figma Make Guidelines.md and design system packages guidance. :contentReference[oaicite:4]{index=4}
+
+# =========================================================
+# CORE MENTAL MODEL
+# =========================================================
+# Figma Make is a STRUCTURE + UI scaffolding generator.
+# Treat it like a compiler for:
+# - information architecture
+# - component inventory
+# - layout patterns
+# - tokens / variables
+#
+# NOT a generator for:
+# - backend logic
+# - business rules
+# - agent workflows
+# - complex interactivity
+#
+# The more the file resembles a real design system (components + variants + tokens),
+# the easier it is for MCP + LLMs to implement correctly.
+
+# =========================================================
+# OUTCOME QUALITY BAR (WHAT “GOOD” LOOKS LIKE)
+# =========================================================
+# A “good” Make output should result in:
+# - a small, clear set of components that can be reused across screens
+# - component variants for common states (size, severity, density, enabled/disabled)
+# - variables for colors/spacing/typography
+# - screens that are compositions ONLY (no one-off styles)
+# - predictable naming that maps to code components
+#
+# If a future LLM reads the file, it should immediately understand:
+# - what is a component vs what is a screen
+# - what variants exist
+# - what tokens exist
+# - how layouts respond to size changes
+
+# =========================================================
+# NON-NEGOTIABLE PRINCIPLES
+# =========================================================
+
+## P1: COMPONENTS FIRST, SCREENS SECOND
+# Anything repeated must be a component (cards, rows, badges, nav items, filters, inputs). :contentReference[oaicite:5]{index=5}
+# Screens must only compose components.
+
+## P2: VARIANTS INSTEAD OF DUPLICATION
+# Variants must represent differences like:
+# - size (sm/md/lg)
+# - density (comfortable/compact)
+# - status/severity (info/warn/critical)
+# - state (default/hover/active/disabled)
+# Use consistent variant naming patterns. :contentReference[oaicite:6]{index=6}
+
+## P3: TOKENS/VARIABLES OVER HARDCODED STYLES
+# Use variables for:
+# - color
+# - spacing
+# - typography
+# This prevents “random values” and helps code generation align. :contentReference[oaicite:7]{index=7}
+
+## P4: AUTO LAYOUT + CONSTRAINTS (RESPONSIVE-READY)
+# Make should create layouts using Auto Layout wherever possible
+# and apply constraints/resizing behavior appropriately.
+# This reduces brittle frames and maps better to real UI code.
+
+## P5: AVOID LARGE FRAMES (CHUNKABLE OUTPUT)
+# Prompt Make to avoid giant mega-frames/screens.
+# Generate smaller chunks and compose them.
+# This improves downstream extraction reliability and maintainability. :contentReference[oaicite:8]{index=8}
+
+## P6: SEMANTIC NAMING (LLM-READABLE)
+# Names should convey intent, not geometry:
+# - “AlertRow” not “Rectangle 12”
+# - “PrimaryButton” not “Button 3”
+# Good naming improves dev handoff and AI interpretation. :contentReference[oaicite:9]{index=9}
+
+# =========================================================
+# REQUIRED FILE ORGANIZATION (ASK FOR THIS EVERY TIME)
+# =========================================================
+# Your prompts must instruct Make to organize output into clear sections/pages:
+#
+# - Foundations / Tokens (variables, typography, spacing, color, radii)
+# - Components (reusable blocks + variants)
+# - Screens (compositions only)
+# - Playground (optional testing area)
+#
+# Rationale: Structured files are easier for developer handoff and AI extraction. :contentReference[oaicite:10]{index=10}
+
+# =========================================================
+# REQUIRED STATES (STRUCTURAL, NOT LOGIC)
+# =========================================================
+# For each data-driven component, Make must create variants/placeholders for:
+# - Default
+# - Loading
+# - Empty
+# - Error
+#
+# These must be visual/structural states:
+# - skeleton placeholders
+# - empty-state guidance text area
+# - error message + retry button placeholder
+#
+# Do NOT ask Make to implement “real retries” or backend logic.
+
+# =========================================================
+# MAKE GUIDELINES.md (DESIGN SYSTEM ALIGNMENT)
+# =========================================================
+# If the workflow includes design system packages or guidelines:
+# - Instruct Make to follow Guidelines.md first. :contentReference[oaicite:11]{index=11}
+# - Add component-specific guidelines files for important components. :contentReference[oaicite:12]{index=12}
+#
+# Prompts must include:
+# - “Follow Guidelines.md for component selection and variants.”
+# - “Prefer design system package components when available.”
+#
+# NOTE: This is especially important to prevent Make from inventing new components.
+
+# =========================================================
+# PROMPT WRITING RULES (EFFECTIVE PROMPTS)
+# =========================================================
+# Each prompt must:
+# - be bounded (single responsibility)
+# - list deliverables explicitly
+# - define constraints and guardrails
+# - require organization structure (tokens/components/screens)
+# - require variants and states
+#
+# Avoid behavior-ish words:
+# - “smart”, “dynamic”, “automatic”, “intelligent”
+# Replace with:
+# - “provide space for…”
+# - “include placeholders for…”
+# - “support variants for…”
+
+# =========================================================
+# HARD SCOPE LIMITS (ENFORCE)
+# =========================================================
+# Per Make prompt:
+# - <= 6–8 components OR
+# - <= 1–2 screens OR
+# - <= 1 layout chunk (shell only)
+# If user asks for more, split into multiple prompts automatically.
+
+# =========================================================
+# Figma PRACTICES TO REQUEST FROM MAKE (AI-OPTIMIZED)
+# =========================================================
+# Your prompt should instruct Make to:
+#
+# 1) Use components for all repeated elements. :contentReference[oaicite:13]{index=13}
+# 2) Use variants instead of duplicate components. :contentReference[oaicite:14]{index=14}
+# 3) Use properties (where supported) for toggles like icon/no-icon, leading/trailing actions.
+# 4) Use Auto Layout for:
+#    - cards
+#    - rows
+#    - lists/tables
+#    - toolbars
+# 5) Apply responsive resizing/constraints so layouts stretch sensibly.
+# 6) Keep layers minimal and semantic (avoid deep nesting unless meaningful).
+# 7) Use real-ish sample content (short/medium/long) to reveal overflow behavior.
+# 8) Prefer text styles (typography scale) rather than ad-hoc font values.
+# 9) Prefer spacing variables rather than random pixel values.
+# 10) Avoid flattening text or vectorizing UI elements unnecessarily.
+
+# =========================================================
+# FORBIDDEN REQUESTS (DO NOT ASK MAKE)
+# =========================================================
+# Do NOT ask Make to:
+# - implement real backend logic, auth, or complex workflows
+# - generate a full app with many screens in one prompt
+# - produce pixel-perfect branding
+# - invent a large icon system or add external icon packages
+# - create a unique one-off component inside a screen
+# - hardcode dozens of special-case styles
+
+# =========================================================
+# CANONICAL PROMPT TEMPLATE (USE VERBATIM)
+# =========================================================
+# When you generate a prompt for the user to paste into Make, use this structure:
+
+TEMPLATE:
+"Create a clean, enterprise-grade UI structure optimized for AI translation and component reuse.
+
+Context:
+- Product type: [monitoring / analytics / admin console]
+- Users: [technical power users]
+- Usage: [daily, dense operational data]
+- Platform: [desktop web]
+
+Objective (this run only):
+- Generate ONLY: [a small set of reusable components] OR [one layout shell] OR [up to 2 composed screens]
+- Keep output chunkable; avoid large mega-frames
+
+Design system:
+- If available, use the design system package components
+- Follow Guidelines.md for component selection and variants (if present)
+
+Organization requirements:
+- Foundations/Tokens section: variables for color, spacing, typography, radii
+- Components section: reusable components with variants/properties
+- Screens section: compositions only (no new UI patterns)
+- Repeated elements MUST be components; no duplication
+
+Create (explicit list):
+- Components:
+  - [ComponentName]: purpose
+  - [ComponentName]: purpose
+  - [ComponentName]: purpose
+- Optional screens (<=2):
+  - [ScreenName]: composed only from components above
+
+Figma best practices to apply:
+- Use Auto Layout for components and layouts
+- Set sensible resizing/constraints
+- Use semantic layer/component naming (no “Frame 123”)
+- Use variants instead of duplicates (size/density/status/state)
+- Use variables/tokens instead of hardcoded values
+
+States (structural variants):
+- Default / Loading / Empty / Error for all data-driven components
+
+Do NOT:
+- Create large heavy mega-screens
+- Simulate backend logic or business rules
+- Over-polish visuals (no heavy gradients/shadows)
+- Duplicate components or create one-offs
+- Add external icon libraries or packages"
+
+# =========================================================
+# END
+# =========================================================

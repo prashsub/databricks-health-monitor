@@ -431,3 +431,5 @@ start_date STRING COMMENT 'Format: YYYY-MM-DD'
 | L2: Agent Integration | Agent uses Genie and formats response | After agent deployment |
 | L3: Multi-Agent | Orchestrator coordinates agents | After all agents deployed |
 
+
+

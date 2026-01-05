@@ -26,9 +26,9 @@ graph TB
         LTM[Long-Term Memory<br/>TTL: 365 days]
     end
     
-    subgraph Tables [Unity Catalog Tables]
-        ST[health_monitor.memory.short_term]
-        LT[health_monitor.memory.long_term]
+    subgraph Tables [Unity Catalog Tables - Consolidated Schema]
+        ST[{catalog}.{agent_schema}.memory_short_term]
+        LT[{catalog}.{agent_schema}.memory_long_term]
     end
     
     O --> STM & LTM
@@ -56,9 +56,15 @@ Short-term memory stores conversation history to enable:
 
 ### Schema
 
+> **Note**: CONSOLIDATED schema (avoids sprawl):
+> - Dev: `prashanth_subrahmanyam_catalog.dev_<user>_system_gold_agent`
+> - Prod: `main.system_gold_agent`
+> - Tables use `memory_` prefix: `memory_short_term`, `memory_long_term`
+
 ```sql
--- Short-term memory table
-CREATE TABLE health_monitor.memory.short_term (
+-- Short-term memory table (CONSOLIDATED schema with prefix)
+-- Table is auto-managed by Lakebase CheckpointSaver
+CREATE TABLE {catalog}.{agent_schema}.memory_short_term (
     session_id STRING NOT NULL,
     user_id STRING NOT NULL,
     message_id STRING NOT NULL,

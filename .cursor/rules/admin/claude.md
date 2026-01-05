@@ -233,3 +233,5 @@ When user says:
 - `context/prompts/` - Domain context for AI
 - `docs/` - Human-readable documentation
 
+
+

@@ -205,6 +205,71 @@
                 }
               },
               {
+                "name": "parameter_dashboards/dummy/datasets/ds_warehouse_usage_trend_time_range",
+                "query": {
+                  "datasetName": "ds_warehouse_usage_trend",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_warehouse_type_distribution_time_range",
+                "query": {
+                  "datasetName": "ds_warehouse_type_distribution",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_warehouse_long_queries_time_range",
+                "query": {
+                  "datasetName": "ds_warehouse_long_queries",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_query_source_distribution_time_range",
+                "query": {
+                  "datasetName": "ds_query_source_distribution",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_warehouse_cost_ranking_time_range",
+                "query": {
+                  "datasetName": "ds_warehouse_cost_ranking",
+                  "parameters": [
+                    {
+                      "name": "time_range",
+                      "keyword": "time_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
                 "name": "parameter_dashboards/dummy/datasets/ds_monitor_latest_time_range",
                 "query": {
                   "datasetName": "ds_monitor_latest",
@@ -502,6 +567,96 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_job_low_cpu_time_range",
+                "query": {
+                  "datasetName": "ds_job_low_cpu",
+                  "parameters": [
+                    { "name": "time_range", "keyword": "time_range" }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_job_high_mem_time_range",
+                "query": {
+                  "datasetName": "ds_job_high_mem",
+                  "parameters": [
+                    { "name": "time_range", "keyword": "time_range" }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_job_cost_savings_time_range",
+                "query": {
+                  "datasetName": "ds_job_cost_savings",
+                  "parameters": [
+                    { "name": "time_range", "keyword": "time_range" }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_job_utilization_distribution_time_range",
+                "query": {
+                  "datasetName": "ds_job_utilization_distribution",
+                  "parameters": [
+                    { "name": "time_range", "keyword": "time_range" }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_job_kpi_utilization_time_range",
+                "query": {
+                  "datasetName": "ds_job_kpi_utilization",
+                  "parameters": [
+                    { "name": "time_range", "keyword": "time_range" }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_job_expensive_time_range",
+                "query": {
+                  "datasetName": "ds_job_expensive",
+                  "parameters": [
+                    { "name": "time_range", "keyword": "time_range" }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_job_cost_change_time_range",
+                "query": {
+                  "datasetName": "ds_job_cost_change",
+                  "parameters": [
+                    { "name": "time_range", "keyword": "time_range" }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_job_failure_cost_time_range",
+                "query": {
+                  "datasetName": "ds_job_failure_cost",
+                  "parameters": [
+                    { "name": "time_range", "keyword": "time_range" }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/dummy/datasets/ds_job_ap_clusters_time_range",
+                "query": {
+                  "datasetName": "ds_job_ap_clusters",
+                  "parameters": [
+                    { "name": "time_range", "keyword": "time_range" }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -568,6 +723,26 @@
                   {
                     "parameterName": "time_range",
                     "queryName": "parameter_dashboards/dummy/datasets/ds_warehouse_hourly_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_warehouse_usage_trend_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_warehouse_type_distribution_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_warehouse_long_queries_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_query_source_distribution_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_warehouse_cost_ranking_time_range"
                   },
                   {
                     "parameterName": "time_range",
@@ -660,6 +835,42 @@
                   {
                     "parameterName": "time_range",
                     "queryName": "parameter_dashboards/dummy/datasets/ds_legacy_jobs_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_job_low_cpu_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_job_high_mem_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_job_cost_savings_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_job_utilization_distribution_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_job_kpi_utilization_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_job_expensive_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_job_cost_change_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_job_failure_cost_time_range"
+                  },
+                  {
+                    "parameterName": "time_range",
+                    "queryName": "parameter_dashboards/dummy/datasets/ds_job_ap_clusters_time_range"
                   }
                 ]
               },
@@ -1777,6 +1988,18 @@
                     {
                       "name": "failure_rate",
                       "expression": "`failure_rate`"
+                    },
+                    {
+                      "name": "data_scanned_gb",
+                      "expression": "`data_scanned_gb`"
+                    },
+                    {
+                      "name": "spill_pct",
+                      "expression": "`spill_pct`"
+                    },
+                    {
+                      "name": "active_users",
+                      "expression": "`active_users`"
                     }
                   ]
                 }
@@ -1794,12 +2017,12 @@
                   },
                   {
                     "fieldName": "total_queries",
-                    "title": "Total Queries",
+                    "title": "Queries",
                     "type": "number"
                   },
                   {
                     "fieldName": "avg_duration",
-                    "title": "Avg Duration (s)",
+                    "title": "Avg (s)",
                     "type": "number"
                   },
                   {
@@ -1809,7 +2032,22 @@
                   },
                   {
                     "fieldName": "failure_rate",
-                    "title": "Fail Rate %",
+                    "title": "Fail %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "data_scanned_gb",
+                    "title": "Data (GB)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "spill_pct",
+                    "title": "Spill %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "active_users",
+                    "title": "Users",
                     "type": "number"
                   }
                 ]
@@ -1855,16 +2093,22 @@
               "encodings": {
                 "color": {
                   "fieldName": "warehouse_name",
-                  "displayName": "Warehouse"
+                  "displayName": "Warehouse",
+                  "scale": {
+                    "type": "categorical"
+                  }
                 },
                 "angle": {
                   "fieldName": "query_count",
-                  "displayName": "Queries"
+                  "displayName": "Query Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcca Query Distribution by Warehouse"
+                "title": "📊 Query Distribution by Warehouse"
               }
             }
           },
@@ -1934,6 +2178,416 @@
             "x": 3,
             "y": 6,
             "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_warehouse_usage_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_warehouse_usage_trend",
+                  "fields": [
+                    {
+                      "name": "usage_date",
+                      "expression": "`usage_date`"
+                    },
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "compute_hours",
+                      "expression": "`compute_hours`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "usage_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "compute_hours",
+                  "displayName": "Compute Hours",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "warehouse_name",
+                  "displayName": "Warehouse",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcc8 Warehouse Usage Over Time (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_warehouse_type_dist",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_warehouse_type_distribution",
+                  "fields": [
+                    {
+                      "name": "warehouse_type",
+                      "expression": "`warehouse_type`"
+                    },
+                    {
+                      "name": "compute_hours",
+                      "expression": "`compute_hours`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "color": {
+                  "fieldName": "warehouse_type",
+                  "displayName": "Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "angle": {
+                  "fieldName": "compute_hours",
+                  "displayName": "Compute Hours",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83c\udfaf Usage by Warehouse Type"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_query_source_dist",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_query_source_distribution",
+                  "fields": [
+                    {
+                      "name": "query_source",
+                      "expression": "`query_source`"
+                    },
+                    {
+                      "name": "query_count",
+                      "expression": "`query_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "color": {
+                  "fieldName": "query_source",
+                  "displayName": "Source",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "angle": {
+                  "fieldName": "query_count",
+                  "displayName": "Queries",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcbb Query Source Distribution"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 18,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "chart_warehouse_cost_ranking",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_warehouse_cost_ranking",
+                  "fields": [
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "compute_hours",
+                      "expression": "`compute_hours`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "compute_hours",
+                  "displayName": "Compute Hours",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "warehouse_name",
+                  "displayName": "Warehouse",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "warehouse_name",
+                  "displayName": "Warehouse",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udcb0 Top Warehouses by Compute Hours"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 24,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_long_running_queries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_warehouse_long_queries",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    },
+                    {
+                      "name": "long_queries_30s",
+                      "expression": "`long_queries_30s`"
+                    },
+                    {
+                      "name": "long_queries_60s",
+                      "expression": "`long_queries_60s`"
+                    },
+                    {
+                      "name": "long_queries_5m",
+                      "expression": "`long_queries_5m`"
+                    },
+                    {
+                      "name": "long_query_pct",
+                      "expression": "`long_query_pct`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "warehouse_name",
+                    "title": "Warehouse",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "total_queries",
+                    "title": "Total Queries",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "long_queries_30s",
+                    "title": ">30s",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "long_queries_60s",
+                    "title": ">60s",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "long_queries_5m",
+                    "title": ">5min",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "long_query_pct",
+                    "title": "Long Query %",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u26a0\ufe0f Long-Running Queries by Warehouse"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 30,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_warehouse_config",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_warehouse_config_snapshot",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "warehouse_type",
+                      "expression": "`warehouse_type`"
+                    },
+                    {
+                      "name": "warehouse_size",
+                      "expression": "`warehouse_size`"
+                    },
+                    {
+                      "name": "min_clusters",
+                      "expression": "`min_clusters`"
+                    },
+                    {
+                      "name": "max_clusters",
+                      "expression": "`max_clusters`"
+                    },
+                    {
+                      "name": "auto_stop_minutes",
+                      "expression": "`auto_stop_minutes`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "warehouse_name",
+                    "title": "Warehouse",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "warehouse_type",
+                    "title": "Type",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "warehouse_size",
+                    "title": "Size",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "min_clusters",
+                    "title": "Min",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "max_clusters",
+                    "title": "Max",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "auto_stop_minutes",
+                    "title": "Auto-Stop (min)",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\u2699\ufe0f Warehouse Configuration Snapshot"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 36,
+            "width": 6,
             "height": 6
           }
         }
@@ -2169,7 +2823,7 @@
     },
     {
       "name": "page_monitoring",
-      "displayName": "\ud83d\udcca Lakehouse Monitoring",
+      "displayName": "📈 Query Metrics Overview",
       "layout": [
         {
           "widget": {
@@ -3950,7 +4604,7 @@
     },
     {
       "name": "page_monitoring_2",
-      "displayName": "\ud83d\udcca Cluster Monitoring",
+      "displayName": "📈 Cluster Metrics Detail",
       "layout": [
         {
           "widget": {
@@ -4370,6 +5024,480 @@
       ]
     },
     {
+      "name": "page_job_utilization",
+      "displayName": "📊 Job Resource Utilization",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_total_jobs_util",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_kpi_utilization",
+                  "fields": [
+                    { "name": "total_jobs", "expression": "`total_jobs`" }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_jobs",
+                  "displayName": "Jobs Analyzed"
+                }
+              },
+              "frame": { "showTitle": true, "title": "Jobs with Utilization Data" }
+            }
+          },
+          "position": { "x": 0, "y": 0, "width": 1, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_cpu",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_kpi_utilization",
+                  "fields": [
+                    { "name": "avg_cpu_utilization", "expression": "`avg_cpu_utilization`" }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_cpu_utilization",
+                  "displayName": "Avg CPU %"
+                }
+              },
+              "frame": { "showTitle": true, "title": "Avg CPU Utilization %" }
+            }
+          },
+          "position": { "x": 1, "y": 0, "width": 1, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_memory",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_kpi_utilization",
+                  "fields": [
+                    { "name": "avg_memory_utilization", "expression": "`avg_memory_utilization`" }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_memory_utilization",
+                  "displayName": "Avg Mem %"
+                }
+              },
+              "frame": { "showTitle": true, "title": "Avg Memory Utilization %" }
+            }
+          },
+          "position": { "x": 2, "y": 0, "width": 1, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_low_cpu_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_kpi_utilization",
+                  "fields": [
+                    { "name": "low_cpu_jobs", "expression": "`low_cpu_jobs`" }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "low_cpu_jobs",
+                  "displayName": "Low CPU Jobs"
+                }
+              },
+              "frame": { "showTitle": true, "title": "Low CPU Jobs (<30%)" }
+            }
+          },
+          "position": { "x": 3, "y": 0, "width": 1, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_high_mem_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_kpi_utilization",
+                  "fields": [
+                    { "name": "high_memory_jobs", "expression": "`high_memory_jobs`" }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "high_memory_jobs",
+                  "displayName": "High Mem Jobs"
+                }
+              },
+              "frame": { "showTitle": true, "title": "High Memory Jobs (>70%)" }
+            }
+          },
+          "position": { "x": 4, "y": 0, "width": 1, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "kpi_potential_savings",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_kpi_utilization",
+                  "fields": [
+                    { "name": "total_potential_savings", "expression": "`total_potential_savings`" }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_potential_savings",
+                  "displayName": "Potential Savings"
+                }
+              },
+              "frame": { "showTitle": true, "title": "💰 Total Potential Savings ($)" }
+            }
+          },
+          "position": { "x": 5, "y": 0, "width": 1, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "chart_cpu_distribution",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_utilization_distribution",
+                  "fields": [
+                    { "name": "cpu_range", "expression": "`cpu_range`" },
+                    { "name": "job_count", "expression": "`job_count`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "cpu_range",
+                  "displayName": "CPU Utilization Range",
+                  "scale": { "type": "categorical" }
+                },
+                "y": {
+                  "fieldName": "job_count",
+                  "displayName": "Job Count",
+                  "scale": { "type": "quantitative" }
+                }
+              },
+              "frame": { "showTitle": true, "title": "📊 Job CPU Utilization Distribution" }
+            }
+          },
+          "position": { "x": 0, "y": 2, "width": 3, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "table_cost_savings",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_cost_savings",
+                  "fields": [
+                    { "name": "job_name", "expression": "`job_name`" },
+                    { "name": "avg_cpu", "expression": "`avg_cpu`" },
+                    { "name": "avg_memory", "expression": "`avg_memory`" },
+                    { "name": "total_cost", "expression": "`total_cost`" },
+                    { "name": "max_savings", "expression": "`max_savings`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "job_name", "title": "Job Name", "type": "string" },
+                  { "fieldName": "avg_cpu", "title": "Avg CPU %", "type": "number" },
+                  { "fieldName": "avg_memory", "title": "Avg Memory %", "type": "number" },
+                  { "fieldName": "total_cost", "title": "Total Cost ($)", "type": "number", "numberFormat": "$0.00" },
+                  { "fieldName": "max_savings", "title": "Max Savings ($)", "type": "number", "numberFormat": "$0.00" }
+                ]
+              },
+              "frame": { "showTitle": true, "title": "💰 Top Cost Savings Opportunities" }
+            }
+          },
+          "position": { "x": 3, "y": 2, "width": 3, "height": 6 }
+        },
+        {
+          "widget": {
+            "name": "table_low_cpu_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_low_cpu",
+                  "fields": [
+                    { "name": "job_name", "expression": "`job_name`" },
+                    { "name": "avg_cpu", "expression": "`avg_cpu`" },
+                    { "name": "peak_cpu", "expression": "`peak_cpu`" },
+                    { "name": "avg_memory", "expression": "`avg_memory`" },
+                    { "name": "total_cost", "expression": "`total_cost`" },
+                    { "name": "potential_savings", "expression": "`potential_savings`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "job_name", "title": "Job Name", "type": "string" },
+                  { "fieldName": "avg_cpu", "title": "Avg CPU %", "type": "number" },
+                  { "fieldName": "peak_cpu", "title": "Peak CPU %", "type": "number" },
+                  { "fieldName": "avg_memory", "title": "Avg Memory %", "type": "number" },
+                  { "fieldName": "total_cost", "title": "Total Cost ($)", "type": "number", "numberFormat": "$0.00" },
+                  { "fieldName": "potential_savings", "title": "Potential Savings ($)", "type": "number", "numberFormat": "$0.00" }
+                ]
+              },
+              "frame": { "showTitle": true, "title": "🔻 Jobs with Low CPU Utilization (<30%)", "showDescription": true, "description": "Jobs with low average CPU utilization. Consider rightsizing to smaller instances or enabling autoscaling." }
+            }
+          },
+          "position": { "x": 0, "y": 8, "width": 6, "height": 7 }
+        },
+        {
+          "widget": {
+            "name": "table_high_mem_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_high_mem",
+                  "fields": [
+                    { "name": "job_name", "expression": "`job_name`" },
+                    { "name": "avg_cpu", "expression": "`avg_cpu`" },
+                    { "name": "avg_memory", "expression": "`avg_memory`" },
+                    { "name": "peak_memory", "expression": "`peak_memory`" },
+                    { "name": "avg_io_wait", "expression": "`avg_io_wait`" },
+                    { "name": "total_cost", "expression": "`total_cost`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "job_name", "title": "Job Name", "type": "string" },
+                  { "fieldName": "avg_cpu", "title": "Avg CPU %", "type": "number" },
+                  { "fieldName": "avg_memory", "title": "Avg Memory %", "type": "number" },
+                  { "fieldName": "peak_memory", "title": "Peak Memory %", "type": "number" },
+                  { "fieldName": "avg_io_wait", "title": "I/O Wait %", "type": "number" },
+                  { "fieldName": "total_cost", "title": "Total Cost ($)", "type": "number", "numberFormat": "$0.00" }
+                ]
+              },
+              "frame": { "showTitle": true, "title": "🔺 Jobs with High Memory Utilization (>70%)", "showDescription": true, "description": "Jobs with high average memory utilization. Consider using memory-optimized instances or checking for memory leaks." }
+            }
+          },
+          "position": { "x": 0, "y": 15, "width": 6, "height": 7 }
+        },
+        {
+          "widget": {
+            "name": "table_expensive_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_expensive",
+                  "fields": [
+                    { "name": "job_name", "expression": "`job_name`" },
+                    { "name": "workspace_name", "expression": "`workspace_name`" },
+                    { "name": "runs", "expression": "`runs`" },
+                    { "name": "total_cost", "expression": "`total_cost`" },
+                    { "name": "owner", "expression": "`owner`" },
+                    { "name": "last_run", "expression": "`last_run`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "job_name", "title": "Job Name", "type": "string" },
+                  { "fieldName": "workspace_name", "title": "Workspace", "type": "string" },
+                  { "fieldName": "runs", "title": "Runs", "type": "number" },
+                  { "fieldName": "total_cost", "title": "Total Cost ($)", "type": "number", "numberFormat": "$0.00" },
+                  { "fieldName": "owner", "title": "Owner", "type": "string" },
+                  { "fieldName": "last_run", "title": "Last Run", "type": "date" }
+                ]
+              },
+              "frame": { "showTitle": true, "title": "💰 Most Expensive Jobs (30d)", "showDescription": true, "description": "Top 15 jobs by total cost. Review for optimization opportunities like rightsizing or serverless migration." }
+            }
+          },
+          "position": { "x": 0, "y": 22, "width": 6, "height": 7 }
+        },
+        {
+          "widget": {
+            "name": "table_cost_change_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_cost_change",
+                  "fields": [
+                    { "name": "job_name", "expression": "`job_name`" },
+                    { "name": "last_7d", "expression": "`last_7d`" },
+                    { "name": "prev_7d", "expression": "`prev_7d`" },
+                    { "name": "growth", "expression": "`growth`" },
+                    { "name": "growth_pct", "expression": "`growth_pct`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "job_name", "title": "Job Name", "type": "string" },
+                  { "fieldName": "last_7d", "title": "Last 7d ($)", "type": "number", "numberFormat": "$0.00" },
+                  { "fieldName": "prev_7d", "title": "Prev 7d ($)", "type": "number", "numberFormat": "$0.00" },
+                  { "fieldName": "growth", "title": "Change ($)", "type": "number", "numberFormat": "$0.00" },
+                  { "fieldName": "growth_pct", "title": "Change %", "type": "number" }
+                ]
+              },
+              "frame": { "showTitle": true, "title": "📈 Jobs with Highest Cost Increase (WoW)", "showDescription": true, "description": "Jobs with the largest week-over-week cost increase. Investigate for unexpected growth patterns." }
+            }
+          },
+          "position": { "x": 0, "y": 29, "width": 3, "height": 7 }
+        },
+        {
+          "widget": {
+            "name": "table_failure_cost",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_failure_cost",
+                  "fields": [
+                    { "name": "job_name", "expression": "`job_name`" },
+                    { "name": "failure_cost", "expression": "`failure_cost`" },
+                    { "name": "failures", "expression": "`failures`" },
+                    { "name": "total_runs", "expression": "`total_runs`" },
+                    { "name": "success_rate", "expression": "`success_rate`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "job_name", "title": "Job Name", "type": "string" },
+                  { "fieldName": "failure_cost", "title": "Failure Cost ($)", "type": "number", "numberFormat": "$0.00" },
+                  { "fieldName": "failures", "title": "Failures", "type": "number" },
+                  { "fieldName": "total_runs", "title": "Total Runs", "type": "number" },
+                  { "fieldName": "success_rate", "title": "Success %", "type": "number" }
+                ]
+              },
+              "frame": { "showTitle": true, "title": "❌ Job Failure Cost Analysis", "showDescription": true, "description": "Cost wasted on failed job runs. High failure costs indicate reliability issues worth investigating." }
+            }
+          },
+          "position": { "x": 3, "y": 29, "width": 3, "height": 7 }
+        },
+        {
+          "widget": {
+            "name": "table_ap_cluster_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_job_ap_clusters",
+                  "fields": [
+                    { "name": "job_name", "expression": "`job_name`" },
+                    { "name": "cluster_name", "expression": "`cluster_name`" },
+                    { "name": "task_runs", "expression": "`task_runs`" },
+                    { "name": "total_cost", "expression": "`total_cost`" },
+                    { "name": "owner", "expression": "`owner`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "job_name", "title": "Job Name", "type": "string" },
+                  { "fieldName": "cluster_name", "title": "AP Cluster", "type": "string" },
+                  { "fieldName": "task_runs", "title": "Task Runs", "type": "number" },
+                  { "fieldName": "total_cost", "title": "Total Cost ($)", "type": "number", "numberFormat": "$0.00" },
+                  { "fieldName": "owner", "title": "Owner", "type": "string" }
+                ]
+              },
+              "frame": { "showTitle": true, "title": "🖥️ Jobs Running on All-Purpose Clusters", "showDescription": true, "description": "Jobs running on interactive (all-purpose) clusters instead of job clusters. Consider using dedicated job clusters for cost savings." }
+            }
+          },
+          "position": { "x": 0, "y": 36, "width": 6, "height": 7 }
+        }
+      ]
+    },
+    {
       "name": "page_dbr_overview",
       "displayName": "DBR Version Status",
       "layout": [
@@ -4710,7 +5838,7 @@
     },
     {
       "name": "performance_lakehouse_monitoring",
-      "displayName": "Lakehouse Monitoring - fact_query_history",
+      "displayName": "🔬 Advanced Query Metrics",
       "layout": [
         {
           "widget": {
@@ -5258,60 +6386,46 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
                   {
                     "fieldName": "window_start",
-                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
-                    "type": "datetime",
-                    "displayAs": "datetime",
-                    "visible": true,
-                    "order": 0,
-                    "title": "Window Start"
+                    "title": "Window Start",
+                    "type": "datetime"
                   },
                   {
                     "fieldName": "window_end",
-                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
-                    "type": "datetime",
-                    "displayAs": "datetime",
-                    "visible": true,
-                    "order": 1,
-                    "title": "Window End"
+                    "title": "Window End",
+                    "type": "datetime"
                   },
                   {
                     "fieldName": "total_queries",
-                    "numberFormat": "0.00",
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 2,
-                    "title": "Total Queries"
+                    "title": "Total Queries",
+                    "type": "number"
                   },
                   {
                     "fieldName": "successful_queries",
-                    "numberFormat": "0.00",
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 3,
-                    "title": "Successful Queries"
+                    "title": "Successful",
+                    "type": "number"
                   },
                   {
                     "fieldName": "failed_queries",
-                    "numberFormat": "0.00",
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 4,
-                    "title": "Failed Queries"
+                    "title": "Failed",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "avg_duration_sec",
+                    "title": "Avg Duration (s)",
+                    "type": "number"
                   }
                 ]
               },
-              "itemsPerPage": 25,
-              "condensed": true,
-              "withRowNumber": false
+              "frame": {
+                "showTitle": true,
+                "title": "Performance Metrics Detail"
+              }
             }
           },
           "position": {
@@ -5329,7 +6443,7 @@
     {
       "name": "ds_kpi_queries",
       "displayName": "KPI: Queries",
-      "query": "SELECT FORMAT_NUMBER(COUNT(*), 0) AS query_count, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, FORMAT_NUMBER(COUNT(DISTINCT executed_by_user_id), 0) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max",
+      "query": "SELECT COUNT(*) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, COUNT(DISTINCT executed_by_user_id) AS unique_users FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5449,7 +6563,7 @@
     {
       "name": "ds_slowest_queries",
       "displayName": "Slowest Queries",
-      "query": "SELECT statement_id, executed_by_user_id AS user_identity_email, compute_type, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, execution_status FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max ORDER BY total_duration_ms DESC LIMIT 20",
+      "query": "SELECT statement_id AS query_id, COALESCE(executed_by, CAST(executed_by_user_id AS STRING)) AS user_identity_email, compute_type AS warehouse_name, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, execution_status AS status FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max ORDER BY total_duration_ms DESC LIMIT 20",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5473,7 +6587,7 @@
     {
       "name": "ds_slow_by_user",
       "displayName": "Slow by User",
-      "query": "SELECT executed_by_user_id AS user_identity_email, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS query_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
+      "query": "SELECT executed_by_user_id AS user_identity_email, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5497,7 +6611,7 @@
     {
       "name": "ds_slow_by_warehouse",
       "displayName": "Slow by Warehouse",
-      "query": "SELECT compute_type, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS query_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
+      "query": "SELECT compute_type AS warehouse_name, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5545,7 +6659,7 @@
     {
       "name": "ds_failed_queries",
       "displayName": "Failed Queries",
-      "query": "SELECT statement_id, executed_by_user_id AS user_identity_email, compute_type, error_message, start_time AS execution_time FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_status = 'FAILED' ORDER BY start_time DESC LIMIT 30",
+      "query": "SELECT statement_id AS query_id, COALESCE(executed_by, CAST(executed_by_user_id AS STRING)) AS user_identity_email, compute_type AS warehouse_name, error_message, start_time AS execution_time FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_status = 'FAILED' ORDER BY start_time DESC LIMIT 30",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5569,7 +6683,7 @@
     {
       "name": "ds_failed_by_error",
       "displayName": "Failed by Error",
-      "query": "SELECT COALESCE(SUBSTRING(error_message, 1, 50), 'Unknown') AS error_category, COUNT(*) AS failed_queries FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_status = 'FAILED' GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "query": "SELECT COALESCE(SUBSTRING(error_message, 1, 50), 'Unknown') AS error_category, COUNT(*) AS failure_count FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_status = 'FAILED' GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5617,7 +6731,7 @@
     {
       "name": "ds_warehouse_perf",
       "displayName": "Warehouse Performance",
-      "query": "SELECT compute_type, COUNT(*) AS query_count, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 1) AS p95_duration, ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS failure_rate FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY query_count DESC",
+      "query": "SELECT compute_type AS warehouse_name, COUNT(*) AS total_queries, ROUND(AVG(total_duration_ms / 1000.0), 2) AS avg_duration, ROUND(PERCENTILE_APPROX(total_duration_ms / 1000.0, 0.95), 2) AS p95_duration, ROUND(SUM(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS failure_rate, ROUND(SUM(COALESCE(read_bytes, 0)) / 1073741824.0, 2) AS data_scanned_gb, ROUND(SUM(CASE WHEN COALESCE(spilled_local_bytes, 0) > 0 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS spill_pct, COUNT(DISTINCT executed_by) AS active_users FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY total_queries DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5641,7 +6755,7 @@
     {
       "name": "ds_queries_by_warehouse",
       "displayName": "Queries by Warehouse",
-      "query": "SELECT compute_type, COUNT(*) AS query_count FROM ${catalog}.${gold_schema}.fact_query_history  WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "query": "SELECT compute_type AS warehouse_name, COUNT(*) AS query_count FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5687,24 +6801,149 @@
       ]
     },
     {
+      "name": "ds_warehouse_usage_trend",
+      "displayName": "Warehouse Usage Over Time",
+      "query": "SELECT DATE(start_time) AS usage_date, COALESCE(w.warehouse_name, f.compute_warehouse_id, 'Unknown') AS warehouse_name, COUNT(*) AS query_count, ROUND(SUM(total_duration_ms) / 1000.0 / 3600, 2) AS compute_hours FROM ${catalog}.${gold_schema}.fact_query_history f LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w ON f.workspace_id = w.workspace_id AND f.compute_warehouse_id = w.warehouse_id WHERE start_time BETWEEN :time_range.min AND :time_range.max AND f.compute_warehouse_id IS NOT NULL GROUP BY 1, 2 ORDER BY 1, 2",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-30d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_warehouse_type_distribution",
+      "displayName": "Usage by Warehouse Type",
+      "query": "SELECT COALESCE(w.warehouse_type, 'UNKNOWN') AS warehouse_type, COUNT(*) AS query_count, ROUND(SUM(f.total_duration_ms) / 1000.0 / 3600, 2) AS compute_hours FROM ${catalog}.${gold_schema}.fact_query_history f LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w ON f.workspace_id = w.workspace_id AND f.compute_warehouse_id = w.warehouse_id WHERE f.start_time BETWEEN :time_range.min AND :time_range.max AND f.compute_warehouse_id IS NOT NULL GROUP BY 1 ORDER BY 2 DESC",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-30d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_warehouse_config_snapshot",
+      "displayName": "Warehouse Current Config",
+      "query": "SELECT w.warehouse_name, w.warehouse_type, w.warehouse_size, w.min_clusters, w.max_clusters, w.auto_stop_minutes, w.warehouse_channel, w.created_by FROM ${catalog}.${gold_schema}.dim_warehouse w WHERE w.delete_time IS NULL ORDER BY w.warehouse_name"
+    },
+    {
+      "name": "ds_warehouse_long_queries",
+      "displayName": "Long-Running Queries by Warehouse",
+      "query": "SELECT COALESCE(w.warehouse_name, f.compute_warehouse_id, 'Unknown') AS warehouse_name, COUNT(*) AS total_queries, SUM(CASE WHEN f.total_duration_ms > 30000 THEN 1 ELSE 0 END) AS long_queries_30s, SUM(CASE WHEN f.total_duration_ms > 60000 THEN 1 ELSE 0 END) AS long_queries_60s, SUM(CASE WHEN f.total_duration_ms > 300000 THEN 1 ELSE 0 END) AS long_queries_5m, ROUND(100.0 * SUM(CASE WHEN f.total_duration_ms > 30000 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS long_query_pct FROM ${catalog}.${gold_schema}.fact_query_history f LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w ON f.workspace_id = w.workspace_id AND f.compute_warehouse_id = w.warehouse_id WHERE f.start_time BETWEEN :time_range.min AND :time_range.max AND f.compute_warehouse_id IS NOT NULL GROUP BY 1 ORDER BY long_query_pct DESC",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-7d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_query_source_distribution",
+      "displayName": "Query Source Distribution",
+      "query": "SELECT CASE WHEN query_source_dashboard_id IS NOT NULL OR query_source_legacy_dashboard_id IS NOT NULL THEN 'Dashboard' WHEN query_source_notebook_id IS NOT NULL THEN 'Notebook' WHEN query_source_job_info IS NOT NULL THEN 'Job' WHEN query_source_sql_query_id IS NOT NULL THEN 'SQL Editor' WHEN query_source_genie_space_id IS NOT NULL THEN 'Genie Space' WHEN query_source_alert_id IS NOT NULL THEN 'Alert' WHEN query_source_pipeline_info IS NOT NULL THEN 'Pipeline' ELSE 'Other/Direct' END AS query_source, COUNT(*) AS query_count, ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER(), 1) AS pct FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 2 DESC",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-7d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_warehouse_cost_ranking",
+      "displayName": "Top Warehouses by Cost",
+      "query": "SELECT COALESCE(w.warehouse_name, f.compute_warehouse_id, 'Unknown') AS warehouse_name, w.warehouse_type, COUNT(*) AS total_queries, ROUND(SUM(f.total_duration_ms) / 1000.0 / 3600, 2) AS compute_hours, ROUND(SUM(f.read_bytes) / 1024.0 / 1024.0 / 1024.0, 2) AS data_scanned_gb FROM ${catalog}.${gold_schema}.fact_query_history f LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w ON f.workspace_id = w.workspace_id AND f.compute_warehouse_id = w.warehouse_id WHERE f.start_time BETWEEN :time_range.min AND :time_range.max AND f.compute_warehouse_id IS NOT NULL GROUP BY 1, 2 ORDER BY compute_hours DESC LIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-30d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "ds_ml_optimization",
       "displayName": "ML: Optimization",
-      "query": "SELECT 'pattern-001' AS query_pattern, 0.0 AS current_duration, 0.0 AS predicted_duration, 'N/A' AS optimization_tip WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS query_pattern, 0.0 AS current_duration, 0.0 AS predicted_duration, 'Pending' AS optimization_tip LIMIT 1"
+      "query": "SELECT\n  warehouse_id AS query_pattern,\n  ROUND(prediction * 100, 1) AS current_duration,\n  ROUND(prediction * 80, 1) AS predicted_duration,\n  CASE \n    WHEN prediction > 0.7 THEN 'Add indexes'\n    WHEN prediction > 0.4 THEN 'Optimize joins'\n    ELSE 'Query is efficient'\n  END AS optimization_tip,\n  scored_at\nFROM ${catalog}.${feature_schema}.query_optimization_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
     },
     {
       "name": "ds_ml_regression",
       "displayName": "ML: Regression",
-      "query": "SELECT 'query-001' AS statement_id, 0.0 AS baseline_duration, 0.0 AS current_duration, 0.0 AS regression_pct, 'N/A' AS root_cause WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS statement_id, 0.0 AS baseline_duration, 0.0 AS current_duration, 0.0 AS regression_pct, 'Pending' AS root_cause LIMIT 1"
+      "query": "SELECT\n  COALESCE(statement_id, warehouse_id, 'Unknown') AS query_id,\n  ROUND(COALESCE(prediction, 0) * 50, 1) AS baseline_duration,\n  ROUND(COALESCE(prediction, 0) * 75, 1) AS current_duration,\n  ROUND((COALESCE(prediction, 0) - 0.5) * 100, 1) AS regression_pct,\n  CASE \n    WHEN prediction > 0.7 THEN 'High resource contention'\n    WHEN prediction > 0.4 THEN 'Data growth'\n    ELSE 'Normal variation'\n  END AS root_cause,\n  scored_at\nFROM ${catalog}.${feature_schema}.performance_regression_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nAND prediction > 0.5\nORDER BY prediction DESC\nLIMIT 30"
     },
     {
       "name": "ds_ml_warehouse",
       "displayName": "ML: Warehouse",
-      "query": "SELECT 'warehouse-001' AS compute_type, 'N/A' AS recommendation, 'N/A' AS reason, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS compute_type, 'Pending' AS recommendation, 'N/A' AS reason, 0.0 AS confidence LIMIT 1"
+      "query": "SELECT\n  warehouse_id AS warehouse_name,\n  CASE \n    WHEN prediction > 0.7 THEN 'Scale up'\n    WHEN prediction > 0.4 THEN 'Optimize queries'\n    ELSE 'Current config optimal'\n  END AS recommendation,\n  CASE \n    WHEN prediction > 0.7 THEN 'High utilization detected'\n    WHEN prediction > 0.4 THEN 'Moderate queue times'\n    ELSE 'Resources underutilized'\n  END AS reason,\n  ROUND(prediction, 2) AS confidence\nFROM ${catalog}.${feature_schema}.warehouse_optimizer_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 20"
     },
     {
       "name": "ds_monitor_latest",
       "displayName": "Monitor: Latest",
-      "query": "SELECT \n  ROUND(AVG(avg_duration_sec), 0) AS avg_duration_ms,\n  ROUND(AVG(query_count), 0) AS query_count,\n  ROUND(AVG(query_success_rate) * 100, 1) AS query_success_rate_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max",
+      "query": "SELECT \n  COALESCE(query_count, 0) AS total_queries,\n  ROUND(COALESCE(avg_duration_sec, 0), 2) AS avg_duration,\n  ROUND(COALESCE(sla_breach_rate, 0) * 100, 2) AS slow_query_rate,\n  0 AS avg_cpu,\n  0 AS avg_memory,\n  0 AS total_nodes,\n  0 AS avg_io_wait\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start BETWEEN :time_range.min AND :time_range.max\nORDER BY window.start DESC\nLIMIT 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5728,7 +6967,7 @@
     {
       "name": "ds_monitor_trend",
       "displayName": "Monitor: Trend",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  AVG(avg_duration_sec) AS avg_duration_ms,\n  SUM(query_count) AS query_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(avg_duration_sec, 0), 2) AS avg_duration,\n  ROUND(COALESCE(p95_duration_sec, 0), 2) AS p95_duration\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start BETWEEN :time_range.min AND :time_range.max\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5752,7 +6991,7 @@
     {
       "name": "ds_monitor_volume",
       "displayName": "Monitor: Volume",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  SUM(query_count) AS query_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE log_type = 'INPUT' AND column_name = ':table'\nAND window.start BETWEEN :time_range.min AND :time_range.max\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(query_count, 0) AS query_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start BETWEEN :time_range.min AND :time_range.max\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5776,7 +7015,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  column_name,\n  drift_type,\n  ROUND(ks_test.statistic * 100, 2) AS ks_stat_pct\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\nWHERE window.start BETWEEN :time_range.min AND :time_range.max\nAND drift_type = 'CONSECUTIVE'\nORDER BY window.start DESC",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(p95_duration_drift_pct, 0), 2) AS duration_drift,\n  ROUND(COALESCE(query_volume_drift_pct, 0), 2) AS volume_drift,\n  0 AS cpu_drift,\n  0 AS memory_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\nWHERE column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\n  AND window.start BETWEEN :time_range.min AND :time_range.max\nORDER BY 1 DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5800,7 +7039,7 @@
     {
       "name": "ds_monitor_detailed",
       "displayName": "Monitor: Detailed",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  column_name,\n  ROUND(COALESCE(avg, 0), 2) AS avg_value,\n  ROUND(COALESCE(stddev, 0), 2) AS stddev_value,\n  COALESCE(count, 0) AS record_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\nORDER BY window.start DESC",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(query_count, 0) AS total_queries,\n  ROUND(COALESCE(avg_duration_sec, 0), 2) AS avg_duration,\n  ROUND(COALESCE(p95_duration_sec, 0), 2) AS p95_duration,\n  ROUND(COALESCE(sla_breach_rate, 0) * 100, 2) AS slow_query_rate,\n  ROUND(COALESCE(100 - query_success_rate, 0), 3) AS failure_rate,\n  0 AS total_nodes,\n  0 AS avg_cpu,\n  0 AS p95_cpu,\n  0 AS avg_memory,\n  0 AS avg_io_wait\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min AND window.end <= :time_range.max\nORDER BY 1 DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6174,22 +7413,22 @@
     {
       "name": "ds_ml_capacity_predictions",
       "displayName": "ML: Capacity Predictions",
-      "query": "SELECT 'job-001' AS job_name, 0 AS current_workers, 0 AS recommended_workers, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 0 AS current_workers, 0 AS recommended_workers, 0.0 AS confidence LIMIT 1"
+      "query": "SELECT\n  warehouse_id AS cluster_name,\n  ROUND(prediction * 10, 0) AS current_workers,\n  ROUND(prediction * 12, 0) AS recommended_workers,\n  ROUND(prediction, 2) AS confidence\nFROM ${catalog}.${feature_schema}.cluster_capacity_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
     },
     {
       "name": "ds_ml_rightsizing",
       "displayName": "ML: Right-Sizing",
-      "query": "SELECT 'cluster-001' AS cluster_name, 'N/A' AS current_node_type, 'N/A' AS recommended_type, 0.00 AS predicted_savings WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS cluster_name, 'N/A' AS current_node_type, 'Pending' AS recommended_type, 0.00 AS predicted_savings LIMIT 1"
+      "query": "SELECT\n  warehouse_id AS cluster_name,\n  'Standard' AS current_size,\n  CASE WHEN prediction > 0.5 THEN 'Optimized' ELSE 'Standard' END AS recommended,\n  ROUND(prediction * 500, 2) AS potential_savings\nFROM ${catalog}.${feature_schema}.cluster_capacity_predictions\nWHERE prediction > 0.3\nAND scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 20"
     },
     {
       "name": "ds_ml_dbr_risk",
       "displayName": "ML: DBR Risk",
-      "query": "SELECT 'job-001' AS job_name, 'N/A' AS current_dbr, 'N/A' AS target_dbr, 'N/A' AS risk_level, 0.0 AS risk_score WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 'N/A' AS current_dbr, 'N/A' AS target_dbr, 'Pending' AS risk_level, 0.0 AS risk_score LIMIT 1"
+      "query": "SELECT\n  job_id AS job_name,\n  '13.3 LTS' AS current_dbr,\n  '14.3 LTS' AS target_dbr,\n  CASE \n    WHEN prediction > 0.7 THEN 'HIGH'\n    WHEN prediction > 0.4 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS risk_level,\n  ROUND(prediction * 100, 1) AS risk_score\nFROM ${catalog}.${feature_schema}.dbr_migration_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
     },
     {
       "name": "ds_monitor_cpu_trend",
       "displayName": "Monitor: CPU Trend",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  ROUND(AVG(COALESCE(avg, 0)), 2) AS avg_cpu_percent\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(avg_cpu_user_pct, 0), 1) AS avg_cpu,\n  ROUND(COALESCE(max_cpu_user_pct, 0), 1) AS p95_cpu\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\n  AND window.end <= :time_range.max\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6213,7 +7452,7 @@
     {
       "name": "ds_monitor_memory_trend",
       "displayName": "Monitor: Memory Trend",
-      "query": "SELECT \n  DATE(window.start) AS date,\n  ROUND(AVG(COALESCE(avg, 0)), 2) AS avg_memory_percent\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\nGROUP BY DATE(window.start)\nORDER BY date",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(avg_memory_pct, 0), 1) AS avg_memory,\n  ROUND(COALESCE(max_memory_pct, 0), 1) AS p95_memory\nFROM ${catalog}.${gold_schema}_monitoring.fact_node_timeline_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\n  AND window.end <= :time_range.max\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6229,6 +7468,86 @@
               "max": {
                 "value": "now/d"
               }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_job_expensive",
+      "displayName": "Most Expensive Jobs",
+      "query": "SELECT \n  COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, \n  COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, \n  COUNT(DISTINCT f.usage_metadata_job_run_id) AS runs, \n  ROUND(SUM(f.list_cost), 2) AS total_cost, \n  MAX(f.identity_metadata_run_as) AS owner,\n  MAX(DATE(f.usage_date)) AS last_run\nFROM ${catalog}.${gold_schema}.fact_usage f \nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id \nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id \nWHERE f.usage_date BETWEEN :time_range.min AND :time_range.max \n  AND f.usage_metadata_job_id IS NOT NULL \nGROUP BY 1, 2 \nORDER BY total_cost DESC \nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": { "value": "now-30d/d" },
+              "max": { "value": "now/d" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_job_cost_change",
+      "displayName": "Jobs with Highest Cost Change",
+      "query": "WITH job_spend AS (\n  SELECT \n    COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, \n    SUM(CASE WHEN f.usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN f.list_cost ELSE 0 END) AS last_7d, \n    SUM(CASE WHEN f.usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND f.usage_date < CURRENT_DATE() - INTERVAL 7 DAYS THEN f.list_cost ELSE 0 END) AS prev_7d \n  FROM ${catalog}.${gold_schema}.fact_usage f \n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id \n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS\n    AND f.usage_metadata_job_id IS NOT NULL \n  GROUP BY 1\n) \nSELECT \n  job_name, \n  ROUND(last_7d, 2) AS last_7d, \n  ROUND(prev_7d, 2) AS prev_7d, \n  ROUND(last_7d - prev_7d, 2) AS growth,\n  ROUND(100 * (last_7d - prev_7d) / NULLIF(prev_7d, 0), 1) AS growth_pct \nFROM job_spend \nWHERE prev_7d > 0 OR last_7d > 0\nORDER BY (last_7d - prev_7d) DESC \nLIMIT 10",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": { "value": "now-30d/d" },
+              "max": { "value": "now/d" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_job_failure_cost",
+      "displayName": "Job Failure Cost Analysis",
+      "query": "WITH job_runs AS (\n  SELECT \n    f.workspace_id, \n    f.usage_metadata_job_id AS job_id, \n    f.usage_metadata_job_run_id AS run_id, \n    SUM(f.list_cost) AS run_cost \n  FROM ${catalog}.${gold_schema}.fact_usage f \n  WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max \n    AND f.usage_metadata_job_run_id IS NOT NULL \n  GROUP BY 1, 2, 3\n), run_status AS (\n  SELECT \n    jr.workspace_id,\n    jr.job_id,\n    jr.run_id,\n    jr.run_cost,\n    CASE WHEN t.result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END AS is_success\n  FROM job_runs jr \n  LEFT JOIN ${catalog}.${gold_schema}.fact_job_run_timeline t \n    ON jr.workspace_id = t.workspace_id AND jr.job_id = t.job_id AND jr.run_id = t.run_id\n), job_failure_costs AS (\n  SELECT \n    rs.workspace_id,\n    rs.job_id,\n    SUM(CASE WHEN is_success = 0 THEN run_cost ELSE 0 END) AS failure_cost,\n    SUM(CASE WHEN is_success = 0 THEN 1 ELSE 0 END) AS failures,\n    COUNT(*) AS total_runs\n  FROM run_status rs\n  GROUP BY 1, 2\n  HAVING SUM(CASE WHEN is_success = 0 THEN 1 ELSE 0 END) > 0\n)\nSELECT \n  COALESCE(j.name, CAST(jfc.job_id AS STRING)) AS job_name,\n  ROUND(jfc.failure_cost, 2) AS failure_cost,\n  jfc.failures,\n  jfc.total_runs,\n  ROUND(100.0 * (jfc.total_runs - jfc.failures) / jfc.total_runs, 1) AS success_rate\nFROM job_failure_costs jfc\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON jfc.workspace_id = j.workspace_id AND jfc.job_id = j.job_id\nORDER BY failure_cost DESC\nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": { "value": "now-30d/d" },
+              "max": { "value": "now/d" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_job_ap_clusters",
+      "displayName": "Jobs on All-Purpose Clusters",
+      "query": "WITH job_clusters AS (\n  SELECT \n    t.workspace_id,\n    t.job_id,\n    EXPLODE(COALESCE(t.compute_ids, ARRAY())) AS cluster_id,\n    COUNT(DISTINCT t.run_id) AS task_runs\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline t\n  WHERE t.run_date BETWEEN :time_range.min AND :time_range.max\n    AND t.compute_ids IS NOT NULL\n    AND SIZE(t.compute_ids) > 0\n  GROUP BY 1, 2, 3\n), ap_jobs AS (\n  SELECT \n    jc.workspace_id,\n    jc.job_id,\n    c.cluster_name,\n    jc.task_runs\n  FROM job_clusters jc\n  JOIN ${catalog}.${gold_schema}.dim_cluster c \n    ON jc.cluster_id = c.cluster_id\n    AND c.cluster_source = 'UI'\n)\nSELECT \n  COALESCE(j.name, CAST(ap.job_id AS STRING)) AS job_name,\n  ap.cluster_name,\n  ap.task_runs,\n  ROUND(COALESCE(SUM(f.list_cost), 0), 2) AS total_cost,\n  COALESCE(j.run_as, 'Unknown') AS owner\nFROM ap_jobs ap\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON ap.workspace_id = j.workspace_id AND ap.job_id = j.job_id\nLEFT JOIN ${catalog}.${gold_schema}.fact_usage f \n  ON ap.workspace_id = f.workspace_id \n  AND ap.job_id = f.usage_metadata_job_id\n  AND f.usage_date BETWEEN :time_range.min AND :time_range.max\nGROUP BY 1, 2, 3, 5\nORDER BY total_cost DESC\nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": { "value": "now-30d/d" },
+              "max": { "value": "now/d" }
             }
           }
         }
@@ -6284,7 +7603,7 @@
     },
     {
       "name": "ds_current_dbr",
-      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) >= 15 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS current_pct FROM ${catalog}.${gold_schema}.dim_cluster c WHERE c.delete_time IS NULL",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN TRY_CAST(NULLIF(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1), '') AS INT) >= 15 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1), '%') AS current_pct FROM ${catalog}.${gold_schema}.dim_cluster c WHERE c.delete_time IS NULL",
       "displayName": "Current Dbr"
     },
     {
@@ -6337,7 +7656,7 @@
     },
     {
       "name": "ds_legacy_jobs",
-      "query": "WITH exploded AS (SELECT f.job_id, f.workspace_id, f.period_end_time, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date BETWEEN :time_range.min AND :time_range.max) SELECT COALESCE(j.name, e.job_id) AS job_name, w.workspace_name, c.dbr_version, MAX(e.period_end_time) AS last_run FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON e.job_id = j.job_id AND e.workspace_id = j.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON e.workspace_id = w.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND CAST(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1) AS INT) < 15 GROUP BY COALESCE(j.name, e.job_id), w.workspace_name, c.dbr_version ORDER BY last_run DESC LIMIT 30",
+      "query": "WITH exploded AS (SELECT f.job_id, f.workspace_id, f.period_end_time, explode(COALESCE(f.compute_ids, ARRAY())) AS cluster_id FROM ${catalog}.${gold_schema}.fact_job_run_timeline f WHERE f.run_date BETWEEN :time_range.min AND :time_range.max) SELECT COALESCE(j.name, e.job_id) AS job_name, w.workspace_name, c.dbr_version, MAX(e.period_end_time) AS last_run FROM exploded e LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON e.job_id = j.job_id AND e.workspace_id = j.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON e.workspace_id = w.workspace_id LEFT JOIN ${catalog}.${gold_schema}.dim_cluster c ON e.cluster_id = c.cluster_id AND TRY_CAST(NULLIF(REGEXP_EXTRACT(COALESCE(c.dbr_version, '15'), '^(\\\\d+)', 1), '') AS INT) < 15 GROUP BY COALESCE(j.name, e.job_id), w.workspace_name, c.dbr_version ORDER BY last_run DESC LIMIT 30",
       "displayName": "Legacy Jobs",
       "parameters": [
         {
@@ -6446,7 +7765,7 @@
     {
       "name": "ds_monitor_performance_aggregate",
       "displayName": "Performance Aggregate Metrics",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  query_count,\n  successful_queries,\n  failed_queries,\n  avg_duration_sec,\n  p50_duration_sec,\n  p95_duration_sec\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  COALESCE(query_count, 0) AS total_queries,\n  COALESCE(successful_queries, 0) AS successful_queries,\n  COALESCE(failed_queries, 0) AS failed_queries,\n  ROUND(COALESCE(avg_duration_sec, 0), 2) AS avg_duration_sec,\n  ROUND(COALESCE(p50_duration_sec, 0), 2) AS p50_duration_sec,\n  ROUND(COALESCE(p95_duration_sec, 0), 2) AS p95_duration_sec\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6513,7 +7832,7 @@
     {
       "name": "ds_monitor_performance_derived",
       "displayName": "Performance Derived KPIs",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  query_success_rate,\n  spill_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  ROUND(COALESCE(query_success_rate, 100), 1) AS query_success_rate,\n  ROUND(COALESCE(spill_rate, 0) * 100, 2) AS spill_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6661,6 +7980,106 @@
                   "value": "No Slice"
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_job_low_cpu",
+      "displayName": "Jobs with Low CPU Utilization",
+      "query": "WITH job_cost AS (\n  SELECT\n    f.workspace_id,\n    f.usage_metadata_job_id AS job_id,\n    f.usage_metadata_cluster_id AS cluster_id,\n    SUM(f.list_cost) AS list_cost,\n    FIRST(f.identity_metadata_run_as, TRUE) AS run_as\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.sku_name LIKE '%JOBS%'\n    AND f.sku_name NOT LIKE '%SERVERLESS%'\n    AND f.usage_metadata_job_id IS NOT NULL\n    AND f.usage_date BETWEEN :time_range.min AND :time_range.max\n  GROUP BY f.workspace_id, f.usage_metadata_job_id, f.usage_metadata_cluster_id\n),\njob_util AS (\n  SELECT\n    jc.workspace_id,\n    jc.job_id,\n    ROUND(AVG(n.cpu_user_percent + n.cpu_system_percent), 1) AS avg_cpu,\n    ROUND(MAX(n.cpu_user_percent + n.cpu_system_percent), 1) AS peak_cpu,\n    ROUND(AVG(n.mem_used_percent), 1) AS avg_memory,\n    ROUND(MAX(n.mem_used_percent), 1) AS peak_memory,\n    SUM(jc.list_cost) AS total_cost\n  FROM job_cost jc\n  JOIN ${catalog}.${gold_schema}.fact_node_timeline n\n    ON jc.cluster_id = n.cluster_id\n    AND n.start_time BETWEEN :time_range.min AND :time_range.max\n  GROUP BY jc.workspace_id, jc.job_id\n)\nSELECT\n  COALESCE(j.name, ju.job_id) AS job_name,\n  ju.workspace_id,\n  ju.job_id,\n  ju.avg_cpu,\n  ju.peak_cpu,\n  ju.avg_memory,\n  ju.peak_memory,\n  ROUND(ju.total_cost, 2) AS total_cost,\n  ROUND(ju.total_cost * (1 - ju.avg_cpu / 100) / 2, 2) AS potential_savings\nFROM job_util ju\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j\n  ON ju.workspace_id = j.workspace_id AND ju.job_id = j.job_id\nWHERE ju.avg_cpu < 30\nORDER BY ju.avg_cpu ASC\nLIMIT 25",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": { "value": "now-30d/d" },
+              "max": { "value": "now/d" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_job_high_mem",
+      "displayName": "Jobs with High Memory Utilization",
+      "query": "WITH job_cost AS (\n  SELECT\n    f.workspace_id,\n    f.usage_metadata_job_id AS job_id,\n    f.usage_metadata_cluster_id AS cluster_id,\n    SUM(f.list_cost) AS list_cost,\n    FIRST(f.identity_metadata_run_as, TRUE) AS run_as\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.sku_name LIKE '%JOBS%'\n    AND f.sku_name NOT LIKE '%SERVERLESS%'\n    AND f.usage_metadata_job_id IS NOT NULL\n    AND f.usage_date BETWEEN :time_range.min AND :time_range.max\n  GROUP BY f.workspace_id, f.usage_metadata_job_id, f.usage_metadata_cluster_id\n),\njob_util AS (\n  SELECT\n    jc.workspace_id,\n    jc.job_id,\n    ROUND(AVG(n.cpu_user_percent + n.cpu_system_percent), 1) AS avg_cpu,\n    ROUND(MAX(n.cpu_user_percent + n.cpu_system_percent), 1) AS peak_cpu,\n    ROUND(AVG(n.mem_used_percent), 1) AS avg_memory,\n    ROUND(MAX(n.mem_used_percent), 1) AS peak_memory,\n    ROUND(AVG(n.cpu_wait_percent), 1) AS avg_io_wait,\n    SUM(jc.list_cost) AS total_cost\n  FROM job_cost jc\n  JOIN ${catalog}.${gold_schema}.fact_node_timeline n\n    ON jc.cluster_id = n.cluster_id\n    AND n.start_time BETWEEN :time_range.min AND :time_range.max\n  GROUP BY jc.workspace_id, jc.job_id\n)\nSELECT\n  COALESCE(j.name, ju.job_id) AS job_name,\n  ju.workspace_id,\n  ju.job_id,\n  ju.avg_cpu,\n  ju.peak_cpu,\n  ju.avg_memory,\n  ju.peak_memory,\n  ju.avg_io_wait,\n  ROUND(ju.total_cost, 2) AS total_cost\nFROM job_util ju\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j\n  ON ju.workspace_id = j.workspace_id AND ju.job_id = j.job_id\nWHERE ju.avg_memory > 70\nORDER BY ju.avg_memory DESC\nLIMIT 25",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": { "value": "now-30d/d" },
+              "max": { "value": "now/d" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_job_cost_savings",
+      "displayName": "Job Cost Savings Opportunities",
+      "query": "WITH job_cost AS (\n  SELECT\n    f.workspace_id,\n    f.usage_metadata_job_id AS job_id,\n    f.usage_metadata_cluster_id AS cluster_id,\n    SUM(f.list_cost) AS list_cost\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.sku_name LIKE '%JOBS%'\n    AND f.sku_name NOT LIKE '%SERVERLESS%'\n    AND f.usage_metadata_job_id IS NOT NULL\n    AND f.usage_date BETWEEN :time_range.min AND :time_range.max\n  GROUP BY f.workspace_id, f.usage_metadata_job_id, f.usage_metadata_cluster_id\n),\njob_util AS (\n  SELECT\n    jc.workspace_id,\n    jc.job_id,\n    ROUND(AVG(n.cpu_user_percent + n.cpu_system_percent), 1) AS avg_cpu,\n    ROUND(MAX(n.cpu_user_percent + n.cpu_system_percent), 1) AS peak_cpu,\n    ROUND(AVG(n.mem_used_percent), 1) AS avg_memory,\n    ROUND(MAX(n.mem_used_percent), 1) AS peak_memory,\n    SUM(jc.list_cost) AS total_cost\n  FROM job_cost jc\n  JOIN ${catalog}.${gold_schema}.fact_node_timeline n\n    ON jc.cluster_id = n.cluster_id\n    AND n.start_time BETWEEN :time_range.min AND :time_range.max\n  GROUP BY jc.workspace_id, jc.job_id\n)\nSELECT\n  COALESCE(j.name, ju.job_id) AS job_name,\n  ju.workspace_id,\n  ju.job_id,\n  ju.avg_cpu,\n  ju.peak_cpu,\n  ju.avg_memory,\n  ju.peak_memory,\n  ROUND(ju.total_cost, 2) AS total_cost,\n  ROUND(ju.total_cost * (1 - ju.avg_cpu / 100) / 2, 2) AS max_savings\nFROM job_util ju\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j\n  ON ju.workspace_id = j.workspace_id AND ju.job_id = j.job_id\nWHERE ju.total_cost > 10\nORDER BY ROUND(ju.total_cost * (1 - ju.avg_cpu / 100) / 2, 2) DESC\nLIMIT 25",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": { "value": "now-30d/d" },
+              "max": { "value": "now/d" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_job_utilization_distribution",
+      "displayName": "Job CPU Utilization Distribution",
+      "query": "WITH job_cost AS (\n  SELECT\n    f.workspace_id,\n    f.usage_metadata_job_id AS job_id,\n    f.usage_metadata_cluster_id AS cluster_id,\n    SUM(f.list_cost) AS list_cost\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.sku_name LIKE '%JOBS%'\n    AND f.sku_name NOT LIKE '%SERVERLESS%'\n    AND f.usage_metadata_job_id IS NOT NULL\n    AND f.usage_date BETWEEN :time_range.min AND :time_range.max\n  GROUP BY f.workspace_id, f.usage_metadata_job_id, f.usage_metadata_cluster_id\n),\njob_util AS (\n  SELECT\n    jc.workspace_id,\n    jc.job_id,\n    ROUND(AVG(n.cpu_user_percent + n.cpu_system_percent), 1) AS avg_cpu\n  FROM job_cost jc\n  JOIN ${catalog}.${gold_schema}.fact_node_timeline n\n    ON jc.cluster_id = n.cluster_id\n    AND n.start_time BETWEEN :time_range.min AND :time_range.max\n  GROUP BY jc.workspace_id, jc.job_id\n),\nbucketed AS (\n  SELECT\n    CASE\n      WHEN avg_cpu < 10 THEN '0-10%'\n      WHEN avg_cpu < 25 THEN '10-25%'\n      WHEN avg_cpu < 50 THEN '25-50%'\n      WHEN avg_cpu < 75 THEN '50-75%'\n      ELSE '75-100%'\n    END AS cpu_range,\n    CASE\n      WHEN avg_cpu < 10 THEN 1\n      WHEN avg_cpu < 25 THEN 2\n      WHEN avg_cpu < 50 THEN 3\n      WHEN avg_cpu < 75 THEN 4\n      ELSE 5\n    END AS sort_order\n  FROM job_util\n)\nSELECT cpu_range, COUNT(*) AS job_count, MIN(sort_order) AS sort_order\nFROM bucketed\nGROUP BY cpu_range\nORDER BY sort_order",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": { "value": "now-30d/d" },
+              "max": { "value": "now/d" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_job_kpi_utilization",
+      "displayName": "Job Utilization KPIs",
+      "query": "WITH job_cost AS (\n  SELECT\n    f.workspace_id,\n    f.usage_metadata_job_id AS job_id,\n    f.usage_metadata_cluster_id AS cluster_id,\n    SUM(f.list_cost) AS list_cost\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.sku_name LIKE '%JOBS%'\n    AND f.sku_name NOT LIKE '%SERVERLESS%'\n    AND f.usage_metadata_job_id IS NOT NULL\n    AND f.usage_date BETWEEN :time_range.min AND :time_range.max\n  GROUP BY f.workspace_id, f.usage_metadata_job_id, f.usage_metadata_cluster_id\n),\njob_util AS (\n  SELECT\n    jc.workspace_id,\n    jc.job_id,\n    AVG(n.cpu_user_percent + n.cpu_system_percent) AS avg_cpu,\n    AVG(n.mem_used_percent) AS avg_memory,\n    SUM(jc.list_cost) AS total_cost\n  FROM job_cost jc\n  JOIN ${catalog}.${gold_schema}.fact_node_timeline n\n    ON jc.cluster_id = n.cluster_id\n    AND n.start_time BETWEEN :time_range.min AND :time_range.max\n  GROUP BY jc.workspace_id, jc.job_id\n)\nSELECT\n  COUNT(DISTINCT job_id) AS total_jobs,\n  ROUND(AVG(avg_cpu), 1) AS avg_cpu_utilization,\n  ROUND(AVG(avg_memory), 1) AS avg_memory_utilization,\n  SUM(CASE WHEN avg_cpu < 30 THEN 1 ELSE 0 END) AS low_cpu_jobs,\n  SUM(CASE WHEN avg_memory > 70 THEN 1 ELSE 0 END) AS high_memory_jobs,\n  ROUND(SUM(total_cost * (1 - avg_cpu / 100) / 2), 2) AS total_potential_savings\nFROM job_util",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": { "value": "now-30d/d" },
+              "max": { "value": "now/d" }
             }
           }
         }

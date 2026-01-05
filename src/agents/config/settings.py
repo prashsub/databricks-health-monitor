@@ -88,12 +88,88 @@ class AgentSettings:
     # =========================================================================
     # Unity Catalog Configuration
     # =========================================================================
+    # Follows project convention: catalog.schema pattern
+    # Dev: prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_agent
+    # Prod: main.system_gold_agent
+    #
+    # CONSOLIDATED STORAGE (single schema to avoid sprawl):
+    #   - MODELS: health_monitor_agent
+    #   - TABLES (Structured):
+    #       - Config: agent_config
+    #       - Evaluation: evaluation_datasets, evaluation_results
+    #       - Experimentation: ab_test_assignments
+    #       - Inference: inference_request_logs, inference_response_logs
+    #       - Memory: memory_short_term, memory_long_term
+    #   - VOLUMES (Unstructured):
+    #       - runbooks/ (RAG knowledge base)
+    #       - embeddings/ (vector embeddings)
+    #       - artifacts/ (model checkpoints)
+    # =========================================================================
+    
     catalog: str = field(
-        default_factory=lambda: os.environ.get("CATALOG", "health_monitor")
+        default_factory=lambda: os.environ.get("CATALOG", "prashanth_subrahmanyam_catalog")
     )
+    
+    # Single consolidated agent schema for all agent-related data
+    agent_schema: str = field(
+        default_factory=lambda: os.environ.get("AGENT_SCHEMA", "dev_prashanth_subrahmanyam_system_gold_agent")
+    )
+    
+    # Deprecated: Now consolidated into agent_schema
+    # Kept for backwards compatibility - maps to agent_schema
+    @property
+    def inference_schema(self) -> str:
+        """Inference logs schema (now same as agent_schema)."""
+        return self.agent_schema
+    
+    @property
+    def memory_schema(self) -> str:
+        """Memory tables schema (now same as agent_schema)."""
+        return self.agent_schema
+    
+    # Legacy alias
     schema: str = field(
-        default_factory=lambda: os.environ.get("SCHEMA", "agents")
+        default_factory=lambda: os.environ.get("SCHEMA", "dev_prashanth_subrahmanyam_system_gold_agent")
     )
+    
+    # =========================================================================
+    # Helper Properties for Full Paths
+    # =========================================================================
+    @property
+    def model_full_name(self) -> str:
+        """Full UC path for the agent model."""
+        return f"{self.catalog}.{self.agent_schema}.health_monitor_agent"
+    
+    @property
+    def runbooks_volume_path(self) -> str:
+        """Full UC path for the runbooks volume."""
+        return f"/Volumes/{self.catalog}/{self.agent_schema}/runbooks"
+    
+    @property
+    def embeddings_volume_path(self) -> str:
+        """Full UC path for the embeddings volume."""
+        return f"/Volumes/{self.catalog}/{self.agent_schema}/embeddings"
+    
+    # Table name helpers (with prefixes for organization within single schema)
+    @property
+    def inference_request_table(self) -> str:
+        """Full path to inference request logs table."""
+        return f"{self.catalog}.{self.agent_schema}.inference_request_logs"
+    
+    @property
+    def inference_response_table(self) -> str:
+        """Full path to inference response logs table."""
+        return f"{self.catalog}.{self.agent_schema}.inference_response_logs"
+    
+    @property
+    def memory_short_term_table(self) -> str:
+        """Full path to short-term memory table."""
+        return f"{self.catalog}.{self.agent_schema}.memory_short_term"
+    
+    @property
+    def memory_long_term_table(self) -> str:
+        """Full path to long-term memory table."""
+        return f"{self.catalog}.{self.agent_schema}.memory_long_term"
 
     # =========================================================================
     # Timeouts

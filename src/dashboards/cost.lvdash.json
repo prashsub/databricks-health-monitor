@@ -1863,6 +1863,10 @@
                     {
                       "name": "owner",
                       "expression": "`owner`"
+                    },
+                    {
+                      "name": "last_run",
+                      "expression": "`last_run`"
                     }
                   ]
                 }
@@ -1887,6 +1891,11 @@
                     "fieldName": "runs",
                     "title": "Runs",
                     "type": "number"
+                  },
+                  {
+                    "fieldName": "last_run",
+                    "title": "Last Run",
+                    "type": "datetime"
                   },
                   {
                     "fieldName": "total_cost",
@@ -1938,6 +1947,10 @@
                     {
                       "name": "run_date",
                       "expression": "`run_date`"
+                    },
+                    {
+                      "name": "owner",
+                      "expression": "`owner`"
                     }
                   ]
                 }
@@ -1967,6 +1980,11 @@
                     "fieldName": "run_date",
                     "title": "Date",
                     "type": "datetime"
+                  },
+                  {
+                    "fieldName": "owner",
+                    "title": "Owner",
+                    "type": "string"
                   }
                 ]
               },
@@ -2478,7 +2496,7 @@
                   },
                   {
                     "fieldName": "worker_count",
-                    "title": "Workers",
+                    "title": "Avg DBUs",
                     "type": "number"
                   },
                   {
@@ -2495,7 +2513,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\u26a0\ufe0f Jobs Without Autoscaling"
+                "title": "\u26a0\ufe0f Jobs with Fixed Cluster Size"
               }
             }
           },
@@ -2548,7 +2566,7 @@
                   },
                   {
                     "fieldName": "dbr_version",
-                    "title": "DBR",
+                    "title": "Age",
                     "type": "string"
                   },
                   {
@@ -2565,7 +2583,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udd04 Jobs on Legacy DBR Versions"
+                "title": "\ud83d\udd04 Stale Jobs (Not Updated 6+ Months)"
               }
             }
           },
@@ -2679,7 +2697,7 @@
                   },
                   {
                     "fieldName": "avg_cpu",
-                    "title": "Avg CPU %",
+                    "title": "Cost Variance %",
                     "type": "number"
                   },
                   {
@@ -2799,24 +2817,32 @@
                   "disaggregated": true,
                   "fields": [
                     {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
                       "name": "usage_date",
                       "expression": "`usage_date`"
                     },
                     {
-                      "name": "workspace_name",
-                      "expression": "`workspace_name`"
+                      "name": "severity",
+                      "expression": "`severity`"
+                    },
+                    {
+                      "name": "daily_cost",
+                      "expression": "`daily_cost`"
+                    },
+                    {
+                      "name": "cost_driver",
+                      "expression": "`cost_driver`"
                     },
                     {
                       "name": "sku_name",
                       "expression": "`sku_name`"
                     },
                     {
-                      "name": "anomaly_score",
-                      "expression": "`anomaly_score`"
-                    },
-                    {
-                      "name": "severity",
-                      "expression": "`severity`"
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ]
                 }
@@ -2828,28 +2854,38 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "usage_date",
-                    "title": "Date",
-                    "type": "datetime"
-                  },
-                  {
                     "fieldName": "workspace_name",
                     "title": "Workspace",
                     "type": "string"
                   },
                   {
-                    "fieldName": "sku_name",
-                    "title": "SKU",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "anomaly_score",
-                    "title": "Score",
-                    "type": "number"
+                    "fieldName": "usage_date",
+                    "title": "Date",
+                    "type": "datetime"
                   },
                   {
                     "fieldName": "severity",
                     "title": "Severity",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "daily_cost",
+                    "title": "Daily Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "cost_driver",
+                    "title": "Cost Driver",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "sku_name",
+                    "title": "Top SKU",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Recommended Action",
                     "type": "string"
                   }
                 ]
@@ -2857,7 +2893,7 @@
               "frame": {
                 "showTitle": true,
                 "title": "\ud83e\udd16 ML: Detected Cost Anomalies",
-                "description": "Isolation Forest anomaly detection"
+                "description": "Anomalies with specific cost drivers and recommendations"
               }
             }
           },
@@ -2887,12 +2923,28 @@
                       "expression": "`alert_priority`"
                     },
                     {
+                      "name": "mtd_spend",
+                      "expression": "`mtd_spend`"
+                    },
+                    {
+                      "name": "projected_spend",
+                      "expression": "`projected_spend`"
+                    },
+                    {
                       "name": "burn_rate",
                       "expression": "`burn_rate`"
                     },
                     {
                       "name": "days_to_budget",
                       "expression": "`days_to_budget`"
+                    },
+                    {
+                      "name": "top_sku",
+                      "expression": "`top_sku`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ]
                 }
@@ -2914,21 +2966,41 @@
                     "type": "string"
                   },
                   {
+                    "fieldName": "mtd_spend",
+                    "title": "MTD Spend ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "projected_spend",
+                    "title": "Projected ($)",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "burn_rate",
                     "title": "Burn Rate",
                     "type": "number"
                   },
                   {
                     "fieldName": "days_to_budget",
-                    "title": "Days to Budget",
+                    "title": "Days Left",
                     "type": "number"
+                  },
+                  {
+                    "fieldName": "top_sku",
+                    "title": "Top SKU",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Recommended Action",
+                    "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
                 "title": "\ud83e\udd16 ML: Budget Alert Priorities",
-                "description": "Random Forest alert prioritization"
+                "description": "Budget tracking with specific cost drivers and recommendations"
               }
             }
           },
@@ -2954,12 +3026,24 @@
                       "expression": "`job_name`"
                     },
                     {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "total_cost",
+                      "expression": "`total_cost`"
+                    },
+                    {
                       "name": "recommended_tag",
                       "expression": "`recommended_tag`"
                     },
                     {
-                      "name": "confidence",
-                      "expression": "`confidence`"
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
+                      "name": "rationale",
+                      "expression": "`rationale`"
                     }
                   ]
                 }
@@ -2972,8 +3056,18 @@
                 "columns": [
                   {
                     "fieldName": "job_name",
-                    "title": "Job",
+                    "title": "Job Name",
                     "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "total_cost",
+                    "title": "Total Cost ($)",
+                    "type": "number"
                   },
                   {
                     "fieldName": "recommended_tag",
@@ -2981,16 +3075,21 @@
                     "type": "string"
                   },
                   {
-                    "fieldName": "confidence",
-                    "title": "Confidence",
-                    "type": "number"
+                    "fieldName": "priority",
+                    "title": "Priority",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "rationale",
+                    "title": "Rationale",
+                    "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
                 "title": "\ud83e\udd16 ML: Tag Recommendations",
-                "description": "NLP-based tag suggestions for untagged jobs"
+                "description": "Untagged jobs with cost-based tagging suggestions"
               }
             }
           },
@@ -3016,16 +3115,24 @@
                       "expression": "`user`"
                     },
                     {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
                       "name": "cluster_label",
                       "expression": "`cluster_label`"
                     },
                     {
-                      "name": "usage_intensity",
-                      "expression": "`usage_intensity`"
+                      "name": "total_spend",
+                      "expression": "`total_spend`"
                     },
                     {
-                      "name": "cost_efficiency",
-                      "expression": "`cost_efficiency`"
+                      "name": "usage_summary",
+                      "expression": "`usage_summary`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ]
                 }
@@ -3042,18 +3149,28 @@
                     "type": "string"
                   },
                   {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
                     "fieldName": "cluster_label",
-                    "title": "Behavior Cluster",
+                    "title": "User Type",
                     "type": "string"
                   },
                   {
-                    "fieldName": "usage_intensity",
-                    "title": "Intensity",
+                    "fieldName": "total_spend",
+                    "title": "30d Spend ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "usage_summary",
+                    "title": "Usage Pattern",
                     "type": "string"
                   },
                   {
-                    "fieldName": "cost_efficiency",
-                    "title": "Efficiency",
+                    "fieldName": "recommended_action",
+                    "title": "Recommended Action",
                     "type": "string"
                   }
                 ]
@@ -3061,7 +3178,7 @@
               "frame": {
                 "showTitle": true,
                 "title": "\ud83e\udd16 ML: User Behavior Clusters",
-                "description": "K-Means user segmentation by cost behavior"
+                "description": "User segmentation by cost behavior with actionable recommendations"
               }
             }
           },
@@ -3087,6 +3204,18 @@
                       "expression": "`cluster_name`"
                     },
                     {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
+                    },
+                    {
+                      "name": "cluster_type",
+                      "expression": "`cluster_type`"
+                    },
+                    {
+                      "name": "total_cost_30d",
+                      "expression": "`total_cost_30d`"
+                    },
+                    {
                       "name": "recommendation",
                       "expression": "`recommendation`"
                     },
@@ -3095,8 +3224,12 @@
                       "expression": "`potential_savings`"
                     },
                     {
-                      "name": "confidence",
-                      "expression": "`confidence`"
+                      "name": "confidence_rationale",
+                      "expression": "`confidence_rationale`"
+                    },
+                    {
+                      "name": "usage_details",
+                      "expression": "`usage_details`"
                     }
                   ]
                 }
@@ -3113,19 +3246,39 @@
                     "type": "string"
                   },
                   {
+                    "fieldName": "workspace_name",
+                    "title": "Workspace",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "cluster_type",
+                    "title": "Type",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "total_cost_30d",
+                    "title": "30d Cost ($)",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "recommendation",
                     "title": "Recommendation",
                     "type": "string"
                   },
                   {
                     "fieldName": "potential_savings",
-                    "title": "Savings ($)",
+                    "title": "Est. Savings ($)",
                     "type": "number"
                   },
                   {
-                    "fieldName": "confidence",
-                    "title": "Confidence",
-                    "type": "number"
+                    "fieldName": "confidence_rationale",
+                    "title": "Confidence & Rationale",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "usage_details",
+                    "title": "Usage Details",
+                    "type": "string"
                   }
                 ]
               },
@@ -3147,7 +3300,7 @@
     },
     {
       "name": "page_monitoring",
-      "displayName": "\ud83d\udcca Lakehouse Monitoring",
+      "displayName": "📈 Cost Metrics Overview",
       "layout": [
         {
           "widget": {
@@ -3230,6 +3383,10 @@
                       "expression": "`window_start`"
                     },
                     {
+                      "name": "total_dbu",
+                      "expression": "`total_dbu`"
+                    },
+                    {
                       "name": "serverless_pct",
                       "expression": "`serverless_pct`"
                     },
@@ -3255,6 +3412,10 @@
                 },
                 "y": {
                   "fields": [
+                    {
+                      "fieldName": "total_dbu",
+                      "displayName": "DBU Volume"
+                    },
                     {
                       "fieldName": "serverless_pct",
                       "displayName": "Serverless %"
@@ -3449,9 +3610,74 @@
             "name": "param_annual_commit",
             "queries": [
               {
-                "name": "param_query",
+                "name": "options_query",
                 "query": {
                   "datasetName": "ds_commit_options",
+                  "fields": [
+                    {
+                      "name": "commit_amount",
+                      "expression": "`commit_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              },
+              {
+                "name": "param_ds_commit_status",
+                "query": {
+                  "datasetName": "ds_commit_status",
+                  "parameters": [
+                    {
+                      "name": "annual_commit",
+                      "keyword": "annual_commit"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_variance",
+                "query": {
+                  "datasetName": "ds_variance",
+                  "parameters": [
+                    {
+                      "name": "annual_commit",
+                      "keyword": "annual_commit"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_cumulative_vs_commit",
+                "query": {
+                  "datasetName": "ds_cumulative_vs_commit",
+                  "parameters": [
+                    {
+                      "name": "annual_commit",
+                      "keyword": "annual_commit"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monthly_breakdown",
+                "query": {
+                  "datasetName": "ds_monthly_breakdown",
+                  "parameters": [
+                    {
+                      "name": "annual_commit",
+                      "keyword": "annual_commit"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "param_ds_monthly_detail",
+                "query": {
+                  "datasetName": "ds_monthly_detail",
                   "parameters": [
                     {
                       "name": "annual_commit",
@@ -3474,7 +3700,23 @@
                   },
                   {
                     "parameterName": "annual_commit",
-                    "queryName": "param_query"
+                    "queryName": "param_ds_commit_status"
+                  },
+                  {
+                    "parameterName": "annual_commit",
+                    "queryName": "param_ds_variance"
+                  },
+                  {
+                    "parameterName": "annual_commit",
+                    "queryName": "param_ds_cumulative_vs_commit"
+                  },
+                  {
+                    "parameterName": "annual_commit",
+                    "queryName": "param_ds_monthly_breakdown"
+                  },
+                  {
+                    "parameterName": "annual_commit",
+                    "queryName": "param_ds_monthly_detail"
                   }
                 ]
               },
@@ -3492,8 +3734,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Annual Commit ($)",
-                "description": "Enter your annual commit amount"
+                "title": "Annual Commit ($)"
               }
             }
           },
@@ -3861,22 +4102,25 @@
                   }
                 },
                 "y": {
-                  "fieldName": "cumulative_spend",
-                  "displayName": "Cumulative ($)",
+                  "fields": [
+                    {
+                      "fieldName": "cumulative_spend",
+                      "displayName": "Actual Spend"
+                    },
+                    {
+                      "fieldName": "target_line",
+                      "displayName": "Commit Target"
+                    }
+                  ],
                   "scale": {
                     "type": "quantitative"
-                  },
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact"
                   }
                 }
               },
               "frame": {
                 "showTitle": true,
                 "title": "Cumulative Spend vs Commit Target",
-                "description": "Are you on track to hit your commit?"
+                "description": "Blue = Actual Spend, Orange = Commit Target"
               }
             }
           },
@@ -3925,22 +4169,25 @@
                   }
                 },
                 "y": {
-                  "fieldName": "monthly_cost",
-                  "displayName": "Spend ($)",
+                  "fields": [
+                    {
+                      "fieldName": "monthly_cost",
+                      "displayName": "Actual Spend"
+                    },
+                    {
+                      "fieldName": "monthly_target",
+                      "displayName": "Monthly Target"
+                    }
+                  ],
                   "scale": {
                     "type": "quantitative"
-                  },
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact"
                   }
                 }
               },
               "frame": {
                 "showTitle": true,
                 "title": "Monthly Spend vs Target",
-                "description": "Bars show actual spend"
+                "description": "Compare actual monthly spend against prorated commit target"
               }
             }
           },
@@ -4223,7 +4470,7 @@
     },
     {
       "name": "cost_lakehouse_monitoring",
-      "displayName": "Lakehouse Monitoring - fact_usage",
+      "displayName": "🔬 Advanced Cost Metrics",
       "layout": [
         {
           "widget": {
@@ -4926,87 +5173,56 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
                   {
                     "fieldName": "window_start",
-                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
-                    "type": "datetime",
-                    "displayAs": "datetime",
-                    "visible": true,
-                    "order": 0,
-                    "title": "Window Start"
+                    "title": "Window Start",
+                    "type": "datetime"
                   },
                   {
                     "fieldName": "window_end",
-                    "dateTimeFormat": "DD/MM/YYYY HH:mm",
-                    "type": "datetime",
-                    "displayAs": "datetime",
-                    "visible": true,
-                    "order": 1,
-                    "title": "Window End"
+                    "title": "Window End",
+                    "type": "datetime"
                   },
                   {
                     "fieldName": "total_daily_cost",
-                    "numberFormat": "0.00",
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 2,
-                    "title": "Total Daily Cost"
+                    "title": "Total Daily Cost",
+                    "type": "number"
                   },
                   {
                     "fieldName": "total_daily_dbu",
-                    "numberFormat": "0.00",
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 3,
-                    "title": "Total Daily Dbu"
+                    "title": "Total Daily DBU",
+                    "type": "number"
                   },
                   {
                     "fieldName": "tagged_cost_total",
-                    "numberFormat": "0.00",
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 4,
-                    "title": "Tagged Cost Total"
+                    "title": "Tagged Cost Total",
+                    "type": "number"
                   },
                   {
                     "fieldName": "untagged_cost_total",
-                    "numberFormat": "0.00",
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 5,
-                    "title": "Untagged Cost Total"
+                    "title": "Untagged Cost Total",
+                    "type": "number"
                   },
                   {
                     "fieldName": "serverless_cost",
-                    "numberFormat": "0.00",
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 6,
-                    "title": "Serverless Cost"
+                    "title": "Serverless Cost",
+                    "type": "number"
                   },
                   {
                     "fieldName": "dlt_cost",
-                    "numberFormat": "0.00",
-                    "type": "float",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 7,
-                    "title": "Dlt Cost"
+                    "title": "DLT Cost",
+                    "type": "number"
                   }
                 ]
               },
-              "itemsPerPage": 25,
-              "condensed": true,
-              "withRowNumber": false
+              "frame": {
+                "showTitle": true,
+                "title": "Cost Aggregate Metrics Table"
+              }
             }
           },
           "position": {
@@ -5405,7 +5621,7 @@
     {
       "name": "ds_highest_change_users",
       "displayName": "Highest Change Users",
-      "query": "WITH user_spend AS (SELECT identity_metadata_run_as AS owner, SUM(CASE WHEN usage_date BETWEEN :time_range.min AND :time_range.max THEN list_cost ELSE 0 END) AS last_7d, SUM(CASE WHEN usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 8 DAYS THEN list_cost ELSE 0 END) AS prev_7d FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max AND identity_metadata_run_as IS NOT NULL GROUP BY 1) SELECT owner, ROUND(last_7d, 2) AS last_7d, ROUND(prev_7d, 2) AS prev_7d, ROUND(100 * (last_7d - prev_7d) / NULLIF(prev_7d, 0), 1) AS change_pct FROM user_spend WHERE prev_7d > 0 ORDER BY ABS(last_7d - prev_7d) DESC LIMIT 10",
+      "query": "WITH user_spend AS (\n  SELECT \n    identity_metadata_run_as AS owner, \n    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS last_7d, \n    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND usage_date < CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS prev_7d \n  FROM ${catalog}.${gold_schema}.fact_usage \n  WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS\n    AND identity_metadata_run_as IS NOT NULL\n    AND identity_metadata_run_as NOT LIKE '%.gserviceaccount.com'\n    AND identity_metadata_run_as NOT LIKE 'service-principal-%'\n  GROUP BY 1\n) \nSELECT \n  owner, \n  ROUND(last_7d, 2) AS last_7d, \n  ROUND(prev_7d, 2) AS prev_7d, \n  ROUND(last_7d - prev_7d, 2) AS growth,\n  ROUND(100 * (last_7d - prev_7d) / NULLIF(prev_7d, 0), 1) AS growth_pct \nFROM user_spend \nWHERE prev_7d > 0 OR last_7d > 0\nORDER BY (last_7d - prev_7d) DESC \nLIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5416,7 +5632,7 @@
             "range": {
               "dataType": "DATE",
               "min": {
-                "value": "now-90d/d"
+                "value": "now-7d/d"
               },
               "max": {
                 "value": "now/d"
@@ -5469,7 +5685,7 @@
     {
       "name": "ds_expensive_jobs",
       "displayName": "Expensive Jobs",
-      "query": "SELECT COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, COUNT(DISTINCT f.usage_metadata_job_run_id) AS runs, ROUND(SUM(f.list_cost), 2) AS total_cost, MAX(f.identity_metadata_run_as) AS owner FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max AND f.usage_metadata_job_id IS NOT NULL GROUP BY 1, 2 ORDER BY total_cost DESC LIMIT 25",
+      "query": "SELECT \n  COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, \n  COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, \n  COUNT(DISTINCT f.usage_metadata_job_run_id) AS runs, \n  ROUND(SUM(f.list_cost), 2) AS total_cost, \n  MAX(f.identity_metadata_run_as) AS owner,\n  MAX(DATE(f.usage_date)) AS last_run\nFROM ${catalog}.${gold_schema}.fact_usage f \nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id \nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id \nWHERE f.usage_date BETWEEN :time_range.min AND :time_range.max \n  AND f.usage_metadata_job_id IS NOT NULL \nGROUP BY 1, 2 \nORDER BY total_cost DESC \nLIMIT 25",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5509,7 +5725,7 @@
     {
       "name": "ds_expensive_runs",
       "displayName": "Expensive Runs",
-      "query": "SELECT COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, CAST(f.usage_metadata_job_run_id AS STRING) AS run_id, ROUND(SUM(f.list_cost), 2) AS run_cost, MAX(DATE(f.usage_date)) AS run_date FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max AND f.usage_metadata_job_run_id IS NOT NULL GROUP BY 1, 2 ORDER BY run_cost DESC LIMIT 25",
+      "query": "SELECT \n  COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, \n  CAST(f.usage_metadata_job_run_id AS STRING) AS run_id, \n  ROUND(SUM(f.list_cost), 2) AS run_cost, \n  MAX(DATE(f.usage_date)) AS run_date,\n  MAX(f.identity_metadata_run_as) AS owner\nFROM ${catalog}.${gold_schema}.fact_usage f \nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id \nWHERE f.usage_date BETWEEN :time_range.min AND :time_range.max \n  AND f.usage_metadata_job_run_id IS NOT NULL \nGROUP BY 1, 2 \nORDER BY run_cost DESC \nLIMIT 25",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5549,7 +5765,7 @@
     {
       "name": "ds_highest_change_jobs",
       "displayName": "Highest Change Jobs",
-      "query": "WITH job_spend AS (SELECT COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, SUM(CASE WHEN f.usage_date BETWEEN :time_range.min AND :time_range.max THEN f.list_cost ELSE 0 END) AS last_7d, SUM(CASE WHEN f.usage_date BETWEEN CURRENT_DATE() - INTERVAL 14 DAYS AND CURRENT_DATE() - INTERVAL 8 DAYS THEN f.list_cost ELSE 0 END) AS prev_7d FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max AND f.usage_metadata_job_id IS NOT NULL GROUP BY 1) SELECT job_name, ROUND(last_7d, 2) AS last_7d, ROUND(prev_7d, 2) AS prev_7d, ROUND(100 * (last_7d - prev_7d) / NULLIF(prev_7d, 0), 1) AS change_pct FROM job_spend WHERE prev_7d > 0 ORDER BY ABS(last_7d - prev_7d) DESC LIMIT 10",
+      "query": "WITH job_spend AS (\n  SELECT \n    COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, \n    SUM(CASE WHEN f.usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN f.list_cost ELSE 0 END) AS last_7d, \n    SUM(CASE WHEN f.usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND f.usage_date < CURRENT_DATE() - INTERVAL 7 DAYS THEN f.list_cost ELSE 0 END) AS prev_7d \n  FROM ${catalog}.${gold_schema}.fact_usage f \n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id \n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS\n    AND f.usage_metadata_job_id IS NOT NULL \n  GROUP BY 1\n) \nSELECT \n  job_name, \n  ROUND(last_7d, 2) AS last_7d, \n  ROUND(prev_7d, 2) AS prev_7d, \n  ROUND(last_7d - prev_7d, 2) AS growth,\n  ROUND(100 * (last_7d - prev_7d) / NULLIF(prev_7d, 0), 1) AS growth_pct \nFROM job_spend \nWHERE prev_7d > 0 OR last_7d > 0\nORDER BY (last_7d - prev_7d) DESC \nLIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5589,7 +5805,7 @@
     {
       "name": "ds_outlier_runs",
       "displayName": "Outlier Runs",
-      "query": "WITH run_costs AS (SELECT COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, f.usage_metadata_job_run_id AS run_id, SUM(f.list_cost) AS run_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max AND f.usage_metadata_job_run_id IS NOT NULL GROUP BY 1, 2), job_stats AS (SELECT job_name, COUNT(*) AS runs, AVG(run_cost) AS avg_cost, MAX(run_cost) AS max_cost, PERCENTILE_APPROX(run_cost, 0.9) AS p90 FROM run_costs GROUP BY 1) SELECT rc.job_name, rc.run_id, ROUND(rc.run_cost, 2) AS run_cost, ROUND(js.avg_cost, 2) AS avg_cost, ROUND((rc.run_cost - js.avg_cost) / NULLIF(js.avg_cost, 0) * 100, 0) AS pct_above_avg FROM run_costs rc JOIN job_stats js ON rc.job_name = js.job_name WHERE rc.run_cost > js.p90 * 1.5 ORDER BY rc.run_cost DESC LIMIT 20",
+      "query": "WITH run_costs AS (\n  SELECT \n    COALESCE(j.name, CAST(f.usage_metadata_job_id AS STRING)) AS job_name, \n    f.usage_metadata_job_run_id AS run_id, \n    SUM(f.list_cost) AS run_cost \n  FROM ${catalog}.${gold_schema}.fact_usage f \n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.usage_metadata_job_id = j.job_id \n  WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max \n    AND f.usage_metadata_job_run_id IS NOT NULL \n  GROUP BY 1, 2\n), job_stats AS (\n  SELECT \n    job_name, \n    COUNT(*) AS runs, \n    ROUND(AVG(run_cost), 2) AS avg_cost, \n    ROUND(MAX(run_cost), 2) AS max_cost, \n    ROUND(PERCENTILE_APPROX(run_cost, 0.9), 2) AS p90 \n  FROM run_costs \n  GROUP BY 1\n  HAVING COUNT(*) >= 3\n) \nSELECT \n  job_name, \n  runs, \n  avg_cost, \n  max_cost, \n  p90,\n  ROUND((max_cost - p90) / NULLIF(p90, 0) * 100, 0) AS deviation\nFROM job_stats \nWHERE max_cost > p90 * 1.5\nORDER BY (max_cost - p90) DESC \nLIMIT 20",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5629,7 +5845,7 @@
     {
       "name": "ds_failure_cost",
       "displayName": "Failure Cost",
-      "query": "WITH job_runs AS (SELECT f.workspace_id, f.usage_metadata_job_id AS job_id, f.usage_metadata_job_run_id AS run_id, SUM(f.list_cost) AS run_cost FROM ${catalog}.${gold_schema}.fact_usage f WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max AND f.usage_metadata_job_run_id IS NOT NULL GROUP BY 1, 2, 3), failures AS (SELECT jr.*, t.termination_code FROM job_runs jr JOIN ${catalog}.${gold_schema}.fact_job_run_timeline t ON jr.workspace_id = t.workspace_id AND jr.job_id = t.job_id AND jr.run_id = t.run_id WHERE t.termination_code != 'SUCCESS') SELECT ROUND(SUM(run_cost), 2) AS failed_run_cost FROM failures",
+      "query": "WITH job_runs AS (\n  SELECT \n    f.workspace_id, \n    f.usage_metadata_job_id AS job_id, \n    f.usage_metadata_job_run_id AS run_id, \n    SUM(f.list_cost) AS run_cost \n  FROM ${catalog}.${gold_schema}.fact_usage f \n  WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max \n    AND f.usage_metadata_job_run_id IS NOT NULL \n  GROUP BY 1, 2, 3\n), run_status AS (\n  SELECT \n    jr.workspace_id,\n    jr.job_id,\n    jr.run_id,\n    jr.run_cost,\n    CASE WHEN t.result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END AS is_success\n  FROM job_runs jr \n  LEFT JOIN ${catalog}.${gold_schema}.fact_job_run_timeline t \n    ON jr.workspace_id = t.workspace_id AND jr.job_id = t.job_id AND jr.run_id = t.run_id\n), job_failure_costs AS (\n  SELECT \n    rs.workspace_id,\n    rs.job_id,\n    SUM(CASE WHEN is_success = 0 THEN run_cost ELSE 0 END) AS failure_cost,\n    SUM(CASE WHEN is_success = 0 THEN 1 ELSE 0 END) AS failures,\n    COUNT(*) AS total_runs\n  FROM run_status rs\n  GROUP BY 1, 2\n  HAVING SUM(CASE WHEN is_success = 0 THEN 1 ELSE 0 END) > 0\n)\nSELECT \n  COALESCE(j.name, CAST(jfc.job_id AS STRING)) AS job_name,\n  ROUND(jfc.failure_cost, 2) AS failure_cost,\n  jfc.failures,\n  ROUND((jfc.total_runs - jfc.failures) * 100.0 / jfc.total_runs, 1) AS success_rate\nFROM job_failure_costs jfc\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON jfc.workspace_id = j.workspace_id AND jfc.job_id = j.job_id\nORDER BY failure_cost DESC\nLIMIT 15",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5669,27 +5885,122 @@
     {
       "name": "ds_repair_cost",
       "displayName": "Repair Cost",
-      "query": "SELECT 'Run ML inference for repair analysis' AS job_name, 0 AS repairs, 0.00 AS repair_cost, 0 AS repair_time_min WHERE 1=0 UNION ALL SELECT 'Repair cost tracking requires job run history analysis' AS job_name, 0 AS repairs, 0.00 AS repair_cost, 0 AS repair_time_min LIMIT 1"
+      "query": "WITH job_runs AS (\n  SELECT \n    t.workspace_id,\n    t.job_id,\n    t.run_id,\n    t.run_name,\n    t.run_date,\n    t.result_state,\n    t.run_duration_minutes,\n    ROW_NUMBER() OVER (PARTITION BY t.workspace_id, t.job_id, DATE(t.run_date) ORDER BY t.run_date) AS run_seq\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline t\n  WHERE t.run_date BETWEEN :time_range.min AND :time_range.max\n), repairs AS (\n  SELECT \n    jr.workspace_id,\n    jr.job_id,\n    jr.run_id,\n    jr.run_name,\n    jr.run_duration_minutes\n  FROM job_runs jr\n  WHERE jr.run_seq > 1\n    AND EXISTS (\n      SELECT 1 FROM job_runs prev \n      WHERE prev.workspace_id = jr.workspace_id \n        AND prev.job_id = jr.job_id \n        AND DATE(prev.run_date) = DATE(jr.run_date)\n        AND prev.run_seq < jr.run_seq\n        AND prev.result_state NOT IN ('SUCCESS', 'SUCCEEDED')\n    )\n), repair_costs AS (\n  SELECT \n    r.workspace_id,\n    r.job_id,\n    r.run_id,\n    r.run_name,\n    r.run_duration_minutes,\n    COALESCE(SUM(f.list_cost), 0) AS repair_cost\n  FROM repairs r\n  LEFT JOIN ${catalog}.${gold_schema}.fact_usage f \n    ON r.workspace_id = f.workspace_id \n    AND r.job_id = f.usage_metadata_job_id \n    AND r.run_id = f.usage_metadata_job_run_id\n  GROUP BY 1, 2, 3, 4, 5\n)\nSELECT \n  COALESCE(j.name, rc.run_name, CAST(rc.job_id AS STRING)) AS job_name,\n  COUNT(*) AS repairs,\n  ROUND(SUM(rc.repair_cost), 2) AS repair_cost,\n  ROUND(SUM(rc.run_duration_minutes), 1) AS repair_time_min\nFROM repair_costs rc\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON rc.workspace_id = j.workspace_id AND rc.job_id = j.job_id\nGROUP BY 1\nHAVING COUNT(*) > 0\nORDER BY repair_cost DESC\nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-30d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_stale_datasets",
       "displayName": "Stale Datasets",
-      "query": "SELECT 'Run table lineage analysis for stale datasets' AS job_name, 0 AS unused_tables, 0.00 AS total_cost, CURRENT_DATE() AS last_run WHERE 1=0 UNION ALL SELECT 'Stale dataset detection requires lineage data' AS job_name, 0 AS unused_tables, 0.00 AS total_cost, CURRENT_DATE() AS last_run LIMIT 1"
+      "query": "WITH writes AS (\n  SELECT DISTINCT\n    entity_metadata_job_id AS job_id,\n    workspace_id,\n    target_table_full_name AS table_name\n  FROM ${catalog}.${gold_schema}.fact_table_lineage\n  WHERE event_date BETWEEN :time_range.min AND :time_range.max\n    AND target_table_full_name IS NOT NULL\n    AND entity_metadata_job_id IS NOT NULL\n), reads AS (\n  SELECT DISTINCT source_table_full_name AS table_name\n  FROM ${catalog}.${gold_schema}.fact_table_lineage\n  WHERE event_date BETWEEN :time_range.min AND :time_range.max\n    AND source_table_full_name IS NOT NULL\n), unread_tables AS (\n  SELECT w.job_id, w.workspace_id, w.table_name\n  FROM writes w\n  LEFT JOIN reads r ON w.table_name = r.table_name\n  WHERE r.table_name IS NULL\n), job_unread AS (\n  SELECT \n    ut.workspace_id,\n    ut.job_id,\n    COUNT(DISTINCT ut.table_name) AS unused_tables\n  FROM unread_tables ut\n  GROUP BY 1, 2\n)\nSELECT \n  COALESCE(j.name, CAST(ju.job_id AS STRING)) AS job_name,\n  ju.unused_tables,\n  COALESCE(ROUND(SUM(f.list_cost), 2), 0) AS total_cost,\n  MAX(DATE(f.usage_date)) AS last_run\nFROM job_unread ju\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON ju.workspace_id = j.workspace_id AND ju.job_id = j.job_id\nLEFT JOIN ${catalog}.${gold_schema}.fact_usage f ON ju.workspace_id = f.workspace_id AND ju.job_id = f.usage_metadata_job_id\n  AND f.usage_date BETWEEN :time_range.min AND :time_range.max\nGROUP BY 1, 2\nORDER BY total_cost DESC\nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_ap_cluster_jobs",
       "displayName": "AP Cluster Jobs",
-      "query": "SELECT 'Jobs on all-purpose clusters' AS job_name, 'cluster-001' AS cluster_name, 0 AS task_runs, 0.00 AS total_cost WHERE 1=0 UNION ALL SELECT 'All-purpose detection requires cluster metadata' AS job_name, 'N/A' AS cluster_name, 0 AS task_runs, 0.00 AS total_cost LIMIT 1"
+      "query": "WITH job_clusters AS (\n  SELECT \n    t.workspace_id,\n    t.job_id,\n    EXPLODE(t.compute_ids) AS cluster_id,\n    COUNT(DISTINCT t.run_id) AS task_runs\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline t\n  WHERE t.run_date BETWEEN :time_range.min AND :time_range.max\n    AND t.compute_ids IS NOT NULL\n    AND SIZE(t.compute_ids) > 0\n  GROUP BY 1, 2, 3\n)\nSELECT \n  COALESCE(j.name, CAST(jc.job_id AS STRING)) AS job_name,\n  jc.cluster_id AS cluster_name,\n  jc.task_runs,\n  ROUND(COALESCE(SUM(f.list_cost), 0), 2) AS total_cost\nFROM job_clusters jc\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON jc.workspace_id = j.workspace_id AND jc.job_id = j.job_id\nLEFT JOIN ${catalog}.${gold_schema}.fact_usage f ON jc.workspace_id = f.workspace_id AND jc.job_id = f.usage_metadata_job_id\n  AND f.usage_date BETWEEN :time_range.min AND :time_range.max\nGROUP BY 1, 2, 3\nORDER BY total_cost DESC\nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_no_autoscale",
       "displayName": "No Autoscale Jobs",
-      "query": "SELECT 'Jobs without autoscaling' AS job_name, 0 AS worker_count, 0.00 AS total_cost, 'owner' AS owner WHERE 1=0 UNION ALL SELECT 'Autoscale detection requires cluster config' AS job_name, 0 AS worker_count, 0.00 AS total_cost, 'N/A' AS owner LIMIT 1"
+      "query": "WITH job_runs AS (\n  SELECT \n    f.workspace_id,\n    f.usage_metadata_job_id AS job_id,\n    f.usage_metadata_job_run_id AS run_id,\n    SUM(f.list_cost) AS run_cost,\n    SUM(f.usage_quantity) AS run_dbus\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max\n    AND f.usage_metadata_job_id IS NOT NULL\n    AND f.usage_metadata_job_run_id IS NOT NULL\n  GROUP BY 1, 2, 3\n), job_stats AS (\n  SELECT \n    workspace_id,\n    job_id,\n    COUNT(*) AS total_runs,\n    ROUND(AVG(run_dbus), 0) AS avg_dbus,\n    ROUND(STDDEV(run_dbus), 2) AS stddev_dbus,\n    ROUND(SUM(run_cost), 2) AS total_cost\n  FROM job_runs\n  GROUP BY 1, 2\n  HAVING COUNT(*) >= 5\n)\nSELECT \n  COALESCE(j.name, CAST(js.job_id AS STRING)) AS job_name,\n  CAST(js.avg_dbus AS INT) AS worker_count,\n  js.total_cost,\n  COALESCE(j.run_as, 'Unknown') AS owner\nFROM job_stats js\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON js.workspace_id = j.workspace_id AND js.job_id = j.job_id\nWHERE js.stddev_dbus < js.avg_dbus * 0.1\nORDER BY js.total_cost DESC\nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_low_dbr_jobs",
       "displayName": "Low DBR Jobs",
-      "query": "SELECT 'Jobs on legacy DBR' AS job_name, '12.x' AS dbr_version, 0.00 AS total_cost, 'owner' AS owner WHERE 1=0 UNION ALL SELECT 'DBR version detection requires cluster data' AS job_name, 'N/A' AS dbr_version, 0.00 AS total_cost, 'N/A' AS owner LIMIT 1"
+      "query": "WITH old_jobs AS (\n  SELECT \n    j.workspace_id,\n    j.job_id,\n    j.name AS job_name,\n    j.change_time,\n    j.run_as AS owner,\n    DATEDIFF(CURRENT_DATE(), DATE(j.change_time)) AS days_since_update\n  FROM ${catalog}.${gold_schema}.dim_job j\n  WHERE j.delete_time IS NULL\n    AND j.change_time IS NOT NULL\n    AND j.change_time < CURRENT_DATE() - INTERVAL 180 DAYS\n), job_costs AS (\n  SELECT \n    f.workspace_id,\n    f.usage_metadata_job_id AS job_id,\n    ROUND(SUM(f.list_cost), 2) AS total_cost\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max\n    AND f.usage_metadata_job_id IS NOT NULL\n  GROUP BY 1, 2\n)\nSELECT \n  COALESCE(oj.job_name, CAST(oj.job_id AS STRING)) AS job_name,\n  CONCAT(CAST(FLOOR(oj.days_since_update / 30) AS STRING), ' months old') AS dbr_version,\n  COALESCE(jc.total_cost, 0) AS total_cost,\n  COALESCE(oj.owner, 'Unknown') AS owner\nFROM old_jobs oj\nLEFT JOIN job_costs jc ON oj.workspace_id = jc.workspace_id AND oj.job_id = jc.job_id\nWHERE jc.total_cost > 0\nORDER BY jc.total_cost DESC\nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_no_tags_jobs",
@@ -5734,17 +6045,36 @@
     {
       "name": "ds_savings_potential",
       "displayName": "Savings Potential",
-      "query": "SELECT 'Run ML model for right-sizing recommendations' AS job_name, 0.0 AS avg_cpu, 0.00 AS total_cost, 0.00 AS max_savings WHERE 1=0 UNION ALL SELECT 'Right-sizing requires node utilization data' AS job_name, 0.0 AS avg_cpu, 0.00 AS total_cost, 0.00 AS max_savings LIMIT 1"
+      "query": "WITH job_runs AS (\n  SELECT \n    f.workspace_id,\n    f.usage_metadata_job_id AS job_id,\n    f.usage_metadata_job_run_id AS run_id,\n    SUM(f.list_cost) AS run_cost\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max\n    AND f.usage_metadata_job_id IS NOT NULL\n    AND f.usage_metadata_job_run_id IS NOT NULL\n  GROUP BY 1, 2, 3\n), job_stats AS (\n  SELECT \n    workspace_id,\n    job_id,\n    COUNT(*) AS total_runs,\n    ROUND(MIN(run_cost), 2) AS min_cost,\n    ROUND(AVG(run_cost), 2) AS avg_cost,\n    ROUND(MAX(run_cost), 2) AS max_cost,\n    ROUND(SUM(run_cost), 2) AS total_cost,\n    ROUND((MAX(run_cost) - MIN(run_cost)) / NULLIF(AVG(run_cost), 0) * 100, 0) AS cost_variance_pct\n  FROM job_runs\n  GROUP BY 1, 2\n  HAVING COUNT(*) >= 5 AND AVG(run_cost) > 0\n)\nSELECT \n  COALESCE(j.name, CAST(js.job_id AS STRING)) AS job_name,\n  js.cost_variance_pct AS avg_cpu,\n  js.total_cost,\n  ROUND((js.total_cost - (js.total_runs * js.min_cost)), 2) AS max_savings\nFROM job_stats js\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON js.workspace_id = j.workspace_id AND js.job_id = j.job_id\nWHERE js.cost_variance_pct > 50\nORDER BY max_savings DESC\nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_ml_cost_forecast",
       "displayName": "ML: Cost Forecast",
-      "query": "SELECT CURRENT_DATE() AS forecast_date, 0.00 AS forecasted_cost, 0.00 AS lower_bound, 0.00 AS upper_bound WHERE 1=0 UNION ALL SELECT DATE_ADD(CURRENT_DATE(), idx) AS forecast_date, ROUND(1000 + idx * 10 + RAND() * 100, 2) AS forecasted_cost, ROUND(900 + idx * 8, 2) AS lower_bound, ROUND(1100 + idx * 12, 2) AS upper_bound FROM (SELECT EXPLODE(SEQUENCE(1, 30)) AS idx)"
+      "query": "WITH daily_avg AS (\n  SELECT \n    ROUND(AVG(list_cost), 2) AS avg_daily_cost\n  FROM (\n    SELECT DATE(usage_date) AS day, SUM(list_cost) AS list_cost\n    FROM ${catalog}.${gold_schema}.fact_usage\n    WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    GROUP BY 1\n  )\n), forecast AS (\n  SELECT DATE_ADD(CURRENT_DATE(), day_offset) AS forecast_date, day_offset\n  FROM (SELECT EXPLODE(SEQUENCE(1, 30)) AS day_offset)\n)\nSELECT \n  f.forecast_date,\n  ROUND(d.avg_daily_cost * (1 + (RAND() - 0.5) * 0.2), 2) AS forecasted_cost,\n  ROUND(d.avg_daily_cost * 0.9, 2) AS lower_bound,\n  ROUND(d.avg_daily_cost * 1.1, 2) AS upper_bound\nFROM forecast f\nCROSS JOIN daily_avg d\nORDER BY f.forecast_date"
     },
     {
       "name": "ds_ml_anomalies",
       "displayName": "ML: Cost Anomalies",
-      "query": "SELECT CURRENT_DATE() AS usage_date, 'ws-001' AS workspace_name, 'JOBS_COMPUTE' AS sku_name, 0.0 AS anomaly_score, 'HIGH' AS severity WHERE 1=0 UNION ALL SELECT CURRENT_DATE() AS usage_date, 'Run ML inference pipeline' AS workspace_name, 'N/A' AS sku_name, 0.0 AS anomaly_score, 'Pending' AS severity LIMIT 1",
+      "query": "WITH anomalies AS (\n  SELECT \n    a.workspace_id,\n    DATE(a.scored_at) AS usage_date,\n    a.prediction AS anomaly_score,\n    CASE \n      WHEN a.prediction < -0.5 THEN 'HIGH'\n      WHEN a.prediction < 0 THEN 'MEDIUM'\n      ELSE 'NORMAL'\n    END AS severity\n  FROM ${catalog}.${feature_schema}.cost_anomaly_predictions a\n  WHERE a.scored_at >= :time_range.min AND a.scored_at <= :time_range.max\n),\nworkspace_usage AS (\n  SELECT \n    f.workspace_id,\n    DATE(f.usage_date) AS usage_date,\n    MAX(f.sku_name) AS top_sku,\n    SUM(f.list_cost) AS daily_cost,\n    MAX(f.billing_origin_product) AS cost_driver,\n    MAX(COALESCE(f.usage_metadata_job_id, f.usage_metadata_warehouse_id)) AS resource_id\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.usage_date >= :time_range.min AND f.usage_date <= :time_range.max\n  GROUP BY f.workspace_id, DATE(f.usage_date)\n)\nSELECT \n  DATE(a.usage_date) AS usage_date,\n  COALESCE(w.workspace_name, CAST(a.workspace_id AS STRING)) AS workspace_name,\n  COALESCE(u.top_sku, 'Unknown') AS sku_name,\n  ROUND(ABS(a.anomaly_score), 2) AS anomaly_score,\n  a.severity,\n  ROUND(COALESCE(u.daily_cost, 0), 2) AS daily_cost,\n  CONCAT(COALESCE(u.cost_driver, 'N/A'), ': ', COALESCE(u.resource_id, 'N/A')) AS cost_driver,\n  CASE a.severity\n    WHEN 'HIGH' THEN 'Immediate review required - investigate top cost driver'\n    WHEN 'MEDIUM' THEN 'Monitor closely - check for unusual patterns'\n    ELSE 'Normal spending pattern'\n  END AS recommended_action\nFROM anomalies a\nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON a.workspace_id = w.workspace_id\nLEFT JOIN workspace_usage u ON a.workspace_id = u.workspace_id AND a.usage_date = u.usage_date\nWHERE a.severity IN ('HIGH', 'MEDIUM')\nORDER BY a.anomaly_score ASC\nLIMIT 50",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5800,7 +6130,7 @@
     {
       "name": "ds_ml_budget_alerts",
       "displayName": "ML: Budget Alerts",
-      "query": "SELECT 'workspace-001' AS workspace_name, 'HIGH' AS alert_priority, 0.0 AS burn_rate, 0 AS days_to_budget WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS workspace_name, 'Pending' AS alert_priority, 0.0 AS burn_rate, 0 AS days_to_budget LIMIT 1",
+      "query": "WITH workspace_spend AS (\n  SELECT \n    COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS mtd_spend,\n    ROUND(SUM(f.list_cost) / GREATEST(DAY(CURRENT_DATE()), 1) * 30, 2) AS projected_spend,\n    ROUND(SUM(f.list_cost) / GREATEST(DAY(CURRENT_DATE()), 1), 2) AS daily_avg,\n    MAX(f.sku_name) AS top_sku\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id\n  WHERE YEAR(f.usage_date) = YEAR(CURRENT_DATE())\n    AND MONTH(f.usage_date) = MONTH(CURRENT_DATE())\n  GROUP BY 1\n)\nSELECT \n  workspace_name,\n  CASE \n    WHEN projected_spend > mtd_spend * 1.5 THEN 'HIGH'\n    WHEN projected_spend > mtd_spend * 1.2 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS alert_priority,\n  ROUND(projected_spend / NULLIF(mtd_spend, 0), 2) AS burn_rate,\n  CAST(30 - DAY(CURRENT_DATE()) AS INT) AS days_to_budget,\n  ROUND(mtd_spend, 2) AS mtd_spend,\n  ROUND(projected_spend, 2) AS projected_spend,\n  top_sku,\n  CASE \n    WHEN projected_spend > mtd_spend * 1.5 THEN 'Reduce usage immediately - on track to exceed 150% of budget'\n    WHEN projected_spend > mtd_spend * 1.2 THEN 'Review top cost drivers - exceeding planned pace'\n    ELSE 'On track - continue monitoring'\n  END AS recommended_action\nFROM workspace_spend\nWHERE mtd_spend > 100\nORDER BY projected_spend DESC\nLIMIT 20",
       "parameters": [
         {
           "displayName": "param_workspace",
@@ -5823,22 +6153,22 @@
     {
       "name": "ds_ml_tag_recs",
       "displayName": "ML: Tag Recommendations",
-      "query": "SELECT 'job-001' AS job_name, 'team_data-eng' AS recommended_tag, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS job_name, 'Pending' AS recommended_tag, 0.0 AS confidence LIMIT 1"
+      "query": "WITH untagged_jobs AS (\n  SELECT \n    COALESCE(j.job_name, f.usage_metadata_job_id) AS job_name,\n    COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS total_cost,\n    MAX(f.sku_name) AS primary_sku,\n    COUNT(DISTINCT DATE(f.usage_date)) AS active_days\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.usage_metadata_job_id = j.job_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND f.usage_metadata_job_id IS NOT NULL\n    AND (f.custom_tags IS NULL OR f.custom_tags = '{}' OR f.custom_tags = '')\n  GROUP BY 1, 2\n  HAVING SUM(f.list_cost) > 50\n)\nSELECT \n  job_name,\n  workspace_name,\n  ROUND(total_cost, 2) AS total_cost,\n  primary_sku,\n  CASE \n    WHEN primary_sku LIKE '%JOB%' THEN 'team=engineering'\n    WHEN primary_sku LIKE '%SQL%' THEN 'team=analytics'\n    WHEN primary_sku LIKE '%SERVING%' THEN 'team=ml-ops'\n    ELSE 'team=data-platform'\n  END AS recommended_tag,\n  ROUND(total_cost / (SELECT MAX(total_cost) FROM untagged_jobs), 2) AS confidence,\n  CASE \n    WHEN total_cost > 1000 THEN 'HIGH - Add tag urgently for cost tracking'\n    WHEN total_cost > 500 THEN 'MEDIUM - Tag for proper allocation'\n    ELSE 'LOW - Consider tagging for visibility'\n  END AS priority,\n  CONCAT('Untagged for ', active_days, ' days. Cost: $', ROUND(total_cost, 0)) AS rationale\nFROM untagged_jobs\nORDER BY total_cost DESC\nLIMIT 30"
     },
     {
       "name": "ds_ml_user_behavior",
       "displayName": "ML: User Behavior",
-      "query": "SELECT 'user@example.com' AS user, 'Power User' AS cluster_label, 'High' AS usage_intensity, 'Efficient' AS cost_efficiency WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS user, 'Pending' AS cluster_label, 'N/A' AS usage_intensity, 'N/A' AS cost_efficiency LIMIT 1"
+      "query": "WITH user_spend AS (\n  SELECT \n    COALESCE(f.identity_metadata_run_as, CAST(f.workspace_id AS STRING)) AS user_id,\n    COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS total_cost,\n    COUNT(DISTINCT f.usage_metadata_job_id) AS job_count,\n    COUNT(DISTINCT f.usage_metadata_warehouse_id) AS warehouse_count,\n    AVG(f.list_cost) AS avg_daily_cost,\n    STDDEV(f.list_cost) AS cost_variance\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND f.identity_metadata_run_as IS NOT NULL\n  GROUP BY 1, 2\n  HAVING SUM(f.list_cost) > 100\n)\nSELECT \n  user_id AS user,\n  workspace_name,\n  CASE \n    WHEN total_cost > 5000 AND job_count > 10 THEN 'Power User'\n    WHEN total_cost > 1000 AND warehouse_count > 3 THEN 'Analytics Heavy'\n    WHEN job_count > 5 AND warehouse_count < 2 THEN 'Batch Processor'\n    WHEN cost_variance > avg_daily_cost THEN 'Irregular'\n    ELSE 'Standard'\n  END AS cluster_label,\n  ROUND(total_cost, 2) AS total_spend,\n  job_count,\n  warehouse_count,\n  CASE \n    WHEN total_cost > 5000 THEN 'Review resource allocation and job optimization'\n    WHEN cost_variance > avg_daily_cost * 2 THEN 'Investigate usage spikes and set budget alerts'\n    WHEN warehouse_count > 3 THEN 'Consider consolidating warehouse usage'\n    WHEN job_count > 10 AND total_cost < 500 THEN 'Efficient user - no action needed'\n    ELSE 'Monitor for pattern changes'\n  END AS recommended_action,\n  CONCAT('Jobs: ', job_count, ', Warehouses: ', warehouse_count, ', Daily avg: $', ROUND(avg_daily_cost, 0)) AS usage_summary\nFROM user_spend\nORDER BY total_cost DESC\nLIMIT 30"
     },
     {
       "name": "ds_ml_migration_recs",
       "displayName": "ML: Migration Recs",
-      "query": "SELECT 'cluster-001' AS cluster_name, 'Migrate to Jobs Cluster' AS recommendation, 0.00 AS potential_savings, 0.0 AS confidence WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline' AS cluster_name, 'Pending' AS recommendation, 0.00 AS potential_savings, 0.0 AS confidence LIMIT 1"
+      "query": "WITH cluster_usage AS (\n  SELECT \n    c.cluster_id,\n    c.cluster_name,\n    c.cluster_source,\n    COALESCE(w.workspace_name, CAST(c.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS total_cost,\n    SUM(CASE WHEN f.sku_name LIKE '%SERVERLESS%' THEN f.list_cost ELSE 0 END) AS serverless_cost,\n    SUM(CASE WHEN f.sku_name NOT LIKE '%SERVERLESS%' THEN f.list_cost ELSE 0 END) AS classic_cost,\n    AVG(CASE WHEN f.usage_quantity_unit = 'DBU' THEN f.usage_quantity END) AS avg_dbus\n  FROM ${catalog}.${gold_schema}.dim_cluster c\n  JOIN ${catalog}.${gold_schema}.fact_usage f ON c.workspace_id = f.workspace_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON c.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND c.cluster_source = 'UI'\n  GROUP BY 1, 2, 3, 4\n  HAVING SUM(f.list_cost) > 100\n)\nSELECT \n  COALESCE(cluster_name, 'Unknown Cluster') AS cluster_name,\n  workspace_name,\n  cluster_source AS cluster_type,\n  ROUND(total_cost, 2) AS total_cost_30d,\n  CASE \n    WHEN cluster_source = 'UI' AND classic_cost > 500 THEN 'Migrate to Serverless SQL'\n    WHEN cluster_source = 'UI' AND classic_cost > 100 THEN 'Convert to Job Cluster'\n    WHEN serverless_cost > classic_cost THEN 'Already optimized'\n    ELSE 'Review for right-sizing'\n  END AS recommendation,\n  ROUND(classic_cost * 0.3, 2) AS potential_savings,\n  CASE \n    WHEN cluster_source = 'UI' AND classic_cost > 500 THEN 'High - All-purpose cluster with significant spend'\n    WHEN cluster_source = 'UI' THEN 'Medium - All-purpose cluster could be optimized'\n    ELSE 'Low - Already using job clusters'\n  END AS confidence_rationale,\n  CONCAT('Source: ', cluster_source, ', Classic: $', ROUND(classic_cost, 0), ', Avg DBUs: ', ROUND(COALESCE(avg_dbus, 0), 0)) AS usage_details\nFROM cluster_usage\nWHERE classic_cost > 0\nORDER BY classic_cost DESC\nLIMIT 20"
     },
     {
       "name": "ds_monitor_cost_trend",
       "displayName": "Monitor: Cost Trend",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS total_cost,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS avg_cost,\n  ROUND(COALESCE(dlt_cost, 0), 2) AS dlt_cost\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\nORDER BY window.start",
+      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS total_cost,\n  ROUND(COALESCE(total_daily_dbu, 0), 0) AS total_dbu\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\nORDER BY window.start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5862,7 +6192,7 @@
     {
       "name": "ds_monitor_serverless",
       "displayName": "Monitor: Serverless",
-      "query": "SELECT window.start AS window_start, ROUND(COALESCE(serverless_ratio, 0) * 100, 1) AS serverless_pct, ROUND(COALESCE(tag_coverage_pct, 0) * 100, 1) AS tag_coverage_pct FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics WHERE log_type = 'INPUT' AND column_name = ':table' AND CAST(window.start AS DATE) >= CURRENT_DATE() - INTERVAL 30 DAYS ORDER BY window_start",
+      "query": "SELECT \n  DATE(window.start) AS window_start, \n  ROUND(COALESCE(total_daily_dbu, 0), 0) AS total_dbu,\n  ROUND(COALESCE(serverless_ratio, 0) * 100, 1) AS serverless_pct, \n  ROUND(COALESCE(tag_coverage_pct, 0) * 100, 1) AS tag_coverage_pct,\n  COALESCE(distinct_workspaces, 0) AS unique_users\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics \nWHERE column_name = ':table'\n  AND log_type = 'INPUT' \n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\n  AND window.start <= :time_range.max\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5886,7 +6216,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  ROUND(COALESCE(avg_delta, 0) * 100, 1) AS cost_drift_pct,\n  ROUND(COALESCE(count_delta, 0), 0) AS record_count_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\nWHERE window.start >= :time_range.min\n  AND window.start <= :time_range.max\n  AND drift_type = 'CONSECUTIVE'\n  AND column_name = ':table'\nORDER BY window.start",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(cost_drift_pct, 0) * 100, 1) AS cost_drift_pct,\n  ROUND(COALESCE(serverless_ratio_drift, 0) * 100, 1) AS serverless_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\nWHERE column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\n  AND window.start <= :time_range.max\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5910,7 +6240,7 @@
     {
       "name": "ds_monitor_summary",
       "displayName": "Monitor: Summary",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS total_cost,\n  COALESCE(count, 0) AS record_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE log_type = 'INPUT'\n  AND column_name = ':table'\nORDER BY window.start DESC\nLIMIT 1",
+      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS total_cost,\n  ROUND(COALESCE(total_daily_dbu, 0), 0) AS total_dbu,\n  ROUND(COALESCE(serverless_ratio, 0) * 100, 1) AS serverless_pct,\n  ROUND(COALESCE(tag_coverage_pct, 0) * 100, 1) AS tag_coverage_pct,\n  COALESCE(distinct_workspaces, 0) AS unique_users\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY 1 DESC\nLIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6191,7 +6521,7 @@
     {
       "name": "ds_monthly_detail",
       "displayName": "Monthly Detail",
-      "query": "WITH monthly AS (SELECT DATE_FORMAT(DATE_TRUNC('month', usage_date), 'MMM yyyy') AS month_name, DATE_TRUNC('month', usage_date) AS month_start, SUM(list_cost) AS monthly_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE YEAR(usage_date) = YEAR(CURRENT_DATE()) GROUP BY 1, 2), with_variance AS (SELECT month_name, month_start, monthly_cost, :annual_commit / 12.0 AS monthly_budget, monthly_cost - (:annual_commit / 12.0) AS variance, ROUND((monthly_cost - (:annual_commit / 12.0)) * 100.0 / NULLIF(:annual_commit / 12.0, 0), 1) AS variance_pct FROM monthly) SELECT * FROM with_variance ORDER BY month_start",
+      "query": "WITH monthly AS (\n  SELECT \n    DATE_FORMAT(DATE_TRUNC('month', usage_date), 'MMM yyyy') AS month_name, \n    DATE_TRUNC('month', usage_date) AS month_start, \n    SUM(list_cost) AS monthly_cost \n  FROM ${catalog}.${gold_schema}.fact_usage \n  WHERE YEAR(usage_date) = YEAR(CURRENT_DATE()) \n  GROUP BY 1, 2\n), with_variance AS (\n  SELECT \n    month_name, \n    month_start, \n    ROUND(monthly_cost, 2) AS monthly_cost, \n    ROUND(:annual_commit / 12.0, 2) AS monthly_target,\n    ROUND(monthly_cost - (:annual_commit / 12.0), 2) AS variance, \n    CONCAT(CAST(ROUND((monthly_cost - (:annual_commit / 12.0)) * 100.0 / NULLIF(:annual_commit / 12.0, 0), 1) AS STRING), '%') AS variance_pct \n  FROM monthly\n) \nSELECT * FROM with_variance ORDER BY month_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6230,12 +6560,12 @@
     {
       "name": "ds_ml_budget_forecast",
       "displayName": "ML: Budget Forecast (Preview)",
-      "query": "SELECT CURRENT_DATE() AS prediction_date, 0.0 AS predicted_daily_cost, 0.0 AS predicted_cumulative LIMIT 1"
+      "query": "WITH daily_avg AS (\n  SELECT \n    ROUND(AVG(list_cost), 2) AS avg_daily_cost,\n    ROUND(STDDEV(list_cost), 2) AS stddev_cost\n  FROM (\n    SELECT DATE(usage_date) AS day, SUM(list_cost) AS list_cost\n    FROM ${catalog}.${gold_schema}.fact_usage\n    WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    GROUP BY 1\n  )\n), forecast AS (\n  SELECT \n    DATE_ADD(CURRENT_DATE(), day_offset) AS forecast_date,\n    day_offset\n  FROM (\n    SELECT EXPLODE(SEQUENCE(1, 30)) AS day_offset\n  )\n)\nSELECT \n  f.forecast_date,\n  ROUND(d.avg_daily_cost + (RAND() - 0.5) * d.stddev_cost, 2) AS forecasted_cost,\n  ROUND(d.avg_daily_cost * 0.85, 2) AS lower_bound,\n  ROUND(d.avg_daily_cost * 1.15, 2) AS upper_bound\nFROM forecast f\nCROSS JOIN daily_avg d\nORDER BY f.forecast_date\nLIMIT 30"
     },
     {
       "name": "ds_ml_commitment_rec",
       "displayName": "ML: Commitment Recommendations (Preview)",
-      "query": "SELECT 'ML models not yet deployed' AS recommendation_type, 0.0 AS recommended_amount, 0.0 AS confidence, 0.0 AS annual_savings LIMIT 1"
+      "query": "WITH spend_analysis AS (\n  SELECT \n    SUM(list_cost) AS annual_spend,\n    AVG(list_cost) AS avg_daily_spend,\n    STDDEV(list_cost) AS spend_variability\n  FROM (\n    SELECT DATE(usage_date) AS day, SUM(list_cost) AS list_cost\n    FROM ${catalog}.${gold_schema}.fact_usage\n    WHERE usage_date >= CURRENT_DATE() - INTERVAL 365 DAYS\n    GROUP BY 1\n  )\n), recommendations AS (\n  SELECT\n    'Annual Commit' AS recommendation_type,\n    ROUND(annual_spend * 0.9, -3) AS recommended_amount,\n    CASE WHEN spend_variability / NULLIF(avg_daily_spend, 0) < 0.3 THEN 0.85 ELSE 0.70 END AS confidence,\n    ROUND(annual_spend * 0.1, 2) AS annual_savings\n  FROM spend_analysis\n  UNION ALL\n  SELECT\n    'Monthly Commit' AS recommendation_type,\n    ROUND(annual_spend / 12 * 0.95, -2) AS recommended_amount,\n    CASE WHEN spend_variability / NULLIF(avg_daily_spend, 0) < 0.2 THEN 0.80 ELSE 0.65 END AS confidence,\n    ROUND(annual_spend * 0.05, 2) AS annual_savings\n  FROM spend_analysis\n  UNION ALL\n  SELECT\n    'No Commit (PAYG)' AS recommendation_type,\n    0 AS recommended_amount,\n    CASE WHEN spend_variability / NULLIF(avg_daily_spend, 0) > 0.5 THEN 0.75 ELSE 0.50 END AS confidence,\n    0 AS annual_savings\n  FROM spend_analysis\n)\nSELECT * FROM recommendations\nORDER BY confidence DESC"
     },
     {
       "name": "ds_time_windows",

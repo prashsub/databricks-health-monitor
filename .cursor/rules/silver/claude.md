@@ -293,3 +293,5 @@ spark.sparkContext.setLogLevel("ERROR")
 - [ ] No `sparkContext` usage (Spark Connect compatible)
 - [ ] Statistics logged for monitoring
 
+
+

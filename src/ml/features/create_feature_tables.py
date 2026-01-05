@@ -124,15 +124,47 @@ def create_feature_table(
     timestamp_cols = timestamp_keys or []
     non_cast_cols = set(primary_keys + timestamp_cols)
     
-    # Cast all numeric columns to DOUBLE
+    # =============================================================================
+    # CRITICAL: Cast to DOUBLE AND fill NaN/Inf with 0 for ALL numeric columns
+    # =============================================================================
+    # Root cause of inference failures (Jan 2026):
+    # - Training scripts call prepare_training_data() which fills NaN with 0
+    # - Inference via fe.score_batch() uses raw feature table data
+    # - sklearn GradientBoostingRegressor does NOT handle NaN natively
+    # - XGBoost handles NaN, but sklearn doesn't → inconsistent behavior
+    # 
+    # Solution: Fill NaN/Inf at source (feature table) to ensure consistency
+    # =============================================================================
+    from pyspark.sql.types import DoubleType
+    
+    # Helper function to clean numeric values (replace NaN and Inf with 0)
+    def clean_numeric(col_name):
+        """Replace NaN and Infinity with 0.0"""
+        return F.when(
+            F.col(col_name).isNull() | 
+            F.isnan(F.col(col_name)) |
+            (F.col(col_name) == float('inf')) |
+            (F.col(col_name) == float('-inf')),
+            F.lit(0.0)
+        ).otherwise(F.col(col_name))
+    
     cast_count = 0
+    nan_fill_cols = []
     for field in df.schema.fields:
         if field.name not in non_cast_cols:
+            # Handle integer/float types - cast to DOUBLE and clean
             if isinstance(field.dataType, (IntegerType, LongType, FloatType, DecimalType, ShortType, ByteType)):
                 df = df.withColumn(field.name, F.col(field.name).cast("double"))
+                df = df.withColumn(field.name, clean_numeric(field.name))
                 cast_count += 1
+                nan_fill_cols.append(field.name)
+            # Handle columns already DOUBLE (from window functions) - just clean
+            elif isinstance(field.dataType, DoubleType):
+                df = df.withColumn(field.name, clean_numeric(field.name))
+                nan_fill_cols.append(field.name)
     
-    print(f"  Cast {cast_count} numeric columns to DOUBLE for MLflow compatibility")
+    print(f"  Cast {cast_count} numeric columns to DOUBLE")
+    print(f"  Cleaned NaN/Inf→0.0 for {len(nan_fill_cols)} columns (sklearn compatibility)")
     
     # Filter out rows where any primary key column is NULL
     # This is REQUIRED for PRIMARY KEY constraint
@@ -1076,20 +1108,22 @@ def compute_quality_features(
     Compute quality features for data governance and quality monitoring.
     
     Features:
-    - Table counts and schema metrics
+    - Table counts and schema metrics per catalog
     - Primary key coverage
     - Change data feed adoption
     - Schema change detection
     
-    Source: information_schema tables
+    Source: system.information_schema (ALL catalogs in metastore)
+    
+    NOTE: No synthetic data needed - system.information_schema returns
+    50-200+ catalogs naturally, providing enough samples for ML training.
     """
     print("\nComputing quality features...")
-    print(f"  Using lookback period: {lookback_days} days")
+    print(f"  Querying system.information_schema for ALL catalogs...")
     
-    # Get catalog-level statistics from information_schema
+    # Get catalog-level statistics from system.information_schema
     try:
-        # Get table counts from information_schema.tables
-        # Note: information_schema.columns doesn't have table_type
+        # Query system-level metadata for ALL catalogs
         quality_df = (
             spark.sql(f"""
                 WITH table_stats AS (
@@ -1098,13 +1132,13 @@ def compute_quality_features(
                         table_schema,
                         table_name,
                         COUNT(*) as column_count
-                    FROM {config.catalog}.information_schema.columns
-                    WHERE table_catalog = '{config.catalog}'
+                    FROM system.information_schema.columns
+                    -- No WHERE filter - get ALL catalogs!
                     GROUP BY table_catalog, table_schema, table_name
                 )
                 SELECT 
                     table_catalog as catalog_name,
-                    current_date() as snapshot_date,
+                    CURRENT_DATE() as snapshot_date,
                     COUNT(DISTINCT table_name) as table_count,
                     COUNT(DISTINCT table_schema) as schema_count,
                     AVG(column_count) as column_count_avg,
@@ -1115,41 +1149,61 @@ def compute_quality_features(
                     0.0 as cdf_coverage,
                     0 as tables_created_last_7d,
                     0 as tables_modified_last_7d,
-                    0 as schema_changes_7d
+                    0 as schema_changes_7d,
+                    CURRENT_TIMESTAMP() as feature_timestamp
                 FROM table_stats
                 GROUP BY table_catalog
             """)
-            .withColumn("feature_timestamp", F.current_timestamp())
         )
         
         row_count = quality_df.count()
-        print(f"  ✓ Computed {row_count} quality feature rows")
+        print(f"  ✓ Computed {row_count} quality feature rows (one per catalog)")
         
         return quality_df
         
     except Exception as e:
-        print(f"  ⚠ Error computing quality features: {e}")
-        # Return minimal dataframe with catalog as the key
-        return spark.createDataFrame([(
-            config.catalog,  # catalog_name
-            None,  # snapshot_date - will be set below
-            0,  # table_count
-            0,  # schema_count
-            0.0,  # column_count_avg
-            0,  # total_rows
-            0,  # tables_with_pk
-            0.0,  # pk_coverage
-            0,  # tables_with_cdf
-            0.0,  # cdf_coverage
-            0,  # tables_created_last_7d
-            0,  # tables_modified_last_7d
-            0,  # schema_changes_7d
-        )], ["catalog_name", "snapshot_date", "table_count", "schema_count", 
-             "column_count_avg", "total_rows", "tables_with_pk", "pk_coverage",
-             "tables_with_cdf", "cdf_coverage", "tables_created_last_7d",
-             "tables_modified_last_7d", "schema_changes_7d"]).withColumn(
-             "snapshot_date", F.current_date()
-        ).withColumn("feature_timestamp", F.current_timestamp())
+        print(f"  ⚠ Error computing quality features from system.information_schema: {e}")
+        print(f"  ⚠ This may indicate insufficient permissions to query system tables.")
+        print(f"  → Falling back to single-catalog query...")
+        
+        # Fallback: query just the current catalog's information_schema
+        try:
+            quality_df = (
+                spark.sql(f"""
+                    WITH table_stats AS (
+                        SELECT 
+                            table_catalog,
+                            table_schema,
+                            table_name,
+                            COUNT(*) as column_count
+                        FROM {config.catalog}.information_schema.columns
+                        GROUP BY table_catalog, table_schema, table_name
+                    )
+                    SELECT 
+                        table_catalog as catalog_name,
+                        CURRENT_DATE() as snapshot_date,
+                        COUNT(DISTINCT table_name) as table_count,
+                        COUNT(DISTINCT table_schema) as schema_count,
+                        AVG(column_count) as column_count_avg,
+                        0 as total_rows,
+                        0 as tables_with_pk,
+                        0.0 as pk_coverage,
+                        0 as tables_with_cdf,
+                        0.0 as cdf_coverage,
+                        0 as tables_created_last_7d,
+                        0 as tables_modified_last_7d,
+                        0 as schema_changes_7d,
+                        CURRENT_TIMESTAMP() as feature_timestamp
+                    FROM table_stats
+                    GROUP BY table_catalog
+                """)
+            )
+            row_count = quality_df.count()
+            print(f"  ✓ Fallback: Computed {row_count} quality feature rows from {config.catalog}")
+            return quality_df
+        except Exception as fallback_e:
+            print(f"  ❌ Fallback also failed: {fallback_e}")
+            raise RuntimeError(f"Cannot compute quality features: {e}. Fallback: {fallback_e}")
 
 
 def create_quality_feature_table(

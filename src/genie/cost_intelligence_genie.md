@@ -453,6 +453,532 @@ WHERE is_over_committed = FALSE;
 
 ---
 
+### Question 13: "What is our DBU consumption by SKU?"
+**Expected SQL:**
+```sql
+SELECT 
+  sku_name,
+  MEASURE(total_dbus) as total_dbus,
+  MEASURE(total_cost) as total_cost
+FROM ${catalog}.${gold_schema}.cost_analytics
+WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())
+GROUP BY sku_name
+ORDER BY total_dbus DESC;
+```
+**Expected Result:** DBU breakdown by SKU
+
+---
+
+### Question 14: "Which users have the highest spend?"
+**Expected SQL:**
+```sql
+SELECT 
+  usage_owner as user,
+  SUM(usage_cost) as total_cost
+FROM ${catalog}.${gold_schema}.fact_usage
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+GROUP BY usage_owner
+ORDER BY total_cost DESC
+LIMIT 20;
+```
+**Expected Result:** Top 20 users by spend
+
+---
+
+### Question 15: "What's the daily cost breakdown for this week?"
+**Expected SQL:**
+```sql
+SELECT 
+  usage_date,
+  MEASURE(total_cost) as daily_cost,
+  MEASURE(total_dbus) as daily_dbus
+FROM ${catalog}.${gold_schema}.cost_analytics
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+GROUP BY usage_date
+ORDER BY usage_date;
+```
+**Expected Result:** Daily cost for last 7 days
+
+---
+
+### Question 16: "What is our cost by cloud provider?"
+**Expected SQL:**
+```sql
+SELECT 
+  cloud,
+  MEASURE(total_cost) as total_cost,
+  MEASURE(total_dbus) as total_dbus
+FROM ${catalog}.${gold_schema}.cost_analytics
+WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())
+GROUP BY cloud
+ORDER BY total_cost DESC;
+```
+**Expected Result:** Cost breakdown by cloud (AWS, Azure, GCP)
+
+---
+
+### Question 17: "Show me the most expensive SKUs this month"
+**Expected SQL:**
+```sql
+SELECT 
+  sku_name,
+  sku_category,
+  MEASURE(total_cost) as total_cost,
+  MEASURE(total_dbus) as total_dbus
+FROM ${catalog}.${gold_schema}.cost_analytics
+WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())
+GROUP BY sku_name, sku_category
+ORDER BY total_cost DESC
+LIMIT 10;
+```
+**Expected Result:** Top 10 SKUs by cost
+
+---
+
+### Question 18: "What is the cost drift from last week?"
+**Expected SQL:**
+```sql
+SELECT 
+  window.start as window_start,
+  cost_drift_pct,
+  dbu_drift_pct
+FROM ${catalog}.${gold_schema}.fact_usage_drift_metrics
+WHERE column_name = ':table'
+  AND drift_type = 'CONSECUTIVE'
+ORDER BY window.start DESC
+LIMIT 7;
+```
+**Expected Result:** Recent cost drift percentages
+
+---
+
+### Question 19: "Which workspaces have the lowest tag coverage?"
+**Expected SQL:**
+```sql
+SELECT 
+  workspace_name,
+  MEASURE(tag_coverage_percentage) as tag_coverage
+FROM ${catalog}.${gold_schema}.cost_analytics
+WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())
+GROUP BY workspace_name
+HAVING MEASURE(tag_coverage_percentage) < 50
+ORDER BY tag_coverage ASC
+LIMIT 20;
+```
+**Expected Result:** Workspaces with <50% tag coverage
+
+---
+
+### Question 20: "What are the recommended tags for untagged resources?"
+**Expected SQL:**
+```sql
+SELECT 
+  resource_id,
+  resource_type,
+  recommended_tags,
+  confidence
+FROM ${catalog}.${gold_schema}.tag_recommendations
+WHERE confidence > 0.7
+ORDER BY confidence DESC
+LIMIT 20;
+```
+**Expected Result:** Tag recommendations with high confidence
+
+---
+
+### 🔬 DEEP RESEARCH QUESTIONS (Complex Multi-Source Analysis)
+
+### Question 21: "What is the root cause of our cost increase this month, and what would be the projected savings if we implemented all ML-recommended optimizations?"
+**Deep Research Complexity:** Combines cost trend analysis, anomaly detection, ML optimization recommendations, and savings forecasting across multiple data sources.
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Identify cost increase drivers
+WITH cost_growth AS (
+  SELECT 
+    sku_name,
+    workspace_name,
+    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN usage_cost ELSE 0 END) as current_month_cost,
+    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE() - INTERVAL 1 MONTH) 
+             AND usage_date < DATE_TRUNC('month', CURRENT_DATE()) THEN usage_cost ELSE 0 END) as prev_month_cost
+  FROM ${catalog}.${gold_schema}.fact_usage
+  GROUP BY sku_name, workspace_name
+),
+growth_analysis AS (
+  SELECT *, 
+    current_month_cost - prev_month_cost as cost_delta,
+    CASE WHEN prev_month_cost > 0 THEN (current_month_cost - prev_month_cost) / prev_month_cost * 100 ELSE 100 END as growth_pct
+  FROM cost_growth
+  WHERE current_month_cost > prev_month_cost
+),
+-- Step 2: Check for anomalies in high-growth areas
+anomalies AS (
+  SELECT workspace_id, anomaly_score, is_anomaly
+  FROM ${catalog}.${gold_schema}.cost_anomaly_predictions
+  WHERE is_anomaly = TRUE
+),
+-- Step 3: Get ML optimization recommendations
+optimizations AS (
+  SELECT 
+    SUM(potential_savings_usd) as total_potential_savings
+  FROM ${catalog}.${gold_schema}.job_cost_optimizer_predictions
+  WHERE savings_potential > 0
+)
+SELECT 
+  g.sku_name,
+  g.workspace_name,
+  g.cost_delta,
+  g.growth_pct,
+  CASE WHEN a.is_anomaly THEN 'ANOMALY DETECTED' ELSE 'Normal Growth' END as anomaly_status,
+  o.total_potential_savings as projected_savings_if_optimized
+FROM growth_analysis g
+LEFT JOIN anomalies a ON g.workspace_name = a.workspace_id
+CROSS JOIN optimizations o
+ORDER BY g.cost_delta DESC
+LIMIT 20;
+```
+**Expected Result:** Root cause analysis showing which SKUs/workspaces drove cost increase, whether they're anomalous, and total projected savings from ML recommendations.
+
+---
+
+### Question 22: "Which teams have the highest untagged spend growing fastest, and what tags should we apply based on ML recommendations to improve chargeback accuracy?"
+**Deep Research Complexity:** Combines tag coverage trends, spend growth analysis, ML tag recommendations, and chargeback impact assessment.
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Identify untagged spend by inferred team (owner-based)
+WITH untagged_spend AS (
+  SELECT 
+    usage_owner as team_proxy,
+    SUM(CASE WHEN is_tagged = FALSE THEN usage_cost ELSE 0 END) as untagged_cost,
+    SUM(usage_cost) as total_cost,
+    SUM(CASE WHEN is_tagged = FALSE THEN usage_cost ELSE 0 END) / NULLIF(SUM(usage_cost), 0) * 100 as untagged_pct
+  FROM ${catalog}.${gold_schema}.fact_usage
+  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY usage_owner
+),
+-- Step 2: Calculate growth rate of untagged spend
+untagged_growth AS (
+  SELECT 
+    usage_owner as team_proxy,
+    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS AND is_tagged = FALSE THEN usage_cost ELSE 0 END) as recent_untagged,
+    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS 
+             AND usage_date < CURRENT_DATE() - INTERVAL 7 DAYS AND is_tagged = FALSE THEN usage_cost ELSE 0 END) / 3.3 as avg_weekly_untagged
+  FROM ${catalog}.${gold_schema}.fact_usage
+  GROUP BY usage_owner
+),
+-- Step 3: Get ML tag recommendations for these resources
+tag_recs AS (
+  SELECT 
+    resource_id,
+    recommended_tags,
+    confidence
+  FROM ${catalog}.${gold_schema}.tag_recommendations
+  WHERE confidence > 0.7
+)
+SELECT 
+  u.team_proxy,
+  u.untagged_cost,
+  u.untagged_pct,
+  g.recent_untagged - g.avg_weekly_untagged as untagged_growth_wow,
+  COUNT(DISTINCT t.resource_id) as resources_with_recommendations,
+  COLLECT_LIST(DISTINCT t.recommended_tags) as suggested_tags
+FROM untagged_spend u
+JOIN untagged_growth g ON u.team_proxy = g.team_proxy
+LEFT JOIN tag_recs t ON t.resource_id LIKE CONCAT('%', u.team_proxy, '%')
+WHERE u.untagged_cost > 1000
+GROUP BY u.team_proxy, u.untagged_cost, u.untagged_pct, g.recent_untagged, g.avg_weekly_untagged
+ORDER BY u.untagged_cost DESC
+LIMIT 15;
+```
+**Expected Result:** Teams with high untagged spend, growth trends, and ML-recommended tags to apply for improved chargeback accuracy.
+
+---
+
+### Question 23: "What would be our total cost savings if we implemented all ML-recommended optimizations across clusters, jobs, and commitments, and how should we prioritize them by ROI and implementation complexity?"
+**Deep Research Complexity:** Combines cluster right-sizing, job cost optimization, commitment recommendations, and migration savings into a unified prioritized optimization roadmap with ROI analysis.
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Cluster right-sizing savings
+WITH cluster_savings AS (
+  SELECT 
+    'Cluster Right-Sizing' as optimization_type,
+    cluster_name as resource,
+    recommended_action,
+    potential_savings_usd as monthly_savings,
+    confidence,
+    CASE 
+      WHEN recommended_action = 'TERMINATE' THEN 'LOW'
+      WHEN recommended_action = 'DOWNSIZE' THEN 'MEDIUM'
+      ELSE 'HIGH'
+    END as implementation_complexity
+  FROM ${catalog}.${gold_schema}.cluster_rightsizing_recommendations
+  WHERE potential_savings_usd > 0
+),
+-- Step 2: Job cost optimization savings
+job_savings AS (
+  SELECT 
+    'Job Cost Optimization' as optimization_type,
+    job_name as resource,
+    recommended_action,
+    estimated_savings_usd as monthly_savings,
+    confidence,
+    CASE 
+      WHEN recommended_action LIKE '%SERVERLESS%' THEN 'MEDIUM'
+      WHEN recommended_action LIKE '%PHOTON%' THEN 'LOW'
+      ELSE 'HIGH'
+    END as implementation_complexity
+  FROM ${catalog}.${gold_schema}.job_cost_optimizer_predictions
+  WHERE estimated_savings_usd > 0
+),
+-- Step 3: Commitment recommendations
+commitment_savings AS (
+  SELECT 
+    'Commitment Purchase' as optimization_type,
+    commitment_type as resource,
+    'COMMIT' as recommended_action,
+    monthly_savings_usd as monthly_savings,
+    confidence,
+    'HIGH' as implementation_complexity  -- Financial commitment
+  FROM ${catalog}.${gold_schema}.commitment_recommendations
+  WHERE monthly_savings_usd > 0
+),
+-- Step 4: Combine all savings
+all_savings AS (
+  SELECT * FROM cluster_savings
+  UNION ALL SELECT * FROM job_savings
+  UNION ALL SELECT * FROM commitment_savings
+),
+-- Step 5: Calculate ROI and prioritize
+prioritized AS (
+  SELECT 
+    optimization_type,
+    resource,
+    recommended_action,
+    monthly_savings,
+    monthly_savings * 12 as annual_savings,
+    confidence,
+    implementation_complexity,
+    monthly_savings * confidence as risk_adjusted_savings,
+    CASE implementation_complexity
+      WHEN 'LOW' THEN 1
+      WHEN 'MEDIUM' THEN 2
+      ELSE 3
+    END as complexity_score,
+    monthly_savings * confidence / (CASE implementation_complexity WHEN 'LOW' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END) as priority_score
+  FROM all_savings
+)
+SELECT 
+  optimization_type,
+  COUNT(*) as recommendation_count,
+  ROUND(SUM(monthly_savings), 2) as total_monthly_savings,
+  ROUND(SUM(annual_savings), 2) as total_annual_savings,
+  ROUND(AVG(confidence) * 100, 1) as avg_confidence_pct,
+  MODE(implementation_complexity) as typical_complexity,
+  ROUND(SUM(risk_adjusted_savings), 2) as risk_adjusted_monthly_savings,
+  DENSE_RANK() OVER (ORDER BY SUM(priority_score) DESC) as implementation_priority
+FROM prioritized
+GROUP BY optimization_type
+ORDER BY implementation_priority;
+```
+**Expected Result:** Prioritized optimization roadmap showing total potential savings across all ML recommendations, organized by optimization type with ROI and complexity analysis.
+
+---
+
+### Question 24: "Which workspaces have the most volatile spend patterns based on historical trends, anomaly detection, and forecast uncertainty, and what's driving the volatility?"
+**Deep Research Complexity:** Combines historical spend variance, anomaly frequency, forecast confidence intervals, and SKU-level decomposition to identify and explain spend volatility.
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Calculate historical spend volatility by workspace
+WITH spend_volatility AS (
+  SELECT 
+    workspace_name,
+    STDDEV(daily_cost) as cost_stddev,
+    AVG(daily_cost) as avg_daily_cost,
+    STDDEV(daily_cost) / NULLIF(AVG(daily_cost), 0) * 100 as coefficient_of_variation,
+    MAX(daily_cost) - MIN(daily_cost) as cost_range,
+    COUNT(DISTINCT DATE_TRUNC('day', usage_date)) as days_analyzed
+  FROM (
+    SELECT 
+      workspace_name,
+      DATE_TRUNC('day', usage_date) as day,
+      SUM(usage_cost) as daily_cost
+    FROM ${catalog}.${gold_schema}.fact_usage
+    WHERE usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS
+    GROUP BY workspace_name, DATE_TRUNC('day', usage_date)
+  )
+  GROUP BY workspace_name
+),
+-- Step 2: Count anomalies per workspace
+anomaly_frequency AS (
+  SELECT 
+    workspace_id as workspace_name,
+    COUNT(*) as anomaly_count,
+    SUM(CASE WHEN ABS(anomaly_score) > 2 THEN 1 ELSE 0 END) as severe_anomalies,
+    AVG(ABS(anomaly_score)) as avg_anomaly_severity
+  FROM ${catalog}.${gold_schema}.cost_anomaly_predictions
+  WHERE prediction_date >= CURRENT_DATE() - INTERVAL 90 DAYS
+    AND is_anomaly = TRUE
+  GROUP BY workspace_id
+),
+-- Step 3: Get forecast uncertainty
+forecast_uncertainty AS (
+  SELECT 
+    workspace_id as workspace_name,
+    AVG(upper_bound - lower_bound) as avg_forecast_range,
+    AVG((upper_bound - lower_bound) / NULLIF(predicted_cost, 0) * 100) as relative_uncertainty_pct
+  FROM ${catalog}.${gold_schema}.budget_forecast_predictions
+  WHERE forecast_date >= CURRENT_DATE()
+  GROUP BY workspace_id
+),
+-- Step 4: Identify top volatile SKUs per workspace
+sku_volatility AS (
+  SELECT 
+    workspace_name,
+    sku_name,
+    STDDEV(usage_cost) as sku_stddev,
+    ROW_NUMBER() OVER (PARTITION BY workspace_name ORDER BY STDDEV(usage_cost) DESC) as sku_rank
+  FROM ${catalog}.${gold_schema}.fact_usage
+  WHERE usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS
+  GROUP BY workspace_name, sku_name
+)
+SELECT 
+  v.workspace_name,
+  ROUND(v.coefficient_of_variation, 1) as volatility_cv_pct,
+  ROUND(v.cost_range, 2) as daily_cost_range,
+  ROUND(v.avg_daily_cost, 2) as avg_daily_cost,
+  COALESCE(a.anomaly_count, 0) as anomalies_90d,
+  COALESCE(a.severe_anomalies, 0) as severe_anomalies,
+  ROUND(COALESCE(f.relative_uncertainty_pct, 0), 1) as forecast_uncertainty_pct,
+  COLLECT_LIST(s.sku_name) as top_volatile_skus,
+  CASE 
+    WHEN v.coefficient_of_variation > 50 AND a.severe_anomalies > 3 THEN '🔴 HIGHLY VOLATILE'
+    WHEN v.coefficient_of_variation > 30 OR a.anomaly_count > 5 THEN '🟠 MODERATELY VOLATILE'
+    ELSE '🟢 STABLE'
+  END as volatility_classification,
+  CASE 
+    WHEN v.coefficient_of_variation > 50 THEN 'Investigate: ' || CONCAT_WS(', ', COLLECT_LIST(s.sku_name))
+    ELSE 'Normal spend patterns'
+  END as investigation_recommendation
+FROM spend_volatility v
+LEFT JOIN anomaly_frequency a ON v.workspace_name = a.workspace_name
+LEFT JOIN forecast_uncertainty f ON v.workspace_name = f.workspace_name
+LEFT JOIN sku_volatility s ON v.workspace_name = s.workspace_name AND s.sku_rank <= 3
+GROUP BY v.workspace_name, v.coefficient_of_variation, v.cost_range, v.avg_daily_cost, 
+         a.anomaly_count, a.severe_anomalies, f.relative_uncertainty_pct
+ORDER BY v.coefficient_of_variation DESC
+LIMIT 15;
+```
+**Expected Result:** Workspaces ranked by spend volatility with multi-factor volatility score, anomaly history, forecast uncertainty, and specific SKUs driving the volatility.
+
+---
+
+### Question 25: "What's the correlation between cost efficiency (DBU cost per output) and platform adoption patterns across teams, and which teams are getting the best ROI from their Databricks investment?"
+**Deep Research Complexity:** Combines cost data with job output metrics, query volumes, and user activity to calculate cost efficiency and ROI metrics across organizational teams.
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Calculate cost per team (using owner as team proxy)
+WITH team_costs AS (
+  SELECT 
+    usage_owner as team,
+    SUM(usage_cost) as total_cost,
+    SUM(usage_quantity) as total_dbus
+  FROM ${catalog}.${gold_schema}.fact_usage
+  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY usage_owner
+),
+-- Step 2: Calculate job output metrics per team
+job_output AS (
+  SELECT 
+    job_owner as team,
+    COUNT(*) as total_job_runs,
+    SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) as successful_runs,
+    AVG(duration_seconds) as avg_duration,
+    SUM(rows_written) as total_rows_produced
+  FROM ${catalog}.${gold_schema}.fact_job_run_timeline
+  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY job_owner
+),
+-- Step 3: Calculate query activity per team
+query_activity AS (
+  SELECT 
+    executed_by as team,
+    COUNT(*) as total_queries,
+    SUM(total_bytes_read) / 1e9 as total_gb_scanned,
+    AVG(duration_ms) as avg_query_duration_ms
+  FROM ${catalog}.${gold_schema}.fact_query_history
+  WHERE execution_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY executed_by
+),
+-- Step 4: Calculate adoption metrics
+adoption_metrics AS (
+  SELECT 
+    team,
+    DATEDIFF(CURRENT_DATE(), MIN(first_activity)) as days_since_onboarding,
+    COUNT(DISTINCT active_user) as team_size
+  FROM (
+    SELECT usage_owner as team, user_identity as active_user, MIN(usage_date) as first_activity
+    FROM ${catalog}.${gold_schema}.fact_usage
+    GROUP BY usage_owner, user_identity
+  )
+  GROUP BY team
+),
+-- Step 5: Calculate efficiency and ROI metrics
+efficiency_metrics AS (
+  SELECT 
+    c.team,
+    c.total_cost,
+    c.total_dbus,
+    COALESCE(j.total_job_runs, 0) as job_runs,
+    COALESCE(j.successful_runs, 0) as successful_job_runs,
+    COALESCE(j.total_rows_produced, 0) as rows_produced,
+    COALESCE(q.total_queries, 0) as queries_executed,
+    COALESCE(q.total_gb_scanned, 0) as data_scanned_gb,
+    COALESCE(a.team_size, 1) as team_size,
+    c.total_cost / NULLIF(c.total_dbus, 0) as cost_per_dbu,
+    c.total_cost / NULLIF(j.successful_runs, 0) as cost_per_successful_job,
+    c.total_cost / NULLIF(COALESCE(j.total_rows_produced, 0) / 1e6, 0) as cost_per_million_rows,
+    c.total_cost / NULLIF(a.team_size, 0) as cost_per_user,
+    (COALESCE(j.total_job_runs, 0) + COALESCE(q.total_queries, 0)) / NULLIF(c.total_cost, 0) * 1000 as activities_per_1k_spend
+  FROM team_costs c
+  LEFT JOIN job_output j ON c.team = j.team
+  LEFT JOIN query_activity q ON c.team = q.team
+  LEFT JOIN adoption_metrics a ON c.team = a.team
+)
+SELECT 
+  team,
+  ROUND(total_cost, 2) as total_spend_30d,
+  team_size,
+  ROUND(cost_per_user, 2) as cost_per_user,
+  job_runs + queries_executed as total_activities,
+  ROUND(activities_per_1k_spend, 1) as activities_per_1k_spend,
+  ROUND(cost_per_successful_job, 2) as cost_per_successful_job,
+  ROUND(rows_produced / 1e6, 1) as millions_rows_produced,
+  ROUND(cost_per_million_rows, 2) as cost_per_million_rows,
+  PERCENT_RANK() OVER (ORDER BY activities_per_1k_spend DESC) * 100 as efficiency_percentile,
+  CASE 
+    WHEN activities_per_1k_spend > (SELECT PERCENTILE(activities_per_1k_spend, 0.75) FROM efficiency_metrics) THEN '🟢 HIGH EFFICIENCY'
+    WHEN activities_per_1k_spend > (SELECT PERCENTILE(activities_per_1k_spend, 0.25) FROM efficiency_metrics) THEN '🟡 AVERAGE EFFICIENCY'
+    ELSE '🔴 LOW EFFICIENCY - REVIEW'
+  END as efficiency_tier,
+  CASE 
+    WHEN cost_per_successful_job < 1 AND activities_per_1k_spend > 100 THEN 'TOP ROI: Heavy automation, low cost per job'
+    WHEN cost_per_user < 500 AND team_size > 3 THEN 'GOOD ROI: Efficient team utilization'
+    WHEN cost_per_million_rows < 10 THEN 'GOOD ROI: Efficient data processing'
+    ELSE 'REVIEW: Potential optimization opportunities'
+  END as roi_assessment
+FROM efficiency_metrics
+WHERE total_cost > 100  -- Filter out minimal spend
+ORDER BY activities_per_1k_spend DESC
+LIMIT 20;
+```
+**Expected Result:** Teams ranked by cost efficiency with multi-dimensional ROI analysis including cost per job, cost per user, activities per spend, and efficiency tier classification.
+
+---
+
 ## ✅ DELIVERABLE CHECKLIST
 
 | Section | Requirement | Status |
@@ -463,7 +989,7 @@ WHERE is_over_committed = FALSE;
 | **D. Data Assets** | All tables, views, TVFs, ML tables | ✅ |
 | **E. General Instructions** | 18 lines (≤20) | ✅ |
 | **F. TVFs** | 15 functions with signatures | ✅ |
-| **G. Benchmark Questions** | 12 with SQL answers | ✅ |
+| **G. Benchmark Questions** | 25 with SQL answers (incl. 5 Deep Research) | ✅ |
 
 ---
 

@@ -41,9 +41,31 @@ variables:
     description: Schema name for ML Feature Store tables and predictions
     default: system_gold_ml
   
+  # Agent Framework Schema (consolidated - avoids schema sprawl)
+  # Contains: Models, Tables (structured), Volumes (unstructured), Inference Logs, Memory
+  agent_schema:
+    description: Schema for Agent models, inference logs, memory, and all agent data
+    default: system_gold_agent
+  
   warehouse_id:
     description: SQL Warehouse ID for serverless execution
     default: "4b9b953939869799"
+  
+  node_type_id:
+    description: Node type for agent clusters (used by agent_deployment.yml)
+    default: "i3.xlarge"
+  
+  lakebase_instance_name:
+    description: Lakebase instance name for agent memory (used by agent_deployment.yml)
+    default: "health_monitor_lakebase"
+  
+  llm_endpoint:
+    description: LLM endpoint for agent inference (used by agent_deployment.yml)
+    default: "databricks-meta-llama-3-1-70b-instruct"
+  
+  dashboard_folder:
+    description: Workspace folder path where dashboards will be published
+    default: "/Shared/health_monitor/dashboards"
 
 targets:
   dev:
@@ -57,6 +79,7 @@ targets:
       system_silver_schema: dev_${workspace.current_user.short_name}_system_silver
       gold_schema: dev_${workspace.current_user.short_name}_system_gold
       feature_schema: dev_${workspace.current_user.short_name}_system_gold_ml
+      agent_schema: dev_${workspace.current_user.short_name}_system_gold_agent
       warehouse_id: "4b9b953939869799"
       
   prod:
@@ -67,6 +90,7 @@ targets:
       system_silver_schema: system_silver
       gold_schema: system_gold
       feature_schema: system_gold_ml
+      agent_schema: system_gold_agent
       warehouse_id: "4b9b953939869799"
 
 # Include all resource definitions organized by layer and function
@@ -93,4 +117,7 @@ include:
   
   # AI/BI Dashboards
   - resources/dashboards/*.yml
+  
+  # Agent Framework (disabled - missing notebooks: register_prompts.py, run_evaluation.py)
+  # - resources/agents/*.yml
 

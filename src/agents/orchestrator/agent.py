@@ -440,7 +440,7 @@ def log_agent_to_mlflow(
         )
     """
     model_name = registered_model_name or (
-        f"{settings.catalog}.{settings.schema}.health_monitor_agent"
+        f"{settings.catalog}.{settings.agent_schema}.health_monitor_agent"
     )
 
     # Set model for logging (per MLflow GenAI patterns)

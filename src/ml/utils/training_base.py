@@ -381,19 +381,20 @@ def log_model_with_features(
     Returns:
         Dictionary with run_id, model_name, registered_as, metrics
     """
+    from mlflow.types import ColSpec, DataType, Schema
+    
     registered_name = f"{catalog}.{feature_schema}.{model_name}"
     
     print(f"\nLogging model: {registered_name}")
     
-    # Create input example (first 5 rows, ensure float64)
-    input_example = X_train.head(5).astype('float64')
-    
-    # Get sample predictions for output signature
-    predictions = model.predict(input_example)
-    
-    # Infer signature with BOTH input AND output (REQUIRED for Unity Catalog)
-    signature = infer_signature(input_example, predictions)
-    print(f"  Signature: {len(input_example.columns)} inputs → output")
+    # Determine output schema based on model type
+    # Regression: double, Classification: long
+    if model_type == "regression":
+        output_schema = Schema([ColSpec(DataType.double)])
+        print(f"  Output schema: double (regression)")
+    else:
+        output_schema = Schema([ColSpec(DataType.long)])
+        print(f"  Output schema: long (classification)")
     
     # Disable autolog to prevent conflicts
     mlflow.autolog(disable=True)
@@ -413,15 +414,16 @@ def log_model_with_features(
         mlflow.log_metrics(metrics)
         
         # Log model with Feature Engineering client
-        # Uses explicit signature and input_example for proper UC registration
+        # Uses output_schema + infer_input_example (recommended pattern per official docs)
+        # This pattern ensures proper schema inference at inference time
         fe.log_model(
             model=model,
             artifact_path="model",
             flavor=mlflow.sklearn,
             training_set=training_set,
-            signature=signature,
-            input_example=input_example,
-            registered_model_name=registered_name
+            registered_model_name=registered_name,
+            infer_input_example=True,
+            output_schema=output_schema
         )
         
         print(f"✓ Model logged: {registered_name}")

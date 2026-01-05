@@ -203,3 +203,5 @@ Every generator must document:
 - [ ] Handles both normal and corrupted record generation
 - [ ] Returns meaningful statistics (record counts, corruption counts)
 
+
+

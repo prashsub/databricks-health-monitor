@@ -340,6 +340,61 @@ def score_model(model_uri, scoring_df, config, fe):
 
 ---
 
+### Input X contains NaN (sklearn models fail at inference)
+
+**Error:**
+```
+ValueError: Input X contains NaN.
+GradientBoostingRegressor does not accept missing values encoded as NaN natively.
+For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier
+and Regressor which accept missing values encoded as NaNs natively.
+```
+
+**Cause:** Training succeeds but inference fails because:
+1. **Training flow**: Feature table → `prepare_training_data()` → `fillna(0)` → Model trains on clean data
+2. **Inference flow**: Feature table → `fe.score_batch()` → **No NaN handling** → Model receives NaN → Crash
+
+XGBoost handles NaN natively, but sklearn's `GradientBoostingRegressor` does NOT.
+
+**Root Cause Discovery (Jan 2026):**
+- `query_performance_forecaster`, `warehouse_optimizer`, `cluster_capacity_planner` all use sklearn regressors
+- Window functions (rolling averages) can produce NaN for first rows
+- Division operations can produce NaN/Inf
+- Feature table had partial `fillna()` coverage but missed some columns
+
+**Solution:** Fill NaN/Inf at the SOURCE (feature table creation) to ensure training/inference consistency:
+
+```python
+# In create_feature_table() - clean ALL numeric columns
+def clean_numeric(col_name):
+    """Replace NaN and Infinity with 0.0"""
+    return F.when(
+        F.col(col_name).isNull() | 
+        F.isnan(F.col(col_name)) |
+        (F.col(col_name) == float('inf')) |
+        (F.col(col_name) == float('-inf')),
+        F.lit(0.0)
+    ).otherwise(F.col(col_name))
+
+# Apply to all numeric columns during feature table creation
+for field in df.schema.fields:
+    if field.name not in non_cast_cols:
+        if isinstance(field.dataType, (IntegerType, LongType, FloatType, DecimalType)):
+            df = df.withColumn(field.name, F.col(field.name).cast("double"))
+            df = df.withColumn(field.name, clean_numeric(field.name))
+        elif isinstance(field.dataType, DoubleType):
+            df = df.withColumn(field.name, clean_numeric(field.name))
+```
+
+**Verification:** After fix, feature table logs show:
+```
+Cleaned NaN/Inf→0.0 for 34 columns (sklearn compatibility)
+```
+
+**Impact:** Fixed 3 models, inference went from 19/24 to 23/24 successful.
+
+---
+
 ## Job Execution Errors
 
 ### Notebook exit with error not failing job

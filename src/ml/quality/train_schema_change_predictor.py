@@ -32,6 +32,7 @@ REFACTORED: Uses FeatureRegistry for dynamic schema queries.
 # COMMAND ----------
 
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, when
 from xgboost import XGBClassifier
 import json
 
@@ -110,8 +111,29 @@ def main():
             dbutils.notebook.exit(json.dumps({"status": "SKIPPED", "reason": msg}))
         print(f"✓ Found {sample_count} samples for training")
         
+        # LABEL BINARIZATION: schema_changes_7d (count) → has_schema_changes (0/1)
+        # XGBClassifier requires binary labels, not continuous counts
+        # Must cast to int explicitly for XGBoost
+        from pyspark.sql.types import IntegerType
+        BINARY_LABEL = "has_schema_changes"
+        training_df = training_df.withColumn(
+            BINARY_LABEL, when(col(LABEL_COLUMN) > 0, 1).otherwise(0).cast(IntegerType())
+        )
+        
+        # Check label distribution - XGBClassifier needs at least 2 classes
+        label_counts = training_df.groupBy(BINARY_LABEL).count().collect()
+        label_dist = {r[BINARY_LABEL]: r['count'] for r in label_counts}
+        print(f"✓ Binarized label: {LABEL_COLUMN} > 0 → {BINARY_LABEL}")
+        print(f"  Label distribution: {label_dist}")
+        
+        # SINGLE-CLASS CHECK: XGBClassifier cannot train on single-class data
+        if len(label_dist) < 2:
+            msg = f"Single-class data: all {sum(label_dist.values())} samples have label={list(label_dist.keys())[0]}. Cannot train classifier."
+            print(f"⚠ {msg}")
+            dbutils.notebook.exit(json.dumps({"status": "SKIPPED", "reason": msg}))
+        
         X_train, X_test, y_train, y_test = prepare_training_data(
-            training_df, available_features, LABEL_COLUMN, cast_label_to="int", stratify=True
+            training_df, available_features, BINARY_LABEL, cast_label_to="int", stratify=True
         )
         
         model, metrics, hyperparams = train_model(X_train, X_test, y_train, y_test)

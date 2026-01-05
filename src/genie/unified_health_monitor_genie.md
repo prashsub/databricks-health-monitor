@@ -656,6 +656,541 @@ WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 
 ---
 
+### Question 13: "Show me data quality alerts"
+**Expected SQL:**
+```sql
+SELECT table_name, quality_score, completeness, freshness_status
+FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
+WHERE window_end >= CURRENT_DATE() - INTERVAL 1 DAY
+  AND column_name = ':table'
+  AND log_type = 'INPUT'
+  AND quality_score < 80
+ORDER BY quality_score ASC
+LIMIT 20;
+```
+**Expected Result:** Tables with quality issues
+
+---
+
+### Question 14: "What are our top cost drivers this week?"
+**Expected SQL:**
+```sql
+SELECT workspace_name, sku_name, MEASURE(total_cost) as cost
+FROM ${catalog}.${gold_schema}.cost_analytics
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+GROUP BY workspace_name, sku_name
+ORDER BY cost DESC
+LIMIT 10;
+```
+**Expected Result:** Top cost drivers by workspace and SKU
+
+---
+
+### Question 15: "Show me cluster utilization"
+**Expected SQL:**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_cluster_utilization(
+  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
+  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
+)
+ORDER BY avg_cpu_percent DESC
+LIMIT 15;
+```
+**Expected Result:** Cluster utilization metrics
+
+---
+
+### Question 16: "What is our tag coverage percentage?"
+**Expected SQL:**
+```sql
+SELECT MEASURE(tag_coverage_percentage) as tag_coverage_pct
+FROM ${catalog}.${gold_schema}.cost_analytics
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS;
+```
+**Expected Result:** Single percentage showing tag coverage
+
+---
+
+### Question 17: "Show me long-running queries"
+**Expected SQL:**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_slow_queries(
+  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
+  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
+  60.0
+)
+ORDER BY duration_seconds DESC
+LIMIT 20;
+```
+**Expected Result:** Queries exceeding 60 seconds
+
+---
+
+### Question 18: "Who accessed sensitive data recently?"
+**Expected SQL:**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_sensitive_table_access(
+  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
+  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
+)
+ORDER BY access_timestamp DESC
+LIMIT 20;
+```
+**Expected Result:** Recent sensitive data access events
+
+---
+
+### Question 19: "What is our job retry success rate?"
+**Expected SQL:**
+```sql
+SELECT job_name, success_rate_on_retry, total_retries
+FROM ${catalog}.${gold_schema}.get_job_retry_analysis(
+  DATE_FORMAT(CURRENT_DATE() - INTERVAL 30 DAYS, 'yyyy-MM-dd'),
+  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
+)
+WHERE total_retries > 5
+ORDER BY success_rate_on_retry DESC
+LIMIT 20;
+```
+**Expected Result:** Jobs with retry patterns and success rates
+
+---
+
+### Question 20: "Show me cost week-over-week comparison"
+**Expected SQL:**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_cost_week_over_week(
+  DATE_FORMAT(CURRENT_DATE() - INTERVAL 14 DAYS, 'yyyy-MM-dd'),
+  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
+)
+ORDER BY cost_change_pct DESC
+LIMIT 15;
+```
+**Expected Result:** Cost comparison between current and previous week
+
+---
+
+### Question 21: "What is the overall platform health across all domains with trend indicators and actionable insights?"
+**Deep Research Complexity:** Aggregates health metrics from all 5 domains (cost, reliability, performance, security, quality) with trends and recommendations.
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Cost domain health
+WITH cost_health AS (
+  SELECT 
+    'Cost' as domain,
+    MEASURE(tag_coverage_percentage) as primary_metric,
+    'Tag Coverage' as metric_name
+  FROM ${catalog}.${gold_schema}.cost_analytics
+  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+),
+-- Step 2: Reliability domain health
+reliability_health AS (
+  SELECT 
+    'Reliability' as domain,
+    MEASURE(success_rate) as primary_metric,
+    'Job Success Rate' as metric_name
+  FROM ${catalog}.${gold_schema}.job_performance
+  WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+-- Step 3: Performance domain health
+performance_health AS (
+  SELECT 
+    'Performance' as domain,
+    100 - MEASURE(sla_breach_rate) as primary_metric,
+    'SLA Compliance' as metric_name
+  FROM ${catalog}.${gold_schema}.query_performance
+  WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+-- Step 4: Security domain health
+security_health AS (
+  SELECT 
+    'Security' as domain,
+    100 - (COUNT(CASE WHEN is_threat THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)) as primary_metric,
+    'Threat-Free Rate' as metric_name
+  FROM ${catalog}.${gold_schema}.access_anomaly_predictions
+  WHERE prediction_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+-- Step 5: Quality domain health
+quality_health AS (
+  SELECT 
+    'Quality' as domain,
+    AVG(quality_score) as primary_metric,
+    'Avg Quality Score' as metric_name
+  FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
+  WHERE window_end >= CURRENT_DATE() - INTERVAL 7 DAYS
+    AND column_name = ':table'
+    AND log_type = 'INPUT'
+),
+-- Combine all domains
+combined AS (
+  SELECT * FROM cost_health
+  UNION ALL SELECT * FROM reliability_health
+  UNION ALL SELECT * FROM performance_health
+  UNION ALL SELECT * FROM security_health
+  UNION ALL SELECT * FROM quality_health
+)
+SELECT 
+  domain,
+  metric_name,
+  ROUND(primary_metric, 1) as health_score,
+  CASE 
+    WHEN primary_metric >= 90 THEN '🟢 EXCELLENT'
+    WHEN primary_metric >= 75 THEN '🟡 GOOD'
+    WHEN primary_metric >= 50 THEN '🟠 NEEDS ATTENTION'
+    ELSE '🔴 CRITICAL'
+  END as status,
+  CASE 
+    WHEN domain = 'Cost' AND primary_metric < 80 THEN 'Improve tag coverage for better chargeback'
+    WHEN domain = 'Reliability' AND primary_metric < 95 THEN 'Investigate failing jobs and add retries'
+    WHEN domain = 'Performance' AND primary_metric < 90 THEN 'Optimize slow queries and scale warehouses'
+    WHEN domain = 'Security' AND primary_metric < 95 THEN 'Review threat alerts and access patterns'
+    WHEN domain = 'Quality' AND primary_metric < 80 THEN 'Fix data freshness and validation issues'
+    ELSE 'Maintain current monitoring'
+  END as recommendation
+FROM combined
+ORDER BY primary_metric ASC;
+```
+**Expected Result:** Platform health dashboard across all domains with status and recommendations.
+
+---
+
+### Question 22: "What are the top cross-domain issues impacting multiple areas of the platform, and what's the root cause analysis?"
+**Deep Research Complexity:** Correlates issues across domains to identify common root causes (e.g., a failing job causing cost spikes and data quality issues).
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Identify high-cost workspaces
+WITH cost_issues AS (
+  SELECT 
+    workspace_name,
+    SUM(usage_cost) as total_cost,
+    'COST' as domain
+  FROM ${catalog}.${gold_schema}.fact_usage
+  WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  GROUP BY workspace_name
+  HAVING SUM(usage_cost) > (SELECT AVG(total) * 2 FROM (SELECT SUM(usage_cost) as total FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY workspace_name))
+),
+-- Step 2: Identify reliability issues
+reliability_issues AS (
+  SELECT 
+    workspace_id as workspace_name,
+    COUNT(CASE WHEN result_state = 'FAILED' THEN 1 END) as failure_count,
+    'RELIABILITY' as domain
+  FROM ${catalog}.${gold_schema}.fact_job_run_timeline
+  WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  GROUP BY workspace_id
+  HAVING COUNT(CASE WHEN result_state = 'FAILED' THEN 1 END) > 10
+),
+-- Step 3: Identify security issues
+security_issues AS (
+  SELECT 
+    workspace_id as workspace_name,
+    COUNT(*) as threat_count,
+    'SECURITY' as domain
+  FROM ${catalog}.${gold_schema}.access_anomaly_predictions
+  WHERE prediction_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+    AND is_threat = TRUE
+  GROUP BY workspace_id
+  HAVING COUNT(*) > 0
+),
+-- Step 4: Find workspaces with multi-domain issues
+multi_domain_issues AS (
+  SELECT 
+    COALESCE(c.workspace_name, r.workspace_name, s.workspace_name) as workspace,
+    CASE WHEN c.workspace_name IS NOT NULL THEN 1 ELSE 0 END +
+    CASE WHEN r.workspace_name IS NOT NULL THEN 1 ELSE 0 END +
+    CASE WHEN s.workspace_name IS NOT NULL THEN 1 ELSE 0 END as domains_affected,
+    COALESCE(c.total_cost, 0) as cost_impact,
+    COALESCE(r.failure_count, 0) as reliability_impact,
+    COALESCE(s.threat_count, 0) as security_impact
+  FROM cost_issues c
+  FULL OUTER JOIN reliability_issues r ON c.workspace_name = r.workspace_name
+  FULL OUTER JOIN security_issues s ON COALESCE(c.workspace_name, r.workspace_name) = s.workspace_name
+)
+SELECT 
+  workspace,
+  domains_affected,
+  ROUND(cost_impact, 2) as cost_usd,
+  reliability_impact as failed_jobs,
+  security_impact as threat_alerts,
+  CASE 
+    WHEN domains_affected >= 3 THEN '🔴 CRITICAL: Multi-domain impact - investigate immediately'
+    WHEN domains_affected = 2 THEN '🟠 HIGH: Cross-domain correlation detected'
+    ELSE '🟡 MEDIUM: Single domain issue'
+  END as severity,
+  CASE 
+    WHEN reliability_impact > 20 AND cost_impact > 1000 THEN 'ROOT CAUSE: Job failures driving costs - fix jobs first'
+    WHEN security_impact > 5 AND cost_impact > 500 THEN 'ROOT CAUSE: Potential unauthorized activity - security review'
+    WHEN reliability_impact > 10 THEN 'ROOT CAUSE: Job reliability - add retries and monitoring'
+    ELSE 'INVESTIGATE: Manual root cause analysis needed'
+  END as root_cause_hypothesis
+FROM multi_domain_issues
+WHERE domains_affected >= 2
+ORDER BY domains_affected DESC, cost_impact DESC
+LIMIT 15;
+```
+**Expected Result:** Cross-domain issues with correlation analysis and root cause hypotheses.
+
+---
+
+### Question 23: "What would be the total ROI if we addressed all ML-identified optimization opportunities across cost, performance, and reliability?"
+**Deep Research Complexity:** Aggregates all ML recommendations across domains to calculate total potential ROI from optimization.
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Cost optimization ROI
+WITH cost_roi AS (
+  SELECT 
+    'Cost Optimization' as category,
+    COUNT(*) as recommendations,
+    SUM(potential_savings_usd) as monthly_savings,
+    SUM(potential_savings_usd) * 12 as annual_savings,
+    AVG(confidence) as avg_confidence
+  FROM ${catalog}.${gold_schema}.cluster_rightsizing_recommendations
+  WHERE potential_savings_usd > 0
+),
+-- Step 2: Performance optimization ROI (time saved = cost saved)
+performance_roi AS (
+  SELECT 
+    'Performance Optimization' as category,
+    COUNT(*) as recommendations,
+    SUM(expected_time_saved_seconds) / 3600 * 50 as monthly_savings,  -- $50/hour
+    SUM(expected_time_saved_seconds) / 3600 * 50 * 12 as annual_savings,
+    AVG(confidence) as avg_confidence
+  FROM ${catalog}.${gold_schema}.query_optimization_recommendations
+  WHERE expected_time_saved_seconds > 0
+),
+-- Step 3: Reliability optimization ROI (prevented failures)
+reliability_roi AS (
+  SELECT 
+    'Reliability Improvement' as category,
+    COUNT(*) as recommendations,
+    SUM(expected_failure_cost * failure_probability) as monthly_savings,
+    SUM(expected_failure_cost * failure_probability) * 12 as annual_savings,
+    AVG(1 - failure_probability) as avg_confidence
+  FROM ${catalog}.${gold_schema}.job_failure_predictions
+  WHERE failure_probability > 0.3
+),
+-- Combine all ROI
+combined_roi AS (
+  SELECT * FROM cost_roi
+  UNION ALL SELECT * FROM performance_roi
+  UNION ALL SELECT * FROM reliability_roi
+)
+SELECT 
+  category,
+  recommendations as actionable_items,
+  ROUND(monthly_savings, 2) as monthly_savings_usd,
+  ROUND(annual_savings, 2) as annual_savings_usd,
+  ROUND(avg_confidence * 100, 1) as confidence_pct,
+  CASE 
+    WHEN annual_savings > 100000 THEN '🔴 HIGH ROI: Priority implementation'
+    WHEN annual_savings > 50000 THEN '🟠 MEDIUM ROI: Schedule implementation'
+    ELSE '🟢 LOW ROI: Opportunistic'
+  END as priority
+FROM combined_roi
+UNION ALL
+SELECT 
+  'TOTAL ROI' as category,
+  SUM(recommendations) as actionable_items,
+  ROUND(SUM(monthly_savings), 2) as monthly_savings_usd,
+  ROUND(SUM(annual_savings), 2) as annual_savings_usd,
+  ROUND(AVG(avg_confidence) * 100, 1) as confidence_pct,
+  '📊 TOTAL' as priority
+FROM combined_roi
+ORDER BY annual_savings_usd DESC;
+```
+**Expected Result:** Total ROI breakdown across all optimization categories with confidence levels and implementation priorities.
+
+---
+
+### Question 24: "What are the emerging trends across all platform metrics that require attention before they become critical issues?"
+**Deep Research Complexity:** Analyzes drift metrics and trends across all domains to identify emerging issues before they become critical.
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Cost trend analysis
+WITH cost_trends AS (
+  SELECT 
+    'Cost' as domain,
+    'Total Spend' as metric,
+    drift_value as trend_value,
+    consecutive_drift_count as trend_duration,
+    CASE WHEN drift_value > 0.1 THEN 'INCREASING' WHEN drift_value < -0.1 THEN 'DECREASING' ELSE 'STABLE' END as direction
+  FROM ${catalog}.${gold_schema}.fact_usage_drift_metrics
+  WHERE drift_type = 'CONSECUTIVE'
+    AND column_name = ':table'
+    AND window_end >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+-- Step 2: Reliability trend analysis
+reliability_trends AS (
+  SELECT 
+    'Reliability' as domain,
+    'Failure Rate' as metric,
+    drift_value as trend_value,
+    consecutive_drift_count as trend_duration,
+    CASE WHEN drift_value > 0.05 THEN 'INCREASING' WHEN drift_value < -0.05 THEN 'DECREASING' ELSE 'STABLE' END as direction
+  FROM ${catalog}.${gold_schema}.fact_job_run_timeline_drift_metrics
+  WHERE drift_type = 'CONSECUTIVE'
+    AND column_name = ':table'
+    AND window_end >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+-- Step 3: Performance trend analysis
+performance_trends AS (
+  SELECT 
+    'Performance' as domain,
+    'Query Duration' as metric,
+    drift_value as trend_value,
+    consecutive_drift_count as trend_duration,
+    CASE WHEN drift_value > 0.1 THEN 'DEGRADING' WHEN drift_value < -0.1 THEN 'IMPROVING' ELSE 'STABLE' END as direction
+  FROM ${catalog}.${gold_schema}.fact_query_history_drift_metrics
+  WHERE drift_type = 'CONSECUTIVE'
+    AND column_name = ':table'
+    AND window_end >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+-- Step 4: Security trend analysis
+security_trends AS (
+  SELECT 
+    'Security' as domain,
+    'Threat Events' as metric,
+    drift_value as trend_value,
+    consecutive_drift_count as trend_duration,
+    CASE WHEN drift_value > 0.05 THEN 'INCREASING' WHEN drift_value < -0.05 THEN 'DECREASING' ELSE 'STABLE' END as direction
+  FROM ${catalog}.${gold_schema}.fact_audit_logs_drift_metrics
+  WHERE drift_type = 'CONSECUTIVE'
+    AND column_name = ':table'
+    AND window_end >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+-- Combine all trends
+all_trends AS (
+  SELECT * FROM cost_trends
+  UNION ALL SELECT * FROM reliability_trends
+  UNION ALL SELECT * FROM performance_trends
+  UNION ALL SELECT * FROM security_trends
+)
+SELECT 
+  domain,
+  metric,
+  direction,
+  ROUND(trend_value * 100, 1) as change_pct,
+  trend_duration as weeks_trending,
+  CASE 
+    WHEN direction IN ('INCREASING', 'DEGRADING') AND ABS(trend_value) > 0.2 THEN '🔴 CRITICAL: Immediate attention required'
+    WHEN direction IN ('INCREASING', 'DEGRADING') AND trend_duration >= 3 THEN '🟠 WARNING: Sustained negative trend'
+    WHEN direction IN ('DECREASING', 'IMPROVING') THEN '🟢 POSITIVE: Trend improving'
+    ELSE '🟡 MONITOR: Stable but watch closely'
+  END as alert_level,
+  CASE 
+    WHEN domain = 'Cost' AND direction = 'INCREASING' THEN 'Review spend by SKU and implement cost controls'
+    WHEN domain = 'Reliability' AND direction = 'INCREASING' THEN 'Investigate new failure patterns and add retry logic'
+    WHEN domain = 'Performance' AND direction = 'DEGRADING' THEN 'Scale resources and optimize slow queries'
+    WHEN domain = 'Security' AND direction = 'INCREASING' THEN 'Review access patterns and threat alerts'
+    ELSE 'Continue monitoring'
+  END as recommended_action
+FROM all_trends
+WHERE direction != 'STABLE'
+ORDER BY 
+  CASE WHEN direction IN ('INCREASING', 'DEGRADING') THEN 1 ELSE 2 END,
+  ABS(trend_value) DESC;
+```
+**Expected Result:** Emerging trends across all domains with alert levels and recommended actions.
+
+---
+
+### Question 25: "Create an executive summary of platform health including key metrics, active incidents, ML predictions, and recommended priorities for the leadership team."
+**Deep Research Complexity:** Synthesizes data from all sources to create a comprehensive executive summary with business context.
+
+**Expected SQL (Multi-Step Analysis):**
+```sql
+-- Step 1: Current month spend and trend
+WITH monthly_spend AS (
+  SELECT 
+    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN usage_cost ELSE 0 END) as mtd_spend,
+    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE() - INTERVAL 1 MONTH) 
+             AND usage_date < DATE_TRUNC('month', CURRENT_DATE()) THEN usage_cost ELSE 0 END) as last_month_spend
+  FROM ${catalog}.${gold_schema}.fact_usage
+),
+-- Step 2: Active incidents
+active_incidents AS (
+  SELECT 
+    COUNT(CASE WHEN result_state = 'FAILED' THEN 1 END) as failed_jobs_24h,
+    COUNT(CASE WHEN is_anomaly = TRUE THEN 1 END) as anomalies_detected
+  FROM ${catalog}.${gold_schema}.fact_job_run_timeline j
+  FULL OUTER JOIN ${catalog}.${gold_schema}.cost_anomaly_predictions c 
+    ON j.run_date = c.prediction_date
+  WHERE j.run_date >= CURRENT_DATE() - INTERVAL 1 DAY
+     OR c.prediction_date >= CURRENT_DATE() - INTERVAL 1 DAY
+),
+-- Step 3: Key health metrics
+health_metrics AS (
+  SELECT 
+    (SELECT MEASURE(success_rate) FROM ${catalog}.${gold_schema}.job_performance 
+     WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS) as job_success_rate,
+    (SELECT MEASURE(tag_coverage_percentage) FROM ${catalog}.${gold_schema}.cost_analytics 
+     WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS) as tag_coverage,
+    (SELECT 100 - MEASURE(sla_breach_rate) FROM ${catalog}.${gold_schema}.query_performance 
+     WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS) as query_sla_compliance
+),
+-- Step 4: ML predictions summary
+ml_predictions AS (
+  SELECT 
+    (SELECT COUNT(*) FROM ${catalog}.${gold_schema}.job_failure_predictions 
+     WHERE failure_probability > 0.5 AND prediction_date = CURRENT_DATE()) as high_risk_jobs,
+    (SELECT SUM(potential_savings_usd) FROM ${catalog}.${gold_schema}.cluster_rightsizing_recommendations) as optimization_opportunity
+),
+-- Step 5: Top priorities
+executive_summary AS (
+  SELECT 
+    'FINANCIAL' as category,
+    ROUND(s.mtd_spend, 0) as current_value,
+    ROUND((s.mtd_spend - s.last_month_spend) / NULLIF(s.last_month_spend, 0) * 100, 1) as trend_pct,
+    'USD' as unit
+  FROM monthly_spend s
+  UNION ALL
+  SELECT 'RELIABILITY', ROUND(h.job_success_rate, 1), NULL, '%' FROM health_metrics h
+  UNION ALL
+  SELECT 'PERFORMANCE', ROUND(h.query_sla_compliance, 1), NULL, '%' FROM health_metrics h
+  UNION ALL
+  SELECT 'GOVERNANCE', ROUND(h.tag_coverage, 1), NULL, '%' FROM health_metrics h
+  UNION ALL
+  SELECT 'INCIDENTS', i.failed_jobs_24h, i.anomalies_detected, 'count' FROM active_incidents i
+  UNION ALL
+  SELECT 'AT_RISK_JOBS', p.high_risk_jobs, NULL, 'count' FROM ml_predictions p
+  UNION ALL
+  SELECT 'SAVINGS_OPPORTUNITY', ROUND(p.optimization_opportunity, 0), NULL, 'USD' FROM ml_predictions p
+)
+SELECT 
+  category,
+  current_value,
+  COALESCE(CAST(trend_pct AS STRING), '-') as trend,
+  unit,
+  CASE 
+    WHEN category = 'FINANCIAL' AND trend_pct > 20 THEN '🔴 Cost increasing significantly'
+    WHEN category = 'RELIABILITY' AND current_value < 95 THEN '🟠 Job reliability needs attention'
+    WHEN category = 'PERFORMANCE' AND current_value < 90 THEN '🟠 Query SLAs being breached'
+    WHEN category = 'GOVERNANCE' AND current_value < 80 THEN '🟡 Improve tagging for chargeback'
+    WHEN category = 'INCIDENTS' AND current_value > 10 THEN '🔴 Active incidents require attention'
+    WHEN category = 'AT_RISK_JOBS' AND current_value > 5 THEN '🟠 ML predicts job failures - take action'
+    WHEN category = 'SAVINGS_OPPORTUNITY' AND current_value > 10000 THEN '💰 Significant savings available'
+    ELSE '✅ On track'
+  END as executive_insight
+FROM executive_summary
+ORDER BY 
+  CASE category 
+    WHEN 'INCIDENTS' THEN 1 
+    WHEN 'AT_RISK_JOBS' THEN 2
+    WHEN 'FINANCIAL' THEN 3
+    WHEN 'RELIABILITY' THEN 4
+    WHEN 'PERFORMANCE' THEN 5
+    WHEN 'GOVERNANCE' THEN 6
+    WHEN 'SAVINGS_OPPORTUNITY' THEN 7
+  END;
+```
+**Expected Result:** Executive summary with key metrics, trends, incidents, ML predictions, and actionable insights for leadership.
+
+---
+
 ## ✅ DELIVERABLE CHECKLIST
 
 | Section | Requirement | Status |
@@ -663,10 +1198,10 @@ WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 | **A. Space Name** | Exact name provided | ✅ |
 | **B. Space Description** | 2-3 sentences | ✅ |
 | **C. Sample Questions** | 15 questions | ✅ |
-| **D. Data Assets** | All 10 metric views, 60 TVFs, 25 ML tables, 16 monitoring tables | ✅ |
+| **D. Data Assets** | 5 metric views, 60 TVFs, 5 ML tables, 5 monitoring tables, 4 dims, 6 facts (25 total) | ✅ |
 | **E. General Instructions** | 16 lines (≤20) | ✅ |
 | **F. TVFs** | Domain routing + top 10 signatures | ✅ |
-| **G. Benchmark Questions** | 12 with SQL answers | ✅ |
+| **G. Benchmark Questions** | 25 with SQL answers (incl. 5 Deep Research) | ✅ |
 
 ---
 
@@ -678,16 +1213,15 @@ WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 
 ## Total Asset Summary
 
-| Asset Type | Count |
-|------------|-------|
-| Metric Views | 10 |
-| Table-Valued Functions | 60 |
-| ML Prediction Tables | 25 |
-| Lakehouse Monitoring Tables | 16 |
-| Dimension Tables | 15 |
-| Fact Tables | 23 |
-| Custom Metrics | 87 |
-| **Total Semantic Assets** | 236 |
+| Asset Type | Count | Notes |
+|------------|-------|-------|
+| Metric Views | 5 | 1 per domain (curated) |
+| Table-Valued Functions | 60 | Full access across all domains |
+| ML Prediction Tables | 5 | Anomaly detection per domain |
+| Lakehouse Monitoring Tables | 5 | Profile metrics per domain |
+| Dimension Tables | 4 | Core shared dimensions |
+| Fact Tables | 6 | Primary fact per domain |
+| **Total Tables (Genie Limit)** | **25** | Rationalized for 25-table limit |
 
 ---
 

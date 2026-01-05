@@ -1,0 +1,1584 @@
+{
+  "fingerprint": "a1eeba5a8ba1",
+  "widget_count": 118,
+  "widgets": [
+    {
+      "page": "\ud83d\udcca Executive Summary",
+      "widget": "kpi_total_cost",
+      "title": "\ud83d\udcb0 Total Cost (30d)",
+      "dataset": "ds_kpi_cost",
+      "widget_expects": [
+        "cost_30d"
+      ],
+      "query_returns": [
+        "CONCAT",
+        "cost_30d",
+        "list_cost"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Executive Summary",
+      "widget": "kpi_job_success",
+      "title": "\u2705 Job Success Rate",
+      "dataset": "ds_kpi_jobs",
+      "widget_expects": [
+        "success_rate"
+      ],
+      "query_returns": [
+        "0",
+        "1",
+        "COUNT",
+        "success_rate"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Executive Summary",
+      "widget": "kpi_query_perf",
+      "title": "\u26a1 Avg Query (sec)",
+      "dataset": "ds_kpi_query",
+      "widget_expects": [
+        "avg_duration"
+      ],
+      "query_returns": [
+        "1000",
+        "avg_duration"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Executive Summary",
+      "widget": "kpi_active_users",
+      "title": "\ud83d\udc65 Active Users (7d)",
+      "dataset": "ds_kpi_users",
+      "widget_expects": [
+        "active_users"
+      ],
+      "query_returns": [
+        "active_users"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Executive Summary",
+      "widget": "kpi_security_events",
+      "title": "\ud83d\udd34 High Risk Events",
+      "dataset": "ds_kpi_security",
+      "widget_expects": [
+        "high_risk"
+      ],
+      "query_returns": [
+        "high_risk"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Executive Summary",
+      "widget": "kpi_cluster_util",
+      "title": "\ud83d\udda5\ufe0f Avg CPU Util %",
+      "dataset": "ds_kpi_cluster",
+      "widget_expects": [
+        "avg_cpu"
+      ],
+      "query_returns": [
+        "END",
+        "avg_cpu"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Executive Summary",
+      "widget": "chart_cost_trend",
+      "title": "\ud83d\udcb0 Daily Cost Trend (30d)",
+      "dataset": "ds_cost_trend",
+      "widget_expects": [
+        "daily_cost",
+        "day"
+      ],
+      "query_returns": [
+        "daily_cost",
+        "day"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Executive Summary",
+      "widget": "chart_job_success_trend",
+      "title": "\u2705 Job Success Trend (30d)",
+      "dataset": "ds_job_trend",
+      "widget_expects": [
+        "day",
+        "runs"
+      ],
+      "query_returns": [
+        "0",
+        "COUNT",
+        "day",
+        "runs",
+        "success_rate"
+      ]
+    },
+    {
+      "page": "\ud83c\udfe5 Platform Health",
+      "widget": "kpi_health_score",
+      "title": "\ud83c\udfe5 Overall Health Score",
+      "dataset": "ds_health_score",
+      "widget_expects": [
+        "health_score"
+      ],
+      "query_returns": [
+        "0",
+        "COUNT",
+        "category",
+        "health_score"
+      ]
+    },
+    {
+      "page": "\ud83c\udfe5 Platform Health",
+      "widget": "kpi_cost_health",
+      "title": "\ud83d\udcb0 Cost Health",
+      "dataset": "ds_cost_health",
+      "widget_expects": [
+        "status"
+      ],
+      "query_returns": [
+        "0",
+        "list_cost",
+        "metric",
+        "status"
+      ]
+    },
+    {
+      "page": "\ud83c\udfe5 Platform Health",
+      "widget": "kpi_reliability_health",
+      "title": "\u2705 Reliability Health",
+      "dataset": "ds_reliability_health",
+      "widget_expects": [
+        "status"
+      ],
+      "query_returns": [
+        "0",
+        "COUNT",
+        "status"
+      ]
+    },
+    {
+      "page": "\ud83c\udfe5 Platform Health",
+      "widget": "table_health_issues",
+      "title": "\u26a0\ufe0f Top Health Issues",
+      "dataset": "ds_health_issues",
+      "widget_expects": [],
+      "query_returns": [
+        "area",
+        "failures",
+        "issue",
+        "recommendation",
+        "severity"
+      ]
+    },
+    {
+      "page": "\ud83c\udfe5 Platform Health",
+      "widget": "chart_health_trend",
+      "title": "\ud83d\udcc8 Health Score Trend (30d)",
+      "dataset": "ds_health_trend",
+      "widget_expects": [
+        "day",
+        "health_score"
+      ],
+      "query_returns": [
+        "0",
+        "COUNT",
+        "day",
+        "health_score"
+      ]
+    },
+    {
+      "page": "\ud83e\udd16 ML Insights",
+      "widget": "table_ml_cost_anomalies",
+      "title": "\ud83e\udd16 ML: Cost Anomalies Detected",
+      "dataset": "ds_ml_cost_anomalies",
+      "widget_expects": [],
+      "query_returns": [
+        "anomaly_score",
+        "prediction_date",
+        "severity",
+        "workspace"
+      ]
+    },
+    {
+      "page": "\ud83e\udd16 ML Insights",
+      "widget": "table_ml_job_risks",
+      "title": "\ud83e\udd16 ML: Jobs at Risk",
+      "dataset": "ds_ml_job_risks",
+      "widget_expects": [],
+      "query_returns": [
+        "contributing_factors",
+        "failure_probability",
+        "job_name",
+        "prediction_timestamp",
+        "risk_level"
+      ]
+    },
+    {
+      "page": "\ud83e\udd16 ML Insights",
+      "widget": "table_ml_security_threats",
+      "title": "\ud83e\udd16 ML: Security Threats",
+      "dataset": "ds_ml_security_threats",
+      "widget_expects": [],
+      "query_returns": [
+        "is_anomaly",
+        "prediction_timestamp",
+        "risk_score",
+        "threat_type",
+        "user_identity"
+      ]
+    },
+    {
+      "page": "\ud83e\udd16 ML Insights",
+      "widget": "table_ml_capacity",
+      "title": "\ud83e\udd16 ML: Capacity Recommendations",
+      "dataset": "ds_ml_capacity",
+      "widget_expects": [],
+      "query_returns": [
+        "confidence",
+        "current_workers",
+        "job_id",
+        "prediction_timestamp",
+        "recommended_workers"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Monitoring Alerts",
+      "widget": "kpi_cost_drift",
+      "title": "\ud83d\udcb0 Cost Drift %",
+      "dataset": "ds_monitor_cost_drift",
+      "widget_expects": [
+        "drift_pct"
+      ],
+      "query_returns": [
+        "100",
+        "avg_delta",
+        "drift_pct",
+        "window_start"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Monitoring Alerts",
+      "widget": "kpi_job_drift",
+      "title": "\u2705 Job Success Drift %",
+      "dataset": "ds_monitor_job_drift",
+      "widget_expects": [
+        "drift_pct"
+      ],
+      "query_returns": [
+        "100",
+        "avg_delta",
+        "drift_pct",
+        "window_start"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Monitoring Alerts",
+      "widget": "kpi_query_drift",
+      "title": "\u26a1 Query Duration Drift %",
+      "dataset": "ds_monitor_query_drift",
+      "widget_expects": [
+        "drift_pct"
+      ],
+      "query_returns": [
+        "100",
+        "avg_delta",
+        "drift_pct",
+        "window_start"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Monitoring Alerts",
+      "widget": "table_drift_alerts",
+      "title": "\ud83d\udcca Active Drift Alerts (>10%)",
+      "dataset": "ds_drift_alerts",
+      "widget_expects": [],
+      "query_returns": [
+        "100",
+        "area",
+        "avg_delta",
+        "drift_pct",
+        "metric",
+        "severity"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Monitoring Alerts",
+      "widget": "chart_drift_trend",
+      "title": "\ud83d\udcc8 Drift Trend (30d)",
+      "dataset": "ds_drift_trend",
+      "widget_expects": [
+        "day",
+        "drift_pct"
+      ],
+      "query_returns": [
+        "100",
+        "avg_delta",
+        "day",
+        "drift_pct"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "kpi_mtd_spend",
+      "title": "MTD Spend",
+      "dataset": "ds_kpi_mtd",
+      "widget_expects": [
+        "cost_mtd"
+      ],
+      "query_returns": [
+        "CONCAT",
+        "cost_mtd",
+        "list_cost"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "kpi_30d_spend",
+      "title": "30-Day Spend",
+      "dataset": "ds_kpi_30d",
+      "widget_expects": [
+        "cost_30d"
+      ],
+      "query_returns": [
+        "CONCAT",
+        "cost_30d",
+        "list_cost"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "kpi_30d_growth",
+      "title": "30d vs 60d Growth %",
+      "dataset": "ds_30_60_compare",
+      "widget_expects": [
+        "growth_pct"
+      ],
+      "query_returns": [
+        "growth_pct",
+        "last_30",
+        "prev_30"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "kpi_tag_coverage",
+      "title": "Tag Coverage %",
+      "dataset": "ds_tag_coverage",
+      "widget_expects": [
+        "tag_coverage"
+      ],
+      "query_returns": [
+        "cost",
+        "tag_coverage"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "kpi_serverless",
+      "title": "Serverless Adoption %",
+      "dataset": "ds_serverless_adoption",
+      "widget_expects": [
+        "serverless_pct"
+      ],
+      "query_returns": [
+        "0",
+        "list_cost",
+        "serverless_pct"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "kpi_unique_users",
+      "title": "Active Users (30d)",
+      "dataset": "ds_unique_counts",
+      "widget_expects": [
+        "workspaces"
+      ],
+      "query_returns": [
+        "jobs",
+        "workspaces"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "chart_wow_growth",
+      "title": "\ud83d\udcc8 Week-over-Week Cost & Growth Trend",
+      "dataset": "ds_wow_growth",
+      "widget_expects": [
+        "week_start"
+      ],
+      "query_returns": [
+        "STRING",
+        "days",
+        "moving_avg",
+        "week",
+        "week_start",
+        "weekly_cost",
+        "wow_growth_pct"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "chart_daily_cost",
+      "title": "\ud83d\udcca Daily Cost: Serverless vs Classic",
+      "dataset": "ds_daily_cost",
+      "widget_expects": [
+        "usage_date"
+      ],
+      "query_returns": [
+        "STRING",
+        "classic_cost",
+        "daily_cost",
+        "serverless_cost",
+        "usage_date"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "table_top_workspaces",
+      "title": "\ud83c\udfe2 Top Workspaces (30d)",
+      "dataset": "ds_top_workspaces",
+      "widget_expects": [],
+      "query_returns": [
+        "STRING",
+        "job_count",
+        "job_runs",
+        "list_cost",
+        "total_cost",
+        "unique_users",
+        "workspace_name"
+      ]
+    },
+    {
+      "page": "\ud83d\udcb0 Cost Overview",
+      "widget": "chart_sku_breakdown",
+      "title": "\ud83d\udce6 Spend by SKU",
+      "dataset": "ds_sku_breakdown",
+      "widget_expects": [
+        "cost",
+        "sku_name"
+      ],
+      "query_returns": [
+        "cost",
+        "sku_name"
+      ]
+    },
+    {
+      "page": "\u26a1 Performance Overview",
+      "widget": "kpi_total_queries",
+      "title": "Total Queries (7d)",
+      "dataset": "ds_kpi_queries",
+      "widget_expects": [
+        "total_queries"
+      ],
+      "query_returns": [
+        "1000",
+        "avg_duration",
+        "execution_duration_ms",
+        "p95_duration",
+        "total_queries",
+        "unique_users"
+      ]
+    },
+    {
+      "page": "\u26a1 Performance Overview",
+      "widget": "kpi_avg_duration",
+      "title": "Avg Duration (sec)",
+      "dataset": "ds_kpi_queries",
+      "widget_expects": [
+        "avg_duration"
+      ],
+      "query_returns": [
+        "1000",
+        "avg_duration",
+        "execution_duration_ms",
+        "p95_duration",
+        "total_queries",
+        "unique_users"
+      ]
+    },
+    {
+      "page": "\u26a1 Performance Overview",
+      "widget": "kpi_p95_duration",
+      "title": "P95 Duration (sec)",
+      "dataset": "ds_kpi_queries",
+      "widget_expects": [
+        "p95_duration"
+      ],
+      "query_returns": [
+        "1000",
+        "avg_duration",
+        "execution_duration_ms",
+        "p95_duration",
+        "total_queries",
+        "unique_users"
+      ]
+    },
+    {
+      "page": "\u26a1 Performance Overview",
+      "widget": "kpi_slow_queries",
+      "title": "Slow Queries %",
+      "dataset": "ds_kpi_slow",
+      "widget_expects": [
+        "slow_queries"
+      ],
+      "query_returns": [
+        "slow_queries"
+      ]
+    },
+    {
+      "page": "\u26a1 Performance Overview",
+      "widget": "kpi_failed_queries",
+      "title": "Failed Queries %",
+      "dataset": "ds_kpi_failed",
+      "widget_expects": [
+        "failed_runs"
+      ],
+      "query_returns": [
+        "failed_runs"
+      ]
+    },
+    {
+      "page": "\u26a1 Performance Overview",
+      "widget": "kpi_unique_users",
+      "title": "Unique Users (7d)",
+      "dataset": "ds_kpi_queries",
+      "widget_expects": [
+        "unique_users"
+      ],
+      "query_returns": [
+        "1000",
+        "avg_duration",
+        "execution_duration_ms",
+        "p95_duration",
+        "total_queries",
+        "unique_users"
+      ]
+    },
+    {
+      "page": "\u26a1 Performance Overview",
+      "widget": "chart_query_volume",
+      "title": "\ud83d\udcc8 Query Volume Trend (30d)",
+      "dataset": "ds_query_volume",
+      "widget_expects": [
+        "day",
+        "queries"
+      ],
+      "query_returns": [
+        "day",
+        "queries"
+      ]
+    },
+    {
+      "page": "\u26a1 Performance Overview",
+      "widget": "chart_duration_trend",
+      "title": "\u23f1\ufe0f Query Duration Trend (30d)",
+      "dataset": "ds_duration_trend",
+      "widget_expects": [
+        "avg_duration_min",
+        "day"
+      ],
+      "query_returns": [
+        "60",
+        "avg_duration_min",
+        "day"
+      ]
+    },
+    {
+      "page": "\ud83d\udd04 Reliability Overview",
+      "widget": "kpi_success_rate",
+      "title": "Success Rate (7d)",
+      "dataset": "ds_kpi_success_rate",
+      "widget_expects": [
+        "success_rate"
+      ],
+      "query_returns": [
+        "0",
+        "1",
+        "COUNT",
+        "success_rate"
+      ]
+    },
+    {
+      "page": "\ud83d\udd04 Reliability Overview",
+      "widget": "kpi_total_runs",
+      "title": "Total Runs (7d)",
+      "dataset": "ds_kpi_totals",
+      "widget_expects": [
+        "total_runs"
+      ],
+      "query_returns": [
+        "total_failures",
+        "total_runs"
+      ]
+    },
+    {
+      "page": "\ud83d\udd04 Reliability Overview",
+      "widget": "kpi_failures",
+      "title": "Failures (7d)",
+      "dataset": "ds_kpi_totals",
+      "widget_expects": [
+        "total_failures"
+      ],
+      "query_returns": [
+        "total_failures",
+        "total_runs"
+      ]
+    },
+    {
+      "page": "\ud83d\udd04 Reliability Overview",
+      "widget": "kpi_p95_duration",
+      "title": "P95 Duration (min)",
+      "dataset": "ds_kpi_duration",
+      "widget_expects": [
+        "p95_duration"
+      ],
+      "query_returns": [
+        "60",
+        "p95_duration",
+        "run_duration_seconds"
+      ]
+    },
+    {
+      "page": "\ud83d\udd04 Reliability Overview",
+      "widget": "kpi_mttr",
+      "title": "MTTR (min)",
+      "dataset": "ds_kpi_mttr",
+      "widget_expects": [
+        "mttr_min"
+      ],
+      "query_returns": [
+        "60",
+        "mttr_min"
+      ]
+    },
+    {
+      "page": "\ud83d\udd04 Reliability Overview",
+      "widget": "kpi_unique_jobs",
+      "title": "Active Jobs (7d)",
+      "dataset": "ds_kpi_totals",
+      "widget_expects": [
+        "total_runs"
+      ],
+      "query_returns": [
+        "total_failures",
+        "total_runs"
+      ]
+    },
+    {
+      "page": "\ud83d\udd04 Reliability Overview",
+      "widget": "chart_success_trend",
+      "title": "\ud83d\udcc8 Success & Failure Rate Trend (30d)",
+      "dataset": "ds_success_trend",
+      "widget_expects": [
+        "day",
+        "success_rate"
+      ],
+      "query_returns": [
+        "0",
+        "COUNT",
+        "cancelled",
+        "day",
+        "failed",
+        "success_rate",
+        "successful",
+        "timed_out"
+      ]
+    },
+    {
+      "page": "\ud83d\udd04 Reliability Overview",
+      "widget": "chart_runs_by_status",
+      "title": "\ud83d\udcca Daily Runs by Status",
+      "dataset": "ds_runs_by_status",
+      "widget_expects": [
+        "count",
+        "run_date",
+        "status"
+      ],
+      "query_returns": [
+        "count",
+        "run_date",
+        "status"
+      ]
+    },
+    {
+      "page": "\ud83d\udd04 Reliability Overview",
+      "widget": "chart_duration_trend",
+      "title": "\u23f1\ufe0f Duration Percentiles Trend (min)",
+      "dataset": "ds_duration_trend",
+      "widget_expects": [
+        "avg_duration_min",
+        "day"
+      ],
+      "query_returns": [
+        "60",
+        "avg_duration_min",
+        "day"
+      ]
+    },
+    {
+      "page": "\ud83d\udd12 Security Overview",
+      "widget": "kpi_total_events",
+      "title": "Total Audit Events (7d)",
+      "dataset": "ds_kpi_events",
+      "widget_expects": [
+        "total_events"
+      ],
+      "query_returns": [
+        "total_events"
+      ]
+    },
+    {
+      "page": "\ud83d\udd12 Security Overview",
+      "widget": "kpi_unique_users",
+      "title": "Unique Users (7d)",
+      "dataset": "ds_kpi_users",
+      "widget_expects": [
+        "active_users"
+      ],
+      "query_returns": [
+        "active_users"
+      ]
+    },
+    {
+      "page": "\ud83d\udd12 Security Overview",
+      "widget": "kpi_high_risk",
+      "title": "\ud83d\udd34 High Risk Events (7d)",
+      "dataset": "ds_kpi_high_risk",
+      "widget_expects": [
+        "high_risk_events"
+      ],
+      "query_returns": [
+        "high_risk_events"
+      ]
+    },
+    {
+      "page": "\ud83d\udd12 Security Overview",
+      "widget": "kpi_denied_access",
+      "title": "\u26d4 Access Denied (7d)",
+      "dataset": "ds_kpi_denied",
+      "widget_expects": [
+        "denied_access"
+      ],
+      "query_returns": [
+        "denied_access"
+      ]
+    },
+    {
+      "page": "\ud83d\udd12 Security Overview",
+      "widget": "kpi_permission_changes",
+      "title": "\ud83d\udd10 Permission Changes (7d)",
+      "dataset": "ds_kpi_permissions",
+      "widget_expects": [
+        "permission_changes"
+      ],
+      "query_returns": [
+        "permission_changes"
+      ]
+    },
+    {
+      "page": "\ud83d\udd12 Security Overview",
+      "widget": "kpi_admin_actions",
+      "title": "\ud83d\udc51 Admin Actions (7d)",
+      "dataset": "ds_kpi_admin",
+      "widget_expects": [
+        "admin_actions"
+      ],
+      "query_returns": [
+        "admin_actions"
+      ]
+    },
+    {
+      "page": "\ud83d\udd12 Security Overview",
+      "widget": "chart_event_trend",
+      "title": "\ud83d\udcc8 Audit Event Trend (30d)",
+      "dataset": "ds_event_trend",
+      "widget_expects": [
+        "day",
+        "events"
+      ],
+      "query_returns": [
+        "addUserToGroup",
+        "createAccessToken",
+        "day",
+        "events",
+        "high_risk",
+        "medium_risk",
+        "updatePermissions"
+      ]
+    },
+    {
+      "page": "\ud83d\udd12 Security Overview",
+      "widget": "chart_risk_trend",
+      "title": "\ud83d\udd34 Risk Event Trend (30d)",
+      "dataset": "ds_risk_trend",
+      "widget_expects": [
+        "day",
+        "high_risk"
+      ],
+      "query_returns": [
+        "addUserToGroup",
+        "createAccessToken",
+        "day",
+        "events",
+        "high_risk",
+        "medium_risk",
+        "updatePermissions"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Governance Overview",
+      "widget": "kpi_total_tables",
+      "title": "Total Tables",
+      "dataset": "ds_kpi_tables",
+      "widget_expects": [
+        "total_tables"
+      ],
+      "query_returns": [
+        "total_tables"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Governance Overview",
+      "widget": "kpi_tagged_tables",
+      "title": "Tagged Tables %",
+      "dataset": "ds_kpi_tagged",
+      "widget_expects": [
+        "tag_coverage"
+      ],
+      "query_returns": [
+        "0",
+        "1",
+        "list_cost",
+        "tag_coverage"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Governance Overview",
+      "widget": "kpi_documented_tables",
+      "title": "Documented Tables %",
+      "dataset": "ds_kpi_documented",
+      "widget_expects": [
+        "documented_pct"
+      ],
+      "query_returns": [
+        "documented_pct"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Governance Overview",
+      "widget": "kpi_lineage_coverage",
+      "title": "Lineage Coverage %",
+      "dataset": "ds_kpi_lineage",
+      "widget_expects": [
+        "lineage_pct"
+      ],
+      "query_returns": [
+        "lineage_pct"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Governance Overview",
+      "widget": "kpi_total_jobs",
+      "title": "Total Jobs",
+      "dataset": "ds_kpi_jobs",
+      "widget_expects": [
+        "success_rate"
+      ],
+      "query_returns": [
+        "0",
+        "1",
+        "COUNT",
+        "success_rate"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Governance Overview",
+      "widget": "kpi_total_workspaces",
+      "title": "Active Workspaces",
+      "dataset": "ds_kpi_workspaces",
+      "widget_expects": [
+        "total_workspaces"
+      ],
+      "query_returns": [
+        "total_workspaces"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Governance Overview",
+      "widget": "chart_tables_by_catalog",
+      "title": "Tables by Catalog",
+      "dataset": "ds_tables_by_catalog",
+      "widget_expects": [
+        "catalog_name",
+        "table_count"
+      ],
+      "query_returns": [
+        "catalog_name",
+        "table_count",
+        "target_table_catalog"
+      ]
+    },
+    {
+      "page": "\ud83d\udcca Governance Overview",
+      "widget": "chart_lineage_trend",
+      "title": "\ud83d\udcc8 Lineage Events Trend (30d)",
+      "dataset": "ds_lineage_trend",
+      "widget_expects": [
+        "day",
+        "tables"
+      ],
+      "query_returns": [
+        "day",
+        "tables"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_query",
+      "widget_expects": [],
+      "query_returns": [
+        "1000",
+        "avg_duration"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_events",
+      "widget_expects": [],
+      "query_returns": [
+        "total_events"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_wow_growth",
+      "widget_expects": [],
+      "query_returns": [
+        "STRING",
+        "days",
+        "moving_avg",
+        "week",
+        "week_start",
+        "weekly_cost",
+        "wow_growth_pct"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_duration",
+      "widget_expects": [],
+      "query_returns": [
+        "60",
+        "p95_duration",
+        "run_duration_seconds"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_slow",
+      "widget_expects": [],
+      "query_returns": [
+        "slow_queries"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_queries",
+      "widget_expects": [],
+      "query_returns": [
+        "1000",
+        "avg_duration",
+        "execution_duration_ms",
+        "p95_duration",
+        "total_queries",
+        "unique_users"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_top_workspaces",
+      "widget_expects": [],
+      "query_returns": [
+        "STRING",
+        "job_count",
+        "job_runs",
+        "list_cost",
+        "total_cost",
+        "unique_users",
+        "workspace_name"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_jobs",
+      "widget_expects": [],
+      "query_returns": [
+        "0",
+        "1",
+        "COUNT",
+        "success_rate"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_unique_counts",
+      "widget_expects": [],
+      "query_returns": [
+        "jobs",
+        "workspaces"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_monitor_query_drift",
+      "widget_expects": [],
+      "query_returns": [
+        "100",
+        "avg_delta",
+        "drift_pct",
+        "window_start"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_risk_trend",
+      "widget_expects": [],
+      "query_returns": [
+        "addUserToGroup",
+        "createAccessToken",
+        "day",
+        "events",
+        "high_risk",
+        "medium_risk",
+        "updatePermissions"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_tables_by_catalog",
+      "widget_expects": [],
+      "query_returns": [
+        "catalog_name",
+        "table_count",
+        "target_table_catalog"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_cost",
+      "widget_expects": [],
+      "query_returns": [
+        "CONCAT",
+        "cost_30d",
+        "list_cost"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_duration_trend",
+      "widget_expects": [],
+      "query_returns": [
+        "60",
+        "avg_duration_min",
+        "day"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_runs_by_status",
+      "widget_expects": [],
+      "query_returns": [
+        "count",
+        "run_date",
+        "status"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_job_trend",
+      "widget_expects": [],
+      "query_returns": [
+        "0",
+        "COUNT",
+        "day",
+        "runs",
+        "success_rate"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_daily_cost",
+      "widget_expects": [],
+      "query_returns": [
+        "STRING",
+        "classic_cost",
+        "daily_cost",
+        "serverless_cost",
+        "usage_date"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_serverless_adoption",
+      "widget_expects": [],
+      "query_returns": [
+        "0",
+        "list_cost",
+        "serverless_pct"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_mttr",
+      "widget_expects": [],
+      "query_returns": [
+        "60",
+        "mttr_min"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_drift_trend",
+      "widget_expects": [],
+      "query_returns": [
+        "100",
+        "avg_delta",
+        "day",
+        "drift_pct"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_event_trend",
+      "widget_expects": [],
+      "query_returns": [
+        "addUserToGroup",
+        "createAccessToken",
+        "day",
+        "events",
+        "high_risk",
+        "medium_risk",
+        "updatePermissions"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_success_rate",
+      "widget_expects": [],
+      "query_returns": [
+        "0",
+        "1",
+        "COUNT",
+        "success_rate"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_cluster",
+      "widget_expects": [],
+      "query_returns": [
+        "END",
+        "avg_cpu"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_totals",
+      "widget_expects": [],
+      "query_returns": [
+        "total_failures",
+        "total_runs"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_monitor_cost_drift",
+      "widget_expects": [],
+      "query_returns": [
+        "100",
+        "avg_delta",
+        "drift_pct",
+        "window_start"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_30d",
+      "widget_expects": [],
+      "query_returns": [
+        "CONCAT",
+        "cost_30d",
+        "list_cost"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_denied",
+      "widget_expects": [],
+      "query_returns": [
+        "denied_access"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_tag_coverage",
+      "widget_expects": [],
+      "query_returns": [
+        "cost",
+        "tag_coverage"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_30_60_compare",
+      "widget_expects": [],
+      "query_returns": [
+        "growth_pct",
+        "last_30",
+        "prev_30"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_admin",
+      "widget_expects": [],
+      "query_returns": [
+        "admin_actions"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_users",
+      "widget_expects": [],
+      "query_returns": [
+        "active_users"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_cost_trend",
+      "widget_expects": [],
+      "query_returns": [
+        "daily_cost",
+        "day"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_monitor_job_drift",
+      "widget_expects": [],
+      "query_returns": [
+        "100",
+        "avg_delta",
+        "drift_pct",
+        "window_start"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_mtd",
+      "widget_expects": [],
+      "query_returns": [
+        "CONCAT",
+        "cost_mtd",
+        "list_cost"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_permissions",
+      "widget_expects": [],
+      "query_returns": [
+        "permission_changes"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_high_risk",
+      "widget_expects": [],
+      "query_returns": [
+        "high_risk_events"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_success_trend",
+      "widget_expects": [],
+      "query_returns": [
+        "0",
+        "COUNT",
+        "cancelled",
+        "day",
+        "failed",
+        "success_rate",
+        "successful",
+        "timed_out"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_drift_alerts",
+      "widget_expects": [],
+      "query_returns": [
+        "100",
+        "area",
+        "avg_delta",
+        "drift_pct",
+        "metric",
+        "severity"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_failed",
+      "widget_expects": [],
+      "query_returns": [
+        "failed_runs"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_query_volume",
+      "widget_expects": [],
+      "query_returns": [
+        "day",
+        "queries"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_lineage_trend",
+      "widget_expects": [],
+      "query_returns": [
+        "day",
+        "tables"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_time_range",
+      "title": "Time Window",
+      "dataset": "ds_kpi_security",
+      "widget_expects": [],
+      "query_returns": [
+        "high_risk"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_workspace",
+      "title": "Workspace",
+      "dataset": "ds_select_workspace",
+      "widget_expects": [],
+      "query_returns": [
+        "STRING",
+        "workspace_name"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_workspace",
+      "title": "Workspace",
+      "dataset": "ds_wow_growth",
+      "widget_expects": [],
+      "query_returns": [
+        "STRING",
+        "days",
+        "moving_avg",
+        "week",
+        "week_start",
+        "weekly_cost",
+        "wow_growth_pct"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_workspace",
+      "title": "Workspace",
+      "dataset": "ds_top_workspaces",
+      "widget_expects": [],
+      "query_returns": [
+        "STRING",
+        "job_count",
+        "job_runs",
+        "list_cost",
+        "total_cost",
+        "unique_users",
+        "workspace_name"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_workspace",
+      "title": "Workspace",
+      "dataset": "ds_daily_cost",
+      "widget_expects": [],
+      "query_returns": [
+        "STRING",
+        "classic_cost",
+        "daily_cost",
+        "serverless_cost",
+        "usage_date"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_workspace",
+      "title": "Workspace",
+      "dataset": "ds_ml_cost_anomalies",
+      "widget_expects": [],
+      "query_returns": [
+        "anomaly_score",
+        "prediction_date",
+        "severity",
+        "workspace"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_workspace",
+      "title": "Workspace",
+      "dataset": "ds_sku_breakdown",
+      "widget_expects": [],
+      "query_returns": [
+        "cost",
+        "sku_name"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_workspace",
+      "title": "Workspace",
+      "dataset": "ds_kpi_workspaces",
+      "widget_expects": [],
+      "query_returns": [
+        "total_workspaces"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_workspace",
+      "title": "Workspace",
+      "dataset": "ds_workspaces",
+      "widget_expects": [],
+      "query_returns": [
+        "workspace_name"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_workspace",
+      "title": "Workspace",
+      "dataset": "select_workspace",
+      "widget_expects": [],
+      "query_returns": [
+        "id",
+        "workspace_name"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_sku_type",
+      "title": "SKU Type",
+      "dataset": "ds_select_sku",
+      "widget_expects": [],
+      "query_returns": [
+        "sku_category"
+      ]
+    },
+    {
+      "page": "Global Filters",
+      "widget": "filter_param_sku_type",
+      "title": "SKU Type",
+      "dataset": "ds_sku_breakdown",
+      "widget_expects": [],
+      "query_returns": [
+        "cost",
+        "sku_name"
+      ]
+    }
+  ]
+}

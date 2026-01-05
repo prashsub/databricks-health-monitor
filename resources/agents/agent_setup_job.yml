@@ -1,0 +1,68 @@
+# Agent Framework Setup Job
+# Creates consolidated schema and infrastructure for the Health Monitor Agent
+#
+# Single Schema (avoids sprawl):
+#   Dev: prashanth_subrahmanyam_catalog.dev_<user>_system_gold_agent
+#   Prod: main.system_gold_agent
+#
+# Contains: Models, Tables (structured), Volumes (unstructured)
+
+resources:
+  jobs:
+    agent_setup_job:
+      name: "[${bundle.target}] Health Monitor - Agent Setup"
+      description: >
+        Creates consolidated agent schema with all infrastructure:
+        models, config tables, inference logs, memory tables, and volumes.
+        Must run before deploying the agent model serving endpoint.
+      
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - mlflow>=3.0.0
+              - langchain>=0.3.0
+              - langgraph>=0.2.0
+              - databricks-sdk>=0.28.0
+      
+      tasks:
+        - task_key: create_agent_infrastructure
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/agents/setup/create_schemas.py
+            base_parameters:
+              catalog: ${var.catalog}
+              agent_schema: ${var.agent_schema}
+        
+        - task_key: register_prompts
+          depends_on:
+            - task_key: create_agent_infrastructure
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/agents/setup/register_prompts.py
+            base_parameters:
+              catalog: ${var.catalog}
+              agent_schema: ${var.agent_schema}
+        
+        - task_key: log_agent_model
+          depends_on:
+            - task_key: register_prompts
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/agents/setup/log_agent_model.py
+            base_parameters:
+              catalog: ${var.catalog}
+              agent_schema: ${var.agent_schema}
+      
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+      
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: agent
+        job_level: atomic
+        job_type: setup
+

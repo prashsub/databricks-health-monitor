@@ -54,7 +54,7 @@ resources:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
               warehouse_id: ${var.warehouse_id}
-              deploy_domain_dashboards: "true"  # Deploy individual domain dashboards
+              dashboard_folder: ${var.dashboard_folder}  # Workspace folder for dashboards
 
       # No schedule - run on demand after Gold setup
       # Dashboards refresh automatically based on their queries

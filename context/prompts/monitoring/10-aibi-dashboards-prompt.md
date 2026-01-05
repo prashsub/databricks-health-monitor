@@ -1,4 +1,4 @@
-# AI/BI Lakeview Dashboard Creation Prompt
+# AI/BI Lakeview Dashboard Creation Guide
 
 ## 🚀 Quick Start (2 hours)
 
@@ -6,7 +6,7 @@
 
 **What You'll Create:**
 1. SQL queries from Metric Views or Gold tables
-2. AI/BI Dashboard via UI (drag-and-drop layout)
+2. AI/BI Dashboard via UI or JSON
 3. Auto-refresh schedule
 
 **Fast Track (UI-Based):**
@@ -19,287 +19,309 @@
    - Line charts for trends (Daily Revenue Trend)
    - Tables for drill-down (Top Products Detail)
 4. Add Filters (Date Range, Store, Category)
-5. Configure Layout (Canvas: 1280px wide, tiles sized to fit)
+5. Configure Layout (Canvas: 6-column grid)
 6. Enable Auto-refresh (Hourly/Daily)
 7. Share with business users
 ```
 
-**Query Pattern (Metric Views):**
-```sql
--- Use MEASURE() function for semantic metrics
-SELECT 
-  store_name,
-  MEASURE(`Total Revenue`) as revenue,
-  MEASURE(`Total Units`) as units,
-  MEASURE(`Transaction Count`) as transactions
-FROM sales_performance_metrics
-WHERE transaction_date BETWEEN :start_date AND :end_date
-ORDER BY revenue DESC
-LIMIT 10
+---
+
+## 🚨 CRITICAL: Top 10 Lessons Learned
+
+These patterns are documented from 100+ production deployment failures. **Read these first.**
+
+### 1. Widget-Query Column Alignment (Most Common Error)
+
+**Widget `fieldName` MUST exactly match query output alias.**
+
+```json
+// Widget expects "total_queries"
+"encodings": { "value": { "fieldName": "total_queries" } }
 ```
 
-**Best Practices:**
-- ✅ **Use Metric Views** (not raw tables) for consistent metrics
-- ✅ **Add filters** for date range, key dimensions
-- ✅ **Counter tiles** for top KPIs (large, prominent)
-- ✅ **Charts** for trends and comparisons
-- ✅ **Auto-refresh** for near real-time dashboards
+```sql
+-- ❌ WRONG - Query returns different name
+SELECT COUNT(*) AS query_count FROM ...
 
-**Output:** Professional dashboard with AI-powered insights
+-- ✅ CORRECT - Names match
+SELECT COUNT(*) AS total_queries FROM ...
+```
 
-📖 **Full guide below** for detailed layout patterns →
+**Common Mismatches:**
+| Widget Expects | Query Returns | Fix |
+|----------------|---------------|-----|
+| `total_queries` | `query_count` | Alias as `total_queries` |
+| `warehouse_name` | `compute_type` | Alias as `warehouse_name` |
+| `unique_users` | `distinct_users` | Alias as `unique_users` |
+| `query_id` | `statement_id` | Alias as `query_id` |
+| `failure_count` | `failed_queries` | Alias as `failure_count` |
+
+### 2. Number Formatting (Second Most Common)
+
+| Format | Input | Output | Rule |
+|--------|-------|--------|------|
+| `number-percent` | `0.85` | `85%` | Return 0-1 decimal, widget multiplies ×100 |
+| `number-currency` | `1234.56` | `$1,234.56` | Return raw number |
+| `number-plain` | `1234` | `1,234` | Return raw number |
+
+```sql
+-- ❌ WRONG - Returns formatted string
+SELECT CONCAT('$', FORMAT_NUMBER(SUM(cost), 2)) AS total_cost
+
+-- ✅ CORRECT - Returns raw number
+SELECT ROUND(SUM(cost), 2) AS total_cost
+
+-- ❌ WRONG - Returns 85 (will show 8500%)
+SELECT ROUND(success * 100.0 / total, 1) AS success_rate
+
+-- ✅ CORRECT - Returns 0.85 (will show 85%)
+SELECT ROUND(success * 1.0 / NULLIF(total, 0), 3) AS success_rate
+```
+
+### 3. Parameter Definition Required
+
+Every dataset using parameters MUST define them:
+
+```json
+{
+  "name": "ds_kpi_revenue",
+  "query": "SELECT SUM(cost) FROM table WHERE date BETWEEN :time_range.min AND :time_range.max",
+  "parameters": [
+    {
+      "keyword": "time_range",
+      "dataType": "DATETIME_RANGE",
+      "defaultSelection": {
+        "range": {
+          "min": { "dataType": "DATETIME", "value": "now-30d/d" },
+          "max": { "dataType": "DATETIME", "value": "now/d" }
+        }
+      }
+    }
+  ]
+}
+```
+
+### 4. Monitoring Table Schema (Custom Metrics)
+
+Custom metrics use generic schema - pivot with CASE:
+
+```sql
+-- ❌ WRONG - These columns don't exist directly
+SELECT success_rate, total_runs FROM fact_job_run_timeline_profile_metrics
+
+-- ✅ CORRECT - Use CASE pivot on column_name
+SELECT 
+  window.start AS window_start,
+  MAX(CASE WHEN column_name = 'success_rate' THEN avg END) AS success_rate_pct,
+  MAX(CASE WHEN column_name = 'total_runs' THEN count END) AS total_runs
+FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics
+WHERE window.start BETWEEN :time_range.min AND :time_range.max
+GROUP BY window.start
+```
+
+**Window struct access:**
+```sql
+-- ❌ WRONG
+SELECT window_start FROM monitoring_table
+
+-- ✅ CORRECT
+SELECT window.start AS window_start FROM monitoring_table
+```
+
+### 5. Pie Chart Scale Required
+
+Pie charts won't render without explicit `scale` properties:
+
+```json
+{
+  "encodings": {
+    "color": {
+      "fieldName": "category",
+      "scale": { "type": "categorical" }  // REQUIRED!
+    },
+    "angle": {
+      "fieldName": "value",
+      "scale": { "type": "quantitative" }  // REQUIRED!
+    }
+  }
+}
+```
+
+### 5.1 Bar Chart Scale Required
+
+Bar charts ALSO won't render without explicit `scale` properties:
+
+```json
+{
+  "encodings": {
+    "x": {
+      "fieldName": "category_name",
+      "scale": { "type": "categorical" }  // REQUIRED!
+    },
+    "y": {
+      "fieldName": "value",
+      "scale": { "type": "quantitative" }  // REQUIRED!
+    }
+  }
+}
+```
+
+**Error without scale:** "Select fields to visualize"
+
+### 6. Table Widget Version 2
+
+Use version 2 and remove legacy properties:
+
+```json
+{
+  "spec": {
+    "version": 2,  // Not 1
+    "widgetType": "table",
+    "encodings": { "columns": [...] },
+    "frame": { "showTitle": true, "title": "..." }
+    // Remove: itemsPerPage, condensed, withRowNumber
+  }
+}
+```
+
+### 7. Multi-Series Charts with UNION ALL
+
+```sql
+SELECT date, 'Average' AS metric, AVG(value) AS amount FROM ... GROUP BY 1
+UNION ALL
+SELECT date, 'P95' AS metric, PERCENTILE_APPROX(value, 0.95) AS amount FROM ... GROUP BY 1
+ORDER BY date, metric
+```
+
+```json
+{
+  "encodings": {
+    "x": { "fieldName": "date", "scale": { "type": "temporal" } },
+    "y": { "fieldName": "amount", "scale": { "type": "quantitative" } },
+    "color": { "fieldName": "metric", "scale": { "type": "categorical" } }
+  }
+}
+```
+
+### 8. Stacked Area Charts
+
+```json
+{
+  "encodings": {
+    "y": {
+      "fieldName": "run_count",
+      "scale": { "type": "quantitative" },
+      "stack": "zero"  // CRITICAL for stacking
+    },
+    "color": {
+      "fieldName": "status",
+      "scale": {
+        "type": "categorical",
+        "domain": ["Success", "Failed"],
+        "range": ["#00A972", "#FF3621"]
+      }
+    }
+  }
+}
+```
+
+### 9. SQL NULL and Division Handling
+
+```sql
+-- Prevent empty results
+SELECT COALESCE(SUM(cost), 0) AS total_cost
+
+-- Prevent NULL in grouping
+SELECT COALESCE(sku_name, 'Unknown') AS sku_name
+
+-- Prevent division by zero
+SELECT ROUND(success / NULLIF(total, 0), 3) AS success_rate
+
+-- Distinct counts for users
+SELECT COUNT(DISTINCT user_identity_email) AS unique_users
+WHERE user_identity_email NOT LIKE '%@databricks.com'
+```
+
+### 10. Schema Variable Substitution
+
+```sql
+-- ✅ CORRECT - Use variables
+FROM ${catalog}.${gold_schema}.fact_usage
+FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics
+FROM ${catalog}.${feature_schema}.ml_predictions
+
+-- ❌ WRONG - Hardcoded
+FROM my_catalog.my_schema.fact_usage
+```
 
 ---
 
-## Quick Reference
+## 📋 Requirements Checklist
 
-**Use this prompt when creating Databricks AI/BI Lakeview dashboards for any project.**
-
----
-
-## 📋 Your Requirements (Fill These In First)
-
-**Before creating dashboards, define these specifications:**
+Before creating dashboards, define:
 
 ### Dashboard Purpose
-- **Dashboard Name:** _________________ (e.g., "Sales Performance Dashboard", "Patient Outcomes Dashboard")
-- **Audience:** _________________ (e.g., "Sales Managers", "Hospital Administrators", "Finance Team")
+- **Name:** _________________ (e.g., "Sales Performance Dashboard")
+- **Audience:** _________________ (e.g., "Sales Managers")
 - **Update Frequency:** [ ] Real-time [ ] Hourly [ ] Daily [ ] Weekly
-- **Primary Goal:** _________________ (e.g., "Track daily KPIs", "Monitor data quality", "Analyze trends")
+- **Primary Goal:** _________________ (e.g., "Track daily KPIs")
 
 ### Data Sources
-- **Catalog:** _________________ (e.g., my_catalog)
-- **Schema:** _________________ (e.g., my_project_gold)
-- **Primary Data Source:** [ ] Metric View [ ] Gold Fact Table [ ] System Tables
-- **Table/View Name:** _________________ (e.g., sales_performance_metrics, fact_sales_daily)
+- **Catalog:** `${catalog}` → _________________
+- **Gold Schema:** `${gold_schema}` → _________________
+- **Monitoring Schema:** `${gold_schema}_monitoring` → _________________
+- **Primary Table/View:** _________________
 
-### KPIs to Display (3-6 key metrics)
+### KPIs (3-6 metrics)
 
-| # | KPI Name | Source Field | Format |
-|---|----------|--------------|--------|
-| 1 | Total Revenue | SUM(net_revenue) | Currency (USD) |
-| 2 | _____________ | ______________ | _____________ |
-| 3 | _____________ | ______________ | _____________ |
-| 4 | _____________ | ______________ | _____________ |
+| # | KPI Name | SQL Expression | Format | Widget `fieldName` |
+|---|----------|----------------|--------|-------------------|
+| 1 | Total Revenue | `SUM(net_revenue)` | `number-currency` | `total_revenue` |
+| 2 | Success Rate | `SUM(success)/NULLIF(COUNT(*),0)` | `number-percent` | `success_rate` |
+| 3 | _____________ | _____________ | _____________ | _____________ |
 
-**Example - Retail:**
-- Total Revenue (Currency), Total Units (Number), Transaction Count (Number)
+### Filters
 
-**Example - Healthcare:**
-- Patient Count (Number), Readmission Rate (Percentage), Avg Length of Stay (Number)
-
-**Example - Finance:**
-- Transaction Volume (Number), Total Amount (Currency), Fraud Rate (Percentage)
-
-### Filters Required
-
-| Filter Name | Type | Values Source |
-|------------|------|---------------|
-| Date Range | Date Range | start_date, end_date |
-| __________ | Single Select | Dimension table |
-| __________ | Multi Select | Dimension table |
-
-**Common Filters:**
-- Date Range (always include)
-- Location/Store/Facility (dimension)
-- Category/Type (dimension)
-- Status/State (dimension)
-
-### Charts to Include (3-5 visualizations)
-
-| # | Chart Type | Purpose | Data |
-|---|-----------|---------|------|
-| 1 | Line Chart | Revenue Trend | Daily revenue over time |
-| 2 | Bar Chart | Top 10 by metric | Category comparison |
-| 3 | _________ | ______________ | __________________ |
-| 4 | _________ | ______________ | __________________ |
-
-**Chart Types Available:**
-- Line Chart (trends over time)
-- Bar Chart (category comparisons)
-- Pie Chart (distribution)
-- Table (detailed data)
-- Counter/KPI (single metric)
-
-### Dashboard Pages
-
-| Page Name | Purpose | Widgets |
-|-----------|---------|---------|
-| Overview | High-level KPIs | 6 KPIs + 2 charts |
-| Details | Detailed analysis | 1 table + 2 charts |
-| Global Filters | Cross-page filters | Date, dimensions |
+| Filter Name | Type | Dataset Query |
+|-------------|------|---------------|
+| Date Range | `filter-date-range-picker` | N/A (built-in) |
+| Workspace | `filter-multi-select` | `ds_select_workspace` |
+| _________ | _____________ | _____________ |
 
 ---
 
-## Input Required Summary
-- Gold layer tables or Metric Views
-- KPI requirements (metrics to display)
-- Filter requirements (date range, dimensions)
-- Visualization preferences (charts, tables)
+## 🏗️ Dashboard JSON Structure
 
-**Output:** Production-ready Lakeview dashboard JSON with KPIs, charts, filters, and proper grid layout.
-
-**Time Estimate:** 2-4 hours
-
----
-
-## Core Philosophy: Self-Service Analytics
-
-**⚠️ CRITICAL PRINCIPLE:**
-
-AI/BI Lakeview dashboards provide **visual analytics for business users**:
-
-- ✅ **6-Column Grid:** NOT 12-column! Widths must be 1-6
-- ✅ **Version Specs:** KPIs use v2, Charts use v3, Tables use v1
-- ✅ **Global Filters:** Cross-dashboard filtering on a dedicated page
-- ✅ **DATE Parameters:** Static dates, not DATETIME with dynamic expressions
-- ✅ **Proper JOINs:** Include workspace_id AND entity ID
-- ❌ **No 12-Column Grid:** Widget widths are 1-6, never 1-12
-- ❌ **No Assumed Field Names:** Verify system table schemas
-
-**Why This Matters:**
-- Visual insights for non-technical users
-- Consistent metrics across the organization
-- Self-service analytics (no SQL required)
-- Professional, branded appearance
-
----
-
-## Critical: Grid System
-
-### ⚠️ ALWAYS Use 6-Column Grid (NOT 12!)
-
-This is the #1 cause of widget snapping issues.
-
-```json
-{
-  "position": {
-    "x": 0,     // Column position: 0-5 (6-column grid)
-    "y": 0,     // Row position: any positive integer
-    "width": 3, // Width: 1, 2, 3, 4, or 6 (must sum to ≤6 per row)
-    "height": 6 // Height: 1, 2, 6, 9 are common values
-  }
-}
-```
-
-### Grid Layout Patterns
-
-```json
-// Two widgets side-by-side (each 3 columns)
-{"x": 0, "y": 0, "width": 3, "height": 6}  // Left
-{"x": 3, "y": 0, "width": 3, "height": 6}  // Right
-
-// Three widgets across (each 2 columns)
-{"x": 0, "y": 0, "width": 2, "height": 6}  // Left
-{"x": 2, "y": 0, "width": 2, "height": 6}  // Center
-{"x": 4, "y": 0, "width": 2, "height": 6}  // Right
-
-// KPI row (6 counters, 1 column each)
-{"x": 0, "y": 0, "width": 1, "height": 2}
-{"x": 1, "y": 0, "width": 1, "height": 2}
-{"x": 2, "y": 0, "width": 1, "height": 2}
-{"x": 3, "y": 0, "width": 1, "height": 2}
-{"x": 4, "y": 0, "width": 1, "height": 2}
-{"x": 5, "y": 0, "width": 1, "height": 2}
-
-// Full-width chart
-{"x": 0, "y": 0, "width": 6, "height": 6}
-```
-
-### Common Height Values
-| Widget Type | Height |
-|------------|--------|
-| Filters | 1-2 |
-| KPI Counters | 2 |
-| Charts (standard) | 6 |
-| Charts (large) | 9 |
-| Tables | 6+ |
-
----
-
-## Step 1: Dashboard Structure
-
-### Standard Dashboard Layout
-
-```
-Page 1: Overview
-├── Row 0: Filters (height: 2)
-│   ├── Date Range Filter (width: 2)
-│   ├── Store Filter (width: 2)
-│   └── Product Filter (width: 2)
-│
-├── Row 2: KPIs (height: 2)
-│   ├── Total Revenue (width: 2)
-│   ├── Total Units (width: 2)
-│   └── Transaction Count (width: 2)
-│
-├── Row 4: Main Charts (height: 6)
-│   ├── Revenue Trend (line, width: 3)
-│   └── Revenue by Category (bar, width: 3)
-│
-└── Row 10: Detail Table (height: 6)
-    └── Transaction Details (width: 6)
-
-Page: Global Filters
-└── Cross-dashboard filters
-```
-
----
-
-## Step 2: Dashboard JSON Template
-
-### Base Structure
-
-```json
-{
-  "datasets": [
-    // Dataset definitions (queries)
-  ],
-  "pages": [
-    // Page definitions with widgets
-  ],
-  "parameters": [
-    // Dashboard parameters (filters)
-  ],
-  "uiSettings": {
-    // Theme and appearance
-  }
-}
-```
-
-### Complete Dashboard Template
+### Complete Template
 
 ```json
 {
   "datasets": [
     {
-      "name": "kpi_totals",
-      "displayName": "KPI Totals",
-      "query": "SELECT SUM(net_revenue) as total_revenue, SUM(net_units) as total_units, SUM(transaction_count) as total_transactions FROM ${catalog}.${schema}.fact_sales_daily WHERE transaction_date BETWEEN :start_date AND :end_date"
-    },
-    {
-      "name": "revenue_trend",
-      "displayName": "Revenue Trend",
-      "query": "SELECT transaction_date, SUM(net_revenue) as revenue FROM ${catalog}.${schema}.fact_sales_daily WHERE transaction_date BETWEEN :start_date AND :end_date GROUP BY transaction_date ORDER BY transaction_date"
-    },
-    {
-      "name": "revenue_by_category",
-      "displayName": "Revenue by Category",
-      "query": "SELECT p.category, SUM(f.net_revenue) as revenue FROM ${catalog}.${schema}.fact_sales_daily f JOIN ${catalog}.${schema}.dim_product p ON f.upc_code = p.upc_code WHERE f.transaction_date BETWEEN :start_date AND :end_date GROUP BY p.category ORDER BY revenue DESC"
-    },
-    {
-      "name": "store_filter_values",
-      "displayName": "Store Filter Values",
-      "query": "SELECT 'All' as store_name UNION ALL SELECT DISTINCT store_name FROM ${catalog}.${schema}.dim_store WHERE is_current = true ORDER BY store_name"
+      "name": "ds_kpi_revenue",
+      "displayName": "Revenue KPIs",
+      "query": "SELECT SUM(net_revenue) AS total_revenue, COUNT(*) AS transaction_count FROM ${catalog}.${gold_schema}.fact_sales WHERE sale_date BETWEEN :time_range.min AND :time_range.max",
+      "parameters": [
+        {
+          "keyword": "time_range",
+          "dataType": "DATETIME_RANGE",
+          "defaultSelection": {
+            "range": {
+              "min": { "dataType": "DATETIME", "value": "now-30d/d" },
+              "max": { "dataType": "DATETIME", "value": "now/d" }
+            }
+          }
+        }
+      ]
     }
   ],
   
   "pages": [
     {
       "name": "page_overview",
-      "displayName": "Overview",
+      "displayName": "📊 Overview",
       "layout": [
-        // Widgets go here (see widget examples below)
+        // Widgets go here
       ]
     },
     {
@@ -310,55 +332,13 @@ Page: Global Filters
         // Global filter widgets
       ]
     }
-  ],
-  
-  "parameters": [
-    {
-      "displayName": "Start Date",
-      "keyword": "start_date",
-      "dataType": "DATE",
-      "defaultSelection": {
-        "values": {
-          "dataType": "DATE",
-          "values": [{"value": "2024-01-01"}]
-        }
-      }
-    },
-    {
-      "displayName": "End Date",
-      "keyword": "end_date",
-      "dataType": "DATE",
-      "defaultSelection": {
-        "values": {
-          "dataType": "DATE",
-          "values": [{"value": "2024-12-31"}]
-        }
-      }
-    }
-  ],
-  
-  "uiSettings": {
-    "theme": {
-      "canvasBackgroundColor": {"light": "#F7F9FA", "dark": "#0B0E11"},
-      "widgetBackgroundColor": {"light": "#FFFFFF", "dark": "#1A1D21"},
-      "widgetBorderColor": {"light": "#E0E4E8", "dark": "#2A2E33"},
-      "fontColor": {"light": "#11171C", "dark": "#E8ECF0"},
-      "selectionColor": {"light": "#077A9D", "dark": "#8ACAE7"},
-      "visualizationColors": [
-        "#077A9D", "#00A972", "#FFAB00", "#FF3621",
-        "#8BCAE7", "#99DDB4", "#FCA4A1", "#AB4057",
-        "#6B4FBB", "#BF7080"
-      ],
-      "widgetHeaderAlignment": "LEFT"
-    },
-    "genieSpace": {"isEnabled": false}
-  }
+  ]
 }
 ```
 
 ---
 
-## Step 3: Widget Specifications
+## 📊 Widget Specifications
 
 ### KPI Counter (Version 2)
 
@@ -366,83 +346,29 @@ Page: Global Filters
 {
   "widget": {
     "name": "kpi_total_revenue",
-    "queries": [
-      {
-        "name": "main_query",
-        "query": {
-          "datasetName": "kpi_totals",
-          "fields": [
-            {"name": "total_revenue", "expression": "`total_revenue`"}
-          ],
-          "disaggregated": false
-        }
+    "queries": [{
+      "name": "main_query",
+      "query": {
+        "datasetName": "ds_kpi_revenue",
+        "fields": [{ "name": "total_revenue", "expression": "`total_revenue`" }],
+        "disaggregated": false
       }
-    ],
+    }],
     "spec": {
       "version": 2,
       "widgetType": "counter",
       "encodings": {
-        "value": {
-          "fieldName": "total_revenue"
-        }
+        "value": { "fieldName": "total_revenue", "displayName": "Revenue" }
       },
       "frame": {
         "showTitle": true,
         "title": "Total Revenue",
         "showDescription": true,
-        "description": "Total sales revenue for selected period"
+        "description": "Revenue for selected period"
       }
     }
   },
-  "position": {"x": 0, "y": 2, "width": 2, "height": 2}
-}
-```
-
-**⚠️ Note:** KPIs use version 2. Do NOT include `period` in encodings.
-
-### Bar Chart (Version 3)
-
-```json
-{
-  "widget": {
-    "name": "chart_revenue_by_category",
-    "queries": [
-      {
-        "name": "main_query",
-        "query": {
-          "datasetName": "revenue_by_category",
-          "fields": [
-            {"name": "category", "expression": "`category`"},
-            {"name": "revenue", "expression": "`revenue`"}
-          ],
-          "disaggregated": false
-        }
-      }
-    ],
-    "spec": {
-      "version": 3,
-      "widgetType": "bar",
-      "encodings": {
-        "x": {
-          "fieldName": "category",
-          "displayName": "Category",
-          "scale": {"type": "categorical"}
-        },
-        "y": {
-          "fieldName": "revenue",
-          "displayName": "Revenue",
-          "scale": {"type": "quantitative"}
-        }
-      },
-      "frame": {
-        "showTitle": true,
-        "title": "Revenue by Category",
-        "showDescription": true,
-        "description": "Sales revenue breakdown by product category"
-      }
-    }
-  },
-  "position": {"x": 3, "y": 4, "width": 3, "height": 6}
+  "position": { "x": 0, "y": 0, "width": 2, "height": 2 }
 }
 ```
 
@@ -452,543 +378,621 @@ Page: Global Filters
 {
   "widget": {
     "name": "chart_revenue_trend",
-    "queries": [
-      {
-        "name": "main_query",
-        "query": {
-          "datasetName": "revenue_trend",
-          "fields": [
-            {"name": "transaction_date", "expression": "`transaction_date`"},
-            {"name": "revenue", "expression": "`revenue`"}
-          ],
-          "disaggregated": false
-        }
+    "queries": [{
+      "name": "main_query",
+      "query": {
+        "datasetName": "ds_revenue_trend",
+        "fields": [
+          { "name": "sale_date", "expression": "`sale_date`" },
+          { "name": "revenue", "expression": "`revenue`" }
+        ],
+        "disaggregated": false
       }
-    ],
+    }],
     "spec": {
       "version": 3,
       "widgetType": "line",
       "encodings": {
-        "x": {
-          "fieldName": "transaction_date",
-          "displayName": "Date",
-          "scale": {"type": "temporal"}
-        },
-        "y": {
-          "fieldName": "revenue",
-          "displayName": "Revenue",
-          "scale": {"type": "quantitative"}
-        }
+        "x": { "fieldName": "sale_date", "displayName": "Date", "scale": { "type": "temporal" } },
+        "y": { "fieldName": "revenue", "displayName": "Revenue", "scale": { "type": "quantitative" } }
       },
-      "frame": {
-        "showTitle": true,
-        "title": "Revenue Trend",
-        "showDescription": true,
-        "description": "Daily revenue over time"
-      }
+      "frame": { "showTitle": true, "title": "Revenue Trend" }
     }
   },
-  "position": {"x": 0, "y": 4, "width": 3, "height": 6}
+  "position": { "x": 0, "y": 2, "width": 3, "height": 6 }
 }
 ```
 
-### Pie Chart (Version 3)
+### Bar Chart (Version 3) - MUST Have Scale
+
+**⚠️ Bar charts require `scale` on both `x` and `y` or they show "Select fields to visualize"**
 
 ```json
 {
   "widget": {
-    "name": "chart_revenue_distribution",
-    "queries": [
-      {
-        "name": "main_query",
-        "query": {
-          "datasetName": "revenue_by_category",
-          "fields": [
-            {"name": "category", "expression": "`category`"},
-            {"name": "revenue", "expression": "`revenue`"}
-          ],
-          "disaggregated": false
-        }
+    "name": "chart_revenue_by_category",
+    "queries": [{
+      "name": "main_query",
+      "query": {
+        "datasetName": "ds_revenue_by_category",
+        "fields": [
+          { "name": "category", "expression": "`category`" },
+          { "name": "revenue", "expression": "`revenue`" }
+        ],
+        "disaggregated": false
       }
-    ],
+    }],
+    "spec": {
+      "version": 3,
+      "widgetType": "bar",
+      "encodings": {
+        "x": { "fieldName": "category", "displayName": "Category", "scale": { "type": "categorical" } },  // REQUIRED!
+        "y": { "fieldName": "revenue", "displayName": "Revenue", "scale": { "type": "quantitative" } }   // REQUIRED!
+      },
+      "frame": { "showTitle": true, "title": "Revenue by Category" }
+    }
+  },
+  "position": { "x": 3, "y": 2, "width": 3, "height": 6 }
+}
+```
+
+### Pie Chart (Version 3) - MUST Have Scale
+
+```json
+{
+  "widget": {
+    "name": "chart_distribution",
+    "queries": [{
+      "name": "main_query",
+      "query": {
+        "datasetName": "ds_distribution",
+        "fields": [
+          { "name": "category", "expression": "`category`" },
+          { "name": "value", "expression": "`value`" }
+        ],
+        "disaggregated": false
+      }
+    }],
     "spec": {
       "version": 3,
       "widgetType": "pie",
       "encodings": {
-        "angle": {
-          "fieldName": "revenue",
-          "displayName": "Revenue",
-          "scale": {"type": "quantitative"}
-        },
         "color": {
           "fieldName": "category",
           "displayName": "Category",
-          "scale": {"type": "categorical"}
+          "scale": { "type": "categorical" }
+        },
+        "angle": {
+          "fieldName": "value",
+          "displayName": "Value",
+          "scale": { "type": "quantitative" }
         }
       },
-      "frame": {
-        "showTitle": true,
-        "title": "Revenue Distribution",
-        "showDescription": true,
-        "description": "Revenue share by category"
-      }
+      "frame": { "showTitle": true, "title": "Distribution" }
     }
   },
-  "position": {"x": 0, "y": 10, "width": 3, "height": 6}
+  "position": { "x": 0, "y": 8, "width": 3, "height": 6 }
 }
 ```
 
-### Table Widget (Version 1)
+### Table Widget (Version 2)
 
 ```json
 {
   "widget": {
-    "name": "table_sales_detail",
-    "queries": [
-      {
-        "name": "main_query",
-        "query": {
-          "datasetName": "sales_detail",
-          "fields": [
-            {"name": "store_name", "expression": "`store_name`"},
-            {"name": "product", "expression": "`product`"},
-            {"name": "revenue", "expression": "`revenue`"},
-            {"name": "units", "expression": "`units`"}
-          ],
-          "disaggregated": false
-        }
+    "name": "table_details",
+    "queries": [{
+      "name": "main_query",
+      "query": {
+        "datasetName": "ds_details",
+        "fields": [
+          { "name": "name", "expression": "`name`" },
+          { "name": "value", "expression": "`value`" },
+          { "name": "status", "expression": "`status`" }
+        ],
+        "disaggregated": false
       }
-    ],
+    }],
     "spec": {
-      "version": 1,
+      "version": 2,
       "widgetType": "table",
       "encodings": {
         "columns": [
-          {"fieldName": "store_name", "title": "Store"},
-          {"fieldName": "product", "title": "Product"},
-          {
-            "fieldName": "revenue", 
-            "title": "Revenue",
-            "type": "number"
-          },
-          {"fieldName": "units", "title": "Units"}
+          { "fieldName": "name", "title": "Name", "type": "string" },
+          { "fieldName": "value", "title": "Value", "type": "number" },
+          { "fieldName": "status", "title": "Status", "type": "string" }
         ]
       },
-      "frame": {
-        "showTitle": true,
-        "title": "Sales Detail",
-        "showDescription": true,
-        "description": "Detailed sales by store and product"
-      },
-      "itemsPerPage": 50,
-      "condensed": true,
-      "withRowNumber": true
+      "frame": { "showTitle": true, "title": "Details" }
     }
   },
-  "position": {"x": 0, "y": 16, "width": 6, "height": 6}
+  "position": { "x": 0, "y": 14, "width": 6, "height": 6 }
 }
 ```
 
-### Filter Widget (Single Select)
+### Filter Widgets
 
+**Date Range Picker:**
 ```json
 {
   "widget": {
-    "name": "filter_store",
-    "queries": [
-      {
-        "name": "main_query",
-        "query": {
-          "datasetName": "store_filter_values",
-          "fields": [
-            {"name": "store_name", "expression": "`store_name`"}
-          ],
-          "disaggregated": false
-        }
-      }
-    ],
+    "name": "filter_time_range",
     "spec": {
       "version": 2,
-      "widgetType": "filter-single-select",
+      "widgetType": "filter-date-range-picker",
       "encodings": {
-        "fields": [
-          {
-            "displayName": "Store",
-            "fieldName": "store_name",
-            "queryName": "main_query"
-          }
-        ]
+        "start": { "parameterKeyword": "time_range.min" },
+        "end": { "parameterKeyword": "time_range.max" }
       },
-      "frame": {
-        "showTitle": true,
-        "title": "Store Filter"
-      }
-    }
-  },
-  "position": {"x": 0, "y": 0, "width": 2, "height": 2}
-}
-```
-
----
-
-## Step 4: Query Best Practices
-
-### Pattern: "All" Option for Filters
-
-```sql
-SELECT 'All' AS filter_value
-UNION ALL
-SELECT DISTINCT actual_value AS filter_value
-FROM source_table
-ORDER BY filter_value
-```
-
-### Pattern: Dynamic Filtering
-
-```sql
-WHERE (:store_filter = 'All' OR store_name = :store_filter)
-  AND transaction_date BETWEEN :start_date AND :end_date
-```
-
-### Pattern: Handle NULL Values
-
-```sql
-COALESCE(store_name, 'Unknown')
-COALESCE(category, 'Uncategorized')
-```
-
-### Pattern: Date Range
-
-```sql
-WHERE DATE(timestamp_field) >= :start_date 
-  AND DATE(timestamp_field) <= :end_date
-```
-
-### Pattern: SCD2 Latest Records
-
-```sql
-WITH latest AS (
-  SELECT *,
-    ROW_NUMBER() OVER(PARTITION BY entity_id ORDER BY change_time DESC) as rn
-  FROM source_table
-  WHERE delete_time IS NULL
-  QUALIFY rn = 1
-)
-SELECT * FROM latest
-```
-
----
-
-## Step 5: System Tables Reference
-
-### ⚠️ Always Verify Field Names!
-
-When using system tables, verify schema against [official docs](https://docs.databricks.com/aws/en/admin/system-tables/).
-
-### `system.lakeflow.jobs` (SCD2)
-
-```sql
--- Note: Column is 'name', NOT 'job_name'
-SELECT workspace_id, job_id, name, description, run_as
-FROM system.lakeflow.jobs
-WHERE delete_time IS NULL
-```
-
-### `system.lakeflow.job_task_run_timeline`
-
-```sql
--- Note: NO job_name column! JOIN with jobs table
-SELECT jtr.*, 
-  COALESCE(j.name, 'Job ' || jtr.job_id) AS job_name
-FROM system.lakeflow.job_task_run_timeline jtr
-LEFT JOIN (
-  SELECT workspace_id, job_id, name,
-    ROW_NUMBER() OVER(PARTITION BY workspace_id, job_id 
-                      ORDER BY change_time DESC) as rn
-  FROM system.lakeflow.jobs
-  WHERE delete_time IS NULL
-  QUALIFY rn = 1
-) j ON jtr.workspace_id = j.workspace_id AND jtr.job_id = j.job_id
-```
-
-### `system.compute.clusters`
-
-```sql
-SELECT workspace_id, cluster_id, 
-       MAX_BY(dbr_version, change_time) AS dbr_version
-FROM system.compute.clusters
-WHERE delete_time IS NULL
-GROUP BY workspace_id, cluster_id
-```
-
----
-
-## Step 6: Date Parameters
-
-### ✅ Correct: DATE with Static Values
-
-```json
-{
-  "displayName": "Start Date",
-  "keyword": "start_date",
-  "dataType": "DATE",
-  "defaultSelection": {
-    "values": {
-      "dataType": "DATE",
-      "values": [{"value": "2024-01-01"}]
-    }
-  }
-}
-```
-
-### ❌ Wrong: DATETIME with Dynamic Expressions
-
-```json
-// This will NOT work
-{
-  "dataType": "DATETIME",
-  "values": [{"value": "now-12M/M"}]
-}
-```
-
----
-
-## Step 7: Global Filters Page
-
-Always include a Global Filters page for cross-dashboard filtering:
-
-```json
-{
-  "name": "page_global_filters",
-  "displayName": "Global Filters",
-  "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
-  "layout": [
-    {
-      "widget": {
-        "name": "global_date_range",
-        "spec": {
-          "version": 2,
-          "widgetType": "filter-date-range",
-          "frame": {
-            "showTitle": true,
-            "title": "Date Range"
-          }
-        }
-      },
-      "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+      "frame": { "showTitle": true, "title": "Time Range" }
     },
-    {
-      "widget": {
-        "name": "global_store_filter",
-        "spec": {
-          "version": 2,
-          "widgetType": "filter-single-select",
-          "frame": {
-            "showTitle": true,
-            "title": "Store"
-          }
-        }
+    "param_queries": [
+      { "paramDatasetName": "ds_kpi_revenue", "queryName": "param_ds_kpi_revenue" },
+      { "paramDatasetName": "ds_trend", "queryName": "param_ds_trend" }
+    ]
+  },
+  "position": { "x": 0, "y": 0, "width": 2, "height": 1 }
+}
+```
+
+**Multi-Select Filter:**
+```json
+{
+  "widget": {
+    "name": "filter_workspace",
+    "queries": [{
+      "name": "main_query",
+      "query": {
+        "datasetName": "ds_select_workspace",
+        "fields": [{ "name": "workspace_name", "expression": "`workspace_name`" }],
+        "disaggregated": false
+      }
+    }],
+    "spec": {
+      "version": 2,
+      "widgetType": "filter-multi-select",
+      "encodings": {
+        "fields": [{
+          "displayName": "Workspace",
+          "fieldName": "workspace_name",
+          "queryName": "main_query"
+        }]
       },
-      "position": {"x": 2, "y": 0, "width": 2, "height": 2}
-    }
-  ]
+      "frame": { "showTitle": true, "title": "Workspace" }
+    },
+    "param_queries": [
+      { "paramDatasetName": "ds_kpi_events", "queryName": "param_workspace" }
+    ]
+  },
+  "position": { "x": 2, "y": 0, "width": 2, "height": 1 }
 }
 ```
 
 ---
 
-## Implementation Checklist
+## 📐 Grid Layout (6-Column)
 
-### Phase 1: Planning (30 min)
-- [ ] Identify KPIs to display
-- [ ] List required filters (date, dimensions)
-- [ ] Plan page structure and layout
-- [ ] Sketch widget placement (grid positions)
+### Grid Rules
+- **Width:** 1-6 (6 = full width)
+- **Height:** 1-2 for filters, 2 for KPIs, 6+ for charts/tables
+- **X position:** 0-5
 
-### Phase 2: Datasets (30 min)
-- [ ] Create dataset for each unique query
-- [ ] Add "All" option to filter datasets
-- [ ] Handle NULL values with COALESCE
-- [ ] Test queries in SQL editor first
+### Standard Layout Patterns
 
-### Phase 3: Widgets (1-2 hours)
-- [ ] Create KPI counters (version 2)
-- [ ] Create charts (version 3)
-- [ ] Create tables (version 1)
-- [ ] Create filter widgets (version 2)
-- [ ] Position using 6-column grid
+```
+Row 0: KPIs (height: 2)
+├── KPI 1 (x:0, width:1)
+├── KPI 2 (x:1, width:1)
+├── KPI 3 (x:2, width:1)
+├── KPI 4 (x:3, width:1)
+├── KPI 5 (x:4, width:1)
+└── KPI 6 (x:5, width:1)
 
-### Phase 4: Parameters (15 min)
-- [ ] Add date parameters (DATE type, static defaults)
-- [ ] Link parameters to dataset queries
-- [ ] Test parameter binding
+Row 2: Charts (height: 6)
+├── Chart 1 (x:0, width:3)
+└── Chart 2 (x:3, width:3)
 
-### Phase 5: Styling (15 min)
-- [ ] Apply Databricks theme colors
-- [ ] Add titles and descriptions to all widgets
-- [ ] Verify consistent formatting
+Row 8: Full-width chart (height: 6)
+└── Chart 3 (x:0, width:6)
 
-### Phase 6: Testing (30 min)
-- [ ] Import dashboard JSON
-- [ ] Test all filters
-- [ ] Verify widget snapping (6-column grid)
-- [ ] Check data accuracy
+Row 14: Table (height: 6)
+└── Table (x:0, width:6)
+```
+
+### Position Examples
+
+```json
+// Two side-by-side charts
+{ "x": 0, "y": 2, "width": 3, "height": 6 }  // Left
+{ "x": 3, "y": 2, "width": 3, "height": 6 }  // Right
+
+// Six KPIs in a row
+{ "x": 0, "y": 0, "width": 1, "height": 2 }
+{ "x": 1, "y": 0, "width": 1, "height": 2 }
+{ "x": 2, "y": 0, "width": 1, "height": 2 }
+{ "x": 3, "y": 0, "width": 1, "height": 2 }
+{ "x": 4, "y": 0, "width": 1, "height": 2 }
+{ "x": 5, "y": 0, "width": 1, "height": 2 }
+
+// Full-width table
+{ "x": 0, "y": 14, "width": 6, "height": 6 }
+```
 
 ---
 
-## Verification Checklist
+## 📊 Domain-Specific Patterns
 
-Before deploying dashboard:
+### Cost & Usage Dashboards
 
-- [ ] All widget positions use 6-column grid (widths: 1-6)
-- [ ] KPIs use version 2 (not version 3)
-- [ ] Charts use version 3
-- [ ] Tables use version 1
-- [ ] Date parameters use DATE type (not DATETIME)
-- [ ] Global Filters page included
-- [ ] All filters have "All" option
-- [ ] NULL values handled with COALESCE
-- [ ] System table fields verified against docs
-- [ ] SCD2 tables handled with QUALIFY pattern
-- [ ] JOINs include both workspace_id AND entity ID
+**Key Metrics:**
+- `total_cost` (currency)
+- `total_dbus` (number)
+- `serverless_pct` (percent: 0-1)
+- `tag_coverage_pct` (percent: 0-1)
+- `unique_users` (number, use COUNT DISTINCT)
 
----
-
-## Key Principles
-
-### 1. 6-Column Grid (NOT 12!)
-```json
-// ✅ Correct
-{"width": 3}  // Half width
-
-// ❌ Wrong
-{"width": 6}  // This is full width in 6-column grid!
-```
-
-### 2. Version Numbers
-| Widget | Version |
-|--------|---------|
-| KPI Counter | 2 |
-| Bar Chart | 3 |
-| Line Chart | 3 |
-| Pie Chart | 3 |
-| Table | 1 |
-| Filter | 2 |
-
-### 3. DATE, Not DATETIME
-```json
-// ✅ Correct
-"dataType": "DATE"
-
-// ❌ Wrong
-"dataType": "DATETIME"
-```
-
-### 4. Always Include Global Filters
-```json
-"pageType": "PAGE_TYPE_GLOBAL_FILTERS"
-```
-
-### 5. Handle NULL Values
+**Sample Queries:**
 ```sql
-COALESCE(field, 'Default Value')
+-- Cost KPIs
+SELECT 
+  ROUND(SUM(list_cost), 2) AS total_cost,
+  SUM(usage_quantity) AS total_dbus,
+  COUNT(DISTINCT identity_metadata_run_as) AS unique_users
+FROM ${catalog}.${gold_schema}.fact_usage
+WHERE usage_date BETWEEN :time_range.min AND :time_range.max
+
+-- Cost by SKU
+SELECT 
+  COALESCE(sku_name, 'Unknown') AS sku_name,
+  ROUND(SUM(list_cost), 2) AS total_cost
+FROM ${catalog}.${gold_schema}.fact_usage
+WHERE usage_date BETWEEN :time_range.min AND :time_range.max
+GROUP BY 1
+HAVING SUM(list_cost) > 0
+ORDER BY total_cost DESC
+LIMIT 15
 ```
 
----
+### Reliability Dashboards
 
-## Common Mistakes to Avoid
+**Key Metrics:**
+- `success_rate` (percent: 0-1)
+- `total_runs` (number)
+- `avg_duration_sec` (number)
+- `mttr_min` (number)
 
-### ❌ Mistake 1: 12-Column Grid
-```json
-// Wrong - widget won't position correctly
-{"width": 6}  // This is FULL width, not half!
-```
-
-### ❌ Mistake 2: Wrong Widget Version
-```json
-// Wrong - KPIs must use version 2
-"version": 3,
-"widgetType": "counter"
-```
-
-### ❌ Mistake 3: DATETIME Parameters
-```json
-// Wrong - use DATE type
-"dataType": "DATETIME"
-```
-
-### ❌ Mistake 4: Missing "All" Option
+**Sample Queries:**
 ```sql
--- Wrong - no way to clear filter
-SELECT DISTINCT store_name FROM stores
+-- Job Success Rate
+SELECT 
+  ROUND(SUM(CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0), 3) AS success_rate
+FROM ${catalog}.${gold_schema}.fact_job_run_timeline
+WHERE run_date BETWEEN :time_range.min AND :time_range.max
+
+-- Failure by Type (for pie chart)
+SELECT 
+  COALESCE(termination_code, 'UNKNOWN') AS termination_code,
+  COUNT(*) AS failure_count
+FROM ${catalog}.${gold_schema}.fact_job_run_timeline
+WHERE result_state NOT IN ('SUCCESS', 'SUCCEEDED')
+  AND run_date BETWEEN :time_range.min AND :time_range.max
+GROUP BY 1
+ORDER BY failure_count DESC
 ```
 
-### ❌ Mistake 5: Assuming Field Names
+### Performance Dashboards
+
+**Key Metrics:**
+- `total_queries` (number)
+- `avg_duration_sec` (number)
+- `p95_duration_sec` (number)
+- `slow_query_rate` (percent: 0-1)
+
+**Sample Queries:**
 ```sql
--- Wrong - job_name doesn't exist in this table!
-SELECT job_name FROM system.lakeflow.job_task_run_timeline
+-- Query Performance
+SELECT 
+  COUNT(*) AS total_queries,
+  ROUND(AVG(total_duration_ms) / 1000, 2) AS avg_duration_sec,
+  ROUND(PERCENTILE_APPROX(total_duration_ms, 0.95) / 1000, 2) AS p95_duration_sec,
+  ROUND(SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0), 3) AS slow_query_rate
+FROM ${catalog}.${gold_schema}.fact_query_history
+WHERE start_time BETWEEN :time_range.min AND :time_range.max
+
+-- Note: Use execution_status (not query_status) for status checks
+-- Use 'FINISHED' for success (not 'SUCCESS')
+```
+
+### Security Dashboards
+
+**Key Metrics:**
+- `total_events` (number)
+- `unique_users` (number, COUNT DISTINCT)
+- `high_risk_events` (number)
+- `access_denied` (number)
+
+**Sample Queries:**
+```sql
+-- Security KPIs
+SELECT 
+  COUNT(*) AS total_events,
+  COUNT(DISTINCT user_identity_email) AS unique_users,
+  COUNT(DISTINCT CASE WHEN is_failed_action = TRUE OR response_status_code >= 400 THEN request_id END) AS access_denied
+FROM ${catalog}.${gold_schema}.fact_audit_logs
+WHERE event_time BETWEEN :time_range.min AND :time_range.max
+  AND user_identity_email NOT LIKE '%@databricks.com'
+
+-- Access Denials with Details
+SELECT 
+  DATE(event_time) AS event_date,
+  user_identity_email AS user,
+  action_name,
+  response_error_message AS error_message
+FROM ${catalog}.${gold_schema}.fact_audit_logs
+WHERE (is_failed_action = TRUE OR response_status_code >= 400)
+  AND event_time BETWEEN :time_range.min AND :time_range.max
+ORDER BY event_time DESC
+LIMIT 100
+```
+
+### Quality & Governance Dashboards
+
+**Key Metrics:**
+- `table_count` (number)
+- `tagged_pct` (percent: 0-1)
+- `lineage_events` (number)
+
+**Sample Queries:**
+```sql
+-- Tables by Catalog (capture both reads and writes)
+SELECT 
+  COALESCE(source_table_catalog, target_table_catalog) AS catalog_name,
+  COUNT(DISTINCT COALESCE(source_table_full_name, target_table_full_name)) AS table_count
+FROM ${catalog}.${gold_schema}.fact_table_lineage
+WHERE event_date BETWEEN :time_range.min AND :time_range.max
+  AND COALESCE(source_table_catalog, target_table_catalog) IS NOT NULL
+GROUP BY 1
+ORDER BY table_count DESC
 ```
 
 ---
 
-## Dashboard File Management
+## 🔍 Lakehouse Monitoring Queries
 
-### File Location
-```
-project/
-├── docs/
-│   └── dashboards/
-│       └── {project}_dashboard.lvdash.json
-```
+### Profile Metrics (CASE Pivot Pattern)
 
-### Naming Convention
-```
-{project}_{purpose}_dashboard.lvdash.json
-
-Examples:
-- lakehouse_monitoring_dashboard.lvdash.json
-- sales_analytics_dashboard.lvdash.json
-- executive_kpi_dashboard.lvdash.json
+```sql
+SELECT 
+  DATE(window.start) AS window_start,
+  MAX(CASE WHEN column_name = 'success_rate' THEN avg END) AS success_rate_pct,
+  MAX(CASE WHEN column_name = 'total_runs' THEN count END) AS total_runs,
+  MAX(CASE WHEN column_name = 'avg_duration' THEN avg END) AS avg_duration_sec,
+  MAX(CASE WHEN column_name = 'p95_duration' THEN p95 END) AS p95_duration_sec
+FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics
+WHERE window.start BETWEEN :time_range.min AND :time_range.max
+GROUP BY 1
+ORDER BY 1
 ```
 
-### Version Control
-- Track dashboard JSON in git
-- Use meaningful commit messages
-- Document changes in comments
+### Drift Metrics
+
+**⚠️ CRITICAL: Custom drift metrics are DIRECT COLUMNS, not in avg_delta!**
+
+```sql
+-- ✅ CORRECT: Custom drift metrics are stored as named columns
+SELECT 
+  DATE(window.start) AS window_start,
+  success_rate_drift,        -- Direct column (not avg_delta!)
+  duration_drift_pct,        -- Direct column
+  cost_drift_pct             -- Direct column
+FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics
+WHERE column_name = ':table'        -- MUST filter to :table row
+  AND drift_type = 'CONSECUTIVE'
+  AND slice_key IS NULL             -- MUST be NULL for table-level metrics
+ORDER BY window.start
+```
+
+```sql
+-- ❌ WRONG: avg_delta returns 0 for custom metrics!
+SELECT COALESCE(avg_delta, 0) AS drift_pct
+FROM drift_metrics WHERE column_name = ':table'  -- Returns 0!
+```
+
+**Custom drift columns by domain:**
+| Domain | Table | Columns |
+|--------|-------|---------|
+| Cost | `fact_usage_drift_metrics` | `cost_drift_pct`, `dbu_drift_pct` |
+| Jobs | `fact_job_run_timeline_drift_metrics` | `success_rate_drift`, `duration_drift_pct` |
+| Queries | `fact_query_history_drift_metrics` | `p95_duration_drift_pct`, `failure_rate_drift` |
+
+### Monitoring Table Reference
+
+| Base Table | Profile Metrics | Drift Metrics |
+|------------|-----------------|---------------|
+| `fact_usage` | `fact_usage_profile_metrics` | `fact_usage_drift_metrics` |
+| `fact_query_history` | `fact_query_history_profile_metrics` | `fact_query_history_drift_metrics` |
+| `fact_job_run_timeline` | `fact_job_run_timeline_profile_metrics` | `fact_job_run_timeline_drift_metrics` |
+| `fact_audit_logs` | `fact_audit_logs_profile_metrics` | `fact_audit_logs_drift_metrics` |
+| `fact_table_lineage` | `fact_table_lineage_profile_metrics` | `fact_table_lineage_drift_metrics` |
+| `fact_node_timeline` | `fact_node_timeline_profile_metrics` | `fact_node_timeline_drift_metrics` |
 
 ---
 
-## References
+## ✅ Validation Checklist
+
+### Before Deployment
+
+**1. Widget-Query Alignment:**
+- [ ] Every widget `fieldName` matches query output alias
+- [ ] No typos in column names
+
+**2. Number Formats:**
+- [ ] Percentage widgets receive 0-1 decimals
+- [ ] Currency widgets receive raw numbers
+- [ ] No `FORMAT_NUMBER()` or `CONCAT()` in KPI queries
+
+**3. Parameters:**
+- [ ] Every dataset has `parameters` array with all used parameters
+- [ ] Time range uses `:time_range.min` and `:time_range.max`
+- [ ] Filter widgets have `param_queries` connecting to datasets
+
+**4. Monitoring Queries:**
+- [ ] Using `window.start` not `window_start`
+- [ ] Using CASE pivot on `column_name`
+- [ ] Schema suffix is `_monitoring`
+
+**5. Pie Charts:**
+- [ ] `color` encoding has `scale: { "type": "categorical" }`
+- [ ] `angle` encoding has `scale: { "type": "quantitative" }`
+
+**6. Tables:**
+- [ ] Version is 2
+- [ ] No `itemsPerPage`, `condensed`, `withRowNumber`
+
+**7. SQL Quality:**
+- [ ] Using `COALESCE` for NULL handling
+- [ ] Using `NULLIF(x, 0)` for division safety
+- [ ] Using `COUNT(DISTINCT)` for unique counts
+- [ ] Filtering system/internal users where appropriate
+- [ ] Parentheses around OR conditions
+
+### Run SQL Validation (CRITICAL - Reduces Dev Loop Time by 90%)
+
+**Why validate before deploying?**
+- Without validation: Deploy → Open dashboard → See errors → Fix → Redeploy (2-5 min/iteration)
+- With validation: Validate → See ALL errors → Fix all → Deploy once (30-60 sec total)
+
+**Validation Approach: Use `SELECT LIMIT 1`, not `EXPLAIN`**
+- `EXPLAIN` only checks syntax
+- `SELECT LIMIT 1` catches runtime errors:
+  - `UNRESOLVED_COLUMN` - column doesn't exist
+  - `TABLE_OR_VIEW_NOT_FOUND` - table doesn't exist
+  - `UNBOUND_SQL_PARAMETER` - parameter not defined
+  - `DATATYPE_MISMATCH` - type conversion errors
+
+**Development Workflow:**
+```bash
+# 1. Make changes to dashboard JSON files
+vim src/dashboards/cost.lvdash.json
+
+# 2. Run local widget encoding validation (fast, no DB connection)
+python src/dashboards/validate_widget_encodings.py --check
+
+# 3. Run SQL validation (requires Databricks connection)
+cd src/dashboards && python validate_dashboard_queries.py
+
+# 4. Check for regressions (git diff)
+git diff --stat origin/main -- src/dashboards/*.json
+
+# 5. Deploy only after ALL validations pass
+databricks bundle deploy -t dev --force
+
+# 6. Run dashboard deployment job
+databricks bundle run -t dev dashboard_deployment_job
+```
+
+**Parameter Substitution for Validation:**
+| Parameter | Test Value |
+|-----------|------------|
+| `:time_range.min` | `CURRENT_DATE() - INTERVAL 30 DAYS` |
+| `:time_range.max` | `CURRENT_DATE()` |
+| `:param_workspace` | `ARRAY('All')` |
+| `:param_catalog` | `ARRAY('All')` |
+| `:monitor_slice_key` | `'No Slice'` |
+| `:annual_commit` | `1000000` |
+
+**Anti-Regression Checks:**
+```bash
+# Before EVERY deployment:
+python src/dashboards/validate_widget_encodings.py --check  # Widget alignment
+python src/dashboards/validate_dashboard_queries.py         # SQL validation
+git diff --name-status HEAD~1 -- src/dashboards/            # What changed?
+```
+
+---
+
+## 🔧 Common Errors and Fixes
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "no fields to visualize" | Widget `fieldName` mismatch | Align SQL alias with widget |
+| "Select fields to visualize" | Bar chart missing `scale` | Add `scale` to `x` and `y` encodings |
+| "UNRESOLVED_COLUMN" | Column doesn't exist | Check table schema |
+| "UNBOUND_SQL_PARAMETER" | Missing parameter def | Add to `parameters` array |
+| Empty pie chart | Missing `scale` | Add scale to both `color` and `angle` |
+| Empty bar chart | Missing `scale` | Add scale to both `x` and `y` |
+| 0% or wrong percentage | Returning 85 not 0.85 | Return 0-1 decimal |
+| Empty currency KPI | Formatted string | Return raw number |
+| "Invalid spec version" | Wrong version | KPI=2, Chart=3, Table=2 |
+| Drift metrics all 0% | Using `avg_delta` | Use custom drift columns (e.g., `success_rate_drift`) |
+| Flat drift trend line | Wrong drift query | Filter `column_name = ':table'`, `slice_key IS NULL` |
+
+---
+
+## 📁 Project Structure
+
+```
+src/dashboards/
+├── deploy_dashboards.py           # Deployment script
+├── validate_dashboard_queries.py  # SQL validation
+├── validate_widget_encodings.py   # Widget alignment
+├── cost.lvdash.json              # Cost dashboard
+├── performance.lvdash.json       # Performance dashboard
+├── reliability.lvdash.json       # Reliability dashboard
+├── security.lvdash.json          # Security dashboard
+├── quality.lvdash.json           # Quality dashboard
+└── unified.lvdash.json           # Executive summary
+
+docs/dashboards/
+└── dashboard-changelog.md         # Change tracking
+```
+
+---
+
+## 📚 Widget Version Reference
+
+| Widget Type | Version | Notes |
+|-------------|---------|-------|
+| Counter (KPI) | 2 | No `period` encoding |
+| Bar Chart | 3 | MUST have `scale` on both `x` and `y` |
+| Line Chart | 3 | |
+| Area Chart | 3 | Use `stack: "zero"` |
+| Pie Chart | 3 | MUST have `scale` |
+| Table | 2 | Remove v1 properties |
+| All Filters | 2 | |
+
+---
+
+## 📖 References
 
 ### Official Documentation
 - [AI/BI Dashboards](https://docs.databricks.com/dashboards/lakeview/)
-- [System Tables Overview](https://docs.databricks.com/aws/en/admin/system-tables/)
-- [Jobs System Tables](https://docs.databricks.com/aws/en/admin/system-tables/jobs)
-- [Compute System Tables](https://docs.databricks.com/aws/en/admin/system-tables/compute)
+- [System Tables](https://docs.databricks.com/aws/en/admin/system-tables/)
+- [Lakehouse Monitoring](https://docs.databricks.com/lakehouse-monitoring/)
 
-### Framework Rules
-- [databricks-aibi-dashboards.mdc](mdc:framework/rules/18-databricks-aibi-dashboards.mdc)
+### Cursor Rules
+- [databricks-aibi-dashboards.mdc](.cursor/rules/monitoring/18-databricks-aibi-dashboards.mdc)
+- [lakehouse-monitoring-comprehensive.mdc](.cursor/rules/monitoring/17-lakehouse-monitoring-comprehensive.mdc)
+
+### Project Files
+- [Dashboard Changelog](docs/dashboards/dashboard-changelog.md)
 
 ---
 
 ## Summary
 
-**What to Create:**
-1. Dashboard JSON file with proper structure
-2. Datasets (queries for each widget)
-3. Pages with widget layouts
-4. Parameters (date filters)
-5. Global Filters page
+**Critical Rules (Memorize These):**
+1. Widget `fieldName` MUST match query alias exactly
+2. `number-percent` expects 0-1, multiplies by 100
+3. Never use `FORMAT_NUMBER()` in KPI queries
+4. Parameters MUST be defined in dataset's `parameters` array
+5. Monitoring tables: use `window.start`, select custom metrics as columns directly
+6. Pie charts: MUST have `scale` on both `color` and `angle`
+7. Bar charts: MUST have `scale` on both `x` and `y`
+8. Tables: use version 2, remove legacy properties
+9. **ALWAYS validate SQL before deployment** - reduces dev loop time by 90%
+10. **Drift metrics**: Use DIRECT columns (e.g., `success_rate_drift`), NOT `avg_delta`!
 
-**Critical Rules:**
-- 6-column grid (NOT 12!)
-- KPIs: v2, Charts: v3, Tables: v1
-- DATE type for parameters (not DATETIME)
-- Include Global Filters page
-- Verify system table field names
+**Time Estimate:** 2-4 hours for a complete dashboard
 
-**Time Estimate:** 2-4 hours
-
-**Next Action:** Plan layout, create datasets, build widgets, test in Databricks
-
-
+**Version:** 3.1 (January 2026) - Added pre-deployment SQL validation patterns for 90% faster dev loops

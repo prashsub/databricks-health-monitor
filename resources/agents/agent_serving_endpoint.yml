@@ -1,0 +1,52 @@
+# Agent Serving Endpoint Configuration
+# Deploys the Health Monitor Agent to Model Serving
+#
+# Single Consolidated Schema:
+#   Dev: prashanth_subrahmanyam_catalog.dev_<user>_system_gold_agent
+#   Prod: main.system_gold_agent
+#
+# Inference logs go to the same schema (prefix: inference_*)
+#
+# Reference: https://docs.databricks.com/aws/en/machine-learning/model-serving/
+
+resources:
+  model_serving_endpoints:
+    health_monitor_agent_endpoint:
+      name: "[${bundle.target}] Health Monitor Agent"
+      
+      config:
+        # Served models configuration
+        served_models:
+          - model_name: ${var.catalog}.${var.agent_schema}.health_monitor_agent
+            model_version: "1"  # Update after initial log_agent_model
+            workload_size: Small
+            scale_to_zero_enabled: true
+            
+        # Auto-capture inference logs to the SAME schema (consolidated)
+        # Tables will be: inference_request_logs, inference_response_logs
+        auto_capture_config:
+          catalog_name: ${var.catalog}
+          schema_name: ${var.agent_schema}
+          table_name_prefix: inference
+          enabled: true
+      
+      # AI Gateway configuration
+      ai_gateway:
+        # Rate limiting
+        rate_limits:
+          - calls: 100
+            key: user
+            renewal_period: MINUTE
+        
+        # Usage tracking
+        usage_tracking_config:
+          enabled: true
+      
+      tags:
+        - key: environment
+          value: ${bundle.target}
+        - key: project
+          value: databricks_health_monitor
+        - key: layer
+          value: agent
+
