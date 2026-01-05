@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "config": {
+    "title": "Health Monitor Unified Space",
+    "description": "Comprehensive Databricks platform health monitoring across cost, reliability, security, performance, and quality. Unified natural language interface for enterprise-wide observability.",
+    "warehouse_id": "${warehouse_id}",
+    "sample_questions": [
+      {
+        "id": "44ec00bbef24417e82548c52af782789",
+        "question": [
+          "What is our total spend this month?"
+        ]
+      },
+      {
+        "id": "e0588f902616487c9aa36667d4422bb1",
+        "question": [
+          "Which jobs failed today?"
+        ]
+      },
+      {
+        "id": "a276966a51f948fdbd96a6872ec6d058",
+        "question": [
+          "Show me slow queries"
+        ]
+      },
+      {
+        "id": "1013fc19813545d48d005df1f8d29172",
+        "question": [
+          "What is the job success rate?"
+        ]
+      },
+      {
+        "id": "1297823cd0f34ca4a91e6cd7714ed0cc",
+        "question": [
+          "Which resources are underutilized?"
+        ]
+      },
+      {
+        "id": "05761dea9d0a4dce936cc9618f760321",
+        "question": [
+          "Show me cost anomalies"
+        ]
+      },
+      {
+        "id": "9234f58b8ec341b2988be1e5022790da",
+        "question": [
+          "What is our SLA breach rate?"
+        ]
+      },
+      {
+        "id": "e82b15bb636d4a78aa9c7a90c7a6689f",
+        "question": [
+          "Which workspaces have the highest cost?"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "${catalog}.${feature_schema}.cost_anomaly_predictions",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.job_failure_predictions",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.query_optimization_recommendations",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.cost_analytics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_job",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_sku",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_warehouse",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_workspace",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline_profile_metrics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_query_history",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_query_history_profile_metrics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_usage",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_usage_profile_metrics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.job_performance",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.query_performance",
+        "column_configs": []
+      }
+    ],
+    "metric_views": []
+  },
+  "instructions": {
+    "sql_functions": [],
+    "text_instructions": [],
+    "example_question_sqls": [],
+    "join_specs": []
+  },
+  "benchmarks": {
+    "questions": []
+  }
+}

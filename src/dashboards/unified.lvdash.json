@@ -44,7 +44,7 @@
     {
       "name": "ds_ml_capacity",
       "displayName": "ML: Capacity",
-      "query": "WITH capacity_preds AS (\n  SELECT\n    p.warehouse_id,\n    p.prediction,\n    p.is_weekend,\n    p.scored_at,\n    COALESCE(w.warehouse_name, 'Unknown Warehouse') AS warehouse_name,\n    COALESCE(w.warehouse_type, 'SQL') AS resource_type,\n    COALESCE(w.warehouse_size, 'Unknown') AS current_size,\n    COALESCE(w.min_clusters, 0) AS min_clusters,\n    COALESCE(w.max_clusters, 0) AS max_clusters\n  FROM ${catalog}.${feature_schema}.cluster_capacity_predictions p\n  LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w ON p.warehouse_id = w.warehouse_id\n  WHERE p.scored_at >= CURRENT_DATE() - INTERVAL 30 DAYS\n)\nSELECT\n  CONCAT(c.resource_type, ': ', c.warehouse_name) AS resource_name,\n  CONCAT('Type: ', c.resource_type, ' | Size: ', c.current_size, ' | Clusters: ', c.min_clusters, '-', c.max_clusters) AS resource_type,\n  ROUND(COALESCE(c.prediction, 0) * 100, 1) AS utilization_score,\n  CASE \n    WHEN c.prediction > 0.8 THEN 'Scale up urgently'\n    WHEN c.prediction > 0.6 THEN 'Consider scaling'\n    ELSE 'Current capacity adequate'\n  END AS recommended_action,\n  CASE \n    WHEN c.prediction > 0.8 THEN CONCAT('High utilization (', ROUND(c.prediction * 100), '%) - capacity strain likely')\n    WHEN c.prediction > 0.6 THEN CONCAT('Moderate utilization (', ROUND(c.prediction * 100), '%) - monitor closely')\n    ELSE CONCAT('Normal utilization (', ROUND(c.prediction * 100), '%) - stable')\n  END AS rationale,\n  CASE WHEN COALESCE(c.is_weekend, 0) > 0.5 THEN 'Weekend' ELSE 'Weekday' END AS usage_pattern\nFROM capacity_preds c\nORDER BY c.prediction DESC\nLIMIT 20"
+      "query": "WITH capacity_preds AS (\n  SELECT\n    p.warehouse_id,\n    -- ML prediction is already a percentage (0-100+), NOT 0-1\n    LEAST(COALESCE(p.prediction, 0), 150) AS utilization_pct,\n    p.is_weekend,\n    p.scored_at,\n    COALESCE(w.warehouse_name, 'Unknown Warehouse') AS warehouse_name,\n    COALESCE(w.warehouse_type, 'SERVERLESS') AS resource_type,\n    COALESCE(w.warehouse_size, 'Unknown') AS current_size,\n    COALESCE(w.min_clusters, 1) AS min_clusters,\n    COALESCE(w.max_clusters, 1) AS max_clusters\n  FROM ${catalog}.${feature_schema}.cluster_capacity_predictions p\n  LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w ON p.warehouse_id = w.warehouse_id\n  WHERE p.scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nsize_order AS (\n  SELECT 'X_SMALL' AS sz, 1 AS ord UNION ALL\n  SELECT '2X_SMALL', 2 UNION ALL\n  SELECT 'SMALL', 3 UNION ALL\n  SELECT 'MEDIUM', 4 UNION ALL\n  SELECT 'LARGE', 5 UNION ALL\n  SELECT 'X_LARGE', 6 UNION ALL\n  SELECT '2X_LARGE', 7 UNION ALL\n  SELECT '3X_LARGE', 8 UNION ALL\n  SELECT '4X_LARGE', 9\n),\nwith_recommendations AS (\n  SELECT c.*,\n    so.ord AS current_ord,\n    CASE\n      WHEN c.utilization_pct > 90 THEN so.ord + 2\n      WHEN c.utilization_pct > 75 THEN so.ord + 1\n      ELSE so.ord\n    END AS recommended_ord\n  FROM capacity_preds c\n  LEFT JOIN size_order so ON UPPER(c.current_size) = so.sz\n)\nSELECT\n  CONCAT(r.resource_type, ': ', r.warehouse_name) AS resource_name,\n  CONCAT('Type: ', r.resource_type, ' | Size: ', r.current_size, ' | Clusters: ', r.min_clusters, '-', r.max_clusters) AS resource_type,\n  ROUND(r.utilization_pct, 1) AS utilization_pct,\n  CASE\n    WHEN r.utilization_pct > 90 THEN CONCAT('Scale to ', COALESCE(rec.sz, 'larger size'), ' + add ', LEAST(r.max_clusters + 2, 10) - r.max_clusters, ' clusters')\n    WHEN r.utilization_pct > 75 THEN CONCAT('Scale to ', COALESCE(rec.sz, 'next size'), ' or add 1 cluster')\n    WHEN r.utilization_pct > 60 THEN 'Monitor closely - approaching capacity'\n    ELSE 'Capacity adequate'\n  END AS recommended_action,\n  CONCAT(\n    'Current: ', r.current_size, ' (', r.min_clusters, '-', r.max_clusters, ' clusters) @ ', ROUND(r.utilization_pct, 0), '% util. ',\n    CASE\n      WHEN r.utilization_pct > 90 THEN 'CRITICAL: Significant scaling needed.'\n      WHEN r.utilization_pct > 75 THEN 'WARNING: Approaching limits.'\n      WHEN r.utilization_pct > 60 THEN 'Monitor during peak hours.'\n      ELSE 'Operating normally.'\n    END\n  ) AS rationale\nFROM with_recommendations r\nLEFT JOIN size_order rec ON r.recommended_ord = rec.ord\nWHERE r.utilization_pct > 50\nORDER BY r.utilization_pct DESC\nLIMIT 15"
     },
     {
       "name": "ds_kpi_events",
@@ -658,7 +658,7 @@
     {
       "name": "ds_ml_job_risks",
       "displayName": "ML: Job Risks",
-      "query": "WITH job_preds AS (\n  SELECT\n    p.job_id,\n    p.prediction,\n    p.scored_at\n  FROM ${catalog}.${feature_schema}.job_failure_predictions p\n  WHERE p.scored_at >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\njob_history AS (\n  SELECT\n    job_id,\n    COALESCE(run_name, CAST(job_id AS STRING)) AS job_name,\n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) AS failed_runs,\n    MAX(CASE WHEN result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN result_state END) AS last_failure_type,\n    MAX(CASE WHEN result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN termination_code END) AS last_termination_code,\n    MAX(CASE WHEN result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN run_date END) AS last_failure_date,\n    ROUND(STDDEV(run_duration_seconds), 1) AS duration_variance\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY job_id, run_name\n)\nSELECT\n  COALESCE(h.job_name, CAST(p.job_id AS STRING)) AS job_name,\n  ROUND(p.prediction, 2) AS failure_probability,\n  CASE \n    WHEN p.prediction > 0.7 THEN 'HIGH'\n    WHEN p.prediction > 0.3 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS risk_level,\n  CASE \n    WHEN p.prediction > 0.7 THEN 'Add retry logic, review job configuration, enable notifications'\n    WHEN p.prediction > 0.3 THEN 'Monitor closely, review recent changes'\n    ELSE 'Continue standard monitoring'\n  END AS recommended_action,\n  CONCAT(\n    'Historical failure rate: ', ROUND(COALESCE(h.failed_runs, 0) * 100.0 / NULLIF(h.total_runs, 0), 1), '%, ',\n    'duration variance: ', COALESCE(h.duration_variance, 0), 's, ',\n    'last failure: ', COALESCE(h.last_failure_type, 'None')\n  ) AS rationale,\n  COALESCE(h.last_termination_code, 'No recent errors') AS last_error_preview,\n  h.last_failure_date\nFROM job_preds p\nLEFT JOIN job_history h ON p.job_id = h.job_id\nORDER BY p.prediction DESC\nLIMIT 20"
+      "query": "-- Uses ACTUAL job failure data (more reliable than ML predictions that return 1.0 for everything)\nWITH job_stats AS (\n  SELECT\n    f.job_id,\n    COALESCE(j.name, f.run_name, CAST(f.job_id AS STRING)) AS job_name,\n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN f.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) AS failed_runs,\n    ROUND(SUM(CASE WHEN f.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS failure_rate,\n    MAX(CASE WHEN f.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN f.termination_code END) AS last_error_type,\n    MAX(CASE WHEN f.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN f.run_date END) AS last_failure_date,\n    ROUND(STDDEV(f.run_duration_seconds), 1) AS duration_variance_sec,\n    MAX(f.run_date) AS last_run_date\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id\n  WHERE f.run_date >= CURRENT_DATE() - INTERVAL 14 DAYS\n  GROUP BY f.job_id, j.name, f.run_name\n  HAVING COUNT(*) >= 3  -- Only jobs with enough runs to calculate risk\n)\nSELECT\n  job_name,\n  ROUND(failure_rate / 100.0, 2) AS failure_probability,\n  CASE \n    WHEN failure_rate > 50 THEN 'HIGH'\n    WHEN failure_rate > 20 THEN 'MEDIUM'\n    WHEN failure_rate > 5 THEN 'LOW'\n    ELSE 'HEALTHY'\n  END AS risk_level,\n  CONCAT(\n    failed_runs, ' failures in ', total_runs, ' runs (', failure_rate, '%). ',\n    'Last error: ', COALESCE(last_error_type, 'N/A'), '. ',\n    'Duration variance: ', COALESCE(duration_variance_sec, 0), 's'\n  ) AS rationale,\n  COALESCE(last_error_type, 'No recent errors') AS last_error_preview,\n  last_failure_date,\n  CASE \n    WHEN failure_rate > 50 THEN 'CRITICAL: Add retry logic, check resources, review error patterns'\n    WHEN failure_rate > 20 THEN 'WARNING: Monitor closely, review recent config changes'\n    WHEN failure_rate > 5 THEN 'Watch: Occasional failures, review logs'\n    ELSE 'Healthy: Continue normal monitoring'\n  END AS recommended_action\nFROM job_stats\nWHERE failed_runs > 0  -- Only show jobs with actual failures\nORDER BY failure_rate DESC, failed_runs DESC\nLIMIT 15"
     },
     {
       "name": "ds_kpi_mttr",
@@ -730,7 +730,7 @@
           }
         }
       ],
-      "query": "SELECT \n  COALESCE(COALESCE(c.day, j.day), q.day) AS day,\n  ROUND(COALESCE(c.cost_drift, 0), 1) AS cost_drift,\n  ROUND(COALESCE(j.job_drift, 0), 1) AS job_drift,\n  ROUND(COALESCE(q.query_drift, 0), 1) AS query_drift\nFROM (\n  SELECT DATE(window.start) AS day,\n    COALESCE(cost_drift_pct, 0) AS cost_drift\n  FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\n  WHERE column_name = ':table'\n    AND drift_type = 'CONSECUTIVE'\n    AND window.end >= :time_range.min AND window.end <= :time_range.max\n) c\nFULL OUTER JOIN (\n  SELECT DATE(window.start) AS day,\n    COALESCE(run_count_drift_pct, 0) AS job_drift\n  FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\n  WHERE column_name = ':table'\n    AND drift_type = 'CONSECUTIVE'\n    AND window.end >= :time_range.min AND window.end <= :time_range.max\n) j ON c.day = j.day\nFULL OUTER JOIN (\n  SELECT DATE(window.start) AS day,\n    COALESCE(p95_duration_drift_pct, 0) AS query_drift\n  FROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\n  WHERE column_name = ':table'\n    AND drift_type = 'CONSECUTIVE'\n    AND window.end >= :time_range.min AND window.end <= :time_range.max\n) q ON COALESCE(c.day, j.day) = q.day\nORDER BY day"
+      "query": "-- Calculates week-over-week drift from actual Gold layer data\nWITH cost_weekly AS (\n  SELECT\n    DATE_TRUNC('week', usage_date) AS week_start,\n    SUM(usage_cost) AS weekly_cost\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= :time_range.min AND usage_date <= :time_range.max\n  GROUP BY DATE_TRUNC('week', usage_date)\n),\njob_weekly AS (\n  SELECT\n    DATE_TRUNC('week', run_date) AS week_start,\n    COUNT(*) AS weekly_jobs\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= :time_range.min AND run_date <= :time_range.max\n  GROUP BY DATE_TRUNC('week', run_date)\n),\nquery_weekly AS (\n  SELECT\n    DATE_TRUNC('week', start_time) AS week_start,\n    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_time_ms) AS p95_duration\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= :time_range.min AND start_time <= :time_range.max\n  GROUP BY DATE_TRUNC('week', start_time)\n),\ncost_drift AS (\n  SELECT week_start AS day,\n    ROUND(((weekly_cost - LAG(weekly_cost) OVER (ORDER BY week_start)) * 100.0 / NULLIF(LAG(weekly_cost) OVER (ORDER BY week_start), 0)), 1) AS cost_drift\n  FROM cost_weekly\n),\njob_drift AS (\n  SELECT week_start AS day,\n    ROUND(((weekly_jobs - LAG(weekly_jobs) OVER (ORDER BY week_start)) * 100.0 / NULLIF(LAG(weekly_jobs) OVER (ORDER BY week_start), 0)), 1) AS job_drift\n  FROM job_weekly\n),\nquery_drift AS (\n  SELECT week_start AS day,\n    ROUND(((p95_duration - LAG(p95_duration) OVER (ORDER BY week_start)) * 100.0 / NULLIF(LAG(p95_duration) OVER (ORDER BY week_start), 0)), 1) AS query_drift\n  FROM query_weekly\n)\nSELECT\n  COALESCE(c.day, j.day, q.day) AS day,\n  COALESCE(c.cost_drift, 0) AS cost_drift,\n  COALESCE(j.job_drift, 0) AS job_drift,\n  COALESCE(q.query_drift, 0) AS query_drift\nFROM cost_drift c\nFULL OUTER JOIN job_drift j ON c.day = j.day\nFULL OUTER JOIN query_drift q ON COALESCE(c.day, j.day) = q.day\nWHERE COALESCE(c.day, j.day, q.day) IS NOT NULL\nORDER BY day"
     },
     {
       "name": "ds_event_trend",
@@ -1041,7 +1041,7 @@
     },
     {
       "name": "ds_sku_breakdown",
-      "displayName": "SKU Breakdown",
+      "displayName": "Billing Origin Product Breakdown",
       "parameters": [
         {
           "displayName": "time_range",
@@ -1061,7 +1061,7 @@
           }
         }
       ],
-      "query": "SELECT \n  COALESCE(sku_name, 'Unknown') AS sku_name, \n  ROUND(SUM(list_cost), 2) AS cost \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max \nGROUP BY 1 \nHAVING SUM(list_cost) > 0\nORDER BY cost DESC \nLIMIT 10"
+      "query": "SELECT \n  COALESCE(billing_origin_product, 'Unknown') AS product, \n  ROUND(SUM(list_cost), 2) AS cost \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max \nGROUP BY 1 \nHAVING SUM(list_cost) > 0\nORDER BY cost DESC \nLIMIT 10"
     },
     {
       "name": "ds_kpi_admin",
@@ -1172,26 +1172,7 @@
     {
       "name": "ds_monitor_job_drift",
       "displayName": "Monitor: Job Drift",
-      "parameters": [
-        {
-          "displayName": "time_range",
-          "keyword": "time_range",
-          "dataType": "DATE",
-          "complexType": "RANGE",
-          "defaultSelection": {
-            "range": {
-              "dataType": "DATE",
-              "min": {
-                "value": "now-90d/d"
-              },
-              "max": {
-                "value": "now/d"
-              }
-            }
-          }
-        }
-      ],
-      "query": "SELECT \n  DATE(window.start) AS window_start, \n  ROUND(COALESCE(run_count_drift_pct, 0) / 100.0, 4) AS drift_pct \nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics \nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\nORDER BY window.start DESC\nLIMIT 1"
+      "query": "-- Calculates week-over-week job volume drift from actual data\nWITH current_week AS (\n  SELECT COUNT(*) AS runs\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nprevious_week AS (\n  SELECT COUNT(*) AS runs\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= CURRENT_DATE() - INTERVAL 14 DAYS\n    AND run_date < CURRENT_DATE() - INTERVAL 7 DAYS\n)\nSELECT\n  ROUND(\n    CASE \n      WHEN p.runs = 0 THEN 0\n      ELSE (c.runs - p.runs) * 1.0 / p.runs\n    END,\n    4\n  ) AS drift_pct\nFROM current_week c, previous_week p"
     },
     {
       "name": "ds_kpi_mtd",
@@ -1332,26 +1313,7 @@
     {
       "name": "ds_drift_alerts",
       "displayName": "Drift Alerts",
-      "parameters": [
-        {
-          "displayName": "time_range",
-          "keyword": "time_range",
-          "dataType": "DATE",
-          "complexType": "RANGE",
-          "defaultSelection": {
-            "range": {
-              "dataType": "DATE",
-              "min": {
-                "value": "now-90d/d"
-              },
-              "max": {
-                "value": "now/d"
-              }
-            }
-          }
-        }
-      ],
-      "query": "SELECT \n  'Cost' AS area,\n  'Cost Change %' AS metric,\n  ROUND(COALESCE(cost_drift_pct, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS(COALESCE(cost_drift_pct, 0)) > 20 THEN 'high'\n    WHEN ABS(COALESCE(cost_drift_pct, 0)) > 10 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\n\nUNION ALL\n\nSELECT \n  'Reliability' AS area,\n  'Job Volume Change %' AS metric,\n  ROUND(COALESCE(run_count_drift_pct, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS(COALESCE(run_count_drift_pct, 0)) > 50 THEN 'high'\n    WHEN ABS(COALESCE(run_count_drift_pct, 0)) > 25 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\n\nUNION ALL\n\nSELECT \n  'Performance' AS area,\n  'P95 Query Duration' AS metric,\n  ROUND(COALESCE(p95_duration_drift_pct, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS(COALESCE(p95_duration_drift_pct, 0)) > 30 THEN 'high'\n    WHEN ABS(COALESCE(p95_duration_drift_pct, 0)) > 15 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\nWHERE column_name = ':table' \n  AND drift_type = 'CONSECUTIVE'\n  AND window.end >= :time_range.min AND window.end <= :time_range.max\n\nORDER BY ABS(drift_pct) DESC\nLIMIT 20"
+      "query": "-- Calculates week-over-week drift alerts from actual Gold layer data\nWITH this_week_cost AS (\n  SELECT SUM(usage_cost) AS total FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nlast_week_cost AS (\n  SELECT SUM(usage_cost) AS total FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND usage_date < CURRENT_DATE() - INTERVAL 7 DAYS\n),\nthis_week_jobs AS (\n  SELECT COUNT(*) AS total FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nlast_week_jobs AS (\n  SELECT COUNT(*) AS total FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND run_date < CURRENT_DATE() - INTERVAL 7 DAYS\n),\nthis_week_p95 AS (\n  SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_time_ms) AS p95 FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nlast_week_p95 AS (\n  SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_time_ms) AS p95 FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 14 DAYS AND start_time < CURRENT_DATE() - INTERVAL 7 DAYS\n)\nSELECT \n  'Cost' AS area,\n  'Week-over-Week Cost %' AS metric,\n  ROUND((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 20 THEN 'high'\n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 10 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM this_week_cost tw, last_week_cost lw\nUNION ALL\nSELECT \n  'Reliability' AS area,\n  'Week-over-Week Job Volume %' AS metric,\n  ROUND((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 50 THEN 'high'\n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 25 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM this_week_jobs tw, last_week_jobs lw\nUNION ALL\nSELECT \n  'Performance' AS area,\n  'Week-over-Week P95 Query Duration %' AS metric,\n  ROUND((tw.p95 - lw.p95) * 100.0 / NULLIF(lw.p95, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS((tw.p95 - lw.p95) * 100.0 / NULLIF(lw.p95, 0)) > 30 THEN 'high'\n    WHEN ABS((tw.p95 - lw.p95) * 100.0 / NULLIF(lw.p95, 0)) > 15 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM this_week_p95 tw, last_week_p95 lw\nORDER BY ABS(drift_pct) DESC"
     },
     {
       "name": "ds_kpi_failed",
@@ -2531,8 +2493,8 @@
                       "expression": "`resource_type`"
                     },
                     {
-                      "name": "utilization_score",
-                      "expression": "`utilization_score`"
+                      "name": "utilization_pct",
+                      "expression": "`utilization_pct`"
                     },
                     {
                       "name": "recommended_action",
@@ -2541,10 +2503,6 @@
                     {
                       "name": "rationale",
                       "expression": "`rationale`"
-                    },
-                    {
-                      "name": "usage_pattern",
-                      "expression": "`usage_pattern`"
                     }
                   ],
                   "disaggregated": true
@@ -2567,7 +2525,7 @@
                     "type": "string"
                   },
                   {
-                    "fieldName": "utilization_score",
+                    "fieldName": "utilization_pct",
                     "title": "Utilization %",
                     "type": "number"
                   },
@@ -2579,11 +2537,6 @@
                   {
                     "fieldName": "rationale",
                     "title": "Rationale",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "usage_pattern",
-                    "title": "Day",
                     "type": "string"
                   }
                 ]
@@ -3415,7 +3368,7 @@
         },
         {
           "widget": {
-            "name": "chart_sku_breakdown",
+            "name": "chart_product_breakdown",
             "queries": [
               {
                 "name": "main_query",
@@ -3423,8 +3376,8 @@
                   "datasetName": "ds_sku_breakdown",
                   "fields": [
                     {
-                      "name": "sku_name",
-                      "expression": "`sku_name`"
+                      "name": "product",
+                      "expression": "`product`"
                     },
                     {
                       "name": "cost",
@@ -3440,8 +3393,8 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "sku_name",
-                  "displayName": "SKU",
+                  "fieldName": "product",
+                  "displayName": "Billing Origin Product",
                   "scale": {
                     "type": "categorical"
                   }
@@ -3456,7 +3409,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "📦 Spend by SKU"
+                "title": "📦 Spend by Billing Origin Product"
               }
             }
           },

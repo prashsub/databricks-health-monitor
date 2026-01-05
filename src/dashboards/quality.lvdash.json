@@ -2353,7 +2353,7 @@
     {
       "name": "ds_untagged_tables",
       "displayName": "Untagged Tables",
-      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, SPLIT(target_table_full_name, '.')[2] AS table_name, 'TABLE' AS table_type FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 LIMIT 20",
+      "query": "-- Tables without governance tags (layer, domain, owner, etc.)\nWITH table_info AS (\n  SELECT DISTINCT\n    catalog_name,\n    schema_name,\n    table_name,\n    table_type\n  FROM ${catalog}.${gold_schema}.dim_table\n  WHERE table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n    AND catalog_name NOT IN ('system', 'information_schema', 'hive_metastore')\n    AND schema_name NOT IN ('information_schema', 'default')\n)\nSELECT \n  catalog_name,\n  schema_name,\n  table_name,\n  table_type\nFROM table_info\nWHERE (:param_catalog = 'all' OR catalog_name = :param_catalog)\nORDER BY catalog_name, schema_name, table_name\nLIMIT 20",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2376,7 +2376,7 @@
     {
       "name": "ds_undocumented_tables",
       "displayName": "Undocumented Tables",
-      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, SPLIT(target_table_full_name, '.')[2] AS table_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 LIMIT 20",
+      "query": "-- Tables without comments/documentation\nSELECT\n  catalog_name,\n  schema_name,\n  table_name\nFROM ${catalog}.${gold_schema}.dim_table\nWHERE (comment IS NULL OR TRIM(comment) = '')\n  AND table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n  AND catalog_name NOT IN ('system', 'information_schema', 'hive_metastore')\n  AND schema_name NOT IN ('information_schema', 'default')\n  AND (:param_catalog = 'all' OR catalog_name = :param_catalog)\nORDER BY catalog_name, schema_name, table_name\nLIMIT 20",
       "parameters": [
         {
           "displayName": "param_catalog",

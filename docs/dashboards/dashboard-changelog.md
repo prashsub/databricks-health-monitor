@@ -4,6 +4,38 @@ Tracking all dashboard modifications, issues, and fixes for the Databricks Healt
 
 ---
 
+## Cost Dashboard ML Visual Fixes - January 5, 2026 (Part 2)
+
+### Issues Fixed
+
+| Visual | Error | Root Cause | Fix Applied |
+|--------|-------|------------|-------------|
+| **ML: Tag Recommendations** | `p.prediction cannot be resolved` | ML model uses `predicted_tag` column, not `prediction` | Changed query to use `predicted_tag` column directly |
+| **ML: Detected Cost Anomalies** | No data | Anomaly filter was `prediction < 0` but model returns positive scores | Changed filter to `prediction > 0.3` (higher = more anomalous) |
+
+### Key Changes
+
+**ML: Tag Recommendations:**
+- Now uses `predicted_tag` column from `${catalog}.${feature_schema}.tag_recommendations`
+- Displays actual ML-predicted tag instead of deriving from prediction score
+- Priority now based on job cost (HIGH/MEDIUM/LOW thresholds)
+- Rationale includes the ML-recommended tag value
+
+**ML: Detected Cost Anomalies:**
+- Fixed severity logic: Higher prediction scores now indicate anomalies
+  - `> 0.7` → HIGH severity
+  - `> 0.5` → MEDIUM severity
+  - `> 0.3` → LOW severity
+- Added LOW severity option for less critical anomalies
+- Ordered by anomaly_score DESC (highest anomalies first)
+
+### Key Insight
+When integrating ML model tables, always verify the actual column names and semantics:
+- `predicted_tag`: The model's tag recommendation (string)
+- `prediction`: Anomaly score (higher = more anomalous for anomaly detection models)
+
+---
+
 ## Quality Dashboard Table Health Overview Fix - January 5, 2026
 
 ### Issues Fixed

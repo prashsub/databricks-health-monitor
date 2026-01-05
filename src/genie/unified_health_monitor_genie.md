@@ -270,6 +270,62 @@ WHERE drift_type = 'CONSECUTIVE' -- Period-over-period comparison
 | `dim_user` | User information | shared/dim_user.yaml |
 | `dim_date` | Date dimension for time analysis | shared/dim_date.yaml |
 
+### Data Model Relationships 🔗
+
+**Cross-Domain Foreign Key Constraints** (extracted from `gold_layer_design/yaml/`)
+
+#### 💰 Cost Domain Relationships
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_usage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_usage` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
+| `fact_usage` | → | `dim_cluster` | `(workspace_id, usage_metadata_cluster_id)` = `(workspace_id, cluster_id)` | LEFT |
+| `fact_usage` | → | `dim_job` | `(workspace_id, usage_metadata_job_id)` = `(workspace_id, job_id)` | LEFT |
+| `fact_account_prices` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
+| `fact_list_prices` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
+
+#### 🔄 Reliability Domain Relationships
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_job_run_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_job_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
+| `fact_job_task_run_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_job_task_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
+| `fact_job_task_run_timeline` | → | `dim_job_task` | `(workspace_id, job_id, task_key)` = `(workspace_id, job_id, task_key)` | LEFT |
+| `fact_pipeline_update_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_pipeline_update_timeline` | → | `dim_pipeline` | `(workspace_id, pipeline_id)` = `(workspace_id, pipeline_id)` | LEFT |
+
+#### ⚡ Performance Domain Relationships
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_query_history` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_query_history` | → | `dim_warehouse` | `(workspace_id, warehouse_id)` = `(workspace_id, warehouse_id)` | LEFT |
+| `fact_warehouse_events` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_warehouse_events` | → | `dim_warehouse` | `(workspace_id, warehouse_id)` = `(workspace_id, warehouse_id)` | LEFT |
+| `fact_node_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_node_timeline` | → | `dim_cluster` | `(workspace_id, cluster_id)` = `(workspace_id, cluster_id)` | LEFT |
+| `fact_node_timeline` | → | `dim_node_type` | `node_type_id` = `node_type_id` | LEFT |
+
+#### 🔒 Security Domain Relationships
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_audit_logs` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_audit_logs` | → | `dim_user` | `user_identity_email` = `email` | LEFT |
+| `fact_table_lineage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+
+#### ✅ Quality Domain Relationships
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_mlflow_runs` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_mlflow_runs` | → | `dim_experiment` | `(workspace_id, experiment_id)` = `(workspace_id, experiment_id)` | LEFT |
+| `fact_endpoint_usage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_endpoint_usage` | → | `dim_served_entities` | `(workspace_id, endpoint_id)` = `(workspace_id, endpoint_id)` | LEFT |
+
+**Join Patterns:**
+- **Single Key:** `ON fact.key = dim.key`
+- **Composite Key (workspace-scoped):** `ON fact.workspace_id = dim.workspace_id AND fact.fk = dim.pk`
+- **Three-Part Key (task-level):** `ON fact.workspace_id = dim.workspace_id AND fact.job_id = dim.job_id AND fact.task_key = dim.task_key`
+
 ---
 
 ## ████ SECTION E: ASSET SELECTION FRAMEWORK ████

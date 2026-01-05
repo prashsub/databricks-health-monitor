@@ -433,9 +433,11 @@ def deploy_genie_space(
         existing_space_id = find_existing_genie_space(host, token, title)
         if existing_space_id:
             print(f"Found existing space with ID: {existing_space_id}")
+            # preserve_title=True to avoid RESOURCE_ALREADY_EXISTS error
+            # when updating a space that has a numbered suffix like "(3)"
             update_genie_space_via_api(
                 host, token, existing_space_id, title, description, 
-                warehouse_id, serialized_space
+                warehouse_id, serialized_space, preserve_title=True
             )
             return existing_space_id
     
@@ -495,7 +497,7 @@ def main():
         json_files = [genie_space_json]
         print(f"Deploying specific file: {genie_space_json}")
     else:
-        # Deploy the two known Genie Space exports
+        # Deploy all Genie Space exports in the directory
         # These files are located in src/genie/ and synced by Asset Bundles
         notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
         script_dir = os.path.dirname(notebook_path)
@@ -503,11 +505,26 @@ def main():
         print(f"Notebook path: {notebook_path}")
         print(f"Script directory: {script_dir}")
         
-        json_files = [
-            os.path.join(script_dir, "cost_intelligence_genie_export.json"),
-            os.path.join(script_dir, "job_health_monitor_genie_export.json")
-        ]
-        print(f"Deploying 2 Genie Spaces from JSON exports")
+        # Find all *_export.json files using os.listdir (most reliable in workspace)
+        try:
+            all_files = os.listdir(script_dir)
+            json_files = [
+                os.path.join(script_dir, f)
+                for f in all_files
+                if f.endswith('_export.json')
+            ]
+        except Exception as e:
+            # If os.listdir fails, log error and raise
+            print(f"Error listing files in {script_dir}: {e}")
+            raise
+        
+        if not json_files:
+            raise ValueError(f"No *_export.json files found in {script_dir}")
+        
+        print(f"Found {len(json_files)} Genie Space export files:")
+        for f in json_files:
+            print(f"  - {os.path.basename(f)}")
+        print(f"Deploying all Genie Spaces...")
     
     deployed_spaces = []
     failed_spaces = []

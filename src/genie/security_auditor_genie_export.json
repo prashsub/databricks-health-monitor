@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "config": {
+    "title": "Health Monitor Security Auditor Space",
+    "description": "Natural language interface for Databricks security audit and compliance analytics. Enables security teams, compliance officers, and platform admins to query access patterns, suspicious activities, and policy violations without SQL.",
+    "warehouse_id": "${warehouse_id}",
+    "sample_questions": [
+      {
+        "id": "c8d7d566a119445b87e0f382e0d4e6da",
+        "question": [
+          "Show me failed login attempts"
+        ]
+      },
+      {
+        "id": "2a2e266412ae422fabfb7c32a77037b6",
+        "question": [
+          "What are recent security events?"
+        ]
+      },
+      {
+        "id": "886cdb5445ae4517b61316c85fe3ec06",
+        "question": [
+          "Which users have high risk scores?"
+        ]
+      },
+      {
+        "id": "527951383adc4d3e80867b47116d878c",
+        "question": [
+          "Show me admin actions today"
+        ]
+      },
+      {
+        "id": "e8dc2b12e62b40e9be805300ac224da3",
+        "question": [
+          "What tables were accessed by external users?"
+        ]
+      },
+      {
+        "id": "37bc5021b9d745a7911360836b47ab4c",
+        "question": [
+          "Show me suspicious activities"
+        ]
+      },
+      {
+        "id": "5ed4670a481844219002070c12e6ec74",
+        "question": [
+          "What are compliance violations?"
+        ]
+      },
+      {
+        "id": "480633123267497f92c869212634cafd",
+        "question": [
+          "Who accessed sensitive data?"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "${catalog}.${feature_schema}.access_pattern_predictions",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.anomalous_access_predictions",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.compliance_risk_predictions",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.data_exfiltration_predictions",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.privilege_escalation_predictions",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_workspace",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_audit_logs",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_audit_logs_drift_metrics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_audit_logs_profile_metrics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.security_analytics",
+        "column_configs": []
+      }
+    ],
+    "metric_views": []
+  },
+  "instructions": {
+    "sql_functions": [],
+    "text_instructions": [],
+    "example_question_sqls": [],
+    "join_specs": []
+  },
+  "benchmarks": {
+    "questions": []
+  }
+}

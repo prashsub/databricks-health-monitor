@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "config": {
+    "title": "Health Monitor Performance Space",
+    "description": "Natural language interface for Databricks query and cluster performance analytics. Enables DBAs, platform engineers, and FinOps to query execution metrics, warehouse utilization, cluster efficiency, and right-sizing opportunities without SQL.",
+    "warehouse_id": "${warehouse_id}",
+    "sample_questions": [
+      {
+        "id": "307f08206ebe405daaf20f29ba3d5c52",
+        "question": [
+          "What is our average query duration?"
+        ]
+      },
+      {
+        "id": "f09c71c02d1f450a80daa09e7884561d",
+        "question": [
+          "Show me slow queries from today"
+        ]
+      },
+      {
+        "id": "97fc505c34204cc88b73856a1644b1e4",
+        "question": [
+          "What is the P95 query duration?"
+        ]
+      },
+      {
+        "id": "68da49d1efe84c61b846a3f906ef012d",
+        "question": [
+          "Which warehouse has the highest queue time?"
+        ]
+      },
+      {
+        "id": "334b1364ee984b3cb3aee7c0e6ae1a15",
+        "question": [
+          "What is our average CPU utilization?"
+        ]
+      },
+      {
+        "id": "603484e367724ded9b512ecc37b63649",
+        "question": [
+          "Which clusters are underutilized?"
+        ]
+      },
+      {
+        "id": "498e1c56ec484ea8a2886c2412976bd2",
+        "question": [
+          "Show me right-sizing recommendations"
+        ]
+      },
+      {
+        "id": "f34a7cb48ae64ab981a5ed6e5d6a2fda",
+        "question": [
+          "What's the potential savings from downsizing?"
+        ]
+      },
+      {
+        "id": "fa546ca952cc42078dac6a06c24bccd0",
+        "question": [
+          "Which queries should I optimize?"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "${catalog}.${feature_schema}.cache_hit_predictions",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.cluster_capacity_recommendations",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.cluster_rightsizing_recommendations",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.dbr_migration_risk_scores",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.job_duration_predictions",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.query_optimization_classifications",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.query_optimization_recommendations",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.cluster_efficiency",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.cluster_utilization",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_cluster",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_node_type",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_warehouse",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_workspace",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_node_timeline",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_node_timeline_drift_metrics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_node_timeline_profile_metrics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_query_history",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_query_history_drift_metrics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_query_history_profile_metrics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_warehouse_events",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.query_performance",
+        "column_configs": []
+      }
+    ],
+    "metric_views": []
+  },
+  "instructions": {
+    "sql_functions": [],
+    "text_instructions": [],
+    "example_question_sqls": [],
+    "join_specs": []
+  },
+  "benchmarks": {
+    "questions": []
+  }
+}

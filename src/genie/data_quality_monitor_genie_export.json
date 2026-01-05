@@ -1,0 +1,727 @@
+{
+  "version": 1,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "c1d2e3f4a5b6789012345678901234ca",
+        "question": [
+          "Which tables are stale?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234cb",
+        "question": [
+          "What is our data freshness by domain?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234cc",
+        "question": [
+          "Show me tables not updated in 24 hours"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234cd",
+        "question": [
+          "What tables have freshness issues?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234ce",
+        "question": [
+          "What is our overall data quality score?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234cf",
+        "question": [
+          "Which tables are failing quality checks?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234d0",
+        "question": [
+          "Show me data quality summary"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234d1",
+        "question": [
+          "What is the quality trend this week?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234d2",
+        "question": [
+          "Show me inactive tables"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234d3",
+        "question": [
+          "What tables are orphaned?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234d4",
+        "question": [
+          "Which pipelines have the most dependencies?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234d5",
+        "question": [
+          "Show me table activity status"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234d6",
+        "question": [
+          "Are there any quality anomalies?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234d7",
+        "question": [
+          "Which tables have degrading quality?"
+        ]
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234d8",
+        "question": [
+          "Predict data freshness issues"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_experiment",
+        "description": [
+          "Dimension table for MLflow experiments"
+        ],
+        "column_configs": [
+          {
+            "column_name": "experiment_id",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "experiment_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_served_entities",
+        "description": [
+          "Dimension table for model serving endpoints"
+        ],
+        "column_configs": [
+          {
+            "column_name": "entity_id",
+            "get_example_values": true
+          },
+          {
+            "column_name": "entity_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "endpoint_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_workspace",
+        "description": [
+          "Dimension table for workspace reference"
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "workspace_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_column_lineage",
+        "description": [
+          "Fact table for column-level lineage"
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true
+          },
+          {
+            "column_name": "source_column",
+            "get_example_values": true
+          },
+          {
+            "column_name": "target_column",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_data_classification",
+        "description": [
+          "Fact table for data classification tags"
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true
+          },
+          {
+            "column_name": "table_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "classification",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_data_classification_results",
+        "description": [
+          "Fact table for classification scan results"
+        ],
+        "column_configs": [
+          {
+            "column_name": "scan_id",
+            "get_example_values": true
+          },
+          {
+            "column_name": "table_name",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results",
+        "description": [
+          "Fact table for table-level DQ results"
+        ],
+        "column_configs": [
+          {
+            "column_name": "table_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_dq_monitoring",
+        "description": [
+          "Fact table for DQ monitoring results"
+        ],
+        "column_configs": [
+          {
+            "column_name": "check_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "check_result",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "table_name",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_endpoint_usage",
+        "description": [
+          "Fact table for model serving usage"
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true
+          },
+          {
+            "column_name": "endpoint_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics",
+        "description": [
+          "Lakehouse monitoring: Governance metrics (tag_coverage, lineage_coverage)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name"
+          },
+          {
+            "column_name": "lineage_coverage"
+          },
+          {
+            "column_name": "log_type"
+          },
+          {
+            "column_name": "slice_key"
+          },
+          {
+            "column_name": "tag_coverage"
+          },
+          {
+            "column_name": "window"
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_listing_access",
+        "description": [
+          "Fact table for marketplace listing access"
+        ],
+        "column_configs": [
+          {
+            "column_name": "listing_id",
+            "get_example_values": true
+          },
+          {
+            "column_name": "user_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_listing_funnel",
+        "description": [
+          "Fact table for marketplace funnel events"
+        ],
+        "column_configs": [
+          {
+            "column_name": "event_type",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "listing_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_mlflow_run_metrics_history",
+        "description": [
+          "Fact table for MLflow metrics over time"
+        ],
+        "column_configs": [
+          {
+            "column_name": "metric_key",
+            "get_example_values": true
+          },
+          {
+            "column_name": "metric_value",
+            "get_example_values": true
+          },
+          {
+            "column_name": "run_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_mlflow_runs",
+        "description": [
+          "Fact table for MLflow run history"
+        ],
+        "column_configs": [
+          {
+            "column_name": "experiment_id",
+            "get_example_values": true
+          },
+          {
+            "column_name": "run_id",
+            "get_example_values": true
+          },
+          {
+            "column_name": "run_name",
+            "get_example_values": true
+          },
+          {
+            "column_name": "status",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_payload_logs",
+        "description": [
+          "Fact table for model serving payloads"
+        ],
+        "column_configs": [
+          {
+            "column_name": "endpoint_id",
+            "get_example_values": true
+          },
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_predictive_optimization",
+        "description": [
+          "Fact table for predictive optimization events"
+        ],
+        "column_configs": [
+          {
+            "column_name": "operation_type",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "table_name",
+            "get_example_values": true
+          },
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_table_lineage",
+        "description": [
+          "Fact table for lineage events"
+        ],
+        "column_configs": [
+          {
+            "column_name": "event_type",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "source_table",
+            "get_example_values": true
+          },
+          {
+            "column_name": "target_table",
+            "get_example_values": true
+          },
+          {
+            "column_name": "workspace_id",
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_table_quality_drift_metrics",
+        "description": [
+          "Lakehouse monitoring: Quality drift metrics"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name"
+          },
+          {
+            "column_name": "drift_type"
+          },
+          {
+            "column_name": "quality_score_drift"
+          },
+          {
+            "column_name": "window"
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_table_quality_profile_metrics",
+        "description": [
+          "Lakehouse monitoring: Table quality metrics (quality_score, completeness_rate, validity_rate)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name"
+          },
+          {
+            "column_name": "completeness_rate"
+          },
+          {
+            "column_name": "log_type"
+          },
+          {
+            "column_name": "quality_score"
+          },
+          {
+            "column_name": "slice_key"
+          },
+          {
+            "column_name": "validity_rate"
+          },
+          {
+            "column_name": "window"
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.freshness_alert_predictions",
+        "description": [
+          "ML predictions: Staleness probability predictions.\n",
+          "Model: Schema Evolution Predictor (Random Forest)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "expected_stale_date",
+            "description": [
+              "Expected date when table will become stale"
+            ]
+          },
+          {
+            "column_name": "last_update",
+            "description": [
+              "Last update timestamp"
+            ]
+          },
+          {
+            "column_name": "predicted_delay_hours",
+            "description": [
+              "Predicted delay in hours"
+            ]
+          },
+          {
+            "column_name": "prediction",
+            "description": [
+              "Staleness probability (0-1)"
+            ]
+          },
+          {
+            "column_name": "table_name",
+            "description": [
+              "Table name"
+            ],
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.quality_anomaly_predictions",
+        "description": [
+          "ML predictions: Data drift and quality anomaly detection.\n",
+          "Model: Data Drift Detector (Isolation Forest)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "check_date",
+            "description": [
+              "Date of quality check"
+            ]
+          },
+          {
+            "column_name": "drift_columns",
+            "description": [
+              "Columns with detected drift"
+            ]
+          },
+          {
+            "column_name": "drift_score",
+            "description": [
+              "Drift score (lower is more drift)"
+            ]
+          },
+          {
+            "column_name": "is_drifted",
+            "description": [
+              "Boolean flag for drift detection"
+            ],
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "prediction",
+            "description": [
+              "Predicted value"
+            ]
+          },
+          {
+            "column_name": "table_name",
+            "description": [
+              "Table name"
+            ],
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.quality_trend_predictions",
+        "description": [
+          "ML predictions: Schema change probability and quality forecasts.\n",
+          "Model: Schema Change Predictor (XGBoost)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "change_probability",
+            "description": [
+              "Schema change probability (0-1)"
+            ]
+          },
+          {
+            "column_name": "forecast_date",
+            "description": [
+              "Forecast date"
+            ]
+          },
+          {
+            "column_name": "predicted_change_type",
+            "description": [
+              "Type of predicted change"
+            ],
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "predicted_quality_score",
+            "description": [
+              "Predicted quality score"
+            ]
+          },
+          {
+            "column_name": "prediction",
+            "description": [
+              "Predicted value"
+            ]
+          },
+          {
+            "column_name": "risk_factors",
+            "description": [
+              "Risk factors for schema change"
+            ]
+          },
+          {
+            "column_name": "table_name",
+            "description": [
+              "Table name"
+            ],
+            "build_value_dictionary": true
+          }
+        ]
+      }
+    ],
+    "metric_views": [
+      {
+        "identifier": "${catalog}.${gold_schema}.data_quality",
+        "column_configs": [
+          {
+            "column_name": "completeness_rate"
+          },
+          {
+            "column_name": "quality_score"
+          },
+          {
+            "column_name": "total_tables"
+          },
+          {
+            "column_name": "validity_rate"
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.ml_intelligence",
+        "column_configs": [
+          {
+            "column_name": "accuracy"
+          },
+          {
+            "column_name": "drift_score"
+          },
+          {
+            "column_name": "prediction_count"
+          }
+        ]
+      }
+    ]
+  },
+  "instructions": {
+    "sql_functions": [
+      {
+        "id": "c1d2e3f4a5b6789012345678901234e0",
+        "identifier": "${catalog}.${gold_schema}.get_data_freshness_by_domain"
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234e1",
+        "identifier": "${catalog}.${gold_schema}.get_data_quality_summary"
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234e2",
+        "identifier": "${catalog}.${gold_schema}.get_job_data_quality_status"
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234e3",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234e4",
+        "identifier": "${catalog}.${gold_schema}.get_table_activity_status"
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234e5",
+        "identifier": "${catalog}.${gold_schema}.get_table_freshness"
+      },
+      {
+        "id": "c1d2e3f4a5b6789012345678901234e6",
+        "identifier": "${catalog}.${gold_schema}.get_tables_failing_quality"
+      }
+    ],
+    "text_instructions": [
+      {
+        "id": "c1d2e3f4a5b6789012345678901234e7",
+        "content": [
+          "You are a data quality and governance analyst. Follow these rules:\n\n",
+          "1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends\n",
+          "2. **Primary Source:** Use data_quality metric view for dashboard KPIs\n",
+          "3. **TVFs for Lists:** Use TVFs for \"which tables\", \"stale\", \"failing\" queries\n",
+          "4. **Trends:** For \"is quality degrading?\" check _drift_metrics tables\n",
+          "5. **Date Default:** If no date specified, default to last 7 days\n",
+          "6. **Freshness:** Fresh=<24h, Stale=>24h, Critical=>72h\n",
+          "7. **Quality Score:** 0-100 scale (higher is better)\n",
+          "8. **Activity:** Active=accessed in 14 days, Inactive=no recent access\n",
+          "9. **Sorting:** Sort by quality_score ASC for problem tables\n",
+          "10. **Limits:** Top 20 for table lists\n",
+          "11. **Synonyms:** stale=outdated=old, quality=health=status\n",
+          "12. **ML Anomaly:** For \"quality anomalies\" \u2192 query quality_anomaly_predictions\n",
+          "13. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')\n",
+          "14. **Lineage:** For \"dependencies\" \u2192 use get_pipeline_data_lineage TVF\n",
+          "15. **Context:** Explain ACTIVE vs INACTIVE vs ORPHANED status\n",
+          "16. **Performance:** Never scan Bronze/Silver tables\n"
+        ]
+      }
+    ]
+  },
+  "benchmarks": {
+    "questions": []
+  }
+}

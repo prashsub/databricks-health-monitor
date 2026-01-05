@@ -328,29 +328,32 @@ For each icon, create these size variants:
 
 ## 🎨 Color Variants for Status Icons
 
-Create color-coded versions for severity icons:
+Create color-coded versions for severity icons (Official Databricks Colors):
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ STATUS ICON VARIANTS                                        │
+│ STATUS ICON VARIANTS (Official Databricks)                  │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │ AlertCircle                                                 │
 │ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐    │
-│ │Critical│ │ High   │ │ Medium │ │  Low   │ │ Default│    │
-│ │#DC2626 │ │#F97316 │ │#F59E0B │ │#3B82F6 │ │#6B7280 │    │
+│ │Critical│ │ High   │ │Warning │ │  Low   │ │ Default│    │
+│ │Lava-600│ │Lava-500│ │Yel-600 │ │Blue-600│ │Navy-500│    │
+│ │#FF3621 │ │#FF5F46 │ │#FFAB00 │ │#2272B4 │ │#618794 │    │
 │ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘    │
 │                                                             │
 │ CheckCircle                                                 │
 │ ┌────────┐ ┌────────┐                                      │
 │ │Success │ │ Default│                                      │
-│ │#10B981 │ │#6B7280 │                                      │
+│ │Green600│ │Navy-500│                                      │
+│ │#00A972 │ │#618794 │                                      │
 │ └────────┘ └────────┘                                      │
 │                                                             │
 │ Info                                                        │
 │ ┌────────┐ ┌────────┐                                      │
 │ │ Brand  │ │ Default│                                      │
-│ │#2272B4 │ │#6B7280 │                                      │
+│ │Blue-600│ │Navy-500│                                      │
+│ │#2272B4 │ │#618794 │                                      │
 │ └────────┘ └────────┘                                      │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -387,9 +390,9 @@ Create color-coded versions for severity icons:
 │    └──────┘                                                │
 │                                                             │
 │ Colors:                                                     │
-│ - Primary: #2272B4 (Blue-600 - primary interactive)        │
+│ - Primary: #2272B4 (Blue-600 - interactive)                │
 │ - On dark: #FFFFFF                                          │
-│ - On light: #111827                                         │
+│ - On light: #0B2026 (Navy-900)                              │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -441,7 +444,8 @@ Create simple, line-art style illustrations for:
 **Style Guidelines:**
 - Line weight: 1.5px (consistent with icons)
 - Max size: 200px × 200px
-- Colors: Primary #2272B4, Secondary #6B7280
+- Primary: #2272B4 (Blue-600)
+- Secondary: #618794 (Navy-500)
 - Simple, geometric shapes
 - Avoid detailed illustrations
 
@@ -461,7 +465,7 @@ Create simple, line-art style illustrations for:
 │              └──────────────────────┘                      │
 │                                                             │
 │              "No data available"                            │
-│              Body-sm, #6B7280                               │
+│              Body-sm, Navy-500 (#618794)                    │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -470,14 +474,57 @@ Create simple, line-art style illustrations for:
 
 ## 🎨 Figma Make Prompts
 
-### PROMPT 1: Icon Component Setup (Run First)
+### ⚠️ IMPORTANT: Hybrid Icon Workflow
+
+**Figma Make cannot import external SVG files.** Use this hybrid approach:
+
+1. **Figma Make** → Creates placeholder icons with correct names/sizes/colors
+2. **Manual Import** → After generation, import real Databricks SVGs
+3. **Replace** → Swap placeholders with actual icons
+
+---
+
+### PROMPT 1: Icon Component Setup + Databricks Placeholders (Run First)
 
 ```
-Create icon component library with size and color variants.
+Create icon component library with placeholder icons for Databricks Health Monitor.
 
 PAGE: Assets/Icons
 
-ICON COMPONENT STRUCTURE:
+SECTION 1: DATABRICKS BRAND ICONS (Placeholders to replace later)
+Create simple placeholder shapes for these Databricks-specific icons.
+Each placeholder should be a labeled rectangle or simple shape that will be 
+replaced with actual SVGs after generation.
+
+Create components named:
+- "db/Observable Metrics" - Diamond with pulse line inside (for Health Score)
+- "db/Cost Management" - Dollar sign in circle (for Cost domain)
+- "db/Cost" - Coin icon (for cost indicators)
+- "db/Performance" - Speedometer/gauge (for Reliability)
+- "db/Governance" - Shield with checkmark (for Governance domain)
+- "db/Data Quality 1" - Checklist with star (for Quality domain)
+- "db/Data Security" - Lock with shield (for Security)
+- "db/Machine Learning" - Brain with nodes (for ML features)
+- "db/MLOps" - Gear with brain (for MLOps)
+- "db/Delta Lake" - Triangle/delta shape (for Delta tables)
+- "db/Unity Catalog" - Catalog book icon (for UC)
+- "db/Lakeflow Pipelines" - Flow arrows (for DLT)
+- "db/Databricks Workspace" - Grid workspace (for workspace)
+- "db/Serverless" - Cloud lightning (for serverless)
+- "db/Spark Cluster" - Cluster nodes (for clusters)
+- "db/Deploy" - Rocket/arrow up (for deploy actions)
+- "db/Automation" - Gear with play (for automation)
+- "db/Runbook Playbook" - Book with steps (for playbooks)
+- "db/Incident Investigation" - Magnifier with alert (for incidents)
+- "db/Help" - Question mark circle (for help)
+
+Each placeholder:
+- Size: 24px × 24px (md default)
+- Stroke: 1.5px, #0B2026 (Navy-900)
+- Simple recognizable shape
+- Named with "db/" prefix for easy identification
+
+SECTION 2: ICON COMPONENT STRUCTURE
 Create a master icon component with these properties:
 
 Property 1: size
@@ -503,6 +550,35 @@ All icons should:
 - Be centered in frame
 - Support color inheritance from parent
 ```
+
+---
+
+### STEP 2: Manual Icon Import (After Figma Make)
+
+After Figma Make generates the design, manually import real icons:
+
+**Option A: Drag and Drop**
+1. Open Figma project
+2. Navigate to Assets/Icons page
+3. Drag SVG files from `context/branding/primary_icons/` onto canvas
+4. Replace placeholder components with real icons
+
+**Option B: Copy-Paste SVG Code**
+1. Open SVG file in text editor (e.g., VS Code)
+2. Copy entire SVG code
+3. In Figma, press Cmd+V (Mac) or Ctrl+V (Windows)
+4. SVG pastes as vector
+
+**Option C: Figma Plugin "SVG Import"**
+1. Install "Insert SVG" or "Icons8" plugin from Figma Community
+2. Use plugin to batch import SVGs
+
+**After importing, for each icon:**
+1. Select imported SVG
+2. Right-click → "Create Component"
+3. Rename to match placeholder (e.g., "db/Observable Metrics")
+4. Add size variants using Component Properties
+5. Delete original placeholder
 
 ---
 
@@ -753,14 +829,14 @@ Plus, X, Check, Pencil, Trash2, Copy, Download, Upload, Share2, ExternalLink, Re
 STATUS ICONS (Create these from Lucide, with color variants):
 AlertCircle (5 colors), AlertTriangle (5 colors), Info (2 colors), CheckCircle (2 colors), XCircle, HelpCircle, Clock, Loader2, Circle, CircleDot, Ban, PauseCircle
 
-Color variants for status:
-- critical: #DC2626
-- high: #F97316
-- warning: #F59E0B
-- low: #3B82F6
-- success: #10B981
-- info: #2272B4
-- default: #6B7280
+Color variants for status (Official Databricks):
+- critical: #FF3621 (Lava-600)
+- high: #FF5F46 (Lava-500)
+- warning: #FFAB00 (Yellow-600)
+- low: #2272B4 (Blue-600)
+- success: #00A972 (Green-600)
+- info: #2272B4 (Blue-600)
+- default: #618794 (Navy-500)
 
 DOMAIN ICONS (Create these from Lucide):
 Wallet, TrendingUp, TrendingDown, Server, Database, HardDrive, Gauge, Timer, Cpu, Lock, Unlock, Key, FileCheck, FileWarning, FileX
@@ -801,7 +877,7 @@ LOGO VARIANTS:
    - Width: 240px, Height: 32px
    - [Diamond icon] + "Databricks Health Monitor"
    - Font: DM Sans Bold 16px ✅
-   - Color variants: dark (#111827), light (#FFFFFF), brand (#2272B4)
+   - Color variants: dark (#0B2026 Navy-900), light (#FFFFFF), brand (#2272B4 Blue-600)
 
 2. Compact Logo
    - Width: 160px, Height: 32px
@@ -830,7 +906,9 @@ Create 7 simple line illustrations (200px × 200px max):
 7. Maintenance - Wrench and gear
 
 Style:
-- Stroke: 1.5px, #2272B4 primary, #6B7280 secondary
+- Stroke: 1.5px
+- Primary color: #2272B4 (Blue-600)
+- Secondary color: #618794 (Navy-500)
 - No fills (line art only)
 - Simple geometric shapes
 - Each illustration should be a component
@@ -840,24 +918,47 @@ Style:
 
 ## ✅ Verification Checklist
 
-After running the prompt, verify:
+After running the prompts, verify:
 
-### Icon Library
-- [ ] 132 icons created total (was 89, +43 new)
-- [ ] Each icon has 5 size variants (xs, sm, md, lg, xl)
-- [ ] Status icons have color variants
-- [ ] Icons use stroke (not fill)
-- [ ] Icons are properly named and organized in 13 folders
+### Prompt Execution Order
+1. [ ] **PROMPT 1:** Icon Component Setup (created size/color variants)
+2. [ ] **Import:** Paste Databricks Primary Icons from `context/branding/primary_icons/`
+3. [ ] **PROMPT 2:** Icon-to-Feature Mapping (applied to domains, platform, actions)
+4. [ ] **PROMPT 3:** Status Indicator Icons (applied to alerts, health badges)
+5. [ ] **PROMPT 4:** Navigation Bar Icons (sidebar complete)
+6. [ ] **PROMPT 5:** Resource Topology Node Icons (if using topology)
+7. [ ] **PROMPT 6:** AI/Chat Interface Icons (chat features complete)
+8. [ ] **PROMPT 7:** Quick Reference Table (for developer handoff)
+9. [ ] **PROMPT 8:** Lucide Icon Library (UI controls complete)
 
-### New Icon Categories (Super-Enhanced)
-- [ ] Resolution (12 icons) - for multi-step workflows
-- [ ] Evidence (10 icons) - for analysis and correlation
-- [ ] Time (8 icons) - for scheduling and compare mode
-- [ ] View (10 icons) - for view mode toggles
-- [ ] Interaction (8 icons) - for save, pin, voice features
+### Icon Colors Applied (Official Databricks)
+- [ ] Default icons use: #0B2026 (Navy-900)
+- [ ] Interactive icons use: #2272B4 (Blue-600)
+- [ ] Success icons use: #00A972 (Green-600)
+- [ ] Warning icons use: #FFAB00 (Yellow-600)
+- [ ] Critical icons use: #FF3621 (Lava-600)
+- [ ] Muted icons use: #618794 (Navy-500)
+
+### Icon Sizes Applied
+- [ ] xs (12px) for inline badges
+- [ ] sm (16px) for buttons/table cells
+- [ ] md (24px) for navigation/cards (default)
+- [ ] lg (32px) for headers
+- [ ] xl (48px) for hero/empty states
+
+### Databricks Primary Icons Imported
+- [ ] Observable Metrics (Health Score)
+- [ ] Cost Management (Cost Domain)
+- [ ] Performance (Reliability)
+- [ ] Governance (Governance Domain)
+- [ ] Data Quality 1 (Quality Domain)
+- [ ] Data Security (Security Findings)
+- [ ] Delta Lake, Unity Catalog, Lakeflow Pipelines
+- [ ] Deploy, Automation, Runbook Playbook
+- [ ] Machine Learning, MLOps, Model Registry
 
 ### Logo Assets
-- [ ] Full logo (3 colors)
+- [ ] Full logo (3 colors: dark, light, brand)
 - [ ] Compact logo (3 colors)
 - [ ] Icon only (4 sizes × 3 colors)
 
@@ -865,7 +966,7 @@ After running the prompt, verify:
 - [ ] 7 empty state illustrations
 - [ ] Consistent line art style
 - [ ] 200px max dimensions
-- [ ] Using brand colors
+- [ ] Using brand colors (#2272B4 Blue-600, #618794 Navy-500)
 
 ### Component Structure
 - [ ] All assets are components (not just groups)

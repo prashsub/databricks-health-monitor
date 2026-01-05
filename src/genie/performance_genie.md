@@ -191,6 +191,24 @@ ORDER BY window.start DESC;
 | `fact_warehouse_events` | Warehouse lifecycle events | Per event | query_performance/fact_warehouse_events.yaml |
 | `fact_node_timeline` | Node utilization metrics | Per node per minute | compute/fact_node_timeline.yaml |
 
+### Data Model Relationships 🔗
+
+**Foreign Key Constraints** (extracted from `gold_layer_design/yaml/`)
+
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_query_history` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_query_history` | → | `dim_warehouse` | `(workspace_id, warehouse_id)` = `(workspace_id, warehouse_id)` | LEFT |
+| `fact_warehouse_events` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_warehouse_events` | → | `dim_warehouse` | `(workspace_id, warehouse_id)` = `(workspace_id, warehouse_id)` | LEFT |
+| `fact_node_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_node_timeline` | → | `dim_cluster` | `(workspace_id, cluster_id)` = `(workspace_id, cluster_id)` | LEFT |
+| `fact_node_timeline` | → | `dim_node_type` | `node_type_id` = `node_type_id` | LEFT |
+
+**Join Patterns:**
+- **Single Key:** `ON fact.key = dim.key`
+- **Composite Key (workspace-scoped):** `ON fact.workspace_id = dim.workspace_id AND fact.fk = dim.pk`
+
 ---
 
 ## ████ SECTION E: ASSET SELECTION FRAMEWORK ████

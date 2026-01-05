@@ -162,6 +162,30 @@ ORDER BY window.start DESC;
 | `fact_listing_access` | Marketplace listing access | Per access | marketplace/fact_listing_access.yaml |
 | `fact_listing_funnel` | Marketplace funnel events | Per funnel event | marketplace/fact_listing_funnel.yaml |
 
+### Data Model Relationships 🔗
+
+**Foreign Key Constraints** (extracted from `gold_layer_design/yaml/`)
+
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_table_lineage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_column_lineage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_dq_monitoring` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_data_quality_monitoring_table_results` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_data_classification` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_mlflow_runs` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_mlflow_runs` | → | `dim_experiment` | `(workspace_id, experiment_id)` = `(workspace_id, experiment_id)` | LEFT |
+| `fact_mlflow_run_metrics_history` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_endpoint_usage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_endpoint_usage` | → | `dim_served_entities` | `(workspace_id, endpoint_id)` = `(workspace_id, endpoint_id)` | LEFT |
+| `fact_payload_logs` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_predictive_optimization` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+
+**Join Patterns:**
+- **Workspace scope:** All data quality facts join to `dim_workspace` on `workspace_id`
+- **Experiment scope:** `fact_mlflow_runs` joins to `dim_experiment` on `(workspace_id, experiment_id)`
+- **Model serving:** `fact_endpoint_usage` joins to `dim_served_entities` on `(workspace_id, endpoint_id)`
+
 ---
 
 ## ████ SECTION E: ASSET SELECTION FRAMEWORK ████

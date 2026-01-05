@@ -1514,7 +1514,7 @@
         },
         {
           "widget": {
-            "name": "chart_sku_breakdown",
+            "name": "chart_product_breakdown",
             "queries": [
               {
                 "name": "main_query",
@@ -1522,8 +1522,8 @@
                   "datasetName": "ds_sku_breakdown",
                   "fields": [
                     {
-                      "name": "sku_name",
-                      "expression": "`sku_name`"
+                      "name": "product",
+                      "expression": "`product`"
                     },
                     {
                       "name": "total_cost",
@@ -1539,8 +1539,8 @@
               "widgetType": "pie",
               "encodings": {
                 "color": {
-                  "fieldName": "sku_name",
-                  "displayName": "SKU"
+                  "fieldName": "product",
+                  "displayName": "Billing Origin Product"
                 },
                 "angle": {
                   "fieldName": "total_cost",
@@ -1549,7 +1549,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udce6 Spend by SKU"
+                "title": "📦 Spend by Billing Origin Product"
               }
             }
           },
@@ -5521,8 +5521,8 @@
     },
     {
       "name": "ds_sku_breakdown",
-      "displayName": "SKU Breakdown",
-      "query": "SELECT sku_name, ROUND(SUM(f.list_cost), 2) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max GROUP BY sku_name ORDER BY total_cost DESC LIMIT 10",
+      "displayName": "Billing Origin Product Breakdown",
+      "query": "SELECT COALESCE(billing_origin_product, 'Unknown') AS product, ROUND(SUM(f.list_cost), 2) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.usage_date BETWEEN :time_range.min AND :time_range.max GROUP BY billing_origin_product ORDER BY total_cost DESC LIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6092,7 +6092,7 @@
     {
       "name": "ds_ml_anomalies",
       "displayName": "ML: Cost Anomalies",
-      "query": "WITH anomalies AS (\n  SELECT \n    a.workspace_id,\n    DATE(a.scored_at) AS usage_date,\n    a.prediction AS anomaly_score,\n    CASE \n      WHEN a.prediction < -0.5 THEN 'HIGH'\n      WHEN a.prediction < 0 THEN 'MEDIUM'\n      ELSE 'NORMAL'\n    END AS severity\n  FROM ${catalog}.${feature_schema}.cost_anomaly_predictions a\n  WHERE a.scored_at >= :time_range.min AND a.scored_at <= :time_range.max\n),\nworkspace_usage AS (\n  SELECT \n    f.workspace_id,\n    DATE(f.usage_date) AS usage_date,\n    MAX(f.sku_name) AS top_sku,\n    SUM(f.list_cost) AS daily_cost,\n    MAX(f.billing_origin_product) AS cost_driver,\n    MAX(COALESCE(f.usage_metadata_job_id, f.usage_metadata_warehouse_id)) AS resource_id\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.usage_date >= :time_range.min AND f.usage_date <= :time_range.max\n  GROUP BY f.workspace_id, DATE(f.usage_date)\n)\nSELECT \n  DATE(a.usage_date) AS usage_date,\n  COALESCE(w.workspace_name, CAST(a.workspace_id AS STRING)) AS workspace_name,\n  COALESCE(u.top_sku, 'Unknown') AS sku_name,\n  ROUND(ABS(a.anomaly_score), 2) AS anomaly_score,\n  a.severity,\n  ROUND(COALESCE(u.daily_cost, 0), 2) AS daily_cost,\n  CONCAT(COALESCE(u.cost_driver, 'N/A'), ': ', COALESCE(u.resource_id, 'N/A')) AS cost_driver,\n  CASE a.severity\n    WHEN 'HIGH' THEN 'Immediate review required - investigate top cost driver'\n    WHEN 'MEDIUM' THEN 'Monitor closely - check for unusual patterns'\n    ELSE 'Normal spending pattern'\n  END AS recommended_action\nFROM anomalies a\nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON a.workspace_id = w.workspace_id\nLEFT JOIN workspace_usage u ON a.workspace_id = u.workspace_id AND a.usage_date = u.usage_date\nWHERE a.severity IN ('HIGH', 'MEDIUM')\nORDER BY a.anomaly_score ASC\nLIMIT 50",
+      "query": "WITH anomalies AS (\n  SELECT \n    a.workspace_id,\n    DATE(a.scored_at) AS usage_date,\n    a.prediction AS anomaly_score,\n    CASE \n      WHEN a.prediction > 0.7 THEN 'HIGH'\n      WHEN a.prediction > 0.5 THEN 'MEDIUM'\n      WHEN a.prediction > 0.3 THEN 'LOW'\n      ELSE 'NORMAL'\n    END AS severity\n  FROM ${catalog}.${feature_schema}.cost_anomaly_predictions a\n  WHERE a.scored_at >= :time_range.min AND a.scored_at <= :time_range.max\n),\nworkspace_usage AS (\n  SELECT \n    f.workspace_id,\n    DATE(f.usage_date) AS usage_date,\n    MAX(f.sku_name) AS top_sku,\n    SUM(f.list_cost) AS daily_cost,\n    MAX(f.billing_origin_product) AS cost_driver,\n    MAX(COALESCE(f.usage_metadata_job_id, f.usage_metadata_warehouse_id)) AS resource_id\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  WHERE f.usage_date >= :time_range.min AND f.usage_date <= :time_range.max\n  GROUP BY f.workspace_id, DATE(f.usage_date)\n)\nSELECT \n  DATE(a.usage_date) AS usage_date,\n  COALESCE(w.workspace_name, CAST(a.workspace_id AS STRING)) AS workspace_name,\n  COALESCE(u.top_sku, 'Unknown') AS sku_name,\n  ROUND(a.anomaly_score, 2) AS anomaly_score,\n  a.severity,\n  ROUND(COALESCE(u.daily_cost, 0), 2) AS daily_cost,\n  CONCAT(COALESCE(u.cost_driver, 'N/A'), ': ', COALESCE(u.resource_id, 'N/A')) AS cost_driver,\n  CASE a.severity\n    WHEN 'HIGH' THEN 'Immediate review required - investigate top cost driver'\n    WHEN 'MEDIUM' THEN 'Monitor closely - check for unusual patterns'\n    WHEN 'LOW' THEN 'Watch for developing pattern'\n    ELSE 'Normal spending pattern'\n  END AS recommended_action\nFROM anomalies a\nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON a.workspace_id = w.workspace_id\nLEFT JOIN workspace_usage u ON a.workspace_id = u.workspace_id AND a.usage_date = u.usage_date\nWHERE a.severity IN ('HIGH', 'MEDIUM', 'LOW')\nORDER BY a.anomaly_score DESC\nLIMIT 50",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6171,7 +6171,7 @@
     {
       "name": "ds_ml_tag_recs",
       "displayName": "ML: Tag Recommendations",
-      "query": "WITH ml_predictions AS (\n  SELECT \n    *,\n    ROW_NUMBER() OVER (PARTITION BY COALESCE(job_id, workspace_id, 'unknown') ORDER BY scored_at DESC) AS rn\n  FROM ${catalog}.${feature_schema}.tag_recommendations\n  WHERE scored_at >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\nrecent_predictions AS (\n  SELECT * FROM ml_predictions WHERE rn = 1\n),\njob_costs AS (\n  SELECT \n    f.usage_metadata_job_id AS job_id,\n    f.workspace_id,\n    COALESCE(j.name, f.usage_metadata_job_id) AS job_name,\n    COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS total_cost,\n    MAX(f.sku_name) AS primary_sku,\n    COUNT(DISTINCT DATE(f.usage_date)) AS active_days\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.usage_metadata_job_id = j.job_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND f.usage_metadata_job_id IS NOT NULL\n  GROUP BY 1, 2, 3, 4\n)\nSELECT \n  COALESCE(jc.job_name, CAST(p.job_id AS STRING), 'Unknown') AS job_name,\n  COALESCE(jc.workspace_name, CAST(p.workspace_id AS STRING), 'Unknown') AS workspace_name,\n  ROUND(COALESCE(jc.total_cost, 0), 2) AS total_cost,\n  COALESCE(jc.primary_sku, 'N/A') AS primary_sku,\n  CASE \n    WHEN p.prediction > 0.8 THEN 'team=engineering'\n    WHEN p.prediction > 0.6 THEN 'team=analytics'\n    WHEN p.prediction > 0.4 THEN 'team=ml-ops'\n    ELSE 'team=data-platform'\n  END AS recommended_tag,\n  ROUND(p.prediction, 2) AS confidence,\n  CASE \n    WHEN p.prediction > 0.8 THEN 'HIGH - ML model strongly recommends tagging'\n    WHEN p.prediction > 0.5 THEN 'MEDIUM - ML model suggests tagging'\n    ELSE 'LOW - Lower confidence recommendation'\n  END AS priority,\n  CONCAT('ML Score: ', ROUND(p.prediction * 100, 0), '%. Active ', COALESCE(jc.active_days, 0), ' days. Cost: $', ROUND(COALESCE(jc.total_cost, 0), 0)) AS rationale,\n  p.scored_at\nFROM recent_predictions p\nLEFT JOIN job_costs jc ON p.job_id = jc.job_id AND p.workspace_id = jc.workspace_id\nWHERE p.prediction > 0.3\nORDER BY p.prediction DESC, jc.total_cost DESC NULLS LAST\nLIMIT 30"
+      "query": "WITH ml_predictions AS (\n  SELECT \n    job_id,\n    workspace_id,\n    predicted_tag,\n    scored_at,\n    ROW_NUMBER() OVER (PARTITION BY COALESCE(job_id, CAST(workspace_id AS STRING), 'unknown') ORDER BY scored_at DESC) AS rn\n  FROM ${catalog}.${feature_schema}.tag_recommendations\n  WHERE scored_at >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\nrecent_predictions AS (\n  SELECT * FROM ml_predictions WHERE rn = 1\n),\njob_costs AS (\n  SELECT \n    f.usage_metadata_job_id AS job_id,\n    f.workspace_id,\n    COALESCE(j.name, f.usage_metadata_job_id) AS job_name,\n    COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS total_cost,\n    MAX(f.sku_name) AS primary_sku,\n    COUNT(DISTINCT DATE(f.usage_date)) AS active_days\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.usage_metadata_job_id = j.job_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND f.usage_metadata_job_id IS NOT NULL\n  GROUP BY 1, 2, 3, 4\n)\nSELECT \n  COALESCE(jc.job_name, CAST(p.job_id AS STRING), 'Unknown') AS job_name,\n  COALESCE(jc.workspace_name, CAST(p.workspace_id AS STRING), 'Unknown') AS workspace_name,\n  ROUND(COALESCE(jc.total_cost, 0), 2) AS total_cost,\n  COALESCE(jc.primary_sku, 'N/A') AS primary_sku,\n  COALESCE(p.predicted_tag, 'team=untagged') AS recommended_tag,\n  1.0 AS confidence,\n  CASE \n    WHEN jc.total_cost > 1000 THEN 'HIGH - High cost job needs tagging'\n    WHEN jc.total_cost > 100 THEN 'MEDIUM - Moderate cost job should be tagged'\n    ELSE 'LOW - Low cost job'\n  END AS priority,\n  CONCAT('ML Recommended: ', COALESCE(p.predicted_tag, 'N/A'), '. Active ', COALESCE(jc.active_days, 0), ' days. Cost: $', ROUND(COALESCE(jc.total_cost, 0), 0)) AS rationale,\n  p.scored_at\nFROM recent_predictions p\nLEFT JOIN job_costs jc ON p.job_id = jc.job_id AND p.workspace_id = jc.workspace_id\nWHERE p.predicted_tag IS NOT NULL\nORDER BY jc.total_cost DESC NULLS LAST, p.scored_at DESC\nLIMIT 30"
     },
     {
       "name": "ds_ml_user_behavior",

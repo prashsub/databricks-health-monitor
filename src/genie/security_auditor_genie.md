@@ -160,6 +160,24 @@ ORDER BY window.start DESC;
 | `fact_inbound_network` | Inbound network traffic | Per connection | security/fact_inbound_network.yaml |
 | `fact_outbound_network` | Outbound network traffic | Per connection | security/fact_outbound_network.yaml |
 
+### Data Model Relationships 🔗
+
+**Foreign Key Constraints** (extracted from `gold_layer_design/yaml/security/`)
+
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_audit_logs` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_audit_logs` | → | `dim_user` | `user_identity_email` = `email` | LEFT |
+| `fact_table_lineage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_assistant_events` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_clean_room_events` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_inbound_network` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_outbound_network` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+
+**Join Patterns:**
+- **Workspace scope:** All security facts join to `dim_workspace` on `workspace_id`
+- **User identity:** `fact_audit_logs` joins to `dim_user` on email for user details
+
 ---
 
 ## ████ SECTION E: ASSET SELECTION FRAMEWORK ████
