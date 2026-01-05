@@ -76,11 +76,11 @@
 
 | Table Name | Purpose | Model | Key Columns |
 |---|---|---|---|
-| `job_failure_predictions` | Predicted failure probability before execution | Job Failure Predictor | `failure_probability`, `will_fail`, `risk_factors`, `job_name` |
-| `retry_success_predictions` | Predict whether failed job will succeed on retry | Retry Success Predictor | `retry_success_prob`, `error_type`, `termination_code` |
-| `pipeline_health_scores` | Overall pipeline/job health scores (0-100) | Pipeline Health Scorer | `health_score`, `health_status`, `trend_indicator` |
-| `incident_impact_predictions` | Estimate blast radius of job failures | Incident Impact Estimator | `affected_jobs`, `downstream_consumers`, `severity` |
-| `self_healing_recommendations` | Recommend self-healing actions with confidence | Self-Healing Recommender | `recommended_action`, `confidence`, `success_probability` |
+| `job_failure_predictions` | Predicted failure probability before execution | Job Failure Predictor | `prediction`, `job_id`, `run_date` |
+| `duration_predictions` | Predicted job duration in seconds | Job Duration Forecaster | `prediction`, `job_id`, `run_date` |
+| `sla_breach_predictions` | Predicted SLA breach probability | SLA Breach Predictor | `prediction`, `job_id`, `run_date` |
+| `retry_success_predictions` | Predict whether failed job will succeed on retry | Retry Success Predictor | `prediction`, `job_id`, `run_date` |
+| `pipeline_health_predictions` | Overall pipeline/job health scores (0-100) | Pipeline Health Scorer | `prediction`, `job_id`, `run_date` |
 
 **Training Source:** `src/ml/reliability/` | **Inference:** `src/ml/inference/batch_inference_all_models.py`
 
@@ -160,6 +160,25 @@ ORDER BY window.start DESC;
 | `fact_job_run_timeline` | Job execution history | Per run | lakeflow/fact_job_run_timeline.yaml |
 | `fact_job_task_run_timeline` | Task execution history | Per task run | lakeflow/fact_job_task_run_timeline.yaml |
 | `fact_pipeline_update_timeline` | DLT pipeline updates | Per pipeline update | lakeflow/fact_pipeline_update_timeline.yaml |
+
+### Data Model Relationships 🔗
+
+**Foreign Key Constraints** (extracted from `gold_layer_design/yaml/lakeflow/`)
+
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_job_run_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_job_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
+| `fact_job_task_run_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_job_task_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
+| `fact_job_task_run_timeline` | → | `dim_job_task` | `(workspace_id, job_id, task_key)` = `(workspace_id, job_id, task_key)` | LEFT |
+| `fact_pipeline_update_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_pipeline_update_timeline` | → | `dim_pipeline` | `(workspace_id, pipeline_id)` = `(workspace_id, pipeline_id)` | LEFT |
+
+**Join Patterns:**
+- **Single Key:** `ON fact.key = dim.key`
+- **Composite Key (workspace-scoped):** `ON fact.workspace_id = dim.workspace_id AND fact.fk = dim.pk`
+- **Three-Part Key (task-level):** `ON fact.workspace_id = dim.workspace_id AND fact.job_id = dim.job_id AND fact.task_key = dim.task_key`
 
 ---
 

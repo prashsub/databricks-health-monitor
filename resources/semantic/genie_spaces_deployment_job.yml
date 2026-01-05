@@ -36,6 +36,7 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
         
         # Task 2: Deploy all Genie Spaces from JSON exports (only if validation passes)
         - task_key: deploy_genie_spaces
@@ -47,6 +48,7 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
               warehouse_id: ${var.warehouse_id}
               genie_space_json: ""  # Empty = deploy all *_export.json files
       

@@ -4,6 +4,166 @@ Tracking all dashboard modifications, issues, and fixes for the Databricks Healt
 
 ---
 
+## Quality Dashboard Table Health Overview Fix - January 5, 2026
+
+### Issues Fixed
+
+| Visual | Error | Root Cause | Fix Applied |
+|--------|-------|------------|-------------|
+| **Largest Tables** | `spec/encodings/columns/0 must NOT have additional properties` | Widget `version: 1` and missing `type` fields in columns | Updated to `version: 2`, added `type` field to all columns |
+| **Tables Needing Optimization** | `spec/encodings/columns/0 must NOT have additional properties` | Widget `version: 1` and missing `type` fields in columns | Updated to `version: 2`, added `type` field to all columns |
+| **Empty Tables** | `spec/encodings/columns/0 must NOT have additional properties` | Widget `version: 1` and missing `type` fields in columns | Updated to `version: 2`, added `type` field to all columns |
+
+### Key Insight
+
+Table widgets in Lakeview AI/BI dashboards **MUST use `version: 2`** and **MUST include `type` property** on every column encoding. The valid types are:
+- `"type": "string"` - for text columns
+- `"type": "number"` - for numeric columns
+- `"type": "datetime"` - for date/timestamp columns (can include `dateTimeFormat`)
+
+### Files Modified
+- `src/dashboards/quality.lvdash.json`
+
+---
+
+## Security Dashboard ML Visuals Complete Rewrite - January 5, 2026 (Part 3)
+
+### Issues Fixed
+
+| Visual | Error | Root Cause | Fix Applied |
+|--------|-------|------------|-------------|
+| **ML: Threat Detection** | `UNBOUND_SQL_PARAMETER` for time_range | Missing `parameters` array in dataset | Added time_range parameter definition |
+| **ML: Data Exfiltration Risk** | Placeholder data (all 1000.00, HIGH, 1.00) | Query derived from ML predictions alone | Rewrote to analyze actual data access patterns from audit logs |
+| **ML: Privilege Escalation Risk** | Placeholder data (all "User", HIGH, 1.00) | Query derived from ML predictions alone | Rewrote to analyze actual permission/IAM activity from audit logs |
+
+### Complete Query Rewrites
+
+**ML: Threat Detection:**
+- Changed from ML predictions to actual audit log behavior analysis
+- Detects: failed actions (>5), access denials (>10), destructive operations (>3)
+- New columns: `incident_summary` (evidence counts), `last_action`, `affected_service`, `recommended_action`
+- Threat types: "Potential Data Breach", "Data Destruction Risk", "Privilege Abuse", "Suspicious Activity"
+
+**ML: Data Exfiltration Risk:**
+- Changed from ML predictions to data access pattern analysis
+- Detects: high read operations (>100), export operations (>10), multiple IP addresses
+- New columns: `access_pattern` (exports, reads, IPs), `last_action`, `accessed_service`, `recommended_action`
+- Risk levels based on actual export volume and access diversity
+
+**ML: Privilege Escalation Risk:**
+- Changed from ML predictions to permission/IAM activity analysis
+- Detects: permission changes (>5), admin actions, IAM service events (>10)
+- New columns: `activity_summary` (permission changes, admin actions, IAM events), `last_action`, `target_service`, `recommended_action`
+- Role inference: Admin, IAM User, Power User, User
+
+### Actionability Improvements
+
+| Visual | Before | After |
+|--------|--------|-------|
+| **Threat Detection** | Generic threat types, static scores | Evidence-based threats with specific incident counts, last suspicious action, service affected |
+| **Data Exfiltration** | Fake 1000 volume, 1.00 score | Actual read/export operation counts, access patterns, source IPs |
+| **Privilege Escalation** | All "User" role, 1.00 confidence | Inferred role from behavior, specific permission changes, IAM activity summary |
+
+### Key Pattern
+
+**Problem:** ML prediction tables only contain:
+- Lookup keys (user_id, etc.)
+- `prediction` (0-1 model output)
+- `scored_at` timestamp
+
+**Solution:** When ML predictions lack actionable context:
+1. Use actual data from Gold layer tables (fact_audit_logs)
+2. Aggregate user behavior patterns with HAVING thresholds
+3. Derive threat types, risk levels, and recommendations from actual behavior
+4. Include specific incident summaries and last actions for investigation
+
+---
+
+## Cost Dashboard ML Visuals Fixes - January 5, 2026 (Part 2)
+
+### Issues Fixed
+
+| Visual | Error | Root Cause | Fix Applied |
+|--------|-------|------------|-------------|
+| **ML: Tag Recommendations** | `DATATYPE_MISMATCH` comparing MAP with STRING | `custom_tags` is MAP type, was comparing with `'{}'` | Changed to `SIZE(f.custom_tags) = 0` |
+| **ML: Tag Recommendations** | `j.job_name` cannot be resolved | Column in `dim_job` is `name`, not `job_name` | Changed to `j.name` |
+| **ML: Migration Recommendations** | `usage_quantity_unit` cannot be resolved | Column in `fact_usage` is `usage_unit` | Changed to `usage_unit` |
+| **ML: Detected Cost Anomalies** | No data displayed | Query structure is correct; likely no anomalies (negative predictions) in the data | Verified query - no code changes needed |
+
+### How Budget Alert Priorities Works
+
+The **Budget Alert Priorities** table provides proactive cost management by:
+
+1. **Data Source:** Analyzes MTD (Month-to-Date) spend from `fact_usage` grouped by workspace
+
+2. **Calculation Logic:**
+   - `mtd_spend`: Sum of `list_cost` for current month
+   - `projected_spend`: Extrapolates to full month: `(MTD spend / days elapsed) × 30`
+   - `burn_rate`: `projected_spend / mtd_spend` ratio
+
+3. **Alert Priority Classification:**
+   - **HIGH**: `projected_spend > mtd_spend × 1.5` (50%+ overspend projection)
+   - **MEDIUM**: `projected_spend > mtd_spend × 1.2` (20-50% overspend)
+   - **LOW**: Spend appears on track
+
+4. **Business Value:**
+   - Early warning for budget overruns
+   - Identifies workspaces needing immediate attention
+   - Shows `top_sku` to pinpoint cost drivers
+   - `days_to_budget` shows time remaining to take corrective action
+
+---
+
+## Unified Dashboard ML Visuals Final Fixes - January 5, 2026
+
+### Issues Fixed
+
+| Visual | Error | Root Cause | Fix Applied |
+|--------|-------|------------|-------------|
+| **ML: Capacity Recommendations** | `w.cluster_size` cannot be resolved | Column name in dim_warehouse is `warehouse_size`, not `cluster_size` | Changed to `w.warehouse_size` |
+| **ML: Jobs at Risk** | `error_message` cannot be resolved | fact_job_run_timeline doesn't have `error_message` column | Changed to `termination_code` |
+| **ML: Cost Anomalies Detected** | VECTOR_SEARCH showing multiple times with same cost | Query was showing duplicate rows without specificity | Complete rewrite - now shows top 5 cost drivers per workspace with unique identification |
+| **ML: Security Threats** | Users showing 2M+ failed actions | `is_failed_action` was counting ALL failed actions, not security-specific ones | Refined to count only `response_result = 'denied'` events and security-specific actions |
+
+### Query Improvements
+
+**ML: Capacity Recommendations:**
+- Changed `w.cluster_size` → `w.warehouse_size` (correct column name)
+- Added `min_clusters` and `max_clusters` to resource_type display
+- Enhanced rationale with cluster configuration details
+
+**ML: Jobs at Risk:**
+- Changed `error_message` → `termination_code` (column that exists in schema)
+- Updated `last_error_preview` to show termination code instead of non-existent error message
+
+**ML: Cost Anomalies Detected:**
+- Completely rewrote query to be data-driven from `fact_usage`
+- Removed dependency on unreliable ML predictions table
+- Added proper deduplication by showing top 5 cost drivers per workspace
+- Made `cost_driver` specific with actual resource IDs: "Job ID: X", "Warehouse ID: Y", or "SKU: Z"
+- Added `daily_cost` as numeric value (not formatted string)
+- Enhanced `rationale` with SKU name, 7-day total, and resource identifier
+
+**ML: Security Threats:**
+- Reduced time window from 30 days to 7 days for more focused analysis
+- Changed from counting all `is_failed_action` to specifically counting:
+  - `response_result = 'denied'` events
+  - Destructive actions: deleteTable, deleteSchema, deleteCatalog, etc.
+  - Permission changes: updatePermissions, grantPermission, etc.
+- Added minimum thresholds in HAVING clause to filter noise:
+  - >5 access denials OR
+  - >2 destructive actions OR  
+  - >3 permission changes
+- Updated scoring formula to weight based on security impact
+- Improved recommended_action to be more specific
+
+### Validation
+
+- All queries validated via `databricks bundle validate`
+- Dashboard deployment successful for all 6 dashboards
+
+---
+
 ## Cost & Commitment ML Visuals Complete Overhaul - January 4, 2026
 
 ### Issues Fixed

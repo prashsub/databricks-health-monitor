@@ -15,7 +15,7 @@ from typing import List, Dict, Tuple
 from pyspark.sql import SparkSession
 
 
-def extract_benchmark_queries_from_json(json_path: Path, catalog: str, gold_schema: str) -> List[Dict]:
+def extract_benchmark_queries_from_json(json_path: Path, catalog: str, gold_schema: str, feature_schema: str = None) -> List[Dict]:
     """Extract all benchmark SQL queries from a Genie Space JSON export file."""
     
     with open(json_path, 'r') as f:
@@ -23,6 +23,10 @@ def extract_benchmark_queries_from_json(json_path: Path, catalog: str, gold_sche
     
     queries = []
     genie_space_name = json_path.stem.replace('_genie_export', '')
+    
+    # Default feature_schema to gold_schema + "_ml" if not provided
+    if feature_schema is None:
+        feature_schema = f"{gold_schema}_ml"
     
     # Extract benchmarks section
     benchmarks = data.get('benchmarks', {})
@@ -50,9 +54,11 @@ def extract_benchmark_queries_from_json(json_path: Path, catalog: str, gold_sche
         sql_lines = answer.get('content', [])
         sql_query = ''.join(sql_lines)
         
-        # Substitute variables
+        # Substitute variables (order matters - more specific first)
         sql_query = sql_query.replace('${catalog}', catalog)
         sql_query = sql_query.replace('${gold_schema}', gold_schema)
+        sql_query = sql_query.replace('${feature_schema}', feature_schema)
+        sql_query = sql_query.replace('${ml_schema}', feature_schema)  # Legacy alias
         
         queries.append({
             'genie_space': genie_space_name,
@@ -219,7 +225,7 @@ def generate_validation_report(results: List[Dict]) -> str:
     return "\n".join(report)
 
 
-def validate_all_genie_benchmarks(genie_dir: Path, catalog: str, gold_schema: str, spark: SparkSession) -> Tuple[bool, List[Dict]]:
+def validate_all_genie_benchmarks(genie_dir: Path, catalog: str, gold_schema: str, spark: SparkSession, feature_schema: str = None) -> Tuple[bool, List[Dict]]:
     """
     Validate all benchmark queries in all Genie Space JSON export files.
     
@@ -240,7 +246,7 @@ def validate_all_genie_benchmarks(genie_dir: Path, catalog: str, gold_schema: st
     # Extract all benchmark queries from JSON exports
     all_queries = []
     for json_file in json_files:
-        queries = extract_benchmark_queries_from_json(json_file, catalog, gold_schema)
+        queries = extract_benchmark_queries_from_json(json_file, catalog, gold_schema, feature_schema)
         all_queries.extend(queries)
         print(f"   {json_file.name}: {len(queries)} benchmark queries")
     

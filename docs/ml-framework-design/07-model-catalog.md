@@ -2,25 +2,69 @@
 
 ## Overview
 
-The Databricks Health Monitor includes **21 production ML models** across 5 domains. Each model is designed for a specific operational use case, from detecting cost anomalies to predicting job failures.
+The Databricks Health Monitor includes **25 designed ML models** across 5 domains, with **24 successfully trained** and **23 batch scored** via Feature Store. Each model is designed for a specific operational use case, from detecting cost anomalies to predicting job failures.
 
-> **Note:** 4 models are currently disabled:
-> - `schema_change_predictor` - system.information_schema doesn't track schema history
-> - `query_performance_forecaster`, `warehouse_optimizer`, `cluster_capacity_planner` - inference issues under investigation
+## Complete Model Inventory (25 Models)
 
-## Model Summary by Domain
+| # | Domain | Model Name | Trained | Scored | Notes |
+|:---:|:---:|---|:---:|:---:|---|
+| 1 | 💰 COST | `cost_anomaly_detector` | ✅ | ✅ | 736 records |
+| 2 | 💰 COST | `budget_forecaster` | ✅ | ✅ | 736 records |
+| 3 | 💰 COST | `job_cost_optimizer` | ✅ | ✅ | 736 records |
+| 4 | 💰 COST | `chargeback_attribution` | ✅ | ✅ | 736 records |
+| 5 | 💰 COST | `commitment_recommender` | ✅ | ✅ | 736 records |
+| 6 | 💰 COST | `tag_recommender` | ✅ | ⏭️ | Uses TF-IDF, requires [custom inference](#tag_recommender-custom-inference) |
+| 7 | 🔒 SECURITY | `security_threat_detector` | ✅ | ✅ | 100,000 records |
+| 8 | 🔒 SECURITY | `exfiltration_detector` | ✅ | ✅ | 100,000 records |
+| 9 | 🔒 SECURITY | `privilege_escalation_detector` | ✅ | ✅ | 100,000 records |
+| 10 | 🔒 SECURITY | `user_behavior_baseline` | ✅ | ✅ | 100,000 records |
+| 11 | ⚡ PERFORMANCE | `query_performance_forecaster` | ✅ | ✅ | 3,020 records |
+| 12 | ⚡ PERFORMANCE | `warehouse_optimizer` | ✅ | ✅ | 3,020 records |
+| 13 | ⚡ PERFORMANCE | `cluster_capacity_planner` | ✅ | ✅ | 3,020 records |
+| 14 | ⚡ PERFORMANCE | `performance_regression_detector` | ✅ | ✅ | 3,020 records |
+| 15 | ⚡ PERFORMANCE | `dbr_migration_risk_scorer` | ✅ | ✅ | 100,000 records |
+| 16 | ⚡ PERFORMANCE | `cache_hit_predictor` | ✅ | ✅ | 3,020 records |
+| 17 | ⚡ PERFORMANCE | `query_optimization_recommender` | ✅ | ✅ | 3,020 records |
+| 18 | 🔄 RELIABILITY | `job_failure_predictor` | ✅ | ✅ | 100,000 records |
+| 19 | 🔄 RELIABILITY | `job_duration_forecaster` | ✅ | ✅ | 100,000 records |
+| 20 | 🔄 RELIABILITY | `sla_breach_predictor` | ✅ | ✅ | 100,000 records |
+| 21 | 🔄 RELIABILITY | `retry_success_predictor` | ✅ | ✅ | 100,000 records |
+| 22 | 🔄 RELIABILITY | `pipeline_health_scorer` | ✅ | ✅ | 100,000 records |
+| 23 | 📊 QUALITY | `data_drift_detector` | ✅ | ✅ | 1 record (sparse metadata) |
+| 24 | 📊 QUALITY | `data_freshness_predictor` | ✅ | ✅ | 1 record (sparse metadata) |
+| 25 | 📊 QUALITY | `schema_change_predictor` | ❌ | ❌ | **Removed**: Single-class data (see note below) |
 
-| Domain | Models | Primary Use Cases |
-|---|---|---|
-| **COST** | 6 | Anomaly detection, forecasting, optimization |
-| **SECURITY** | 4 | Threat detection, behavior analysis |
-| **PERFORMANCE** | 4 | Query optimization, anomaly detection |
-| **RELIABILITY** | 5 | Failure prediction, duration forecasting |
-| **QUALITY** | 2 | Data drift, freshness prediction |
+### Summary Statistics
+
+| Metric | Count | Details |
+|--------|:---:|---------|
+| **Designed** | 25 | Original model inventory |
+| **Trained** | 24 | `schema_change_predictor` removed |
+| **Scored (Feature Store)** | 23 | `tag_recommender` requires custom inference |
+| **Total Records Scored** | ~1,012,741 | Across 23 models |
+
+### Exclusion Reasons
+
+| Model | Stage | Root Cause |
+|-------|-------|------------|
+| `schema_change_predictor` | Training + Scoring | `system.information_schema` doesn't track schema history, so `schema_changes_7d` is always 0 (single-class data - cannot train classifier) |
+| `tag_recommender` | FE Scoring only | Uses TF-IDF text vectorization on job names - features not in feature table, requires [custom inference](#tag_recommender-custom-inference) |
 
 ---
 
-## Quick Reference: All 24 Models
+## Model Summary by Domain
+
+| Domain | Total | Trained | Scored | Primary Use Cases |
+|---|:---:|:---:|:---:|---|
+| **COST** | 6 | 6 | 5 | Anomaly detection, forecasting, optimization |
+| **SECURITY** | 4 | 4 | 4 | Threat detection, behavior analysis |
+| **PERFORMANCE** | 7 | 7 | 7 | Query optimization, capacity planning |
+| **RELIABILITY** | 5 | 5 | 5 | Failure prediction, duration forecasting |
+| **QUALITY** | 3 | 2 | 2 | Data drift, freshness prediction |
+
+---
+
+## Quick Reference: All 25 Models
 
 | # | Domain | Model Name | Algorithm | Model Type | Feature Table | Primary Keys |
 |:---:|:---:|---|---|---|---|---|
@@ -29,7 +73,7 @@ The Databricks Health Monitor includes **21 production ML models** across 5 doma
 | 3 | 💰 COST | `job_cost_optimizer` | Gradient Boosting | Regression | `cost_features` | `workspace_id`, `usage_date` |
 | 4 | 💰 COST | `chargeback_attribution` | Gradient Boosting | Regression | `cost_features` | `workspace_id`, `usage_date` |
 | 5 | 💰 COST | `commitment_recommender` | XGBoost | Binary Classification | `cost_features` | `workspace_id`, `usage_date` |
-| 6 | 💰 COST | `tag_recommender` | Random Forest + TF-IDF | Multi-class Classification | `cost_features` | `workspace_id`, `usage_date` |
+| 6 | 💰 COST | `tag_recommender` | Random Forest + TF-IDF | Multi-class Classification | `cost_features` + TF-IDF | `workspace_id`, `usage_date` |
 | 7 | 🔒 SECURITY | `security_threat_detector` | Isolation Forest | Anomaly Detection | `security_features` | `user_id`, `event_date` |
 | 8 | 🔒 SECURITY | `exfiltration_detector` | Isolation Forest | Anomaly Detection | `security_features` | `user_id`, `event_date` |
 | 9 | 🔒 SECURITY | `privilege_escalation_detector` | Isolation Forest | Anomaly Detection | `security_features` | `user_id`, `event_date` |
@@ -48,26 +92,27 @@ The Databricks Health Monitor includes **21 production ML models** across 5 doma
 | 22 | 🔄 RELIABILITY | `pipeline_health_scorer` | Gradient Boosting | Regression | `reliability_features` | `job_id`, `run_date` |
 | 23 | 📊 QUALITY | `data_drift_detector` | Isolation Forest | Anomaly Detection | `quality_features` | `catalog_name`, `snapshot_date` |
 | 24 | 📊 QUALITY | `data_freshness_predictor` | Gradient Boosting | Regression | `quality_features` | `catalog_name`, `snapshot_date` |
+| 25 | 📊 QUALITY | `schema_change_predictor` | XGBoost | Binary Classification | `quality_features` | `catalog_name`, `snapshot_date` |
 
-> **Note:** `schema_change_predictor` was removed because `system.information_schema` doesn't track historical schema changes, making `schema_changes_7d` always 0 (single-class data cannot train a classifier).
+> **Note:** Model #25 (`schema_change_predictor`) is documented but removed from training/inference due to single-class data.
 
-### Model Type Distribution
+### Model Type Distribution (25 Designed)
 
-| Model Type | Count | Models |
-|---|:---:|---|
-| **Anomaly Detection** | 7 | `cost_anomaly_detector`, `security_threat_detector`, `exfiltration_detector`, `privilege_escalation_detector`, `user_behavior_baseline`, `performance_regression_detector`, `data_drift_detector` |
-| **Regression** | 9 | `budget_forecaster`, `job_cost_optimizer`, `chargeback_attribution`, `query_performance_forecaster`, `warehouse_optimizer`, `cluster_capacity_planner`, `job_duration_forecaster`, `pipeline_health_scorer`, `data_freshness_predictor` |
-| **Binary Classification** | 6 | `commitment_recommender`, `cache_hit_predictor`, `query_optimization_recommender`, `job_failure_predictor`, `sla_breach_predictor`, `retry_success_predictor` |
-| **Multi-class Classification** | 2 | `tag_recommender` (TF-IDF + Random Forest), `dbr_migration_risk_scorer` |
+| Model Type | Total | Trained | Models |
+|---|:---:|:---:|---|
+| **Anomaly Detection** | 7 | 7 | `cost_anomaly_detector`, `security_threat_detector`, `exfiltration_detector`, `privilege_escalation_detector`, `user_behavior_baseline`, `performance_regression_detector`, `data_drift_detector` |
+| **Regression** | 9 | 9 | `budget_forecaster`, `job_cost_optimizer`, `chargeback_attribution`, `query_performance_forecaster`, `warehouse_optimizer`, `cluster_capacity_planner`, `job_duration_forecaster`, `pipeline_health_scorer`, `data_freshness_predictor` |
+| **Binary Classification** | 7 | 6 | `commitment_recommender`, `cache_hit_predictor`, `query_optimization_recommender`, `job_failure_predictor`, `sla_breach_predictor`, `retry_success_predictor`, ~~`schema_change_predictor`~~ (removed) |
+| **Multi-class Classification** | 2 | 2 | `tag_recommender` (TF-IDF + Random Forest), `dbr_migration_risk_scorer` |
 
-### Algorithm Distribution
+### Algorithm Distribution (24 Trained)
 
 | Algorithm | Count | Use Case |
 |---|:---:|---|
 | **Isolation Forest** | 7 | Unsupervised anomaly detection |
 | **Gradient Boosting Regressor** | 9 | Continuous value prediction |
-| **XGBoost Classifier** | 6 | High-performance binary classification |
-| **Random Forest Classifier** | 2 | Robust multi-class classification |
+| **XGBoost Classifier** | 6 | High-performance binary classification (originally 7, `schema_change_predictor` removed) |
+| **Random Forest Classifier** | 2 | Robust multi-class classification (incl. `tag_recommender` with TF-IDF) |
 
 ---
 
@@ -205,20 +250,124 @@ The Databricks Health Monitor includes **21 production ML models** across 5 doma
 
 | Property | Value |
 |---|---|
-| **Purpose** | Recommend cost allocation tags |
+| **Purpose** | Recommend cost allocation tags for untagged resources |
 | **Algorithm** | Random Forest Classifier |
 | **Model Type** | Multi-class Classification |
-| **Feature Table** | `cost_features` + TF-IDF |
+| **Feature Table** | `cost_features` + TF-IDF (runtime) |
 | **Primary Keys** | `workspace_id`, `usage_date` |
 | **Output** | `predicted_tag` (STRING) |
 
-**Special**: Uses TF-IDF on job names (runtime feature)
+**Special**: Uses TF-IDF on job names (runtime feature extraction)
 
 **Features Used**:
-- `daily_dbu`, `daily_cost`, `avg_dbu_7d`, `avg_dbu_30d`
-- TF-IDF vectors from job names (50 features)
+- Cost features: `daily_dbu`, `daily_cost`, `avg_dbu_7d`, `avg_dbu_30d`, `jobs_on_all_purpose_cost`, `all_purpose_inefficiency_ratio`
+- NLP features: TF-IDF vectors from job names (50 features)
 
-**Note**: Cannot use `fe.score_batch()` due to runtime TF-IDF features.
+#### tag_recommender Custom Inference
+
+Since `tag_recommender` uses TF-IDF features computed at runtime (not stored in feature table), it **cannot use `fe.score_batch()`**. Instead, use the following custom inference pattern:
+
+```python
+import mlflow
+import pickle
+import pandas as pd
+import numpy as np
+from pyspark.sql import functions as F
+
+def score_tag_recommender(spark, catalog: str, feature_schema: str, gold_schema: str):
+    """
+    Custom inference for tag_recommender model.
+    
+    Why custom: Model uses TF-IDF features from job names (runtime extraction),
+    which cannot be stored in feature tables.
+    """
+    model_uri = f"models:/{catalog}.{feature_schema}.tag_recommender/latest"
+    
+    # 1. Load model and artifacts
+    model = mlflow.sklearn.load_model(model_uri)
+    
+    # Load TF-IDF vectorizer and label encoder from artifacts
+    client = mlflow.MlflowClient()
+    run_id = client.get_model_version_by_alias(
+        f"{catalog}.{feature_schema}.tag_recommender", "Champion"
+    ).run_id
+    
+    artifacts_path = mlflow.artifacts.download_artifacts(run_id=run_id)
+    
+    with open(f"{artifacts_path}/tfidf_vectorizer.pkl", 'rb') as f:
+        tfidf = pickle.load(f)
+    with open(f"{artifacts_path}/label_encoder.pkl", 'rb') as f:
+        label_encoder = pickle.load(f)
+    
+    # 2. Get untagged jobs to score
+    fact_usage = f"{catalog}.{gold_schema}.fact_usage"
+    dim_job = f"{catalog}.{gold_schema}.dim_job"
+    cost_features = f"{catalog}.{feature_schema}.cost_features"
+    
+    untagged_jobs = (
+        spark.table(fact_usage)
+        .filter(F.col("is_tagged") == False)
+        .filter(F.col("usage_metadata_job_id").isNotNull())
+        .groupBy(F.col("usage_metadata_job_id").alias("job_id"))
+        .agg(
+            F.first("workspace_id").alias("workspace_id"),
+            F.first(F.to_date("usage_date")).alias("usage_date")
+        )
+        .join(
+            spark.table(dim_job).select("job_id", "name").dropDuplicates(["job_id"]),
+            "job_id", "inner"
+        )
+        .withColumnRenamed("name", "job_name")
+    )
+    
+    # 3. Join with cost features
+    scored_df = untagged_jobs.join(
+        spark.table(cost_features),
+        ["workspace_id", "usage_date"],
+        "left"
+    )
+    
+    pdf = scored_df.toPandas()
+    
+    if len(pdf) == 0:
+        print("No untagged jobs to score")
+        return None
+    
+    # 4. Compute TF-IDF features
+    tfidf_features = tfidf.transform(pdf['job_name'].fillna('')).toarray()
+    tfidf_df = pd.DataFrame(tfidf_features, columns=[f"tfidf_{i}" for i in range(tfidf_features.shape[1])])
+    
+    # 5. Prepare cost features
+    cost_cols = ["daily_dbu", "daily_cost", "avg_dbu_7d", "avg_dbu_30d", 
+                 "jobs_on_all_purpose_cost", "all_purpose_inefficiency_ratio"]
+    available_cost = [c for c in cost_cols if c in pdf.columns]
+    cost_df = pdf[available_cost].fillna(0).replace([np.inf, -np.inf], 0).astype('float64')
+    
+    # 6. Combine features and predict
+    X = pd.concat([cost_df.reset_index(drop=True), tfidf_df.reset_index(drop=True)], axis=1)
+    predictions = model.predict(X)
+    predicted_tags = label_encoder.inverse_transform(predictions)
+    
+    # 7. Create results
+    pdf['predicted_tag'] = predicted_tags
+    pdf['scored_at'] = pd.Timestamp.now()
+    
+    # 8. Write to predictions table
+    result_df = spark.createDataFrame(pdf[['job_id', 'job_name', 'predicted_tag', 'scored_at']])
+    result_df.write.mode("append").saveAsTable(f"{catalog}.{feature_schema}.tag_recommendations")
+    
+    print(f"✓ Scored {len(pdf)} jobs with tag recommendations")
+    return result_df
+
+# Usage:
+# score_tag_recommender(spark, catalog, feature_schema, gold_schema)
+```
+
+**Key Points:**
+- Model is logged with `mlflow.sklearn.log_model()` (not `fe.log_model()`)
+- TF-IDF vectorizer and label encoder are stored as MLflow artifacts
+- Must load artifacts separately from model
+- Custom inference pipeline combines cost features + TF-IDF at runtime
 
 ---
 

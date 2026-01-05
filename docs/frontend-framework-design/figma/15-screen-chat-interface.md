@@ -69,6 +69,9 @@ Saved Queries Section:
 
 Quick Actions:
 [Cost Summary] [Job Status] [Security Check] [Generate Report]
+ TEAL filled    Gray outl.   Gray outlined   TEAL filled
+ #2272B4 ✅     #DCE0E2      #DCE0E2         #2272B4 ✅
+ white text     #0B2026 ✅   #0B2026 text    white text
 
 ---
 
@@ -96,6 +99,8 @@ Response Content:
 - Inline cost comparison chart
 - Table of expensive queries
 - Recommendation buttons: [Kill Query] [Email User] [Create Alert]
+  Button colors:           RED filled  TEAL filled  Gray outline
+                           #FF3621     #2272B4 ✅   #DCE0E2 border, #0B2026 text ✅
 
 Input Area (sticky bottom):
 - Attachment icon

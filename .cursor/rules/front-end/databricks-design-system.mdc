@@ -1,0 +1,752 @@
+---
+description: Official Databricks Design System - colors, typography, and component patterns for enterprise applications
+alwaysApply: true
+---
+
+# Official Databricks Design System
+
+## Overview
+
+This rule documents the **official Databricks brand design system** extracted from authentic Databricks CSS and brand guidelines. Use these specifications for all Databricks-related frontend applications.
+
+**Source:** Official Databricks Asset Library + bf-color-* CSS classes
+
+---
+
+## 🎨 PRIMARY BRAND COLORS (Official)
+
+The Databricks primary brand colors are **Lava 600, Navy 900, Oat Medium, Oat Light, and White**.
+
+**Philosophy:**
+- **Navy, Oat, and White** = Large background colors (neutral, professional)
+- **Lava** = Bright and vibrant pops of color (strategic use only)
+
+### Primary Palette
+
+| Color Name | Hex | RGB | Usage |
+|------------|-----|-----|-------|
+| **Lava 600** ✅ | `#FF3621` | rgb(255,54,33) | PRIMARY brand color - critical alerts, destructive actions, brand pops |
+| **Navy 900** ✅ | `#0B2026` | rgb(11,32,38) | DARKEST text, highest contrast, primary text color |
+| **Oat Medium** ✅ | `#EEEDE9` | rgb(238,237,233) | Alternate surfaces, zebra stripes, subtle backgrounds |
+| **Oat Light** ✅ | `#F9F7F4` | rgb(249,247,244) | Page canvas background, warm neutral |
+| **White** ✅ | `#FFFFFF` | rgb(255,255,255) | Card surfaces, elevated elements, pure white |
+
+---
+
+## 🌈 EXTENDED COLOR PALETTE
+
+### Blue Palette (Primary Interactive)
+
+| Token | Class | Hex | Usage |
+|-------|-------|-----|-------|
+| Blue-600 | `blue-600` | `#2272B4` | **PRIMARY interactive** - buttons, links, focus states |
+| Blue-700 | `blue-700` | `#0E538B` | Hover states for primary interactive |
+| Blue-100 | `blue-100` | `#F0F8FF` | Light blue backgrounds, info states |
+
+### Navy Palette (Neutrals & Text)
+
+| Token | Class | Hex | Usage |
+|-------|-------|-----|-------|
+| Navy-900 | `navy-900-primary` | `#0B2026` | **DARKEST** - primary text, highest contrast |
+| Navy-800 | `navy-800` | `#1B3139` | Headers, dark elements |
+| Navy-700 | `navy-700` | `#143D4A` | **SECONDARY interactive** - secondary buttons, emphasis |
+| Navy-600 | `navy-600` | `#1B5162` | Medium emphasis elements |
+| Navy-500 | `navy-500` | `#618794` | Muted elements |
+| Navy-400 | `navy-400` | `#90A5B1` | Disabled states, muted text |
+| Navy-300 | `navy-300` | `#C4CCD6` | Subtle borders, emphasized dividers |
+| Navy-200 | `navy-200` | `#E5EAF1` | Very light backgrounds |
+| Navy-100 | `navy-100` | `#EDF2F8` | Lightest navy background |
+
+### Lava Palette (Brand Red - Critical Use Only)
+
+| Token | Class | Hex | Usage |
+|-------|-------|-----|-------|
+| Lava-600 | `lava-600-primary` | `#FF3621` | **CRITICAL/DESTRUCTIVE ONLY** - alerts, delete, errors |
+| Lava-500 | `lava-500` | `#FF5F46` | High severity, urgent attention |
+| Lava-400 | `lava-400` | `#FF9E94` | Softer red, light accents |
+| Lava-300 | `lava-300` | `#FABFBA` | Very light red |
+| Lava-200 | `lava-200` | `#F8DEDC` | Subtle red tint |
+| Lava-100 | `lava-100` | `#FAECEB` | Lightest red background, highlight rows |
+
+### Green Palette (Success)
+
+| Token | Class | Hex | Usage |
+|-------|-------|-----|-------|
+| Green-600 | `green-600` | `#00A972` | **SUCCESS** - positive states, health OK, targets met |
+| Green-100 | `green-100` | `#DCF4ED` | Light green backgrounds |
+
+### Yellow Palette (Warning)
+
+| Token | Class | Hex | Usage |
+|-------|-------|-----|-------|
+| Yellow-600 | `yellow-600` | `#FFAB00` | **WARNING** - caution, at-risk, monitor closely |
+| Yellow-700 | `yellow-700` | `#BA7B23` | Darker yellow for text contrast |
+| Yellow-100 | `yellow-100` | `#FFF0D3` | Light yellow backgrounds |
+
+### Maroon Palette (Alternate Accent)
+
+| Token | Class | Hex | Usage |
+|-------|-------|-----|-------|
+| Maroon-600 | `maroon-600` | `#98102A` | ML/AI features, alternate accent |
+| Maroon-500 | `maroon-500` | `#AB4057` | Maroon accent |
+| Maroon-100 | `maroon-100` | `#F8D5DC` | Light maroon background |
+
+### Gray Palette (Utility)
+
+| Token | Class | Hex | Usage |
+|-------|-------|-----|-------|
+| Gray-text | `gray-text` | `#5A6F77` | **SECONDARY TEXT** - labels, secondary content |
+| Gray-lines | `gray-lines` | `#DCE0E2` | **BORDERS** - standard dividers, card borders |
+| Gray-navigation | `gray-navigation` | `#303F47` | Navigation elements |
+
+---
+
+## 📝 OFFICIAL TYPOGRAPHY
+
+### Primary Typeface: DM Sans ✅
+
+**Official Databricks typeface for UI elements.**
+
+- **Family:** DM Sans
+- **Weights:** 400 (Regular), 500 (Medium), 600 (Semibold), 700 (Bold)
+- **Usage:** All UI text - buttons, labels, headings, body text
+- **Fallback:** system-ui, -apple-system, sans-serif
+
+### Technical Typeface: DM Mono ✅
+
+**Official Databricks monospace typeface for code and data.**
+
+- **Family:** DM Mono
+- **Weights:** 400 (Regular), 500 (Medium)
+- **Usage:** Code snippets, numbers, IDs, technical data, metrics
+- **Fallback:** 'Courier New', monospace
+
+### Typography Scale
+
+**Official Databricks Type Scale Rules:**
+- **Above 20px:** Sizes divisible by 8 (24, 32, 40, 48, 56, 64, 72, 80)
+- **Below 20px:** Sizes divisible by 4 or 2 (10, 12, 14, 16, 18, 20)
+- **Line Height:** 150% (1.5) for body copy, 120% (1.2) for headlines
+- **Billboards:** Double or quadruple standard sizes (96px, 192px)
+
+| Style | Font | Size | Weight | Line Height | Usage |
+|-------|------|------|--------|-------------|-------|
+| Display XL | DM Sans | 80px | 700 | 96px (1.2) | Billboards, hero sections |
+| Display Large | DM Sans | 48px | 700 | 56px (1.17) | Hero numbers, dashboard titles |
+| Display Medium | DM Sans | 32px | 600 | 40px (1.25) | Page titles, section headers |
+| H1 | DM Sans | 24px | 600 | 32px (1.33) | Major section titles |
+| H2 | DM Sans | 18px | 600 | 24px (1.33) | Card titles, subsections |
+| H3 | DM Sans | 16px | 600 | 22px (1.375) | Small section titles |
+| H4 | DM Sans | 14px | 600 | 20px (1.43) | Table headers, form labels |
+| Body Large | DM Sans | 16px | 400 | 24px (1.5) ✅ | Long-form content |
+| Body Default | DM Sans | 14px | 400 | 20px (1.43) | Default text, table cells |
+| Body Small | DM Sans | 12px | 400 | 18px (1.5) ✅ | Secondary text, metadata |
+| Label Large | DM Sans | 14px | 500 | 20px (1.43) | Button text, form labels |
+| Label Default | DM Sans | 12px | 500 | 16px (1.33) | Badges, chips |
+| Label Small | DM Sans | 10px | 500 | 14px (1.4) | Overlines, category labels |
+| Code | DM Mono | 14px | 400 | 20px (1.43) | Code blocks, IDs |
+| Number Large | DM Mono | 48px | 700 | 56px (1.17) | Large KPI numbers |
+| Number Medium | DM Mono | 24px | 600 | 32px (1.33) | Medium metrics |
+| Number Small | DM Mono | 12px | 500 | 16px (1.33) | Small numbers, counts |
+
+---
+
+## 📝 TYPOGRAPHY BEST PRACTICES (Official Databricks Guidelines)
+
+### ✅ DO: Use Hierarchy for Scannable Content
+
+**Adjust size, weight, and color to create visual hierarchy:**
+- Vary text sizes within content blocks for scannability
+- Use weight (400, 500, 600, 700) to differentiate importance
+- Apply subtle color changes (Navy-900 for primary, Gray-text for secondary)
+- Example: Large heading (24px, 600) + body text (14px, 400) + metadata (12px, Gray-text)
+
+**Effective Hierarchy Patterns:**
+```
+✅ Overline (10px, uppercase, Gray-text)
+   Large Title (48px, 700, Navy-900)
+   Subtitle (16px, 400, Gray-text)
+   Body Paragraph (14px, 400, Navy-900)
+   
+✅ Card Title (18px, 600, Navy-900)
+   Description (14px, 400, Navy-900)
+   Metadata (12px, 400, Gray-text)
+```
+
+### ✅ DO: Give Content Space to Breathe
+
+**Proper spacing between text elements:**
+- Minimum spacing between text blocks: 16px (space-4)
+- Paragraph spacing: 20-24px (space-5 to space-6)
+- Section spacing: 32-48px (space-8 to space-12)
+- Don't cram text elements too close together
+- White space improves readability and focus
+
+**Spacing Guidelines:**
+```
+Title
+[16px gap]
+Subtitle
+[24px gap]
+Body Paragraph 1
+[20px gap]
+Body Paragraph 2
+[32px gap]
+Next Section Title
+```
+
+### ✅ DO: Use Proper Line Height
+
+**Official Databricks line-height standards:**
+- **Body copy:** 150% (1.5) line-height ✅
+  - Example: 14px text = 21px line-height (1.5)
+  - Example: 16px text = 24px line-height (1.5)
+- **Headlines:** 120% (1.2) line-height ✅
+  - Example: 48px text = 56-60px line-height (1.17-1.25)
+  - Example: 32px text = 40px line-height (1.25)
+- **Never use tight line-height** - makes text hard to read
+
+**Line Height Reference:**
+| Text Size | Body Copy (1.5) | Headline (1.2) |
+|-----------|----------------|----------------|
+| 10px | 15px | 12px |
+| 12px | 18px | 14px |
+| 14px | 21px | 17px |
+| 16px | 24px | 19px |
+| 24px | 36px | 29px |
+| 32px | 48px | 38px |
+| 48px | 72px | 58px |
+
+### ❌ DON'T: Use Right-Aligned Text
+
+**Left-alignment only for body text:**
+- ❌ Never use right-aligned text for paragraphs
+- ❌ Never use right-aligned text for buttons or CTAs
+- ✅ Always use left-aligned text for readability
+- ✅ Center-alignment acceptable for headers (sparingly)
+
+### ❌ DON'T: Create Impenetrable Text Blocks
+
+**Break up large paragraphs:**
+- ❌ Long paragraphs with no breaks - hard to scan
+- ❌ Inline links throughout paragraphs - disrupts flow
+- ✅ Break content into manageable chunks (3-5 lines max per paragraph)
+- ✅ Use clear CTAs at the end of sections
+- ✅ Add headings to break up long content
+- ✅ Use bullet points for lists
+
+**Bad Example:**
+```
+❌ The Databricks Platform combines the best elements of data 
+lakes and data warehouses — delivering data management and 
+performance typically found in data warehouses with the 
+low-cost, flexible object stores offered by data lakes. Learn 
+more about data architecture. This unified platform simplifies 
+your data architecture by eliminating the data silos. Click 
+here for more information. And, its native collaborative 
+capabilities accelerate your ability to work across teams and 
+innovate faster. Read more here.
+```
+
+**Good Example:**
+```
+✅ The Databricks Platform combines the best elements of data 
+lakes and data warehouses — delivering data management and 
+performance typically found in data warehouses.
+
+Key benefits:
+• Unified data architecture
+• Eliminates data silos
+• Native collaborative capabilities
+
+[Learn more →]
+```
+
+### 📐 Typography Spacing Checklist
+
+Before finalizing any text-heavy design:
+- [ ] Line height is 150% for body text
+- [ ] Line height is 120% for headlines
+- [ ] Text blocks have 16px+ spacing between them
+- [ ] Paragraphs are broken into 3-5 line chunks
+- [ ] Hierarchy uses size + weight + color
+- [ ] All text is left-aligned (except centered headers)
+- [ ] No inline links disrupting paragraph flow
+- [ ] Clear CTAs separate from body text
+
+---
+
+## 🎯 COLOR USAGE RULES
+
+### ❌ NEVER DO THIS
+
+1. **DON'T use Lava-600 for primary buttons**
+   - Lava-600 is for critical/destructive actions ONLY
+   - Use Blue-600 for primary interactive elements
+
+2. **DON'T use light gray text on white backgrounds**
+   - Always use Navy-900 or Gray-text for sufficient contrast
+   - Gray outlined buttons MUST have Navy-900 text
+
+3. **DON'T use color alone for status**
+   - Always include icons or text labels
+   - Ensure 4.5:1 contrast ratio minimum
+
+### ✅ ALWAYS DO THIS
+
+1. **Use Blue-600 for primary actions**
+   - Primary buttons: Blue-600 background, white text
+   - Links: Blue-600 text
+   - Focus states: Blue-600 ring
+
+2. **Reserve Lava-600 for critical states**
+   - Critical alerts, errors
+   - Destructive actions (delete, remove)
+   - Brand pops (sparingly)
+
+3. **Use Navy-900 for primary text**
+   - Darkest navy for highest contrast
+   - Main body text, headings
+   - Important UI labels
+
+4. **Use Oat Light for page backgrounds**
+   - Warm, approachable canvas
+   - Differentiates from white cards
+
+---
+
+## 🎨 COLOR USAGE BEST PRACTICES (Official Databricks Guidelines)
+
+### ✅ DO: Balanced & Intentional Color Usage
+
+**Use tints and shades of analogous colors to add depth:**
+- Combine different shades of the same color family for visual hierarchy
+- Example: Navy-900 (text) + Navy-700 (borders) + Navy-100 (backgrounds)
+- Example: Lava-600 (critical) + Lava-500 (high) + Lava-100 (highlights)
+- Creates balanced, cohesive compositions with intentional color choices
+
+**Approved Color Combinations:**
+```
+✅ Navy-900 text on White background (highest contrast)
+✅ Navy-900 text on Oat-light background
+✅ White text on Blue-600 background
+✅ White text on Navy-700 background
+✅ White text on Lava-600 background
+✅ Blue-600 on Oat-light background (cards, borders)
+✅ Navy-700 headers with White text
+```
+
+### ❌ DON'T: Low Contrast Text
+
+**NEVER use colored text on backgrounds that produce low contrast:**
+- ❌ Light yellow text on white background - FAILS contrast
+- ❌ Teal text on dark teal background - FAILS contrast
+- ❌ Pink text on light pink background - FAILS contrast
+- ❌ Light gray text on white background - FAILS contrast
+
+**Readability is critical. Always follow WCAG accessibility standards:**
+- **Minimum contrast ratio:** 4.5:1 for normal text
+- **Minimum contrast ratio:** 3:1 for large text (18px+)
+- Test all text/background combinations with contrast checker tools
+
+### ❌ DON'T: Mix Colors with Similar Brightness
+
+**Avoid mixing colors with low contrast due to similar brightness levels:**
+- ❌ Dark red circle on green background - similar brightness
+- ❌ Coral circle on yellow/orange background - similar brightness
+- ❌ Light gray circle on light pink background - similar brightness
+- ❌ Muted purple circle on muted blue background - similar brightness
+
+**High contrast is your friend when mixing different hues:**
+- ✅ Use dark colors on light backgrounds
+- ✅ Use light colors on dark backgrounds
+- ✅ Avoid mid-tone on mid-tone combinations
+- ✅ Test perceived brightness, not just hue
+
+### 🎯 Practical Color Pairing Rules
+
+| Text Color | Safe Backgrounds | NEVER Use With |
+|------------|------------------|----------------|
+| **Navy-900** `#0B2026` | White, Oat-light, Oat-medium, Light tints | Dark backgrounds, Navy-700, Navy-600 |
+| **White** `#FFFFFF` | Blue-600, Navy-700, Navy-900, Lava-600 | Oat-light, Light tints, Yellow-100 |
+| **Blue-600** `#2272B4` | White, Oat-light, Oat-medium | Navy-700, Navy-600, Dark backgrounds |
+| **Gray-text** `#5A6F77` | White, Oat-light, Oat-medium | Navy-500, Navy-400, Mid-tone grays |
+| **Lava-600** `#FF3621` | White, Oat-light (sparingly) | Yellow, Orange, Coral backgrounds |
+
+### 🛠️ Contrast Validation Checklist
+
+Before using any text/background combination:
+- [ ] Test with WebAIM Contrast Checker or similar tool
+- [ ] Verify 4.5:1 ratio for body text
+- [ ] Verify 3:1 ratio for headings (18px+)
+- [ ] Check in both light and dark themes (if applicable)
+- [ ] View on different displays (brightness, color accuracy)
+- [ ] Test with color blindness simulators
+
+### 📐 Color Balance Guidelines
+
+**Creating Visual Hierarchy:**
+1. **Primary elements:** Highest contrast (Navy-900 on White)
+2. **Secondary elements:** Medium contrast (Gray-text on White)
+3. **Tertiary elements:** Lower contrast (Navy-400 on Oat-light)
+4. **Backgrounds:** Large neutral areas (Oat-light, White)
+5. **Accents:** Strategic pops of color (Lava-600, Blue-600)
+
+**Depth & Layering:**
+- Base layer: Oat-light (#F9F7F4)
+- Elevated layer 1: White (#FFFFFF) cards
+- Elevated layer 2: White with shadow + Blue-600 border
+- Elevated layer 3: Modals with Navy overlay
+
+---
+
+## 🧩 COMPONENT PATTERNS
+
+### Buttons
+
+| Variant | Background | Border | Text | Usage |
+|---------|------------|--------|------|-------|
+| **Primary** | Blue-600 `#2272B4` | None | White | Main actions |
+| **Primary Hover** | Blue-700 `#0E538B` | None | White | Hover state |
+| **Secondary** | White | Navy-700 `#143D4A` | Navy-700 | Secondary actions |
+| **Gray Outlined** | White | Gray-lines `#DCE0E2` | Navy-900 `#0B2026` | Soft secondary |
+| **Tertiary** | Transparent | None | Blue-600 | Text links |
+| **Ghost** | Transparent | None | Gray-text `#5A6F77` | Dismiss/cancel |
+| **Destructive** | Lava-600 `#FF3621` | None | White | Delete/remove ONLY |
+
+### Cards
+
+- **Background:** White `#FFFFFF`
+- **Border:** Gray-lines `#DCE0E2` (1px)
+- **Border Radius:** 8px
+- **Padding:** 16-24px
+- **Shadow:** 0 1px 2px rgba(0,0,0,0.05)
+- **Hover:** Blue-600 border + elevation-2 shadow
+
+### Status/Severity Indicators
+
+| Severity | Color | Class | Icon | Usage |
+|----------|-------|-------|------|-------|
+| **Critical** | Lava-600 `#FF3621` | `lava-600` | 🔴 | Immediate action required |
+| **High** | Lava-500 `#FF5F46` | `lava-500` | 🟠 | Urgent attention |
+| **Warning** | Yellow-600 `#FFAB00` | `yellow-600` | 🟡 | Monitor closely |
+| **Info** | Blue-600 `#2272B4` | `blue-600` | 🔵 | Informational |
+| **Success** | Green-600 `#00A972` | `green-600` | 🟢 | All OK, targets met |
+
+### Tables
+
+- **Header Background:** Navy-700 `#143D4A` OR Lava-500 `#FF5F46` (accent)
+- **Header Text:** White, 600 weight
+- **Row Background:** White
+- **Alternate Row:** Oat Medium `#EEEDE9`
+- **Hover Row:** Oat Light `#F9F7F4`
+- **Selected Row:** Lava-100 `#FAECEB`
+- **Border:** Gray-lines `#DCE0E2`
+
+---
+
+## 🎨 ICONOGRAPHY (Official Databricks Primary Icons)
+
+### Icon Library Location
+- **Path:** `context/branding/primary_icons/`
+- **Total Icons:** 200+ official Databricks icons
+- **Format:** SVG vectors organized by category
+
+### Key Icon Categories for Health Monitor
+
+**Data & Analytics:**
+- Data Lake, Data Warehouse, Delta Lake, Delta Live Tables
+- Data Quality, Data Lineage, Data Pipelines, Data Product
+- Analytics, Dashboards, SQL
+
+**ML & AI:**
+- Machine Learning, MLOps, Auto Machine Learning
+- Feature Store, Model Registry, Model Training, Model Tuning
+- ML Engineer Persona, Deep Learning Neural Networks
+
+**Security & Governance:**
+- Governance, Compliance, Privacy, Data Security
+- Enterprise Security, Cloud Security, Encryption
+- Identity, Authentication Service, GDPR
+
+**Infrastructure & Performance:**
+- Serverless, Spark Cluster, Unity Catalog, Photon
+- Performance, Cost Management, Databricks Workspace
+- Lakeflow, Lakeflow Pipelines, Lakeflow Jobs
+
+**Monitoring & Observability:**
+- Observable Metrics, Cost, Performance
+- Data Quality 1, Data Quality 2, Data Quality 3
+- Incident Investigation, Risk Fraud Detection
+
+**Actions & Status:**
+- Deploy, Automation, Scheduled Jobs
+- Help, Runbook Playbook, Webhook
+- Directional Arrows (Up, Down, Left, Right, Curved)
+
+### Icon Usage Rules
+
+1. **Size Standards:**
+   - Small: 16px × 16px (inline, buttons, chips)
+   - Medium: 24px × 24px (cards, list items)
+   - Large: 32px × 32px (page headers, empty states)
+   - XL: 48px × 48px (hero sections, feature cards)
+
+2. **Color Application:**
+   - **Default:** Navy-900 (#0B2026) or Navy-700 (#143D4A)
+   - **Interactive:** Blue-600 (#2272B4) - clickable icons
+   - **Success:** Green-600 (#00A972) - positive states
+   - **Warning:** Yellow-600 (#FFAB00) - caution states
+   - **Critical:** Lava-600 (#FF3621) - errors/destructive actions
+   - **Muted:** Navy-500 (#618794) - disabled states
+
+3. **Accessibility:**
+   - Always include ARIA labels for icon-only buttons
+   - Pair icons with text labels for critical actions
+   - Ensure 3:1 contrast ratio for UI component icons
+
+4. **Common Icon Mappings:**
+   - **Health Score:** Observable Metrics
+   - **Cost:** Cost, Cost Management, Currency
+   - **Reliability:** Performance, Data Quality 1-3
+   - **Security:** Governance, Data Security, Compliance
+   - **ML Models:** Machine Learning, Model Registry
+   - **Alerts:** Incident Investigation, Help
+   - **Actions:** Deploy, Automation, Runbook Playbook
+
+---
+
+## 📐 SPACING & LAYOUT
+
+### Base Unit: 4px
+
+- **space-1:** 4px
+- **space-2:** 8px
+- **space-3:** 12px
+- **space-4:** 16px
+- **space-5:** 20px
+- **space-6:** 24px
+- **space-8:** 32px
+- **space-10:** 40px
+- **space-12:** 48px
+
+### Border Radius
+
+- **radius-sm:** 4px - Small elements
+- **radius-md:** 8px - Cards, buttons
+- **radius-lg:** 12px - Modals
+- **radius-full:** 9999px - Pills, badges
+
+---
+
+## 🎨 TAILWIND CSS INTEGRATION
+
+### Custom Databricks Theme
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        // Primary Interactive
+        primary: '#2272B4',         // Blue-600 ✅
+        'primary-hover': '#0E538B', // Blue-700
+        
+        // Databricks Brand (Official)
+        'db-lava': '#FF3621',       // Lava-600 ✅
+        'db-lava-500': '#FF5F46',   // Lava-500
+        'db-navy': '#143D4A',       // Navy-700 ✅
+        'db-navy-900': '#0B2026',   // Navy-900 - DARKEST ✅
+        'db-oat': '#F9F7F4',        // Oat-light ✅
+        'db-oat-medium': '#EEEDE9', // Oat-medium ✅
+        
+        // Utility Colors
+        'db-blue': '#2272B4',       // Blue-600 ✅
+        'db-green': '#00A972',      // Green-600 ✅
+        'db-yellow': '#FFAB00',     // Yellow-600 ✅
+        'db-gray': '#5A6F77',       // Gray-text ✅
+        'db-gray-lines': '#DCE0E2', // Gray-lines ✅
+      },
+      fontFamily: {
+        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+        mono: ['DM Mono', 'Courier New', 'monospace'],
+      },
+    },
+  },
+};
+```
+
+---
+
+## ♿ ACCESSIBILITY REQUIREMENTS
+
+### 1. **Color Contrast (CRITICAL - Follow Official Guidelines)**
+
+**WCAG AA Standards (Minimum):**
+- **Normal text:** 4.5:1 contrast ratio minimum
+- **Large text (18px+):** 3:1 contrast ratio minimum
+- **UI components:** 3:1 contrast ratio for interactive elements
+
+**Pre-Approved High-Contrast Combinations:**
+- ✅ Navy-900 `#0B2026` on White `#FFFFFF` - **18.7:1 contrast** (Excellent)
+- ✅ Navy-900 `#0B2026` on Oat-light `#F9F7F4` - **17.8:1 contrast** (Excellent)
+- ✅ White `#FFFFFF` on Blue-600 `#2272B4` - **5.4:1 contrast** (Passes AA)
+- ✅ White `#FFFFFF` on Navy-700 `#143D4A` - **14.2:1 contrast** (Excellent)
+- ✅ White `#FFFFFF` on Lava-600 `#FF3621` - **4.9:1 contrast** (Passes AA)
+- ✅ Gray-text `#5A6F77` on White `#FFFFFF` - **6.2:1 contrast** (Passes AAA)
+
+**NEVER Use These Combinations:**
+- ❌ Navy-400 on Oat-light - Low contrast
+- ❌ Yellow-600 on White - Insufficient contrast for body text
+- ❌ Blue-600 on Navy-700 - Similar brightness levels
+- ❌ Lava-400 on White - Too light for text
+
+**Validation Tools:**
+- WebAIM Contrast Checker: https://webaim.org/resources/contrastchecker/
+- Chrome DevTools Accessibility Panel
+- Figma plugins: Stark, A11y - Color Contrast Checker
+
+### 2. **Focus Indicators**
+   - 2px solid ring
+   - Blue-600 `#2272B4` color
+   - Always visible on keyboard navigation
+   - Never remove focus outlines (use alternative if needed)
+
+### 3. **Touch Targets**
+   - Minimum 44px × 44px for interactive elements
+   - 8px spacing between adjacent interactive elements
+   - Applies to buttons, links, form controls, chips
+
+### 4. **Status Communication**
+   - **Never rely on color alone** for conveying information
+   - Always include icon or text label with colored indicators
+   - Use semantic HTML elements (`<button>`, `<nav>`, `<main>`)
+   - Provide ARIA labels when visual indicators aren't sufficient
+
+### 5. **Color Blindness Considerations**
+   - Test designs with color blindness simulators
+   - Ensure severity levels are distinguishable without color
+   - Use patterns or shapes in addition to color coding
+   - Critical/High/Warning should have different icons, not just colors
+
+---
+
+## 📦 COMPONENT NAMING CONVENTIONS
+
+### Figma Components
+
+Use PascalCase with semantic names:
+- ✅ `AlertRow`, `KPITile`, `StatusBadge`
+- ❌ `Card2`, `BlueBox`, `Rectangle12`
+
+### Variants
+
+Use lowercase with consistent naming:
+- **size:** `sm` | `md` | `lg`
+- **severity:** `info` | `warning` | `critical` | `success`
+- **state:** `default` | `hover` | `pressed` | `disabled` | `loading`
+
+---
+
+## 🔗 REFERENCES
+
+### Official Resources
+
+- **Databricks Brand Guidelines:** Internal brand asset library
+- **CSS Classes:** bf-color-* classes from production Databricks applications
+- **Typography:** DM Sans, DM Mono (official typefaces)
+
+### Design Tokens Location
+
+- **Figma:** `docs/frontend-framework-design/figma/01-guidelines-context.md`
+- **Colors:** `docs/frontend-framework-design/figma/02-tokens-colors.md`
+- **Typography:** `docs/frontend-framework-design/figma/03-tokens-typography.md`
+
+---
+
+## ✅ COMPLIANCE CHECKLIST
+
+Before shipping any UI, verify:
+
+### Color Usage
+- [ ] All colors use official Databricks palette (Navy, Oat, Lava, Blue, Green, Yellow)
+- [ ] Primary buttons use Blue-600, NOT Lava-600
+- [ ] Lava-600 reserved for critical/destructive actions only
+- [ ] Color combinations follow official best practices (balanced, intentional)
+- [ ] NO colored text on low-contrast backgrounds
+- [ ] NO mixing colors with similar brightness levels
+- [ ] Large neutral backgrounds (Oat, White, Navy) with strategic color pops (Lava, Blue)
+
+### Accessibility
+- [ ] All text meets minimum 4.5:1 contrast ratio (WCAG AA)
+- [ ] Large text (18px+) meets 3:1 contrast ratio
+- [ ] Tested with WebAIM Contrast Checker or equivalent
+- [ ] Tested with color blindness simulators
+- [ ] Status indicators use icons + text, not color alone
+- [ ] Focus indicators are Blue-600, 2px solid, always visible
+- [ ] Touch targets minimum 44px × 44px with 8px spacing
+
+### Typography
+- [ ] Typography uses DM Sans for UI, DM Mono for code/numbers
+- [ ] Type sizes follow divisible-by-8 rule (above 20px) or divisible-by-4/2 (below 20px)
+- [ ] Line height is 150% for body copy, 120% for headlines
+- [ ] Primary text is Navy-900 (#0B2026) - darkest for highest contrast
+- [ ] Proper text hierarchy using size + weight + color
+- [ ] Text blocks have 16px+ spacing between them
+- [ ] Paragraphs broken into 3-5 line chunks
+- [ ] All text is left-aligned (no right-align)
+- [ ] No impenetrable paragraphs or inline link clutter
+- [ ] Monospace font (DM Mono) for all code, IDs, metrics
+
+### Iconography
+- [ ] Icons from official Databricks primary icon library
+- [ ] Icon sizes follow standards (16px, 24px, 32px, 48px)
+- [ ] Icon colors match semantic meaning (Blue for interactive, Green for success, etc.)
+- [ ] Icon-only buttons have ARIA labels
+- [ ] Critical actions have icon + text label
+- [ ] Icons meet 3:1 contrast ratio
+
+### Layout & Structure
+- [ ] Page background is Oat Light (#F9F7F4)
+- [ ] Card surfaces are White (#FFFFFF) with Gray-lines borders
+- [ ] Proper elevation/layering (Oat-light → White → White+shadow)
+- [ ] 4px base spacing unit maintained throughout
+- [ ] Component names follow PascalCase convention
+- [ ] Variants follow lowercase convention
+
+---
+
+## 📚 OFFICIAL REFERENCES
+
+### Databricks Brand Guidelines
+- **Primary Brand Colors:** Lava 600, Navy 900, Oat Medium, Oat Light, White
+- **Color Philosophy:** Navy, Oat, and White for large backgrounds; Lava for vibrant pops
+- **Color Usage Best Practices:** 
+  - ✅ DO: Use color in balanced, intentional ways with tints and shades of analogous colors
+  - ❌ DON'T: Use colored text on low-contrast backgrounds (accessibility failure)
+  - ❌ DON'T: Mix colors with similar brightness levels (low visual contrast)
+
+### Design Assets
+- **Typography:** DM Sans (UI), DM Mono (code/numbers) - Official Databricks Asset Library
+- **Type Scale:** Divisible by 8 (above 20px), divisible by 4 or 2 (below 20px)
+- **Line Height:** 150% for body copy, 120% for headlines
+- **Color Palette:** bf-color-* CSS classes from production Databricks applications
+- **Contrast Standards:** WCAG AA (4.5:1 for text, 3:1 for large text/UI components)
+
+### Asset Locations
+- **Icon Library:** `context/branding/primary_icons/` (200+ official icons)
+- **Typography Fonts:** `context/branding/typography/` (DM Sans, DM Mono)
+- **Color CSS:** `context/branding/extended_colors/` (bf-color-* classes)
+
+### Documentation Locations
+- **Figma Prompts:** `docs/frontend-framework-design/figma/`
+- **Color Tokens:** `docs/frontend-framework-design/figma/02-tokens-colors.md`
+- **Typography Tokens:** `docs/frontend-framework-design/figma/03-tokens-typography.md`
+- **Guidelines:** `docs/frontend-framework-design/figma/01-guidelines-context.md`
+- **Icons Reference:** `docs/frontend-framework-design/figma/20-icons-assets.md`
+
+---
+
+**Last Updated:** 2026-01-05
+**Version:** 2.2 - Official Databricks colors, typography, iconography (200+ icons), and usage guidelines

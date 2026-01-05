@@ -1650,7 +1650,7 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
               "frame": {
                 "showTitle": true,
@@ -1661,23 +1661,28 @@
                 "columns": [
                   {
                     "fieldName": "table_name",
-                    "title": "Table"
+                    "title": "Table",
+                    "type": "string"
                   },
                   {
                     "fieldName": "schema_name",
-                    "title": "Schema"
+                    "title": "Schema",
+                    "type": "string"
                   },
                   {
                     "fieldName": "size_gb",
-                    "title": "Size (GB)"
+                    "title": "Size (GB)",
+                    "type": "number"
                   },
                   {
                     "fieldName": "num_files",
-                    "title": "Files"
+                    "title": "Files",
+                    "type": "number"
                   },
                   {
                     "fieldName": "avg_file_mb",
-                    "title": "Avg File (MB)"
+                    "title": "Avg File (MB)",
+                    "type": "number"
                   }
                 ]
               }
@@ -1725,7 +1730,7 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
               "frame": {
                 "showTitle": true,
@@ -1736,23 +1741,28 @@
                 "columns": [
                   {
                     "fieldName": "table_name",
-                    "title": "Table"
+                    "title": "Table",
+                    "type": "string"
                   },
                   {
                     "fieldName": "schema_name",
-                    "title": "Schema"
+                    "title": "Schema",
+                    "type": "string"
                   },
                   {
                     "fieldName": "size_gb",
-                    "title": "Size (GB)"
+                    "title": "Size (GB)",
+                    "type": "number"
                   },
                   {
                     "fieldName": "num_files",
-                    "title": "Files"
+                    "title": "Files",
+                    "type": "number"
                   },
                   {
                     "fieldName": "optimization_status",
-                    "title": "Status"
+                    "title": "Status",
+                    "type": "string"
                   }
                 ]
               }
@@ -1792,7 +1802,7 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
               "frame": {
                 "showTitle": true,
@@ -1803,11 +1813,13 @@
                 "columns": [
                   {
                     "fieldName": "table_name",
-                    "title": "Table"
+                    "title": "Table",
+                    "type": "string"
                   },
                   {
                     "fieldName": "schema_name",
-                    "title": "Schema"
+                    "title": "Schema",
+                    "type": "string"
                   },
                   {
                     "fieldName": "created_at",

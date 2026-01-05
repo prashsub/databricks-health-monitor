@@ -42,10 +42,10 @@ Purpose: Primary interactive element for actions
 ### Variants (use Figma component properties):
 
 **emphasis** (property):
-- primary: brand/primary background (#077A9D), text/inverse text
-- secondary: transparent background, brand/primary border, brand/primary text
-- tertiary: transparent background, no border, brand/primary text
-- destructive: semantic/critical background (#FF3621), text/inverse text
+- primary: Blue-600 background (#2272B4) ✅, white text
+- secondary: White background, Navy-700 border (#143D4A), Navy-700 text
+- tertiary: transparent background, no border, Blue-600 text (#2272B4) ✅
+- destructive: Lava-600 background (#FF3621) ✅, white text
 
 **size** (property):
 - sm: height 32px, padding 12px horizontal, label/default text (12px)
@@ -88,11 +88,11 @@ Purpose: Status indicators and labels
 ### Variants:
 
 **severity** (property):
-- info: semantic/info-light background (#E8F5FA), brand/primary text
-- success: semantic/success-light background (#E6F7F1), semantic/success text
-- warning: semantic/warning-light background (#FFF8E6), text/primary text
-- critical: semantic/critical-light background (#FFEBE8), semantic/critical text
-- neutral: background/elevated (#FAFBFC), text/secondary
+- info: Blue-200 background (#D7EDFE) ✅, Blue-600 text (#2272B4) ✅
+- success: Green-100 background (#DCF4ED) ✅, Green-600 text (#00A972) ✅
+- warning: Yellow-100 background (#FFF0D3) ✅, Yellow-700 text (#BA7B23) ✅
+- critical: Lava-100 background (#FAECEB) ✅, Lava-600 text (#FF3621) ✅
+- neutral: Navy-200 background (#E5EAF1) ✅, Navy-900 text (#0B2026) ✅
 
 **size** (property):
 - sm: height 20px, padding 6px horizontal, caption/default text (10px)
@@ -129,21 +129,33 @@ Purpose: Container for content groupings
 - elevated: background/surface, no border, elevation/2 shadow
 - outlined: background/surface, border/strong border, no shadow
 - interactive: same as default, but hover shows elevation/2 + border/focus
+- **accent-top**: default + colored 4px top border (NEW for professional signal/metric cards)
+- **accent-top-sm**: default + colored 3px top border (NEW for topology nodes)
+
+**accentColor** (property, only for accent-top/accent-top-sm variants):
+- blue: border-top Blue-600 (#2272B4) ✅
+- green: border-top Green-600 (#00A972) ✅
+- maroon: border-top Maroon-500 (#AB4057) ✅
+- red: border-top Lava-600 (#FF3621) ✅
+- amber: border-top Yellow-600 (#FFAB00) ✅
+- navy: border-top Navy-900 (#0B2026) ✅
 
 **padding** (property):
 - none: 0px padding
 - sm: spacing/4 (16px)
-- md: spacing/6 (24px)
-- lg: spacing/8 (32px)
+- md: spacing/5 (20px) - NEW for professional card padding
+- lg: spacing/6 (24px)
+- xl: spacing/8 (32px)
 
 **state** (property):
 - default: normal
-- hover: elevation/2 shadow (for interactive variant)
+- hover: elevation-2 shadow (for interactive variant) OR border change to Blue-600 (#2272B4) ✅
 - selected: border/focus border (2px brand/primary)
 
 ### Structure:
 ```
 Card (Auto Layout, vertical)
+├── [Accent Border] (optional, 4px or 3px top border based on variant)
 ├── [Header Slot] (optional)
 ├── Content Slot
 └── [Footer Slot] (optional)
@@ -151,10 +163,13 @@ Card (Auto Layout, vertical)
 
 ### Specifications:
 - Border radius: radius/md (8px)
-- Border: 1px border/default
+- Border: 1px Gray-lines (#DCE0E2) ✅
+- Border-top (accent variants): 4px or 3px solid [accentColor]
 - Min width: 200px
-- Background: background/surface (#FFFFFF)
-- Header separator: 1px border/default (optional)
+- Background: White (#FFFFFF) ✅
+- Header separator: 1px Gray-lines (#DCE0E2) ✅ (optional)
+- Box-shadow (default): 0 1px 2px rgba(0,0,0,0.05) - elevation-1 ✅
+- Box-shadow (hover): 0 4px 12px rgba(7,122,157,0.15) for interactive
 
 ---
 
@@ -213,7 +228,7 @@ InputField (Auto Layout, vertical)
 
 ## COMPONENT 5: Chip
 
-Purpose: Tags, filters, selections
+Purpose: Tags, filters, selections, status indicators
 
 ### Variants:
 
@@ -221,10 +236,19 @@ Purpose: Tags, filters, selections
 - default: background/elevated background, text/primary text
 - selected: brand/primary-light background, brand/primary text
 - outlined: transparent background, border/default border
+- **status**: colored background with leading dot indicator (NEW for professional status chips)
+
+**statusSeverity** (property, only for status variant):
+- success: Green-100 (#DCF4ED) ✅ background, Green-600 (#00A972) ✅ text, Green dot
+- warning: Yellow-100 (#FFF0D3) ✅ background, Yellow-700 (#BA7B23) ✅ text, Amber dot
+- critical: Lava-100 (#FAECEB) ✅ background, Lava-600 (#FF3621) ✅ text, Red dot
+- info: Blue-200 (#D7EDFE) ✅ background, Blue-600 (#2272B4) ✅ text, Blue dot
+- neutral: Navy-200 (#E5EAF1) ✅ background, Navy-900 (#0B2026) ✅ text, Navy dot
 
 **size** (property):
-- sm: height 24px, padding 8px, label/default (12px)
-- md: height 32px, padding 12px, label/large (14px)
+- sm: height 24px, padding 8px, label/badge (11px) - NEW for professional badges
+- md: height 28px, padding 10px 12px, label/badge (11px) - NEW default for status chips
+- lg: height 32px, padding 12px, label/large (14px)
 
 **hasRemove** (boolean):
 - true: show X icon on right (12px)
@@ -243,14 +267,24 @@ Purpose: Tags, filters, selections
 ### Structure:
 ```
 Chip (Auto Layout, horizontal)
+├── [LeadingDot] (optional, 6px circle for status variant) - NEW
 ├── [Icon] (optional, 14px)
 ├── Label (text)
 └── [RemoveIcon] (optional, 12px X icon)
 ```
 
-### Specifications:
+### Specifications (default/selected/outlined):
 - Border radius: radius/full (9999px)
 - Font weight: 500
+
+### Specifications (status variant - NEW):
+- Border radius: 4px (NOT full rounded - professional look)
+- Border: none
+- Leading dot: 6px circle, colored by statusSeverity
+- Dot-label gap: spacing/1 (4px)
+- Font weight: 500 (medium)
+- Font: label/badge (11px)
+- Padding: 8px horizontal, 6px vertical
 - Icon-text gap: spacing/1 (4px)
 - Text-remove gap: spacing/1 (4px)
 
@@ -278,10 +312,10 @@ Purpose: User/entity visual identifier
 - false: no status indicator
 
 **statusColor** (property, when hasStatus=true):
-- online: semantic/success (#00A972)
-- offline: text/muted (#9CA3AF)
-- busy: semantic/critical (#FF3621)
-- away: semantic/warning (#FFAB00)
+- online: Green-600 (#00A972) ✅
+- offline: Navy-500 (#618794) ✅
+- busy: Lava-600 (#FF3621) ✅
+- away: Yellow-600 (#FFAB00) ✅
 
 ### Structure:
 ```

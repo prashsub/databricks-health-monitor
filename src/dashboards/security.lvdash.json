@@ -1771,12 +1771,16 @@
                       "expression": "`risk_score`"
                     },
                     {
-                      "name": "confidence",
-                      "expression": "`confidence`"
+                      "name": "incident_summary",
+                      "expression": "`incident_summary`"
                     },
                     {
-                      "name": "prediction_date",
-                      "expression": "`prediction_date`"
+                      "name": "last_action",
+                      "expression": "`last_action`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ]
                 }
@@ -1803,14 +1807,19 @@
                     "type": "number"
                   },
                   {
-                    "fieldName": "confidence",
-                    "title": "Confidence",
-                    "type": "number"
+                    "fieldName": "incident_summary",
+                    "title": "Evidence",
+                    "type": "string"
                   },
                   {
-                    "fieldName": "prediction_date",
-                    "title": "Date",
-                    "type": "datetime"
+                    "fieldName": "last_action",
+                    "title": "Last Suspicious Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Recommended Action",
+                    "type": "string"
                   }
                 ]
               },
@@ -1851,8 +1860,16 @@
                       "expression": "`risk_level`"
                     },
                     {
-                      "name": "anomaly_score",
-                      "expression": "`anomaly_score`"
+                      "name": "access_pattern",
+                      "expression": "`access_pattern`"
+                    },
+                    {
+                      "name": "last_action",
+                      "expression": "`last_action`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ]
                 }
@@ -1870,25 +1887,35 @@
                   },
                   {
                     "fieldName": "data_volume",
-                    "title": "Data Volume (GB)",
+                    "title": "Read Operations",
                     "type": "number"
                   },
                   {
                     "fieldName": "risk_level",
-                    "title": "Risk Level",
+                    "title": "Risk",
                     "type": "string"
                   },
                   {
-                    "fieldName": "anomaly_score",
-                    "title": "Score",
-                    "type": "number"
+                    "fieldName": "access_pattern",
+                    "title": "Access Pattern",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_action",
+                    "title": "Last Data Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Recommended Action",
+                    "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
                 "title": "\ud83e\udd16 ML: Data Exfiltration Risk",
-                "description": "Volume anomaly model"
+                "description": "Data access pattern analysis"
               }
             }
           },
@@ -1922,8 +1949,16 @@
                       "expression": "`escalation_risk`"
                     },
                     {
-                      "name": "confidence",
-                      "expression": "`confidence`"
+                      "name": "activity_summary",
+                      "expression": "`activity_summary`"
+                    },
+                    {
+                      "name": "last_action",
+                      "expression": "`last_action`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ]
                 }
@@ -1946,20 +1981,30 @@
                   },
                   {
                     "fieldName": "escalation_risk",
-                    "title": "Risk Level",
+                    "title": "Risk",
                     "type": "string"
                   },
                   {
-                    "fieldName": "confidence",
-                    "title": "Confidence",
-                    "type": "number"
+                    "fieldName": "activity_summary",
+                    "title": "Activity Summary",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_action",
+                    "title": "Last Privilege Action",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Recommended Action",
+                    "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
                 "title": "\ud83e\udd16 ML: Privilege Escalation Risk",
-                "description": "Behavioral analysis model"
+                "description": "Permission and IAM activity analysis"
               }
             }
           },
@@ -3572,17 +3617,74 @@
     {
       "name": "ds_ml_threats",
       "displayName": "ML: Threats",
-      "query": "SELECT\n  user_id AS user_identity_email,\n  CASE \n    WHEN prediction > 0.8 THEN 'Potential Data Breach'\n    WHEN prediction > 0.5 THEN 'Suspicious Activity'\n    ELSE 'Low Risk'\n  END AS threat_type,\n  ROUND(prediction * 100, 1) AS risk_score,\n  ROUND(prediction, 2) AS confidence,\n  scored_at AS prediction_date\nFROM ${catalog}.${feature_schema}.security_threat_predictions\nWHERE scored_at >= :time_range.min AND scored_at <= :time_range.max\nORDER BY prediction DESC\nLIMIT 50"
+      "query": "WITH user_risk AS (\n  SELECT\n    user_identity_email,\n    COUNT(*) AS total_events,\n    SUM(CASE WHEN is_failed_action = true THEN 1 ELSE 0 END) AS failed_actions,\n    SUM(CASE WHEN response_result = 'denied' OR response_status_code >= 400 THEN 1 ELSE 0 END) AS access_denials,\n    SUM(CASE WHEN LOWER(action_name) LIKE '%delete%' OR LOWER(action_name) LIKE '%drop%' OR LOWER(action_name) LIKE '%destroy%' THEN 1 ELSE 0 END) AS destructive_actions,\n    SUM(CASE WHEN LOWER(action_name) LIKE '%permission%' OR LOWER(action_name) LIKE '%grant%' OR LOWER(action_name) LIKE '%revoke%' THEN 1 ELSE 0 END) AS permission_changes,\n    MAX(CASE WHEN is_failed_action = true OR response_result = 'denied' THEN action_name END) AS last_suspicious_action,\n    MAX(CASE WHEN is_failed_action = true OR response_result = 'denied' THEN service_name END) AS last_affected_service,\n    MAX(event_time) AS last_event\n  FROM ${catalog}.${gold_schema}.fact_audit_logs\n  WHERE event_date >= :time_range.min AND event_date <= :time_range.max\n    AND user_identity_email IS NOT NULL\n    AND user_identity_email NOT LIKE '%.gserviceaccount.com'\n    AND user_identity_email NOT LIKE 'service-principal-%'\n    AND LOWER(user_identity_email) NOT IN ('system-user', 'system', 'databricks')\n  GROUP BY user_identity_email\n  HAVING (SUM(CASE WHEN is_failed_action = true THEN 1 ELSE 0 END) > 5\n       OR SUM(CASE WHEN response_result = 'denied' OR response_status_code >= 400 THEN 1 ELSE 0 END) > 10\n       OR SUM(CASE WHEN LOWER(action_name) LIKE '%delete%' OR LOWER(action_name) LIKE '%drop%' THEN 1 ELSE 0 END) > 3)\n)\nSELECT\n  user_identity_email,\n  CASE \n    WHEN access_denials > 50 OR failed_actions > 20 THEN 'Potential Data Breach'\n    WHEN destructive_actions > 5 THEN 'Data Destruction Risk'\n    WHEN permission_changes > 10 THEN 'Privilege Abuse'\n    ELSE 'Suspicious Activity'\n  END AS threat_type,\n  LEAST(100, ROUND((access_denials + failed_actions * 2 + destructive_actions * 5) * 2, 0)) AS risk_score,\n  ROUND(LEAST(1.0, (access_denials + failed_actions + destructive_actions * 3) / 100.0), 2) AS confidence,\n  last_event AS prediction_date,\n  CONCAT(failed_actions, ' failed actions, ', access_denials, ' access denials, ', destructive_actions, ' deletes') AS incident_summary,\n  COALESCE(last_suspicious_action, 'N/A') AS last_action,\n  COALESCE(last_affected_service, 'N/A') AS affected_service,\n  CASE\n    WHEN access_denials > 50 THEN 'Immediate review - verify user identity and recent access patterns'\n    WHEN destructive_actions > 5 THEN 'Audit deleted resources and review user permissions'\n    WHEN failed_actions > 20 THEN 'Review failed operation patterns and verify authorization'\n    ELSE 'Monitor user activity closely for next 7 days'\n  END AS recommended_action\nFROM user_risk\nORDER BY (access_denials + failed_actions * 2 + destructive_actions * 5) DESC\nLIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-7d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_ml_exfiltration",
       "displayName": "ML: Exfiltration",
-      "query": "SELECT\n  user_id AS user_identity_email,\n  ROUND(prediction * 1000, 0) AS data_volume,\n  CASE \n    WHEN prediction > 0.7 THEN 'HIGH'\n    WHEN prediction > 0.4 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS risk_level,\n  ROUND(prediction, 3) AS anomaly_score,\n  scored_at\nFROM ${catalog}.${feature_schema}.exfiltration_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
+      "query": "WITH user_data_access AS (\n  SELECT\n    user_identity_email,\n    COUNT(*) AS total_access_events,\n    SUM(CASE WHEN LOWER(action_name) LIKE '%read%' OR LOWER(action_name) LIKE '%select%' OR LOWER(action_name) LIKE '%download%' OR LOWER(action_name) LIKE '%export%' THEN 1 ELSE 0 END) AS read_operations,\n    SUM(CASE WHEN LOWER(action_name) LIKE '%download%' OR LOWER(action_name) LIKE '%export%' THEN 1 ELSE 0 END) AS export_operations,\n    COUNT(DISTINCT service_name) AS distinct_services,\n    COUNT(DISTINCT source_ip_address) AS distinct_ips,\n    MAX(action_name) FILTER (WHERE LOWER(action_name) LIKE '%download%' OR LOWER(action_name) LIKE '%export%' OR LOWER(action_name) LIKE '%read%') AS last_data_action,\n    MAX(service_name) FILTER (WHERE LOWER(action_name) LIKE '%download%' OR LOWER(action_name) LIKE '%export%' OR LOWER(action_name) LIKE '%read%') AS last_accessed_service,\n    MAX(event_time) AS last_event\n  FROM ${catalog}.${gold_schema}.fact_audit_logs\n  WHERE event_date >= :time_range.min AND event_date <= :time_range.max\n    AND user_identity_email IS NOT NULL\n    AND user_identity_email NOT LIKE '%.gserviceaccount.com'\n    AND user_identity_email NOT LIKE 'service-principal-%'\n    AND LOWER(user_identity_email) NOT IN ('system-user', 'system', 'databricks')\n  GROUP BY user_identity_email\n  HAVING SUM(CASE WHEN LOWER(action_name) LIKE '%read%' OR LOWER(action_name) LIKE '%select%' OR LOWER(action_name) LIKE '%download%' OR LOWER(action_name) LIKE '%export%' THEN 1 ELSE 0 END) > 100\n     OR SUM(CASE WHEN LOWER(action_name) LIKE '%download%' OR LOWER(action_name) LIKE '%export%' THEN 1 ELSE 0 END) > 10\n)\nSELECT\n  user_identity_email,\n  read_operations AS data_volume,\n  CASE \n    WHEN export_operations > 50 OR (read_operations > 1000 AND distinct_ips > 3) THEN 'HIGH'\n    WHEN export_operations > 20 OR read_operations > 500 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS risk_level,\n  ROUND(LEAST(1.0, (export_operations * 10 + read_operations) / 5000.0), 3) AS anomaly_score,\n  CONCAT(export_operations, ' exports, ', read_operations, ' reads, ', distinct_ips, ' IPs') AS access_pattern,\n  COALESCE(last_data_action, 'N/A') AS last_action,\n  COALESCE(last_accessed_service, 'N/A') AS accessed_service,\n  CASE\n    WHEN export_operations > 50 THEN 'URGENT: Review export activity - potential bulk data extraction'\n    WHEN distinct_ips > 5 THEN 'Investigate access from multiple locations - possible credential sharing'\n    WHEN read_operations > 1000 THEN 'Analyze read patterns for unusual data access scope'\n    ELSE 'Monitor for escalation in data access volume'\n  END AS recommended_action,\n  last_event AS scored_at\nFROM user_data_access\nORDER BY (export_operations * 10 + read_operations) DESC\nLIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-7d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_ml_privilege",
       "displayName": "ML: Privilege",
-      "query": "SELECT\n  user_id AS user_identity_email,\n  'User' AS current_role,\n  CASE \n    WHEN prediction > 0.7 THEN 'HIGH'\n    WHEN prediction > 0.4 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS escalation_risk,\n  ROUND(prediction, 2) AS confidence,\n  scored_at\nFROM ${catalog}.${feature_schema}.privilege_escalation_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
+      "query": "WITH privilege_activity AS (\n  SELECT\n    user_identity_email,\n    COUNT(*) AS total_actions,\n    SUM(CASE WHEN LOWER(action_name) LIKE '%permission%' OR LOWER(action_name) LIKE '%grant%' OR LOWER(action_name) LIKE '%access%' THEN 1 ELSE 0 END) AS permission_actions,\n    SUM(CASE WHEN LOWER(action_name) LIKE '%adduser%' OR LOWER(action_name) LIKE '%creategroup%' OR LOWER(action_name) LIKE '%setadmin%' THEN 1 ELSE 0 END) AS admin_actions,\n    SUM(CASE WHEN service_name IN ('accounts', 'iamRole', 'groups', 'users') THEN 1 ELSE 0 END) AS iam_events,\n    SUM(CASE WHEN LOWER(action_name) LIKE '%update%' AND service_name IN ('accounts', 'groups', 'users') THEN 1 ELSE 0 END) AS role_changes,\n    MAX(action_name) FILTER (WHERE LOWER(action_name) LIKE '%permission%' OR LOWER(action_name) LIKE '%grant%' OR service_name IN ('accounts', 'iamRole')) AS last_privilege_action,\n    MAX(service_name) FILTER (WHERE LOWER(action_name) LIKE '%permission%' OR LOWER(action_name) LIKE '%grant%' OR service_name IN ('accounts', 'iamRole')) AS target_service,\n    MAX(event_time) AS last_event\n  FROM ${catalog}.${gold_schema}.fact_audit_logs\n  WHERE event_date >= :time_range.min AND event_date <= :time_range.max\n    AND user_identity_email IS NOT NULL\n    AND user_identity_email NOT LIKE '%.gserviceaccount.com'\n    AND user_identity_email NOT LIKE 'service-principal-%'\n    AND LOWER(user_identity_email) NOT IN ('system-user', 'system', 'databricks')\n  GROUP BY user_identity_email\n  HAVING SUM(CASE WHEN LOWER(action_name) LIKE '%permission%' OR LOWER(action_name) LIKE '%grant%' OR LOWER(action_name) LIKE '%access%' THEN 1 ELSE 0 END) > 5\n      OR SUM(CASE WHEN service_name IN ('accounts', 'iamRole', 'groups', 'users') THEN 1 ELSE 0 END) > 10\n)\nSELECT\n  user_identity_email,\n  CASE\n    WHEN admin_actions > 5 THEN 'Admin'\n    WHEN iam_events > 20 THEN 'IAM User'\n    WHEN permission_actions > 10 THEN 'Power User'\n    ELSE 'User'\n  END AS current_role,\n  CASE \n    WHEN admin_actions > 10 OR (permission_actions > 20 AND iam_events > 30) THEN 'HIGH'\n    WHEN admin_actions > 5 OR permission_actions > 10 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS escalation_risk,\n  ROUND(LEAST(1.0, (admin_actions * 10 + permission_actions + iam_events) / 100.0), 2) AS confidence,\n  CONCAT(permission_actions, ' permission changes, ', admin_actions, ' admin actions, ', iam_events, ' IAM events') AS activity_summary,\n  COALESCE(last_privilege_action, 'N/A') AS last_action,\n  COALESCE(target_service, 'N/A') AS target_service,\n  CASE\n    WHEN admin_actions > 10 THEN 'CRITICAL: Review admin action logs - possible unauthorized privilege escalation'\n    WHEN permission_actions > 20 THEN 'Review permission grants - verify authorization for changes'\n    WHEN iam_events > 30 THEN 'Audit IAM activity - high volume of identity changes'\n    ELSE 'Monitor for unusual privilege patterns'\n  END AS recommended_action,\n  last_event AS scored_at\nFROM privilege_activity\nORDER BY (admin_actions * 10 + permission_actions + iam_events) DESC\nLIMIT 20",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-7d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_monitor_latest",

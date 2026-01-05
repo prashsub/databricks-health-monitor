@@ -29,24 +29,52 @@ Based on official Databricks app template patterns:
 
 ## 🔧 Figma-to-Code Alignment Requirements
 
-### 1. Tailwind CSS Token Mapping
+### 1. Tailwind CSS Token Mapping (Updated Color System)
 
-**Update `02-tokens-colors.md` to include Tailwind equivalents:**
+**Aligned with Databricks Color Themes (02-tokens-colors.md):**
 
-| Figma Token | Tailwind Class | CSS Variable |
-|-------------|----------------|--------------|
-| `brand-primary` (#077A9D) | `text-primary` / `bg-primary` | `--color-primary` |
-| `brand-secondary` (#FF6600) | `text-secondary` | `--color-secondary` |
-| `bg-surface` (#FFFFFF) | `bg-white` | `--color-bg-surface` |
-| `bg-subtle` (#F9FAFB) | `bg-gray-50` | `--color-bg-subtle` |
-| `bg-muted` (#F3F4F6) | `bg-gray-100` | `--color-bg-muted` |
-| `text-primary` (#111827) | `text-gray-900` | `--color-text-primary` |
-| `text-secondary` (#6B7280) | `text-gray-500` | `--color-text-secondary` |
-| `border-default` (#E5E7EB) | `border-gray-200` | `--color-border-default` |
-| `severity-critical` (#DC2626) | `text-red-600` | `--color-critical` |
-| `severity-warning` (#F59E0B) | `text-amber-500` | `--color-warning` |
-| `severity-success` (#10B981) | `text-emerald-500` | `--color-success` |
-| `severity-info` (#3B82F6) | `text-blue-500` | `--color-info` |
+| Figma Token | Hex Value | Tailwind Class | CSS Variable |
+|-------------|-----------|----------------|--------------|
+| `interactive/primary` | #2272B4 (Blue-600) ✅ | `text-blue-600` / `bg-blue-600` | `--color-primary` |
+| `brand/secondary` | #143D4A (Navy-700) ✅ | `text-db-navy` / `bg-db-navy` | `--color-secondary` |
+| `brand/lava` | #FF3621 (Lava-600) ✅ | `text-db-lava` | `--color-accent` |
+| `background/canvas` | #F5F2ED | `bg-db-cream` | `--color-bg-canvas` |
+| `background/surface` | #FFFFFF | `bg-white` | `--color-bg-surface` |
+| `background/surface-alt` | #EEEDE9 (Oat-medium) ✅ | `bg-db-oat-medium` | `--color-bg-subtle` |
+| `text/primary` | #0B2026 (Navy-900) ✅ | `text-db-navy-900` | `--color-text-primary` |
+| `neutral/slate` | #4A5D6B | `text-db-slate` | `--color-text-secondary` |
+| `neutral/steel` | #6B7D8A | `text-db-steel` | `--color-text-muted` |
+| `border/default` | #E0E6EB | `border-db-mist` | `--color-border-default` |
+| `semantic/critical` | #FF3621 | `text-db-red` / `bg-red-500` | `--color-critical` |
+| `semantic/warning` | #FFAB00 | `text-db-amber` / `bg-amber-500` | `--color-warning` |
+| `semantic/success` | #00A972 | `text-db-green` / `bg-emerald-500` | `--color-success` |
+| `semantic/info` | #2272B4 (Blue-600) ✅ | `text-blue-600` / `bg-blue-600` | `--color-info` |
+
+**Custom Tailwind Config (tailwind.config.js):**
+
+```javascript
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        // Official Databricks colors ✅
+        'db-blue': '#2272B4',        // Blue-600 - PRIMARY interactive
+        'db-navy': '#143D4A',        // Navy-700
+        'db-navy-900': '#0B2026',    // Navy-900 - PRIMARY text
+        'db-coral': '#E8715E',
+        'db-red': '#FF3621',
+        'db-green': '#00A972',
+        'db-amber': '#FFAB00',
+        'db-cream': '#F5F2ED',
+        'db-offwhite': '#FAF9F7',
+        'db-slate': '#4A5D6B',
+        'db-steel': '#6B7D8A',
+        'db-mist': '#E0E6EB',
+      }
+    }
+  }
+}
+```
 
 ### 2. Component Naming Conventions
 
@@ -57,6 +85,20 @@ Based on official Databricks app template patterns:
 | Figma Component | File Path | Export |
 |-----------------|-----------|--------|
 | `Button` | `components/ui/button.tsx` | `Button` |
+
+**Button Variants (CRITICAL for Contrast):**
+
+| Variant | Background | Border | Text | Tailwind Classes |
+|---------|------------|--------|------|------------------|
+| `primary` | `#2272B4` (Blue-600) ✅ | None | `#FFFFFF` (White) | `bg-blue-600 text-white` |
+| `secondary` | Transparent | `#143D4A` (Navy-700) ✅ | `#0B2026` (Navy-900) ✅ | `border-db-navy text-db-navy-900` |
+| `gray-outline` | Transparent | `#DCE0E2` (Gray-lines) ✅ | `#0B2026` (Navy-900) ✅ | `border-gray-300 text-db-navy-900` |
+| `ghost` | Transparent | None | `#618794` (Navy-500) ✅ | `text-db-navy-500 hover:bg-gray-100` |
+| `destructive` | `#FF3621` (Lava-600) ✅ | None | `#FFFFFF` (White) | `bg-db-lava text-white` |
+| `link` | Transparent | None | `#2272B4` (Blue-600) ✅ | `text-blue-600 underline-offset-4` |
+
+**Note:** Gray-outline buttons use Navy-900 text (`#0B2026`) for WCAG AA contrast compliance on white backgrounds. Never use gray text on gray-bordered buttons.
+
 | `Badge` | `components/ui/badge.tsx` | `Badge` |
 | `Card` | `components/ui/card.tsx` | `Card` |
 | `Input` | `components/ui/input.tsx` | `Input` |

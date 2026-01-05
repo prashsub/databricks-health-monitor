@@ -7,17 +7,36 @@ Create a comprehensive icon library and asset collection for the Databricks Heal
 
 ## 📦 Icon Library Overview
 
-**Icon System:** Lucide Icons (https://lucide.dev)
-**Default Size:** 20px × 20px
-**Stroke Width:** 1.5px (Lucide default)
-**Color:** Inherit from parent (typically text color)
+### Dual Icon Strategy
 
-### Why Lucide?
-- Open source, MIT licensed
-- 1400+ icons
-- Consistent 24px grid design
-- Tree-shakeable for Next.js
-- Active maintenance
+**Implementation Icons:** Lucide Icons (https://lucide.dev)
+- Open source, MIT licensed, React-friendly
+- 1400+ icons, consistent 24px grid
+- Tree-shakeable for Next.js performance
+- Used for UI controls (close, menu, expand, etc.)
+
+**Brand Icons:** Official Databricks Primary Icons
+- **Location:** `context/branding/primary_icons/` (200+ icons)
+- Official brand assets for Databricks-specific concepts
+- Used for domain features (Data Lake, Unity Catalog, MLOps, etc.)
+- SVG vectors optimized for Databricks brand consistency
+
+### When to Use Each
+
+| Use Case | Icon Library | Example |
+|----------|--------------|---------|
+| **UI Controls** | Lucide | Close (X), Menu, Search, ChevronDown, MoreHorizontal |
+| **Status Indicators** | Lucide | CheckCircle, AlertTriangle, XCircle, Info |
+| **Generic Actions** | Lucide | Copy, Download, Edit, Trash, Share |
+| **Databricks Features** | Primary Icons | Delta Lake, Unity Catalog, MLOps, Lakehouse, Serverless |
+| **Domain Concepts** | Primary Icons | Data Quality, Governance, Model Registry, Observable Metrics |
+| **Platform Services** | Primary Icons | Spark Cluster, Photon, Lakeflow Pipelines, Feature Store |
+
+### Standard Sizes
+- **icon-sm:** 16px × 16px - Buttons, table cells, inline
+- **icon-md:** 24px × 24px - Cards, list items, navigation (default)
+- **icon-lg:** 32px × 32px - Page headers, empty states
+- **icon-xl:** 48px × 48px - Hero sections, feature cards
 
 ---
 
@@ -35,7 +54,68 @@ For each icon, create these size variants:
 
 ---
 
-## 📋 Required Icons by Category
+## 🎨 Databricks Primary Icons (Brand Assets)
+
+**Location:** `context/branding/primary_icons/`
+
+### Key Icons for Health Monitor
+
+**Monitoring & Observability:**
+- `Observable Metrics` - Health Score, monitoring dashboards
+- `Performance` - Performance domain, latency metrics
+- `Cost Management` - Cost domain, spend analytics
+- `Data Quality 1` / `Data Quality 2` / `Data Quality 3` - Quality scores
+- `Incident Investigation` - Alert details, failed jobs
+- `Runbook Playbook` - Actions, remediation guides
+
+**Data Platform:**
+- `Delta Lake` - Delta tables, lakehouse references
+- `Unity Catalog` - Catalog, governance features
+- `Lakeflow Pipelines` - DLT pipelines, data flows
+- `Databricks Workspace` - Workspace selector, environment
+- `Serverless` - Serverless compute indicators
+- `Spark Cluster` - Cluster health, compute resources
+- `Data Lineage` - Data flow visualizations
+- `Dashboards` - BI dashboards, reporting
+
+**ML & AI:**
+- `Machine Learning` - ML domain, model overview
+- `MLOps` - MLOps workflows, deployment
+- `Feature Store` - Feature engineering references
+- `Model Registry` - Model tracking, versioning
+- `Model Training` - Training jobs, experiments
+- `Auto Machine Learning` - AutoML features
+
+**Security & Governance:**
+- `Governance` - Governance domain, compliance
+- `Data Security` - Security findings, access control
+- `Compliance` - Regulatory compliance checks
+- `Privacy` - PII detection, privacy controls
+- `Enterprise Security` - Enterprise security features
+- `Encryption` - Encryption indicators
+
+**Actions & Infrastructure:**
+- `Deploy` - Deployment actions, CI/CD
+- `Automation` - Automated workflows
+- `Scheduled Jobs` - Job scheduling
+- `Webhook` - Integration webhooks
+- `Cost` - Cost indicators (red coin icon)
+- `Currency` - Financial metrics
+
+### Icon Color Mapping
+
+| Semantic | Color | Use Case |
+|----------|-------|----------|
+| **Default** | Navy-900 (#0B2026) | Standard, non-interactive icons |
+| **Interactive** | Blue-600 (#2272B4) | Clickable icons, hover states |
+| **Success** | Green-600 (#00A972) | Healthy, passing, targets met |
+| **Warning** | Yellow-600 (#FFAB00) | At-risk, caution |
+| **Critical** | Lava-600 (#FF3621) | Failed, critical alerts |
+| **Muted** | Navy-500 (#618794) | Disabled, secondary |
+
+---
+
+## 📋 Lucide Icons (Implementation)
 
 ### Navigation Icons (14 icons)
 
@@ -83,20 +163,20 @@ For each icon, create these size variants:
 
 ### Status & Severity Icons (12 icons)
 
-| Icon Name | Lucide Name | Color Usage |
-|-----------|-------------|-------------|
-| AlertCircle | `AlertCircle` | Critical (#DC2626) |
-| AlertTriangle | `AlertTriangle` | Warning (#F59E0B) |
-| Info | `Info` | Info (#077A9D) |
-| CheckCircle | `CheckCircle` | Success (#10B981) |
-| XCircle | `XCircle` | Error (#DC2626) |
-| HelpCircle | `HelpCircle` | Help (#6B7280) |
-| Clock | `Clock` | Pending, time |
-| Loader | `Loader2` | Loading (animated) |
-| Circle | `Circle` | Neutral status |
-| CircleDot | `CircleDot` | Active/selected |
-| Ban | `Ban` | Blocked, forbidden |
-| Pause | `PauseCircle` | Paused |
+| Icon Name | Lucide Name | Color Usage (OFFICIAL Databricks) |
+|-----------|-------------|-----------------------------------|
+| AlertCircle | `AlertCircle` | Critical (#FF3621 Lava-600) ✅ |
+| AlertTriangle | `AlertTriangle` | Warning (#FFAB00 Yellow-600) ✅ |
+| Info | `Info` | Info (#2272B4 Blue-600) ✅ |
+| CheckCircle | `CheckCircle` | Success (#00A972 Green-600) ✅ |
+| XCircle | `XCircle` | Error (#FF3621 Lava-600) ✅ |
+| HelpCircle | `HelpCircle` | Help (#618794 Navy-500) ✅ |
+| Clock | `Clock` | Pending, time (Navy-900) |
+| Loader | `Loader2` | Loading (animated, Blue-600) |
+| Circle | `Circle` | Neutral status (Navy-500) |
+| CircleDot | `CircleDot` | Active/selected (#2272B4 Blue-600) ✅ |
+| Ban | `Ban` | Blocked, forbidden (Lava-600) |
+| Pause | `PauseCircle` | Paused (Navy-500) |
 
 ### Domain-Specific Icons (15 icons)
 
@@ -270,7 +350,7 @@ Create color-coded versions for severity icons:
 │ Info                                                        │
 │ ┌────────┐ ┌────────┐                                      │
 │ │ Brand  │ │ Default│                                      │
-│ │#077A9D │ │#6B7280 │                                      │
+│ │#2272B4 │ │#6B7280 │                                      │
 │ └────────┘ └────────┘                                      │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -307,7 +387,7 @@ Create color-coded versions for severity icons:
 │    └──────┘                                                │
 │                                                             │
 │ Colors:                                                     │
-│ - Primary: #077A9D (Databricks teal)                       │
+│ - Primary: #2272B4 (Blue-600 - primary interactive)        │
 │ - On dark: #FFFFFF                                          │
 │ - On light: #111827                                         │
 │                                                             │
@@ -361,7 +441,7 @@ Create simple, line-art style illustrations for:
 **Style Guidelines:**
 - Line weight: 1.5px (consistent with icons)
 - Max size: 200px × 200px
-- Colors: Primary #077A9D, Secondary #6B7280
+- Colors: Primary #2272B4, Secondary #6B7280
 - Simple, geometric shapes
 - Avoid detailed illustrations
 
@@ -388,10 +468,251 @@ Create simple, line-art style illustrations for:
 
 ---
 
-## 🎨 Figma Make Prompt
+## 🎨 Figma Make Prompts
+
+### PROMPT 1: Icon Component Setup (Run First)
 
 ```
-Create icon library for enterprise monitoring dashboard.
+Create icon component library with size and color variants.
+
+PAGE: Assets/Icons
+
+ICON COMPONENT STRUCTURE:
+Create a master icon component with these properties:
+
+Property 1: size
+- xs: 12px × 12px (stroke 1px)
+- sm: 16px × 16px (stroke 1px)
+- md: 24px × 24px (stroke 1.5px) ← DEFAULT
+- lg: 32px × 32px (stroke 2px)
+- xl: 48px × 48px (stroke 2px)
+
+Property 2: color (Official Databricks)
+- default: #0B2026 (Navy-900 - standard icons)
+- interactive: #2272B4 (Blue-600 - clickable, links)
+- success: #00A972 (Green-600 - healthy, passing)
+- warning: #FFAB00 (Yellow-600 - at-risk, caution)
+- critical: #FF3621 (Lava-600 - failed, errors)
+- muted: #618794 (Navy-500 - disabled, secondary)
+- inverse: #FFFFFF (White - on dark backgrounds)
+
+All icons should:
+- Use stroke style (not fill)
+- Have stroke-linecap: round
+- Have stroke-linejoin: round
+- Be centered in frame
+- Support color inheritance from parent
+```
+
+---
+
+### PROMPT 2: Icon-to-Feature Mapping (Use When Placing Icons)
+
+```
+Apply icons to Health Monitor features using this mapping:
+
+DOMAIN ICONS (Use Databricks Primary Icons pasted in Assets):
+- Health Score / Overview: "Observable Metrics" icon, color: default
+- Cost Domain: "Cost Management" icon, color: default
+- Cost Indicator (red coin): "Cost" icon, color: critical when over budget
+- Reliability Domain: "Performance" icon, color: default
+- Governance Domain: "Governance" icon, color: default
+- Data Quality Domain: "Data Quality 1" icon, color: default
+- Security Alerts: "Data Security" icon, color: critical for findings
+- ML/AI Features: "Machine Learning" icon, color: default
+- MLOps: "MLOps" icon, color: default
+
+PLATFORM ICONS (Use Databricks Primary Icons):
+- Delta Tables: "Delta Lake" icon
+- Unity Catalog: "Unity Catalog" icon
+- Workspace: "Databricks Workspace" icon
+- Pipelines/DLT: "Lakeflow Pipelines" icon
+- Serverless: "Serverless" icon
+- Clusters: "Spark Cluster" icon
+- Data Lineage: "Data Lineage" icon
+- Dashboards: "Dashboards" icon
+
+ACTION ICONS (Use Databricks Primary Icons):
+- Deploy/Apply: "Deploy" icon, color: interactive
+- Automation: "Automation" icon, color: interactive
+- Playbooks/Runbooks: "Runbook Playbook" icon, color: interactive
+- Help/Documentation: "Help" icon, color: muted
+- Scheduled Jobs: "Scheduled Jobs" icon, color: default
+- Incident Investigation: "Incident Investigation" icon, color: critical for alerts
+
+UI CONTROL ICONS (Use Lucide - stroke style):
+- Close: X icon
+- Menu: Menu icon
+- Search: Search icon
+- Expand/Collapse: ChevronDown, ChevronRight icons
+- More options: MoreHorizontal icon
+- Back: ChevronLeft icon
+- Edit: Pencil icon
+- Delete: Trash2 icon, color: critical
+- Copy: Copy icon
+- Download: Download icon
+- Filter: Filter icon
+- Refresh: RefreshCw icon
+- External link: ExternalLink icon
+```
+
+---
+
+### PROMPT 3: Status Indicator Icons (Apply to Status Chips/Badges)
+
+```
+Create status indicator icons with semantic colors:
+
+SEVERITY STATUS (for alerts, signals, incidents):
+- Critical: AlertCircle icon, #FF3621 (Lava-600), size: sm or md
+- High: AlertTriangle icon, #FF5F46 (Lava-500), size: sm or md
+- Medium/Warning: AlertTriangle icon, #FFAB00 (Yellow-600), size: sm or md
+- Low/Info: Info icon, #618794 (Navy-500), size: sm or md
+- Success/Resolved: CheckCircle icon, #00A972 (Green-600), size: sm or md
+
+HEALTH STATUS (for metrics, resources):
+- Healthy: CheckCircle icon, #00A972 (Green-600)
+- Degraded: AlertTriangle icon, #FFAB00 (Yellow-600)
+- Critical: XCircle icon, #FF3621 (Lava-600)
+- Unknown: HelpCircle icon, #618794 (Navy-500)
+
+TREND INDICATORS:
+- Trending Up (positive): TrendingUp icon, #00A972 (Green-600)
+- Trending Up (negative, like cost): TrendingUp icon, #FF3621 (Lava-600)
+- Trending Down (positive): TrendingDown icon, #00A972 (Green-600)
+- Trending Down (negative): TrendingDown icon, #FF3621 (Lava-600)
+- Stable: ArrowRight icon, #618794 (Navy-500)
+```
+
+---
+
+### PROMPT 4: Navigation Bar Icons
+
+```
+Apply icons to sidebar navigation with consistent sizing:
+
+SIDEBAR NAVIGATION (size: md 24px, color: default, hover: interactive):
+├── Home: Home icon (Lucide)
+├── Explorer: Search icon (Lucide)
+├── Cost: "Cost Management" Primary Icon (Databricks)
+├── Reliability: Activity icon (Lucide) OR "Performance" Primary Icon
+├── Performance: Zap icon (Lucide)
+├── Governance: Shield icon (Lucide) OR "Governance" Primary Icon
+├── Quality: CheckSquare icon (Lucide) OR "Data Quality 1" Primary Icon
+├── Alerts: Bell icon (Lucide)
+├── Chat: MessageSquare icon (Lucide) OR "Chat" Primary Icon
+└── Settings: Settings icon (Lucide)
+
+Icon States:
+- Default: #618794 (Navy-500)
+- Hover: #2272B4 (Blue-600)
+- Active/Selected: #2272B4 (Blue-600) with bg #D7EDFE (Blue-200)
+```
+
+---
+
+### PROMPT 5: Resource Topology Node Icons
+
+```
+Apply icons to Resource Topology visualization nodes:
+
+LAYER: Data Sources (Bronze)
+- Unstructured data: "Unstructured Bronze" Primary Icon, color: default
+- Streaming: "Streaming" Primary Icon, color: default
+- API sources: "Data Source APIs" Primary Icon, color: default
+
+LAYER: Processing (Silver)
+- Delta Lake: "Delta Lake" Primary Icon, color: default
+- Pipelines: "Lakeflow Pipelines" Primary Icon, color: default
+- ETL: "Data Parser Normalizer Etl Elt" Primary Icon, color: default
+
+LAYER: Serving (Gold)
+- Unity Catalog: "Unity Catalog" Primary Icon, color: default
+- Data Product: "Data Product" Primary Icon, color: default
+- SQL Analytics: "SQL" Primary Icon, color: default
+
+LAYER: Applications
+- Workspace: "Databricks Workspace" Primary Icon, color: default
+- Dashboards: "Dashboards" Primary Icon, color: default
+- ML Models: "Model Registry" Primary Icon, color: default
+
+Node Status Colors:
+- Running/Healthy: Icon color default, node border #00A972 (Green-600)
+- Warning: Icon color warning, node border #FFAB00 (Yellow-600)
+- Error: Icon color critical, node border #FF3621 (Lava-600)
+- Disabled: Icon color muted, node border #C4CCD6 (Navy-300)
+```
+
+---
+
+### PROMPT 6: AI/Chat Interface Icons
+
+```
+Apply icons to AI chat and assistant features:
+
+AI ASSISTANT:
+- AI Avatar: Sparkles icon (Lucide), #2272B4 (Blue-600), size: lg
+- Bot indicator: Bot icon (Lucide), #2272B4 (Blue-600)
+- Thinking/Loading: BrainCircuit icon with animation, #2272B4
+
+CHAT ACTIONS:
+- Send message: Send icon (Lucide), color: interactive
+- Voice input: Mic icon (Lucide), color: interactive
+- Regenerate: RotateCcw icon (Lucide), color: muted
+- Thumbs up: ThumbsUp icon, color: success on click
+- Thumbs down: ThumbsDown icon, color: critical on click
+- Copy response: Copy icon, color: muted
+
+TOOL INDICATORS (in chat responses):
+- Query tool: "SQL" Primary Icon, color: interactive
+- Analysis tool: "Magnify Analytics" Primary Icon, color: interactive
+- Action tool: "Deploy" Primary Icon, color: warning
+- Search tool: Search icon (Lucide), color: success
+
+INSIGHT CARDS:
+- Recommendation: Lightbulb icon (Lucide), #FFAB00 (Yellow-600)
+- Anomaly detected: AlertCircle icon, #FF3621 (Lava-600)
+- Optimization: Target icon (Lucide), #00A972 (Green-600)
+- Prediction: "Prediction" Primary Icon, #2272B4 (Blue-600)
+```
+
+---
+
+### PROMPT 7: Icon Quick Reference Table
+
+```
+Create icon placement reference card showing:
+
+┌──────────────────────────────────────────────────────────────────┐
+│ ICON SIZE GUIDE                                                  │
+├──────────────────┬───────────────────────────────────────────────┤
+│ Size   │ Pixels  │ Usage                                         │
+├────────┼─────────┼───────────────────────────────────────────────┤
+│ xs     │ 12px    │ Inline with small text, badge icons           │
+│ sm     │ 16px    │ Buttons (sm), table cells, chips              │
+│ md     │ 24px    │ Default, nav, cards, buttons (md)             │
+│ lg     │ 32px    │ Page headers, feature highlights              │
+│ xl     │ 48px    │ Hero sections, empty states                   │
+└────────┴─────────┴───────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│ ICON COLOR GUIDE (Official Databricks)                           │
+├──────────────────┬───────────────────────────────────────────────┤
+│ Semantic         │ Hex         │ When to Use                     │
+├──────────────────┼─────────────┼─────────────────────────────────┤
+│ default          │ #0B2026     │ Non-interactive, labels         │
+│ interactive      │ #2272B4     │ Clickable, links, actions       │
+│ success          │ #00A972     │ Healthy, passed, positive       │
+│ warning          │ #FFAB00     │ At-risk, needs attention        │
+│ critical         │ #FF3621     │ Failed, errors, urgent          │
+│ muted            │ #618794     │ Disabled, secondary, hints      │
+│ inverse          │ #FFFFFF     │ On dark backgrounds             │
+└──────────────────┴─────────────┴─────────────────────────────────┘
+```
+
+---
+
+### PROMPT 8: Lucide Icon Library Creation (For UI Controls)
 
 PAGE: Assets/Icons
 
@@ -438,7 +759,7 @@ Color variants for status:
 - warning: #F59E0B
 - low: #3B82F6
 - success: #10B981
-- info: #077A9D
+- info: #2272B4
 - default: #6B7280
 
 DOMAIN ICONS (Create these from Lucide):
@@ -479,13 +800,13 @@ LOGO VARIANTS:
 1. Full Logo
    - Width: 240px, Height: 32px
    - [Diamond icon] + "Databricks Health Monitor"
-   - Font: Inter Bold 16px
-   - Color variants: dark (#111827), light (#FFFFFF), brand (#077A9D)
+   - Font: DM Sans Bold 16px ✅
+   - Color variants: dark (#111827), light (#FFFFFF), brand (#2272B4)
 
 2. Compact Logo
    - Width: 160px, Height: 32px
    - [Diamond icon] + "Health Monitor"
-   - Font: Inter Bold 14px
+   - Font: DM Sans Bold 14px ✅
    - Same color variants
 
 3. Icon Only
@@ -509,7 +830,7 @@ Create 7 simple line illustrations (200px × 200px max):
 7. Maintenance - Wrench and gear
 
 Style:
-- Stroke: 1.5px, #077A9D primary, #6B7280 secondary
+- Stroke: 1.5px, #2272B4 primary, #6B7280 secondary
 - No fills (line art only)
 - Simple geometric shapes
 - Each illustration should be a component

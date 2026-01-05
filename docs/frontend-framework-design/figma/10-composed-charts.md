@@ -214,9 +214,9 @@ LegendItem (Auto Layout, horizontal, 4px gap)
 
 ### Color Palette for Charts:
 ```
-Series colors (in order):
-- chart/series-1: #077A9D (brand primary - teal)
-- chart/series-2: #7C3AED (purple)
+Series colors (Official Databricks - in order):
+- chart/series-1: #2272B4 (Blue-600 - PRIMARY) ✅
+- chart/series-2: #1B3139 (Navy-800 - secondary)
 - chart/series-3: #059669 (emerald)
 - chart/series-4: #F59E0B (amber)
 - chart/series-5: #EF4444 (red)
@@ -381,14 +381,14 @@ Page layout:
 ## CHART COLOR TOKENS TO CREATE:
 
 ```
-chart/series-1: #077A9D (teal - primary)
-chart/series-2: #7C3AED (purple)
+chart/series-1: #2272B4 (Blue-600 - PRIMARY) ✅
+chart/series-2: #1B3139 (Navy-800 - secondary)
 chart/series-3: #059669 (emerald)
 chart/series-4: #F59E0B (amber)
 chart/series-5: #EF4444 (red)
 chart/series-6: #6366F1 (indigo)
 chart/series-7: #EC4899 (pink)
-chart/series-8: #14B8A6 (teal light)
+chart/series-8: #8ACAFF (Blue-400 - light accent) ✅
 
 chart/axis: text/muted (#6B7280)
 chart/grid: border/default (#E5E7EB)

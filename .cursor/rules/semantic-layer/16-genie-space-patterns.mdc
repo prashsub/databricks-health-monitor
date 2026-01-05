@@ -152,6 +152,39 @@ ORDER BY window.start DESC;
 | Table Name | Purpose | Grain | YAML Source |
 |------------|---------|-------|-------------|
 | `fact_{entity}` | {purpose} | {grain_description} | {domain}/fact_{entity}.yaml |
+
+### Data Model Relationships 🔗 (REQUIRED)
+
+⚠️ **REQUIRED:** Document FK relationships to enable accurate joins in Genie queries.
+
+**Source:** Extract from `foreign_keys:` section in each `gold_layer_design/yaml/{domain}/*.yaml` file.
+
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_{entity}` | → | `dim_{dimension}` | `{fk_column}` = `{pk_column}` | LEFT |
+| `fact_{entity}` | → | `dim_{shared}` | `(workspace_id, fk_col)` = `(workspace_id, pk_col)` | LEFT |
+
+**Example Relationship Documentation:**
+
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_usage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_usage` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
+| `fact_usage` | → | `dim_cluster` | `(workspace_id, usage_metadata_cluster_id)` = `(workspace_id, cluster_id)` | LEFT |
+| `fact_usage` | → | `dim_job` | `(workspace_id, usage_metadata_job_id)` = `(workspace_id, job_id)` | LEFT |
+| `fact_job_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
+
+**Why This Matters:**
+- Genie can generate accurate multi-table JOIN queries
+- Prevents cartesian products and incorrect aggregations
+- Documents composite key relationships explicitly
+- Enables correct workspace-scoped analysis
+
+**Relationship Types:**
+| Join Type | When to Use |
+|-----------|-------------|
+| LEFT | Default - Fact may have NULLs for optional dimensions |
+| INNER | When FK is NOT NULL and dimension is required |
 ```
 
 ---

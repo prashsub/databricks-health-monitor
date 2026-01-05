@@ -99,7 +99,7 @@ SECTION 1: WORKSPACES (Default View)
 Header:
 - Title: "Workspaces"
 - Subtitle: "Manage connected Databricks workspaces"
-- [+ Connect Workspace]
+- [+ Connect Workspace] (TEAL filled button)
 
 Connected Workspaces Table:
 
@@ -130,7 +130,7 @@ SECTION 2: USERS & TEAMS
 Header:
 - Title: "Users & Teams"
 - Subtitle: "Manage access and team assignments"
-- [+ Invite User] [+ Create Team]
+- [+ Invite User] [+ Create Team] (Blue-600 filled #2272B4 ✅, Gray outline #DCE0E2/#0B2026 text ✅)
 
 Tab Bar:
 [Users (12)] [Teams (4)] [Pending Invites (2)]
@@ -159,7 +159,7 @@ SECTION 3: TEAM OWNERSHIP
 Header:
 - Title: "Team Ownership"
 - Subtitle: "Assign ownership for resources, jobs, and catalogs"
-- [+ Add Ownership Rule]
+- [+ Add Ownership Rule] (TEAL filled button)
 
 Ownership Rules Table:
 
@@ -187,7 +187,7 @@ Memory Settings:
 - Session memory duration: [24 hours ▼]
 - Long-term memory enabled: [Toggle ON]
 - Memory items limit: [100 ▼]
-- [Clear All Memory] [Export Memory]
+- [Clear All Memory] [Export Memory] (Lava-600 outline #FF3621, Gray outline #DCE0E2/#0B2026 text ✅)
 
 Tools & Capabilities:
 Checkboxes for enabled tools:
@@ -224,7 +224,7 @@ Slack:
 - Status: Connected (green)
 - Workspace: company.slack.com
 - Channels: 3 configured
-- [Configure] [Disconnect]
+- [Configure] [Disconnect] (Gray outline #DCE0E2/#0B2026 text ✅, Lava-600 outline #FF3621)
 
 Email:
 - Status: Connected (green)

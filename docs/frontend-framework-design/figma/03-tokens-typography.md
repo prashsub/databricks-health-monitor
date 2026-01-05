@@ -17,7 +17,7 @@ Context:
 - Product: Databricks Health Monitor (platform observability)
 - Users: Technical power users reading dense data
 - Style: Clean, scannable, enterprise
-- Font families: Inter (UI), JetBrains Mono (code/numbers)
+- Font families: DM Sans (UI) ✅ OFFICIAL, DM Mono (code/numbers) ✅ OFFICIAL
 
 Objective (this run only):
 - Create ONLY typography text styles
@@ -26,11 +26,26 @@ Objective (this run only):
 
 Follow Guidelines.md for design system alignment.
 
+OFFICIAL Databricks Type Scale Rules (CRITICAL):
+- Above 20px: Sizes MUST be divisible by 8 (24, 32, 40, 48, 56, 64, 72, 80)
+- Below 20px: Sizes divisible by 4 or 2 (10, 12, 14, 16, 18, 20)
+- Body copy line-height: 150% (1.5) ✅
+- Headline line-height: 120% (1.2) ✅
+
+Typography Best Practices:
+✅ DO: Use hierarchy (size, weight, color) for scannability
+✅ DO: Give content space (16px+ between blocks)
+✅ DO: Use proper line-height (150% body, 120% headlines)
+❌ DON'T: Cram text elements close together
+❌ DON'T: Use tight line-height (below 120%)
+❌ DON'T: Use right-aligned text
+
 Design system rules:
 - Use Figma text styles (not variables for typography)
 - Group styles by category (display, heading, body, etc.)
 - Include font family, size, weight, line height, letter spacing
 - All styles must use the defined fonts only
+- ALL sizes must follow type scale rules
 
 ---
 
@@ -39,8 +54,16 @@ CREATE THESE TEXT STYLES:
 ## Group: Display
 (Large, impactful text for hero numbers and page titles)
 
+- display/xl
+  Font: DM Sans ✅
+  Size: 80px
+  Weight: 700 (Bold)
+  Line Height: 96px (1.2) ✅
+  Letter Spacing: -0.02em
+  Usage: Billboards, very large hero sections
+
 - display/large
-  Font: Inter
+  Font: DM Sans ✅
   Size: 48px
   Weight: 700 (Bold)
   Line Height: 56px (1.17)
@@ -48,7 +71,7 @@ CREATE THESE TEXT STYLES:
   Usage: Very large KPI numbers, dashboard titles
 
 - display/medium
-  Font: Inter
+  Font: DM Sans ✅
   Size: 32px
   Weight: 600 (Semibold)
   Line Height: 40px (1.25)
@@ -59,7 +82,7 @@ CREATE THESE TEXT STYLES:
 (Section and card titles)
 
 - heading/h1
-  Font: Inter
+  Font: DM Sans
   Size: 24px
   Weight: 600 (Semibold)
   Line Height: 32px (1.33)
@@ -67,21 +90,21 @@ CREATE THESE TEXT STYLES:
   Usage: Major section titles, modal headers
 
 - heading/h2
-  Font: Inter
+  Font: DM Sans
   Size: 18px
   Weight: 600 (Semibold)
   Line Height: 24px (1.33)
   Usage: Card titles, subsection headers
 
 - heading/h3
-  Font: Inter
+  Font: DM Sans
   Size: 16px
   Weight: 600 (Semibold)
   Line Height: 22px (1.375)
   Usage: Small section titles, sidebar sections
 
 - heading/h4
-  Font: Inter
+  Font: DM Sans
   Size: 14px
   Weight: 600 (Semibold)
   Line Height: 20px (1.43)
@@ -91,28 +114,36 @@ CREATE THESE TEXT STYLES:
 (Primary reading text)
 
 - body/large
-  Font: Inter
+  Font: DM Sans
   Size: 16px
   Weight: 400 (Regular)
   Line Height: 24px (1.5)
   Usage: Descriptions, longer text content
 
 - body/default
-  Font: Inter
+  Font: DM Sans
   Size: 14px
   Weight: 400 (Regular)
   Line Height: 20px (1.43)
   Usage: Default body text, table cells
 
 - body/small
-  Font: Inter
+  Font: DM Sans
   Size: 12px
   Weight: 400 (Regular)
   Line Height: 18px (1.5)
   Usage: Secondary text, metadata, timestamps
 
+- body/small-emphasis
+  Font: DM Sans
+  Size: 13px
+  Weight: 500 (Medium)
+  Line Height: 20px (1.54)
+  Letter Spacing: 0
+  Usage: Action links, metric text in cards (NEW for professional design)
+
 - body/emphasis
-  Font: Inter
+  Font: DM Sans
   Size: 14px
   Weight: 500 (Medium)
   Line Height: 20px (1.43)
@@ -122,7 +153,7 @@ CREATE THESE TEXT STYLES:
 (UI labels and controls)
 
 - label/large
-  Font: Inter
+  Font: DM Sans
   Size: 14px
   Weight: 500 (Medium)
   Line Height: 20px (1.43)
@@ -130,15 +161,23 @@ CREATE THESE TEXT STYLES:
   Usage: Button text, form labels
 
 - label/default
-  Font: Inter
+  Font: DM Sans
   Size: 12px
   Weight: 500 (Medium)
   Line Height: 16px (1.33)
   Letter Spacing: 0.01em
   Usage: Small buttons, badge text, chip text
 
+- label/badge
+  Font: DM Sans
+  Size: 11px
+  Weight: 500 (Medium)
+  Line Height: 16px (1.45)
+  Letter Spacing: 0
+  Usage: Status badge text, professional chip labels (NEW for professional design)
+
 - label/small
-  Font: Inter
+  Font: DM Sans
   Size: 10px
   Weight: 500 (Medium)
   Line Height: 14px (1.4)
@@ -150,14 +189,14 @@ CREATE THESE TEXT STYLES:
 (Smallest text)
 
 - caption/default
-  Font: Inter
+  Font: DM Sans
   Size: 10px
   Weight: 400 (Regular)
   Line Height: 14px (1.4)
   Usage: Fine print, chart axis labels
 
 - caption/emphasis
-  Font: Inter
+  Font: DM Sans
   Size: 10px
   Weight: 500 (Medium)
   Line Height: 14px (1.4)
@@ -167,21 +206,21 @@ CREATE THESE TEXT STYLES:
 (Monospace for code, numbers, IDs)
 
 - code/block
-  Font: JetBrains Mono
+  Font: DM Mono
   Size: 14px
   Weight: 400 (Regular)
   Line Height: 22px (1.57)
   Usage: SQL queries, code blocks
 
 - code/inline
-  Font: JetBrains Mono
+  Font: DM Mono
   Size: 13px
   Weight: 400 (Regular)
   Line Height: 20px (1.54)
   Usage: Inline code, table IDs
 
 - code/small
-  Font: JetBrains Mono
+  Font: DM Mono
   Size: 11px
   Weight: 400 (Regular)
   Line Height: 16px (1.45)
@@ -191,28 +230,28 @@ CREATE THESE TEXT STYLES:
 (Numeric display - monospace for alignment)
 
 - number/large
-  Font: JetBrains Mono
+  Font: DM Mono
   Size: 32px
   Weight: 600 (Semibold)
   Line Height: 40px (1.25)
   Usage: Large KPI values, cost totals
 
 - number/medium
-  Font: JetBrains Mono
+  Font: DM Mono
   Size: 24px
   Weight: 600 (Semibold)
   Line Height: 32px (1.33)
   Usage: Medium metric values
 
 - number/default
-  Font: JetBrains Mono
+  Font: DM Mono
   Size: 16px
   Weight: 500 (Medium)
   Line Height: 24px (1.5)
   Usage: Standard numeric values
 
 - number/small
-  Font: JetBrains Mono
+  Font: DM Mono
   Size: 12px
   Weight: 500 (Medium)
   Line Height: 18px (1.5)
@@ -241,8 +280,9 @@ Group styles visually by category (Display, Heading, Body, etc.)
 Do NOT:
 - Create any components
 - Create any screens
-- Use fonts other than Inter and JetBrains Mono
+- Use fonts other than DM Sans ✅ and DM Mono ✅
 - Add decorative text effects
+- Violate type scale rules (divisible by 8, 4, or 2)
 ```
 
 ---
@@ -251,11 +291,11 @@ Do NOT:
 
 After running this prompt, you should have:
 
-### Text Styles Created (22 total)
+### Text Styles Created (23 total)
 
 | Group | Count | Styles |
 |-------|-------|--------|
-| Display | 2 | large, medium |
+| Display | 3 | xl, large, medium |
 | Heading | 4 | h1, h2, h3, h4 |
 | Body | 4 | large, default, small, emphasis |
 | Label | 3 | large, default, small |
@@ -273,11 +313,13 @@ A "Typography" frame showing all text styles with samples.
 
 After running the prompt:
 
-- [ ] All 22 text styles are created
-- [ ] Styles are organized into groups
+- [ ] All 23 text styles are created
+- [ ] Styles are organized into groups (Display, Heading, Body, Label, Caption, Code, Number)
+- [ ] Type scale follows rules: divisible by 8 (above 20px), divisible by 4 or 2 (below 20px)
+- [ ] Line heights are 150% for body copy, 120% for headlines
 - [ ] Visual sample reference is created
-- [ ] Inter font is used for UI text
-- [ ] JetBrains Mono is used for code/numbers
+- [ ] DM Sans ✅ font is used for UI text
+- [ ] DM Mono ✅ font is used for code/numbers
 - [ ] Line heights and letter spacing are correct
 
 ---

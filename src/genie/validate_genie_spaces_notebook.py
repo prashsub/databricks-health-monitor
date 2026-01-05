@@ -27,10 +27,17 @@ def get_parameters():
     catalog = dbutils.widgets.get("catalog")
     gold_schema = dbutils.widgets.get("gold_schema")
     
+    # feature_schema is optional - defaults to gold_schema_ml in validation script
+    try:
+        feature_schema = dbutils.widgets.get("feature_schema")
+    except Exception:
+        feature_schema = f"{gold_schema}_ml"
+    
     print(f"Catalog: {catalog}")
     print(f"Gold Schema: {gold_schema}")
+    print(f"Feature Schema: {feature_schema}")
     
-    return catalog, gold_schema
+    return catalog, gold_schema, feature_schema
 
 # COMMAND ----------
 
@@ -73,7 +80,7 @@ from validate_genie_benchmark_sql import validate_all_genie_benchmarks
 def main():
     """Main validation function."""
     
-    catalog, gold_schema = get_parameters()
+    catalog, gold_schema, feature_schema = get_parameters()
     spark = SparkSession.builder.getOrCreate()
     
     print("\n" + "=" * 80)
@@ -81,17 +88,31 @@ def main():
     print("=" * 80)
     print(f"📁 Genie Space directory: {genie_dir}")
     print(f"🗂️  Catalog: {catalog}")
-    print(f"📊 Schema: {gold_schema}")
+    print(f"📊 Gold Schema: {gold_schema}")
+    print(f"🤖 Feature/ML Schema: {feature_schema}")
     print("")
     
     # Validate all benchmark queries
-    success, results = validate_all_genie_benchmarks(genie_dir, catalog, gold_schema, spark)
+    success, results = validate_all_genie_benchmarks(genie_dir, catalog, gold_schema, spark, feature_schema)
     
     if not success:
         invalid_count = sum(1 for r in results if not r['valid'])
         print(f"\n❌ VALIDATION FAILED: {invalid_count} benchmark queries have errors")
         print("Fix the errors above before deploying Genie Spaces.")
-        raise Exception(f"Genie Space benchmark validation failed: {invalid_count} queries with errors")
+        
+        # Build detailed error summary for exception message
+        error_details = []
+        for r in results:
+            if not r['valid']:
+                error_type = r.get('error_type', 'UNKNOWN')
+                short_error = str(r.get('error', ''))[:200]
+                error_details.append(f"  - {r['genie_space']} Q{r['question_num']}: {error_type} - {short_error}")
+        
+        error_summary = "\n".join(error_details[:10])  # First 10 errors
+        if len(error_details) > 10:
+            error_summary += f"\n  ... and {len(error_details) - 10} more errors"
+        
+        raise Exception(f"Genie Space benchmark validation failed: {invalid_count} queries with errors\n\nFirst errors:\n{error_summary}")
     
     print("\n✅ VALIDATION PASSED: All benchmark queries are valid!")
     dbutils.notebook.exit("SUCCESS")

@@ -1,0 +1,14 @@
+<svg width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M99.2299 46.3498H83.6699L91.4499 31.8398L99.2299 46.3498Z" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="3" stroke-linecap="square"/>
+<path d="M123.96 46.3498H108.39L116.17 31.8398L123.96 46.3498Z" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="3" stroke-linecap="square"/>
+<path d="M99.2399 55.75H83.6699V71.32H99.2399V55.75Z" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="3" stroke-linecap="square"/>
+<path d="M123.96 55.75H108.39V71.32H123.96V55.75Z" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="3" stroke-linecap="square"/>
+<path d="M99.2399 104.61H83.6699V120.18H99.2399V104.61Z" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="3" stroke-linecap="square"/>
+<path d="M123.96 104.61H108.39V120.18H123.96V104.61Z" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="3" stroke-linecap="square"/>
+<path d="M91.4499 95.2099C95.7467 95.2099 99.2299 91.7267 99.2299 87.4299C99.2299 83.1331 95.7467 79.6499 91.4499 79.6499C87.1531 79.6499 83.6699 83.1331 83.6699 87.4299C83.6699 91.7267 87.1531 95.2099 91.4499 95.2099Z" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="3" stroke-linecap="square"/>
+<path d="M116.17 95.2099C120.467 95.2099 123.95 91.7267 123.95 87.4299C123.95 83.1331 120.467 79.6499 116.17 79.6499C111.873 79.6499 108.39 83.1331 108.39 87.4299C108.39 91.7267 111.873 95.2099 116.17 95.2099Z" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="3" stroke-linecap="square"/>
+<path d="M64.88 40.4998H58.7C56.4 40.4998 54.54 38.6398 54.54 36.3398V19.3398L71.88 36.6798V79.6498" stroke="#FF5F46" stroke-width="3" stroke-linecap="square" stroke-linejoin="round"/>
+<path d="M71.88 19.3398H130.29C133.38 19.3398 135.88 21.8398 135.88 24.9298V126.88C135.88 129.97 133.38 132.47 130.29 132.47H60.13C57.04 132.47 54.54 129.97 54.54 126.88V107.56" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="3" stroke-linecap="square"/>
+<path d="M73.0001 97.5898H19.7101C16.6201 97.5898 14.1201 95.0898 14.1201 91.9998V24.9298C14.1201 21.8398 16.6201 19.3398 19.7101 19.3398H53.0601" stroke="#FF5F46" stroke-width="3" stroke-linecap="square" stroke-linejoin="round"/>
+<path d="M66.25 87.8701L75.97 97.5901L66.25 107.3" stroke="#FF5F46" stroke-width="3" stroke-miterlimit="10"/>
+</svg>

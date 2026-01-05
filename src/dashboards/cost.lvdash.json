@@ -3034,6 +3034,10 @@
                       "expression": "`total_cost`"
                     },
                     {
+                      "name": "confidence",
+                      "expression": "`confidence`"
+                    },
+                    {
                       "name": "recommended_tag",
                       "expression": "`recommended_tag`"
                     },
@@ -3044,6 +3048,10 @@
                     {
                       "name": "rationale",
                       "expression": "`rationale`"
+                    },
+                    {
+                      "name": "scored_at",
+                      "expression": "`scored_at`"
                     }
                   ]
                 }
@@ -3070,6 +3078,11 @@
                     "type": "number"
                   },
                   {
+                    "fieldName": "confidence",
+                    "title": "ML Confidence",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "recommended_tag",
                     "title": "Recommended Tag",
                     "type": "string"
@@ -3083,13 +3096,18 @@
                     "fieldName": "rationale",
                     "title": "Rationale",
                     "type": "string"
+                  },
+                  {
+                    "fieldName": "scored_at",
+                    "title": "Scored At",
+                    "type": "datetime"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Tag Recommendations",
-                "description": "Untagged jobs with cost-based tagging suggestions"
+                "title": "🤖 ML: Tag Recommendations",
+                "description": "ML-powered tag recommendations from Unity Catalog model"
               }
             }
           },
@@ -6153,7 +6171,7 @@
     {
       "name": "ds_ml_tag_recs",
       "displayName": "ML: Tag Recommendations",
-      "query": "WITH untagged_jobs AS (\n  SELECT \n    COALESCE(j.job_name, f.usage_metadata_job_id) AS job_name,\n    COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS total_cost,\n    MAX(f.sku_name) AS primary_sku,\n    COUNT(DISTINCT DATE(f.usage_date)) AS active_days\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.usage_metadata_job_id = j.job_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND f.usage_metadata_job_id IS NOT NULL\n    AND (f.custom_tags IS NULL OR f.custom_tags = '{}' OR f.custom_tags = '')\n  GROUP BY 1, 2\n  HAVING SUM(f.list_cost) > 50\n)\nSELECT \n  job_name,\n  workspace_name,\n  ROUND(total_cost, 2) AS total_cost,\n  primary_sku,\n  CASE \n    WHEN primary_sku LIKE '%JOB%' THEN 'team=engineering'\n    WHEN primary_sku LIKE '%SQL%' THEN 'team=analytics'\n    WHEN primary_sku LIKE '%SERVING%' THEN 'team=ml-ops'\n    ELSE 'team=data-platform'\n  END AS recommended_tag,\n  ROUND(total_cost / (SELECT MAX(total_cost) FROM untagged_jobs), 2) AS confidence,\n  CASE \n    WHEN total_cost > 1000 THEN 'HIGH - Add tag urgently for cost tracking'\n    WHEN total_cost > 500 THEN 'MEDIUM - Tag for proper allocation'\n    ELSE 'LOW - Consider tagging for visibility'\n  END AS priority,\n  CONCAT('Untagged for ', active_days, ' days. Cost: $', ROUND(total_cost, 0)) AS rationale\nFROM untagged_jobs\nORDER BY total_cost DESC\nLIMIT 30"
+      "query": "WITH ml_predictions AS (\n  SELECT \n    *,\n    ROW_NUMBER() OVER (PARTITION BY COALESCE(job_id, workspace_id, 'unknown') ORDER BY scored_at DESC) AS rn\n  FROM ${catalog}.${feature_schema}.tag_recommendations\n  WHERE scored_at >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\nrecent_predictions AS (\n  SELECT * FROM ml_predictions WHERE rn = 1\n),\njob_costs AS (\n  SELECT \n    f.usage_metadata_job_id AS job_id,\n    f.workspace_id,\n    COALESCE(j.name, f.usage_metadata_job_id) AS job_name,\n    COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS total_cost,\n    MAX(f.sku_name) AS primary_sku,\n    COUNT(DISTINCT DATE(f.usage_date)) AS active_days\n  FROM ${catalog}.${gold_schema}.fact_usage f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.usage_metadata_job_id = j.job_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND f.usage_metadata_job_id IS NOT NULL\n  GROUP BY 1, 2, 3, 4\n)\nSELECT \n  COALESCE(jc.job_name, CAST(p.job_id AS STRING), 'Unknown') AS job_name,\n  COALESCE(jc.workspace_name, CAST(p.workspace_id AS STRING), 'Unknown') AS workspace_name,\n  ROUND(COALESCE(jc.total_cost, 0), 2) AS total_cost,\n  COALESCE(jc.primary_sku, 'N/A') AS primary_sku,\n  CASE \n    WHEN p.prediction > 0.8 THEN 'team=engineering'\n    WHEN p.prediction > 0.6 THEN 'team=analytics'\n    WHEN p.prediction > 0.4 THEN 'team=ml-ops'\n    ELSE 'team=data-platform'\n  END AS recommended_tag,\n  ROUND(p.prediction, 2) AS confidence,\n  CASE \n    WHEN p.prediction > 0.8 THEN 'HIGH - ML model strongly recommends tagging'\n    WHEN p.prediction > 0.5 THEN 'MEDIUM - ML model suggests tagging'\n    ELSE 'LOW - Lower confidence recommendation'\n  END AS priority,\n  CONCAT('ML Score: ', ROUND(p.prediction * 100, 0), '%. Active ', COALESCE(jc.active_days, 0), ' days. Cost: $', ROUND(COALESCE(jc.total_cost, 0), 0)) AS rationale,\n  p.scored_at\nFROM recent_predictions p\nLEFT JOIN job_costs jc ON p.job_id = jc.job_id AND p.workspace_id = jc.workspace_id\nWHERE p.prediction > 0.3\nORDER BY p.prediction DESC, jc.total_cost DESC NULLS LAST\nLIMIT 30"
     },
     {
       "name": "ds_ml_user_behavior",
@@ -6163,7 +6181,7 @@
     {
       "name": "ds_ml_migration_recs",
       "displayName": "ML: Migration Recs",
-      "query": "WITH cluster_usage AS (\n  SELECT \n    c.cluster_id,\n    c.cluster_name,\n    c.cluster_source,\n    COALESCE(w.workspace_name, CAST(c.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS total_cost,\n    SUM(CASE WHEN f.sku_name LIKE '%SERVERLESS%' THEN f.list_cost ELSE 0 END) AS serverless_cost,\n    SUM(CASE WHEN f.sku_name NOT LIKE '%SERVERLESS%' THEN f.list_cost ELSE 0 END) AS classic_cost,\n    AVG(CASE WHEN f.usage_quantity_unit = 'DBU' THEN f.usage_quantity END) AS avg_dbus\n  FROM ${catalog}.${gold_schema}.dim_cluster c\n  JOIN ${catalog}.${gold_schema}.fact_usage f ON c.workspace_id = f.workspace_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON c.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND c.cluster_source = 'UI'\n  GROUP BY 1, 2, 3, 4\n  HAVING SUM(f.list_cost) > 100\n)\nSELECT \n  COALESCE(cluster_name, 'Unknown Cluster') AS cluster_name,\n  workspace_name,\n  cluster_source AS cluster_type,\n  ROUND(total_cost, 2) AS total_cost_30d,\n  CASE \n    WHEN cluster_source = 'UI' AND classic_cost > 500 THEN 'Migrate to Serverless SQL'\n    WHEN cluster_source = 'UI' AND classic_cost > 100 THEN 'Convert to Job Cluster'\n    WHEN serverless_cost > classic_cost THEN 'Already optimized'\n    ELSE 'Review for right-sizing'\n  END AS recommendation,\n  ROUND(classic_cost * 0.3, 2) AS potential_savings,\n  CASE \n    WHEN cluster_source = 'UI' AND classic_cost > 500 THEN 'High - All-purpose cluster with significant spend'\n    WHEN cluster_source = 'UI' THEN 'Medium - All-purpose cluster could be optimized'\n    ELSE 'Low - Already using job clusters'\n  END AS confidence_rationale,\n  CONCAT('Source: ', cluster_source, ', Classic: $', ROUND(classic_cost, 0), ', Avg DBUs: ', ROUND(COALESCE(avg_dbus, 0), 0)) AS usage_details\nFROM cluster_usage\nWHERE classic_cost > 0\nORDER BY classic_cost DESC\nLIMIT 20"
+      "query": "WITH cluster_usage AS (\n  SELECT \n    c.cluster_id,\n    c.cluster_name,\n    c.cluster_source,\n    COALESCE(w.workspace_name, CAST(c.workspace_id AS STRING)) AS workspace_name,\n    SUM(f.list_cost) AS total_cost,\n    SUM(CASE WHEN f.sku_name LIKE '%SERVERLESS%' THEN f.list_cost ELSE 0 END) AS serverless_cost,\n    SUM(CASE WHEN f.sku_name NOT LIKE '%SERVERLESS%' THEN f.list_cost ELSE 0 END) AS classic_cost,\n    AVG(CASE WHEN f.usage_unit = 'DBU' THEN f.usage_quantity END) AS avg_dbus\n  FROM ${catalog}.${gold_schema}.dim_cluster c\n  JOIN ${catalog}.${gold_schema}.fact_usage f ON c.workspace_id = f.workspace_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON c.workspace_id = w.workspace_id\n  WHERE f.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND c.cluster_source = 'UI'\n  GROUP BY 1, 2, 3, 4\n  HAVING SUM(f.list_cost) > 100\n)\nSELECT \n  COALESCE(cluster_name, 'Unknown Cluster') AS cluster_name,\n  workspace_name,\n  cluster_source AS cluster_type,\n  ROUND(total_cost, 2) AS total_cost_30d,\n  CASE \n    WHEN cluster_source = 'UI' AND classic_cost > 500 THEN 'Migrate to Serverless SQL'\n    WHEN cluster_source = 'UI' AND classic_cost > 100 THEN 'Convert to Job Cluster'\n    WHEN serverless_cost > classic_cost THEN 'Already optimized'\n    ELSE 'Review for right-sizing'\n  END AS recommendation,\n  ROUND(classic_cost * 0.3, 2) AS potential_savings,\n  CASE \n    WHEN cluster_source = 'UI' AND classic_cost > 500 THEN 'High - All-purpose cluster with significant spend'\n    WHEN cluster_source = 'UI' THEN 'Medium - All-purpose cluster could be optimized'\n    ELSE 'Low - Already using job clusters'\n  END AS confidence_rationale,\n  CONCAT('Source: ', cluster_source, ', Classic: $', ROUND(classic_cost, 0), ', Avg DBUs: ', ROUND(COALESCE(avg_dbus, 0), 0)) AS usage_details\nFROM cluster_usage\nWHERE classic_cost > 0\nORDER BY classic_cost DESC\nLIMIT 20"
     },
     {
       "name": "ds_monitor_cost_trend",

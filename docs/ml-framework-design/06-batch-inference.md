@@ -81,7 +81,9 @@ predictions = fe.score_batch(
 
 """
 Batch Inference Pipeline
-Generates predictions for all 25 models using fe.score_batch()
+Generates predictions for 23 models using fe.score_batch()
+
+Note: tag_recommender uses custom inference (TF-IDF), schema_change_predictor removed
 """
 
 from pyspark.sql import SparkSession, DataFrame
@@ -423,9 +425,38 @@ if __name__ == "__main__":
     main()
 ```
 
-## Fallback for Non-FE Models
+## Models Using Custom Inference (Non-FE)
 
-Some models (like `tag_recommender`) use runtime features that aren't in feature tables. These require manual scoring:
+### Why Some Models Skip fe.score_batch()
+
+Models that use **runtime feature extraction** (e.g., TF-IDF on text) cannot use `fe.score_batch()` because:
+1. Runtime features aren't stored in feature tables
+2. Feature extraction must happen at inference time
+3. Model was logged with `mlflow.sklearn.log_model()` (not `fe.log_model()`)
+
+### Model Inventory: FE vs Custom Inference
+
+| Model | Inference Type | Reason |
+|-------|----------------|--------|
+| 23 models | `fe.score_batch()` | Standard feature table lookup |
+| `tag_recommender` | Custom (TF-IDF) | Runtime NLP feature extraction |
+| `schema_change_predictor` | ❌ Removed | Single-class data (cannot train) |
+
+### tag_recommender Custom Inference
+
+`tag_recommender` uses TF-IDF vectors from job names combined with cost features. See [07-Model Catalog: tag_recommender Custom Inference](07-model-catalog.md#tag_recommender-custom-inference) for the complete implementation.
+
+**Key steps:**
+1. Load model from MLflow
+2. Load TF-IDF vectorizer from model artifacts
+3. Load label encoder from model artifacts
+4. Extract TF-IDF features from job names at runtime
+5. Combine with cost features
+6. Call `model.predict()`
+
+### Generic Fallback Pattern
+
+For models without feature table lookups:
 
 ```python
 def score_without_feature_engineering(

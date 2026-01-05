@@ -13,9 +13,9 @@
 **Powered by:**
 - 2 Metric Views (cost_analytics, commit_tracking)
 - 15 Table-Valued Functions (parameterized cost queries)
-- 6 ML Prediction Tables (anomaly detection, forecasting, recommendations)
+- 6 ML Prediction Tables (anomaly detection, forecasting, optimization, chargeback, commitments, tag recommendations)
 - 2 Lakehouse Monitoring Tables (cost drift and custom metrics)
-- 7 Dimension Tables (workspace, SKU, cluster, node_type, job, user, date)
+- 5 Dimension Tables (workspace, SKU, cluster, node_type, job)
 - 5 Fact Tables (usage, pricing, node timeline, job runs)
 
 ---
@@ -80,12 +80,12 @@
 
 | Table Name | Purpose | Model | Key Columns |
 |---|---|---|---|
-| `cost_anomaly_predictions` | Detected cost anomalies with severity scores | Cost Anomaly Detector | `anomaly_score`, `is_anomaly`, `workspace_id`, `usage_date` |
-| `budget_forecast_predictions` | 30-day cost forecasts with confidence intervals | Budget Forecaster | `forecast_amount`, `lower_bound`, `upper_bound`, `forecast_date` |
-| `tag_recommendations` | Suggested tags for untagged resources | Tag Recommender | `recommended_tags`, `confidence`, `resource_id`, `resource_type` |
-| `job_cost_optimizer_predictions` | Job right-sizing and cost optimization | Job Cost Optimizer | `current_cost`, `optimized_cost`, `savings_potential`, `recommendation` |
-| `chargeback_predictions` | Cost allocation by team/project | Chargeback Attribution | `team`, `project`, `allocated_cost`, `allocation_method` |
-| `commitment_recommendations` | Commit level recommendations for discount optimization | Commitment Recommender | `current_commit`, `recommended_commit`, `projected_savings` |
+| `cost_anomaly_predictions` | Detected cost anomalies with severity scores | Cost Anomaly Detector | `prediction`, `workspace_id`, `usage_date` |
+| `budget_forecast_predictions` | 30-day cost forecasts with confidence intervals | Budget Forecaster | `prediction`, `workspace_id`, `usage_date` |
+| `job_cost_optimizer_predictions` | Job right-sizing and cost optimization | Job Cost Optimizer | `prediction`, `workspace_id`, `usage_date` |
+| `chargeback_predictions` | Cost allocation by team/project | Chargeback Attribution | `prediction`, `workspace_id`, `usage_date` |
+| `commitment_recommendations` | Commit level recommendations for discount optimization | Commitment Recommender | `prediction`, `workspace_id`, `usage_date` |
+| `tag_recommendations` | Suggested tags for untagged resources | Tag Recommender | `prediction`, `workspace_id`, `usage_date` |
 
 ### Lakehouse Monitoring Tables 📊
 
@@ -142,7 +142,7 @@ ORDER BY window.start DESC;
 | `is_tagged` | Tagged vs untagged |
 | `product_features_is_serverless` | Serverless vs classic |
 
-### Dimension Tables (7 Tables)
+### Dimension Tables (5 Tables)
 
 **Sources:** `gold_layer_design/yaml/billing/`, `compute/`, `lakeflow/`, `shared/`
 
@@ -152,9 +152,9 @@ ORDER BY window.start DESC;
 | `dim_sku` | SKU reference for cost categorization | `sku_name`, `sku_category`, `list_price`, `is_serverless` | billing/dim_sku.yaml |
 | `dim_cluster` | Cluster metadata for compute cost analysis | `cluster_id`, `cluster_name`, `node_type_id`, `cluster_source` | compute/dim_cluster.yaml |
 | `dim_node_type` | Node specifications for right-sizing | `node_type_id`, `num_cores`, `memory_gb`, `hourly_cost` | compute/dim_node_type.yaml |
-| `dim_job` | Job metadata for job cost attribution | `job_id`, `job_name`, `owner`, `schedule_type` | lakeflow/dim_job.yaml |
-| `dim_user` | User information for chargeback | `user_id`, `user_name`, `email`, `department_tag` | shared/dim_user.yaml |
-| `dim_date` | Date dimension for time analysis | `date_key`, `day_of_week`, `month_name`, `is_weekend` | shared/dim_date.yaml |
+| `dim_job` | Job metadata for job cost attribution | `job_id`, `name`, `creator_id`, `schedule_type` | lakeflow/dim_job.yaml |
+
+> **Note:** `dim_user` and `dim_date` are not deployed. For user info, use `usage_owner` from `fact_usage`. For date analysis, use date functions on `usage_date`.
 
 ### Fact Tables (5 Tables)
 
@@ -167,6 +167,28 @@ ORDER BY window.start DESC;
 | `fact_list_prices` | List prices over time | Per SKU per effective date | billing/fact_list_prices.yaml |
 | `fact_node_timeline` | Cluster node usage timeline | Per node per time interval | compute/fact_node_timeline.yaml |
 | `fact_job_run_timeline` | Job execution with cost | Per job run | lakeflow/fact_job_run_timeline.yaml |
+
+### Data Model Relationships 🔗
+
+**Foreign Key Constraints** (extracted from `gold_layer_design/yaml/`)
+
+| Fact Table | → | Dimension Table | Join Keys | Join Type |
+|------------|---|-----------------|-----------|-----------|
+| `fact_usage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_usage` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
+| `fact_usage` | → | `dim_cluster` | `(workspace_id, usage_metadata_cluster_id)` = `(workspace_id, cluster_id)` | LEFT |
+| `fact_usage` | → | `dim_job` | `(workspace_id, usage_metadata_job_id)` = `(workspace_id, job_id)` | LEFT |
+| `fact_account_prices` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
+| `fact_list_prices` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
+| `fact_node_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_node_timeline` | → | `dim_cluster` | `(workspace_id, cluster_id)` = `(workspace_id, cluster_id)` | LEFT |
+| `fact_node_timeline` | → | `dim_node_type` | `node_type_id` = `node_type_id` | LEFT |
+| `fact_job_run_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
+| `fact_job_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
+
+**Join Patterns:**
+- **Single Key:** `ON fact.key = dim.key`
+- **Composite Key (workspace-scoped):** `ON fact.workspace_id = dim.workspace_id AND fact.fk = dim.pk`
 
 ---
 

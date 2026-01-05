@@ -181,7 +181,7 @@ Purpose: Loading indicator for actions
 - xl: 48px
 
 **color** (property):
-- primary: brand/primary (#077A9D)
+- primary: brand/primary (#2272B4)
 - inverse: text/inverse (#FFFFFF) - for dark backgrounds
 - muted: text/muted (#9CA3AF)
 

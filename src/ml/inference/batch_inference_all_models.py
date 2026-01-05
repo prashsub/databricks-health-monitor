@@ -1,12 +1,23 @@
 # Databricks notebook source
 """
-Batch Inference - Simple Pattern
-================================
+Batch Inference - Feature Store Models (23 models)
+==================================================
 
-Uses the official Databricks pattern for batch inference:
+Uses the official Databricks pattern for batch inference with fe.score_batch():
 1. Create DataFrame with lookup keys only
 2. Call fe.score_batch() - it handles feature lookup automatically  
 3. Save predictions
+
+Models Scored (23 via Feature Store):
+- Cost (5): anomaly, budget, job_cost, chargeback, commitment
+- Security (4): threat, exfiltration, privilege, user_behavior
+- Performance (7): query, warehouse, cluster_capacity, regression, dbr_risk, cache_hit, query_optimization
+- Reliability (5): failure, duration, sla_breach, retry_success, pipeline_health
+- Quality (2): drift, freshness
+
+NOT Scored Here:
+- tag_recommender: Uses TF-IDF (runtime features) - handled by score_tag_recommender.py
+- schema_change_predictor: Removed (single-class data)
 
 Reference: https://docs.databricks.com/aws/en/machine-learning/feature-store/train-models-with-feature-store
 """
@@ -103,7 +114,9 @@ def get_model_configs(catalog: str, feature_schema: str) -> List[Dict]:
         {"model_name": "job_cost_optimizer", "feature_table": "cost_features", "output_table": "job_cost_optimizer_predictions", "domain": "COST"},
         {"model_name": "chargeback_attribution", "feature_table": "cost_features", "output_table": "chargeback_predictions", "domain": "COST"},
         {"model_name": "commitment_recommender", "feature_table": "cost_features", "output_table": "commitment_recommendations", "domain": "COST"},
-        # NOTE: tag_recommender uses TF-IDF, not feature store. Skip from FE scoring.
+        # NOTE: tag_recommender uses TF-IDF (runtime NLP features), not feature store.
+        # Handled by separate task: score_tag_recommender.py
+        # See: src/ml/inference/score_tag_recommender.py
         {"model_name": "tag_recommender", "feature_table": "cost_features", "output_table": "tag_recommendations", "domain": "COST", "skip_fe": True},
         
         # SECURITY DOMAIN

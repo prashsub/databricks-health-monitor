@@ -49,21 +49,23 @@ ML SYSTEM ARCHITECTURE
 │   ├── reliability_features  # Job stats, failure rates
 │   └── quality_features      # Table stats, freshness
 │
-├── MODEL LAYER (25 Models across 5 Domains)
-│   ├── COST (6)              # Anomaly, forecaster, optimizer, chargeback, commitment, tag
+├── MODEL LAYER (25 Models Designed, 24 Trained, 23 Batch Scored)
+│   ├── COST (6)              # Anomaly, forecaster, optimizer, chargeback, commitment, tag*
 │   ├── SECURITY (4)          # Threat, exfiltration, privilege escalation, user behavior
 │   ├── PERFORMANCE (7)       # Query forecast, warehouse, regression, cache, capacity, DBR migration, optimization
 │   ├── RELIABILITY (5)       # Failure, duration, SLA, retry, health
-│   └── QUALITY (3)           # Drift, schema change, freshness
+│   └── QUALITY (2)           # Drift, freshness (schema_change_predictor removed - single-class data)
 │
-├── INFERENCE LAYER (25 Prediction Tables)
+├── INFERENCE LAYER (23 Prediction Tables via Feature Store)
 │   └── {model_name}_predictions  # Scored predictions with timestamps
 │
 └── ORCHESTRATION LAYER (3 Jobs)
     ├── ml_feature_pipeline   # Creates feature tables
-    ├── ml_training_pipeline  # Trains all 25 models
-    └── ml_inference_pipeline # Generates predictions
+    ├── ml_training_pipeline  # Trains 24 models
+    └── ml_inference_pipeline # Scores 23 models via Feature Store
 ```
+
+> **Note:** `tag_recommender` (*) uses TF-IDF and requires custom inference (see [07-Model Catalog](07-model-catalog.md#tag_recommender-custom-inference))
 
 ## Quick Start
 
@@ -92,13 +94,18 @@ ML SYSTEM ARCHITECTURE
 
 ## Model Statistics
 
-| Domain | Models | Algorithms Used | Primary Use Cases |
-|---|:---:|---|---|
-| 💰 Cost | 6 | Isolation Forest, GBR, XGBoost, RF+TF-IDF | Anomaly detection, forecasting, optimization |
-| 🔒 Security | 4 | Isolation Forest (all 4) | Threat detection, exfiltration, behavior analysis |
-| ⚡ Performance | 7 | GBR (4), Isolation Forest (1), XGBoost (1), RF (1) | Query forecasting, capacity planning |
-| 🔄 Reliability | 5 | XGBoost (4), GBR (1) | Failure prediction, SLA monitoring |
-| 📊 Quality | 3 | Isolation Forest (1), RF (1), GBR (1) | Drift detection, schema & freshness prediction |
+| Domain | Total | Trained | Scored | Algorithms Used | Primary Use Cases |
+|---|:---:|:---:|:---:|---|---|
+| 💰 Cost | 6 | 6 | 5* | Isolation Forest, GBR, XGBoost, RF+TF-IDF | Anomaly detection, forecasting, optimization |
+| 🔒 Security | 4 | 4 | 4 | Isolation Forest (all 4) | Threat detection, exfiltration, behavior analysis |
+| ⚡ Performance | 7 | 7 | 7 | GBR (4), Isolation Forest (1), XGBoost (2) | Query forecasting, capacity planning |
+| 🔄 Reliability | 5 | 5 | 5 | XGBoost (4), GBR (1) | Failure prediction, SLA monitoring |
+| 📊 Quality | 3 | 2 | 2 | Isolation Forest (1), GBR (1) | Drift detection, freshness prediction |
+| **Total** | **25** | **24** | **23** | | |
+
+> **Notes:**
+> - `tag_recommender` (*) uses TF-IDF for NLP - requires custom inference, not `fe.score_batch()`
+> - `schema_change_predictor` removed - `system.information_schema` doesn't track schema history (single-class data)
 
 ## Technology Stack
 

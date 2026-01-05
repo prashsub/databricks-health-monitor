@@ -2,26 +2,32 @@
 
 ## Overview
 
-Create the complete color system as Figma variables/styles based on the **official Databricks brand palette** (DATA+AI World Tour 2025). This is the foundation for all components.
+Create the complete color system as Figma variables/styles based on the **official Databricks brand palette** (extracted from authentic Databricks CSS). This is the foundation for all components.
+
+**⚠️ IMPORTANT: Official Databricks Colors**
+- **Blue (#2272B4)** = Primary interactive color (buttons, links) - Databricks Blue-600
+- **Navy (#143D4A)** = Secondary emphasis (headers, secondary buttons) - Databricks Navy-700
+- **Lava Red (#FF3621)** = Critical/destructive ONLY (alerts, delete buttons) - Databricks Lava-600
+- **Oat (#F9F7F4)** = Warm background - Databricks Oat-Light
 
 ---
 
-## 🎨 Databricks Brand Color Reference
+## 🎨 Official Databricks Color Palette
 
-Based on official Databricks design system:
+Based on **authentic Databricks design system CSS** (bf-color-* classes):
 
-| Role | Color | Hex | Usage |
-|------|-------|-----|-------|
-| **Databricks Red** | 🔴 | `#FF3621` | Primary brand, CTAs, highlights |
-| **Coral** | 🟠 | `#E8715E` | Secondary accent, table headers |
-| **Salmon** | 🩷 | `#F4A89A` | Tertiary accent, hover states |
-| **Blush** | 🩷 | `#F9D4CC` | Light backgrounds, cards |
-| **Navy** | 🔵 | `#1B3A4B` | Dark headers, primary text |
-| **Charcoal** | ⚫ | `#2D3E4A` | Secondary dark elements |
-| **Cream** | 🟡 | `#F5F2ED` | Page backgrounds |
-| **Off-white** | ⬜ | `#FAF9F7` | Card surfaces |
-| **Teal** | 🔷 | `#077A9D` | Links, informational |
-| **Green** | 🟢 | `#00A972` | Success states |
+| Role | Color | Hex | Official Class |
+|------|-------|-----|----------------|
+| **Blue** | 🔵 | `#2272B4` | `blue-600` **PRIMARY** - Buttons, links |
+| **Navy** | 🔵 | `#143D4A` | `navy-700` Secondary buttons, headers |
+| **Lava Red** | 🔴 | `#FF3621` | `lava-600-primary` Brand, critical alerts |
+| **Green** | 🟢 | `#00A972` | `green-600` Success states |
+| **Yellow** | 🟡 | `#FFAB00` | `yellow-600` Warning states |
+| **Oat Light** | 🟡 | `#F9F7F4` | `oat-light` Page backgrounds |
+| **Oat Medium** | 🟡 | `#EEEDE9` | `oat-medium` Card surfaces |
+| **Navy Primary** | ⚫ | `#0B2026` | `navy-900-primary` Darkest text |
+| **Gray Text** | ⚫ | `#5A6F77` | `gray-text` Secondary text |
+| **White** | ⬜ | `#FFFFFF` | `white` Pure white |
 
 ---
 
@@ -53,112 +59,123 @@ Design system rules:
 
 CREATE THESE COLOR VARIABLES:
 
+## Group: interactive/
+(Primary interactive colors - buttons, links, focus states - OFFICIAL DATABRICKS)
+- interactive/primary: #2272B4 (Blue-600 - PRIMARY interactive color)
+- interactive/primary-hover: #0E538B (Blue-700 - darker blue for hover)
+- interactive/primary-light: #F0F8FF (Blue-100 - light blue backgrounds)
+- interactive/secondary: #143D4A (Navy-700 - secondary buttons, emphasis)
+- interactive/secondary-hover: #1B3139 (Navy-800 - darker navy for hover)
+- interactive/destructive: #FF3621 (Lava-600 - delete/remove actions ONLY)
+- interactive/destructive-hover: #BD2B26 (Lava-700 - darker red for hover)
+
 ## Group: brand/
-(Core Databricks brand colors)
-- brand/primary: #FF3621 (Databricks Red - signature brand color)
-- brand/primary-hover: #E02E1B (Darker red for hover states)
-- brand/primary-light: #FFEBE8 (Light red for subtle backgrounds)
-- brand/coral: #E8715E (Coral - secondary accent)
-- brand/coral-light: #FDF0ED (Light coral background)
-- brand/salmon: #F4A89A (Salmon - tertiary accent)
-- brand/blush: #F9D4CC (Blush - very light accent)
-- brand/teal: #077A9D (Teal - links, informational)
-- brand/teal-hover: #065E7A (Darker teal for hover)
+(Databricks brand accent colors - OFFICIAL LAVA & MAROON)
+- brand/lava-primary: #FF3621 (Lava-600 - Databricks brand red)
+- brand/lava-light: #FAECEB (Lava-100 - light red backgrounds)
+- brand/lava-medium: #FF5F46 (Lava-500 - high severity accent)
+- brand/lava-soft: #FF9E94 (Lava-400 - softer red)
+- brand/maroon: #AB4057 (Maroon-500 - alternate brand accent)
+- brand/maroon-light: #F8D5DC (Maroon-100 - light maroon background)
 
 ## Group: neutral/
-(Navy-based neutral palette)
-- neutral/navy: #1B3A4B (Dark navy - headers, emphasis)
-- neutral/charcoal: #2D3E4A (Charcoal - secondary dark)
-- neutral/slate: #4A5D6B (Slate - body text)
-- neutral/steel: #6B7D8A (Steel - secondary text)
-- neutral/silver: #9DAAB5 (Silver - muted text)
-- neutral/ash: #C4CDD5 (Ash - borders, dividers)
-- neutral/mist: #E0E6EB (Mist - subtle borders)
-- neutral/cloud: #F0F3F5 (Cloud - hover backgrounds)
+(OFFICIAL Databricks Navy & Gray palette)
+- neutral/navy-darkest: #0B2026 (Navy-900-primary - darkest, primary text)
+- neutral/navy-dark: #1B3139 (Navy-800 - headers, dark elements)
+- neutral/navy: #143D4A (Navy-700 - body text, emphasis)
+- neutral/navy-medium: #1B5162 (Navy-600 - medium emphasis)
+- neutral/gray-text: #5A6F77 (Gray-text - secondary text)
+- neutral/gray-navigation: #303F47 (Gray-navigation - nav elements)
+- neutral/navy-muted: #618794 (Navy-500 - muted elements)
+- neutral/navy-light: #90A5B1 (Navy-400 - disabled states)
+- neutral/navy-subtle: #C4CCD6 (Navy-300 - subtle borders)
+- neutral/gray-lines: #DCE0E2 (Gray-lines - dividers)
+- neutral/navy-faint: #E5EAF1 (Navy-200 - very light backgrounds)
 
 ## Group: semantic/
-(Status and feedback colors)
-- semantic/success: #00A972 (Green - positive, health OK)
-- semantic/success-light: #E6F7F1 (Light green background)
-- semantic/warning: #FFAB00 (Amber - caution)
-- semantic/warning-light: #FFF8E6 (Light amber background)
-- semantic/critical: #FF3621 (Red - errors, critical)
-- semantic/critical-light: #FFEBE8 (Light red background)
-- semantic/info: #077A9D (Teal - informational)
-- semantic/info-light: #E6F4F7 (Light teal background)
+(OFFICIAL Databricks status colors - EXACT MATCHES!)
+- semantic/success: #00A972 (Green-600 - positive, health OK) ✅
+- semantic/success-light: #DCF4ED (Green-100 - light green background)
+- semantic/warning: #FFAB00 (Yellow-600 - caution) ✅
+- semantic/warning-light: #FFF0D3 (Yellow-100 - light yellow background)
+- semantic/critical: #FF3621 (Lava-600 - errors, critical) ✅
+- semantic/critical-light: #FAECEB (Lava-100 - light red background)
+- semantic/info: #2272B4 (Blue-600 - informational)
+- semantic/info-light: #F0F8FF (Blue-100 - light blue background)
 
 ## Group: severity/
-(Alert severity indicators - monitoring specific)
-- severity/critical: #FF3621 (Immediate action required)
-- severity/high: #E8715E (Coral - urgent attention)
-- severity/medium: #FFAB00 (Amber - monitor closely)
-- severity/low: #077A9D (Teal - informational)
-- severity/success: #00A972 (Green - resolved/healthy)
+(OFFICIAL Databricks severity - RED RESERVED FOR CRITICAL)
+- severity/critical: #FF3621 (Lava-600 - immediate action required) ✅
+- severity/high: #FF5F46 (Lava-500 - urgent attention)
+- severity/medium: #FFAB00 (Yellow-600 - monitor closely) ✅
+- severity/low: #5A6F77 (Gray-text - informational, non-urgent)
+- severity/success: #00A972 (Green-600 - resolved/healthy) ✅
 
 ## Group: chart/
-(10-color palette for data visualization)
-- chart/1: #FF3621 (Primary - Databricks Red)
-- chart/2: #077A9D (Teal - secondary)
-- chart/3: #00A972 (Green - success/positive)
-- chart/4: #E8715E (Coral - attention)
-- chart/5: #1B3A4B (Navy - dark contrast)
-- chart/6: #FFAB00 (Amber - warning)
-- chart/7: #F4A89A (Salmon - light accent)
-- chart/8: #6B4FBB (Purple - ML/AI features)
-- chart/9: #4A5D6B (Slate - neutral)
-- chart/10: #99DDB4 (Mint - positive secondary)
+(OFFICIAL Databricks 10-color palette - Blue first, Lava last)
+- chart/1: #2272B4 (Blue-600 - PRIMARY data series) ✅
+- chart/2: #143D4A (Navy-700 - secondary series)
+- chart/3: #00A972 (Green-600 - positive/success) ✅
+- chart/4: #98102A (Maroon-600 - ML/AI features, purple-ish)
+- chart/5: #FFAB00 (Yellow-600 - warning/caution) ✅
+- chart/6: #FF5F46 (Lava-500 - attention)
+- chart/7: #FF3621 (Lava-600 - negative/critical ONLY) ✅
+- chart/8: #FF9E94 (Lava-400 - light accent)
+- chart/9: #5A6F77 (Gray-text - neutral)
+- chart/10: #70C4AB (Green-400 - positive secondary)
 
 ## Group: background/
-(Surface and canvas colors)
-- background/canvas: #F5F2ED (Warm cream - page background)
-- background/canvas-dark: #0F1419 (Near black - dark mode)
-- background/surface: #FFFFFF (White - card/widget)
-- background/surface-alt: #FAF9F7 (Off-white - alternate surface)
-- background/surface-dark: #1B3A4B (Navy - dark mode cards)
-- background/elevated: #FEFEFE (Pure white - elevated elements)
-- background/overlay: rgba(27,58,75,0.6) (Navy overlay for modals)
-- background/highlight: #FDF0ED (Light coral - highlight rows)
+(OFFICIAL Databricks Oat backgrounds & surfaces)
+- background/canvas: #F9F7F4 (Oat-light - page background) ✅
+- background/canvas-dark: #0B2026 (Navy-900 - dark mode canvas)
+- background/surface: #FFFFFF (White - card/widget) ✅
+- background/surface-alt: #EEEDE9 (Oat-medium - alternate surface)
+- background/surface-dark: #143D4A (Navy-700 - dark mode cards)
+- background/elevated: #FFFFFF (White - elevated elements)
+- background/overlay: rgba(27,49,57,0.6) (Navy-800 overlay for modals)
+- background/highlight: #FAECEB (Lava-100 - highlight rows)
 
 ## Group: text/
-(Typography colors)
-- text/primary: #1B3A4B (Navy - main text)
-- text/secondary: #4A5D6B (Slate - labels, secondary)
-- text/muted: #9DAAB5 (Silver - disabled, placeholder)
-- text/inverse: #FFFFFF (White - on dark backgrounds)
-- text/link: #077A9D (Teal - links)
-- text/link-hover: #065E7A (Darker teal - link hover)
-- text/brand: #FF3621 (Red - brand emphasis)
+(OFFICIAL Databricks typography colors)
+- text/primary: #0B2026 (Navy-900-primary - main text, darkest) ✅
+- text/secondary: #5A6F77 (Gray-text - labels, secondary)
+- text/muted: #90A5B1 (Navy-400 - disabled, placeholder)
+- text/inverse: #FFFFFF (White - on dark backgrounds) ✅
+- text/link: #2272B4 (Blue-600 - links, clickable text)
+- text/link-hover: #0E538B (Blue-700 - link hover)
+- text/success: #00A972 (Green-600 - positive values) ✅
+- text/warning: #BA7B23 (Yellow-700 - warning values, darker for text)
+- text/critical: #FF3621 (Lava-600 - critical values ONLY) ✅
 
 ## Group: border/
-(Border and divider colors)
-- border/default: #E0E6EB (Mist - standard borders)
-- border/strong: #C4CDD5 (Ash - emphasized borders)
-- border/subtle: #F0F3F5 (Cloud - subtle dividers)
-- border/focus: #077A9D (Teal - focus rings)
-- border/error: #FF3621 (Red - error state)
-- border/success: #00A972 (Green - success state)
-- border/brand: #E8715E (Coral - brand accent borders)
+(OFFICIAL Databricks border & divider colors)
+- border/default: #DCE0E2 (Gray-lines - standard borders) ✅
+- border/strong: #C4CCD6 (Navy-300 - emphasized borders)
+- border/subtle: #EDF2F8 (Navy-100 - subtle dividers)
+- border/focus: #2272B4 (Blue-600 - focus rings)
+- border/error: #FF3621 (Lava-600 - error state) ✅
+- border/success: #00A972 (Green-600 - success state) ✅
+- border/brand: #FF5F46 (Lava-500 - brand accent borders)
 
 ## Group: icon/
-(Iconography colors)
-- icon/default: #4A5D6B (Slate - default icons)
-- icon/primary: #FF3621 (Red - primary action icons)
-- icon/secondary: #077A9D (Teal - secondary icons)
-- icon/muted: #9DAAB5 (Silver - muted icons)
-- icon/inverse: #FFFFFF (White - icons on dark)
-- icon/success: #00A972 (Green - success icons)
-- icon/warning: #FFAB00 (Amber - warning icons)
-- icon/critical: #FF3621 (Red - critical icons)
+(OFFICIAL Databricks iconography colors)
+- icon/default: #5A6F77 (Gray-text - default icons)
+- icon/interactive: #2272B4 (Blue-600 - clickable icons, primary)
+- icon/muted: #90A5B1 (Navy-400 - muted icons)
+- icon/inverse: #FFFFFF (White - icons on dark) ✅
+- icon/success: #00A972 (Green-600 - success icons) ✅
+- icon/warning: #FFAB00 (Yellow-600 - warning icons) ✅
+- icon/critical: #FF3621 (Lava-600 - critical icons ONLY) ✅
 
 ## Group: table/
-(Table-specific colors from Databricks design)
-- table/header-dark: #1B3A4B (Navy header background)
-- table/header-accent: #E8715E (Coral header variant)
-- table/row-default: #FFFFFF (White row)
-- table/row-alt: #FAF9F7 (Off-white alternate)
-- table/row-hover: #F5F2ED (Cream hover)
-- table/row-selected: #FDF0ED (Light coral selected)
-- table/border: #E0E6EB (Mist borders)
+(OFFICIAL Databricks table colors)
+- table/header-dark: #143D4A (Navy-700 header background)
+- table/header-accent: #FF5F46 (Lava-500 header variant)
+- table/row-default: #FFFFFF (White row) ✅
+- table/row-alt: #EEEDE9 (Oat-medium alternate)
+- table/row-hover: #F9F7F4 (Oat-light hover)
+- table/row-selected: #FAECEB (Lava-100 selected)
+- table/border: #DCE0E2 (Gray-lines borders) ✅
 
 ---
 
@@ -191,24 +208,25 @@ Do NOT:
 
 After running this prompt, you should have:
 
-### Variables Created (68 total)
+### Variables Created (76 total) ✅ OFFICIAL DATABRICKS PALETTE
 
 | Group | Count | Variables |
 |-------|-------|-----------|
-| brand/ | 9 | primary, primary-hover, primary-light, coral, coral-light, salmon, blush, teal, teal-hover |
-| neutral/ | 8 | navy, charcoal, slate, steel, silver, ash, mist, cloud |
-| semantic/ | 8 | success, success-light, warning, warning-light, critical, critical-light, info, info-light |
-| severity/ | 5 | critical, high, medium, low, success |
-| chart/ | 10 | 1-10 |
-| background/ | 8 | canvas, canvas-dark, surface, surface-alt, surface-dark, elevated, overlay, highlight |
-| text/ | 7 | primary, secondary, muted, inverse, link, link-hover, brand |
-| border/ | 7 | default, strong, subtle, focus, error, success, brand |
-| icon/ | 8 | default, primary, secondary, muted, inverse, success, warning, critical |
-| table/ | 7 | header-dark, header-accent, row-default, row-alt, row-hover, row-selected, border |
+| interactive/ | 7 | primary (Blue-600), primary-hover, primary-light, secondary (Navy-700), secondary-hover, destructive (Lava-600), destructive-hover |
+| brand/ | 6 | lava-primary, lava-light, lava-medium, lava-soft, maroon, maroon-light |
+| neutral/ | 11 | navy-darkest (Navy-900), navy-dark (Navy-800), navy (Navy-700), navy-medium, gray-text, gray-navigation, navy-muted, navy-light, navy-subtle, gray-lines, navy-faint |
+| semantic/ | 8 | success (Green-600) ✅, success-light, warning (Yellow-600) ✅, warning-light, critical (Lava-600) ✅, critical-light, info (Blue-600), info-light |
+| severity/ | 5 | critical (Lava-600) ✅, high (Lava-500), medium (Yellow-600) ✅, low (Gray-text), success (Green-600) ✅ |
+| chart/ | 10 | 1-10 (Blue-600 first, Lava-600 last) |
+| background/ | 8 | canvas (Oat-light) ✅, canvas-dark, surface (White) ✅, surface-alt (Oat-medium), surface-dark, elevated, overlay, highlight |
+| text/ | 9 | primary (Navy-900) ✅, secondary (Gray-text), muted, inverse, link (Blue-600), link-hover, success ✅, warning, critical ✅ |
+| border/ | 7 | default (Gray-lines) ✅, strong, subtle, focus (Blue-600), error ✅, success ✅, brand |
+| icon/ | 7 | default (Gray-text), interactive (Blue-600), muted, inverse, success ✅, warning ✅, critical ✅ |
+| table/ | 7 | header-dark (Navy-700), header-accent (Lava-500), row-default ✅, row-alt (Oat-medium), row-hover (Oat-light), row-selected, border ✅ |
 
 ### Visual Reference Frame
 
-A "Colors" frame showing all swatches organized by group with Databricks branding.
+A "Colors" frame showing all swatches organized by group with **Blue-600 as primary interactive color** (official Databricks palette).
 
 ---
 
@@ -216,48 +234,62 @@ A "Colors" frame showing all swatches organized by group with Databricks brandin
 
 After running the prompt:
 
-- [ ] All 68 color variables are created
-- [ ] Variables are organized into 10 groups
-- [ ] Primary brand color is Databricks Red (#FF3621)
-- [ ] Page background uses warm cream (#F5F2ED)
-- [ ] Navy (#1B3A4B) is used for dark elements
-- [ ] Coral (#E8715E) is used for accent elements
+- [ ] All 76 color variables are created (OFFICIAL Databricks palette) ✅
+- [ ] Variables are organized into 11 groups
+- [ ] **Primary interactive color is Blue-600 (#2272B4)** - official Databricks blue!
+- [ ] **Lava-600 Red (#FF3621) is reserved for critical/destructive only** ✅
+- [ ] Page background uses Oat-light (#F9F7F4) - official Databricks background
+- [ ] Navy-700 (#143D4A) is used for dark elements and headers
+- [ ] Lava-500 (#FF5F46) is used for high severity, not primary
 - [ ] Visual swatch reference is created
 - [ ] No hardcoded colors (all use variables)
+- [ ] ✅ markers indicate EXACT matches to Databricks official CSS
 
 ---
 
-## 🔗 Color Usage Reference
+## 🔗 Color Usage Reference (OFFICIAL DATABRICKS)
 
-| Use Case | Variable | Hex |
-|----------|----------|-----|
-| Primary button background | brand/primary | #FF3621 |
-| Button hover | brand/primary-hover | #E02E1B |
-| Page background | background/canvas | #F5F2ED |
-| Card background | background/surface | #FFFFFF |
-| Main body text | text/primary | #1B3A4B |
-| Secondary text | text/secondary | #4A5D6B |
-| Links | text/link | #077A9D |
-| Standard border | border/default | #E0E6EB |
-| Table header (dark) | table/header-dark | #1B3A4B |
-| Table header (accent) | table/header-accent | #E8715E |
-| Alert critical | severity/critical | #FF3621 |
-| Alert high | severity/high | #E8715E |
-| Success state | semantic/success | #00A972 |
-| Chart primary line | chart/1 | #FF3621 |
+| Use Case | Variable | Hex | Official Class | Notes |
+|----------|----------|-----|----------------|-------|
+| **Primary button** | interactive/primary | #2272B4 | blue-600 | Official Databricks blue ✅ |
+| Primary button hover | interactive/primary-hover | #0E538B | blue-700 | Darker blue |
+| Secondary button | interactive/secondary | #143D4A | navy-700 | Navy border + navy text |
+| **Gray outline button** | border/default + text/primary | #DCE0E2 + #0B2026 | gray-lines + navy-900 | Gray border + DARKEST navy text! |
+| Ghost button | text/secondary | #5A6F77 | gray-text | Gray text, no border |
+| **Delete/destructive button** | interactive/destructive | #FF3621 | lava-600 | Red - ONLY for destructive ✅ |
+| Page background | background/canvas | #F9F7F4 | oat-light | Warm oat ✅ |
+| Card background | background/surface | #FFFFFF | white | White ✅ |
+| Main body text | text/primary | #0B2026 | navy-900-primary | Darkest navy ✅ |
+| Secondary text | text/secondary | #5A6F77 | gray-text | Gray text |
+| Links | text/link | #2272B4 | blue-600 | Databricks blue ✅ |
+| Standard border | border/default | #DCE0E2 | gray-lines | Gray lines ✅ |
+| Table header (dark) | table/header-dark | #143D4A | navy-700 | Dark navy header |
+| **Critical alert badge** | severity/critical | #FF3621 | lava-600 | Lava red - alerts ONLY ✅ |
+| High alert badge | severity/high | #FF5F46 | lava-500 | High severity lava |
+| Success state | semantic/success | #00A972 | green-600 | Green ✅ |
+| **Chart primary line** | chart/1 | #2272B4 | blue-600 | Blue - not red! ✅ |
 
 ---
 
-## 🎨 Theme Comparison
+## 🎨 Color Philosophy (OFFICIAL DATABRICKS)
 
-| Element | Old Theme | New Databricks Theme |
-|---------|-----------|---------------------|
-| Primary color | Teal #077A9D | Red #FF3621 |
-| Page background | Cool gray #F7F9FA | Warm cream #F5F2ED |
-| Dark elements | Charcoal #11171C | Navy #1B3A4B |
-| Accent color | Purple #6B4FBB | Coral #E8715E |
-| Text primary | Dark gray #11171C | Navy #1B3A4B |
-| Table headers | Dark gray | Navy or Coral |
+| Purpose | Color | Hex | Official Class | Rationale |
+|---------|-------|-----|----------------|-----------|
+| **Primary interactive** | Blue | #2272B4 | blue-600 ✅ | Official Databricks interactive color |
+| **Secondary interactive** | Navy | #143D4A | navy-700 ✅ | Authoritative, secondary actions |
+| **Critical/Destructive** | Lava Red | #FF3621 | lava-600 ✅ | Reserved for alerts & delete - Databricks brand |
+| **High severity** | Lava Medium | #FF5F46 | lava-500 | Warmer than critical, urgent attention |
+| **Warning** | Yellow | #FFAB00 | yellow-600 ✅ | Caution without alarm |
+| **Success** | Green | #00A972 | green-600 ✅ | Positive, healthy |
+| **Page background** | Oat Light | #F9F7F4 | oat-light ✅ | Warm, approachable, Databricks brand |
+| **Text primary** | Navy Darkest | #0B2026 | navy-900 ✅ | Highest contrast, most professional |
+
+### Why Official Databricks Colors Work
+- **Brand consistency**: All colors extracted from authentic Databricks CSS
+- **Red fatigue avoided**: Lava-600 reserved for critical only
+- **Clear hierarchy**: Blue = action, Lava Red = alert, Green = success
+- **Professional feel**: Enterprise-grade, matches Databricks products
+- **Proven palette**: Used in production Databricks applications
 
 ---
 

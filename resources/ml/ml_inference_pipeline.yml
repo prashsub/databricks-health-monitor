@@ -6,12 +6,15 @@
 #   - Predictions: ${catalog}.${feature_schema}.{model}_predictions
 #   - Models: Unity Catalog ${catalog}.${feature_schema}.{model_name}
 #
-# Models Scored (25 total):
-#   - Cost (6): anomaly, budget, job_cost, chargeback, commitment, tag_recommender
-#   - Security (4): threat, exfiltration, privilege, user_behavior
-#   - Performance (7): query, warehouse, regression, cluster_capacity, dbr_risk, cache_hit, query_optimization
-#   - Reliability (5): failure, duration, sla_breach, retry_success, pipeline_health
-#   - Quality (3): drift, schema_change, freshness
+# Models Scored:
+#   - Task 1 (fe.score_batch): 23 models using Feature Store automatic lookup
+#     - Cost (5): anomaly, budget, job_cost, chargeback, commitment
+#     - Security (4): threat, exfiltration, privilege, user_behavior
+#     - Performance (7): query, warehouse, regression, cluster_capacity, dbr_risk, cache_hit, query_optimization
+#     - Reliability (5): failure, duration, sla_breach, retry_success, pipeline_health
+#     - Quality (2): drift, freshness
+#
+#   - Task 2 (custom): tag_recommender - uses TF-IDF (runtime feature extraction)
 #
 # Reference: https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-inference/
 
@@ -19,7 +22,7 @@ resources:
   jobs:
     ml_inference_pipeline:
       name: "[${bundle.target}] Health Monitor - ML Batch Inference (All Models)"
-      description: "Runs batch inference for all 25 ML models across Cost, Security, Performance, Reliability, and Quality domains"
+      description: "Runs batch inference for 24 ML models: 23 via Feature Store + 1 custom (tag_recommender)"
       
       # Serverless environment with ML dependencies
       environments:
@@ -35,7 +38,10 @@ resources:
               - "databricks-feature-engineering"
       
       tasks:
-        # Comprehensive batch inference for all models
+        # ========================================
+        # Task 1: Feature Store Models (23 models)
+        # ========================================
+        # These models use fe.score_batch() for automatic feature lookup
         - task_key: batch_inference_all_models
           environment_key: ml_inference
           notebook_task:
@@ -45,6 +51,23 @@ resources:
               gold_schema: ${var.gold_schema}
               feature_schema: ${var.feature_schema}
           timeout_seconds: 3600  # 1 hour max
+        
+        # ========================================
+        # Task 2: Tag Recommender (Custom Inference)
+        # ========================================
+        # This model uses TF-IDF features computed at runtime from job names
+        # Cannot use fe.score_batch() - requires custom inference pipeline
+        - task_key: score_tag_recommender
+          depends_on:
+            - task_key: batch_inference_all_models
+          environment_key: ml_inference
+          notebook_task:
+            notebook_path: ../../src/ml/inference/score_tag_recommender.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+          timeout_seconds: 1800  # 30 min max
       
       # Schedule: Daily at 3 AM (after training pipeline completes)
       schedule:
@@ -65,4 +88,6 @@ resources:
         layer: ml
         job_type: inference
         compute_type: serverless
-        models_count: "25"
+        models_count: "24"
+        fe_models: "23"
+        custom_models: "1"

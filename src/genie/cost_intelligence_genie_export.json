@@ -97,6 +97,300 @@
   "data_sources": {
     "tables": [
       {
+        "identifier": "${catalog}.${feature_schema}.budget_forecast_predictions",
+        "description": [
+          "ML predictions: 30-day cost forecasts with confidence intervals.\n",
+          "Model: Budget Forecaster (Gradient Boosting)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "predicted_cost",
+            "description": [
+              "Forecasted cost amount"
+            ]
+          },
+          {
+            "column_name": "lower_bound",
+            "description": [
+              "95% confidence interval lower bound"
+            ]
+          },
+          {
+            "column_name": "upper_bound",
+            "description": [
+              "95% confidence interval upper bound"
+            ]
+          },
+          {
+            "column_name": "forecast_date",
+            "description": [
+              "Date being forecasted"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.chargeback_predictions",
+        "description": [
+          "ML predictions: Cost allocation by team/project.\n",
+          "Model: Chargeback Attribution (Gradient Boosting)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "team",
+            "description": [
+              "Team name"
+            ]
+          },
+          {
+            "column_name": "project",
+            "description": [
+              "Project name"
+            ]
+          },
+          {
+            "column_name": "allocated_cost",
+            "description": [
+              "Allocated cost amount"
+            ]
+          },
+          {
+            "column_name": "allocation_method",
+            "description": [
+              "Method used for allocation"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.commitment_recommendations",
+        "description": [
+          "ML predictions: Commit level recommendations.\n",
+          "Model: Commitment Recommender (XGBoost)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "current_commit",
+            "description": [
+              "Current commitment level"
+            ]
+          },
+          {
+            "column_name": "recommended_commit",
+            "description": [
+              "Recommended commitment"
+            ]
+          },
+          {
+            "column_name": "projected_savings",
+            "description": [
+              "Projected savings from change"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.cost_anomaly_predictions",
+        "description": [
+          "ML predictions: Detected cost anomalies with severity scores.\n",
+          "Model: Cost Anomaly Detector (Isolation Forest)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "anomaly_score",
+            "description": [
+              "Anomaly score (-1 to 1, more negative = more anomalous)"
+            ]
+          },
+          {
+            "column_name": "is_anomaly",
+            "description": [
+              "Boolean flag for anomaly"
+            ]
+          },
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Workspace with anomaly"
+            ]
+          },
+          {
+            "column_name": "usage_date",
+            "description": [
+              "Date of the prediction"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.job_cost_optimizer_predictions",
+        "description": [
+          "ML predictions: Job right-sizing and cost optimization.\n",
+          "Model: Job Cost Optimizer (Gradient Boosting)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "current_cost",
+            "description": [
+              "Current job cost"
+            ]
+          },
+          {
+            "column_name": "optimized_cost",
+            "description": [
+              "Predicted optimized cost"
+            ]
+          },
+          {
+            "column_name": "savings_potential",
+            "description": [
+              "Potential savings percentage"
+            ]
+          },
+          {
+            "column_name": "recommendation",
+            "description": [
+              "Optimization recommendation"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.tag_recommendations",
+        "description": [
+          "ML predictions: Suggested tags for untagged resources.\n",
+          "Model: Tag Recommender (Random Forest + TF-IDF)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "prediction",
+            "description": [
+              "Recommended tag value"
+            ]
+          },
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Workspace identifier"
+            ]
+          },
+          {
+            "column_name": "resource_id",
+            "description": [
+              "Resource identifier (cluster, job, etc.)"
+            ]
+          },
+          {
+            "column_name": "resource_type",
+            "description": [
+              "Type of resource (cluster, job, warehouse)"
+            ]
+          },
+          {
+            "column_name": "confidence",
+            "description": [
+              "Confidence score (0-1)"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_cluster",
+        "description": [
+          "Dimension table for cluster metadata.\n",
+          "Business: Cluster specifications for right-sizing and cost optimization analysis."
+        ],
+        "column_configs": [
+          {
+            "column_name": "cluster_id",
+            "description": [
+              "Unique cluster identifier"
+            ]
+          },
+          {
+            "column_name": "cluster_name",
+            "description": [
+              "Human-readable cluster name"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "cluster_source",
+            "description": [
+              "Source: UI, JOB, PIPELINE, API"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_job",
+        "description": [
+          "Dimension table for job definitions.\n",
+          "Business: Job metadata for cost attribution by job."
+        ],
+        "column_configs": [
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier"
+            ]
+          },
+          {
+            "column_name": "name",
+            "description": [
+              "Job name"
+            ],
+            "synonyms": [
+              "job_name",
+              "workflow"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "creator_id",
+            "description": [
+              "Job creator"
+            ],
+            "synonyms": [
+              "owner"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_node_type",
+        "description": [
+          "Dimension table for node type specifications.\n",
+          "Business: Node specs for cluster right-sizing recommendations."
+        ],
+        "column_configs": [
+          {
+            "column_name": "node_type_id",
+            "description": [
+              "Node type identifier"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "num_cores",
+            "description": [
+              "Number of CPU cores"
+            ]
+          },
+          {
+            "column_name": "memory_gb",
+            "description": [
+              "Memory in GB"
+            ]
+          }
+        ]
+      },
+      {
         "identifier": "${catalog}.${gold_schema}.dim_sku",
         "description": [
           "Dimension table containing all unique Databricks SKU identifiers.\n",
@@ -153,12 +447,38 @@
         ]
       },
       {
+        "identifier": "${catalog}.${gold_schema}.fact_account_prices",
+        "description": [
+          "Account-specific pricing per SKU.\n",
+          "Business: Actual contracted prices for accurate cost calculations."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
+        "description": [
+          "Job execution with cost attribution.\n",
+          "Business: Job-level cost tracking and optimization."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_list_prices",
+        "description": [
+          "List prices over time per SKU.\n",
+          "Business: Standard pricing for budget estimates."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_node_timeline",
+        "description": [
+          "Cluster node usage timeline.\n",
+          "Business: Detailed node-level compute for cluster optimization."
+        ]
+      },
+      {
         "identifier": "${catalog}.${gold_schema}.fact_usage",
         "description": [
           "Fact table tracking all billable Databricks usage across your account.\n",
-          "Business: Primary source for cost monitoring and chargeback - captures DBU consumption,\n",
-          "compute hours, storage usage, and API calls. Enables cost optimization by identifying\n",
-          "expensive workloads and idle resources."
+          "Business: Primary source for cost monitoring and chargeback."
         ],
         "column_configs": [
           {
@@ -168,8 +488,7 @@
             ],
             "synonyms": [
               "product",
-              "origin",
-              "billing product"
+              "origin"
             ],
             "get_example_values": true,
             "build_value_dictionary": true
@@ -180,8 +499,7 @@
               "Cloud provider: AWS, AZURE, or GCP"
             ],
             "synonyms": [
-              "cloud provider",
-              "provider"
+              "cloud provider"
             ],
             "get_example_values": true,
             "build_value_dictionary": true
@@ -190,16 +508,6 @@
             "column_name": "custom_tags",
             "description": [
               "Map of custom tags (team, project, cost_center, etc.)"
-            ]
-          },
-          {
-            "column_name": "identity_metadata_owned_by",
-            "description": [
-              "Resource owner for chargeback"
-            ],
-            "synonyms": [
-              "owner",
-              "resource owner"
             ]
           },
           {
@@ -240,8 +548,7 @@
               "Boolean: true if serverless compute"
             ],
             "synonyms": [
-              "serverless",
-              "serverless compute"
+              "serverless"
             ],
             "get_example_values": true
           },
@@ -271,16 +578,6 @@
             "get_example_values": true
           },
           {
-            "column_name": "usage_metadata_job_name",
-            "description": [
-              "Job name for job-level cost attribution"
-            ],
-            "synonyms": [
-              "job",
-              "workflow"
-            ]
-          },
-          {
             "column_name": "usage_quantity",
             "description": [
               "DBUs or other units consumed"
@@ -292,8 +589,7 @@
               "Workspace identifier for workspace-level cost analysis"
             ],
             "synonyms": [
-              "workspace",
-              "environment"
+              "workspace"
             ],
             "build_value_dictionary": true
           }
@@ -303,7 +599,6 @@
         "identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics",
         "description": [
           "Lakehouse Monitoring drift metrics for cost trend detection.\n",
-          "Contains drift metrics: cost_drift_pct, dbu_drift_pct, tag_coverage_drift.\n",
           "\u26a0\ufe0f CRITICAL: Always include filter: drift_type='CONSECUTIVE', column_name=':table'"
         ],
         "column_configs": [
@@ -320,8 +615,7 @@
             ],
             "synonyms": [
               "cost drift",
-              "cost trend",
-              "cost change"
+              "cost trend"
             ]
           },
           {
@@ -341,16 +635,6 @@
             ]
           },
           {
-            "column_name": "tag_coverage_drift",
-            "description": [
-              "Period-over-period change in tag coverage"
-            ],
-            "synonyms": [
-              "tagging drift",
-              "tag trend"
-            ]
-          },
-          {
             "column_name": "window",
             "description": [
               "Time window for drift calculation"
@@ -362,7 +646,6 @@
         "identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics",
         "description": [
           "Lakehouse Monitoring profile metrics for cost analysis.\n",
-          "Contains custom metrics: total_daily_cost, tag_coverage_pct, serverless_ratio.\n",
           "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
         ],
         "column_configs": [
@@ -384,14 +667,13 @@
               "Custom metric: Serverless vs classic ratio"
             ],
             "synonyms": [
-              "serverless percentage",
-              "serverless adoption"
+              "serverless percentage"
             ]
           },
           {
             "column_name": "slice_key",
             "description": [
-              "Slicing dimension: workspace_id, sku_name, cloud, is_tagged, product_features_is_serverless"
+              "Slicing dimension: workspace_id, sku_name, cloud, is_tagged"
             ]
           },
           {
@@ -406,8 +688,7 @@
               "Custom metric: Percentage of cost with tags"
             ],
             "synonyms": [
-              "tag coverage",
-              "tagging rate"
+              "tag coverage"
             ]
           },
           {
@@ -417,14 +698,13 @@
             ],
             "synonyms": [
               "cost",
-              "spend",
-              "daily spend"
+              "spend"
             ]
           },
           {
             "column_name": "window",
             "description": [
-              "Time window for aggregation (struct with start/end)"
+              "Time window for aggregation"
             ]
           }
         ]
@@ -445,7 +725,7 @@
           "Comprehensive cost analytics for Databricks billing and usage.\n",
           "PURPOSE: Track spending, trends, tag coverage, and serverless adoption.\n",
           "BEST FOR: Total spend | Cost by workspace | SKU breakdown | Tag coverage | Serverless ratio\n",
-          "KEY MEASURES: total_cost, total_dbu, tag_coverage_pct, serverless_ratio, wow_growth_pct, mom_growth_pct"
+          "KEY MEASURES: total_cost, total_dbu, tag_coverage_pct, serverless_ratio"
         ],
         "column_configs": [
           {
@@ -519,35 +799,22 @@
           "- If user asks for a LIST \u2192 TVF (get_top_cost_contributors, get_untagged_resources)\n",
           "- If user asks about TREND \u2192 Custom Metrics (_drift_metrics)\n",
           "- If user asks for CURRENT VALUE \u2192 Metric View (cost_analytics)\n",
-          "- If user asks for PREDICTION \u2192 ML tables (cost_forecast_predictions, cost_anomaly_predictions)\n",
+          "- If user asks for PREDICTION \u2192 ML tables\n",
           "\n",
           "\u26a0\ufe0f CUSTOM METRICS QUERY RULES:\n",
           "- _profile_metrics: ALWAYS include column_name=':table' AND log_type='INPUT'\n",
           "- _drift_metrics: ALWAYS include drift_type='CONSECUTIVE' AND column_name=':table'\n",
-          "- For sliced analysis: Use slice_key='workspace_id', 'sku_name', 'cloud', 'is_tagged', or 'product_features_is_serverless'\n",
           "\n",
           "FORMATTING:\n",
           "- Currency as USD with 2 decimals ($1,234.56)\n",
           "- Percentages with 1 decimal (45.3%)\n",
           "- Sort by cost DESC unless specified\n",
-          "- Top 10-20 for ranking queries\n",
           "- Default to last 30 days if no date specified\n",
           "\n",
           "SYNONYMS:\n",
           "- cost = spend = billing = dollars\n",
           "- workspace = environment = env\n",
-          "- DBU = units = usage\n",
-          "- serverless = modern compute\n",
-          "- tagged = attributed = with tags\n",
-          "\n",
-          "TAG GOVERNANCE:\n",
-          "- For untagged resources \u2192 use get_untagged_resources TVF\n",
-          "- For tag coverage \u2192 use tag_coverage_pct from cost_analytics\n",
-          "- Common tags: team, project, cost_center, environment\n",
-          "\n",
-          "COMMIT TRACKING:\n",
-          "- For budget monitoring \u2192 use commit_tracking metric view\n",
-          "- For budget vs actual \u2192 use get_commit_vs_actual TVF\n"
+          "- DBU = units = usage\n"
         ]
       }
     ],
@@ -579,29 +846,6 @@
           "  10\n",
           ")"
         ],
-        "parameters": [
-          {
-            "name": "start_date",
-            "type_hint": "STRING",
-            "description": [
-              "Start date in yyyy-MM-dd format"
-            ]
-          },
-          {
-            "name": "end_date",
-            "type_hint": "STRING",
-            "description": [
-              "End date in yyyy-MM-dd format"
-            ]
-          },
-          {
-            "name": "top_n",
-            "type_hint": "INTEGER",
-            "description": [
-              "Number of top contributors to return"
-            ]
-          }
-        ],
         "usage_guidance": [
           "Use for ranking workspaces/SKUs by cost"
         ]
@@ -619,59 +863,6 @@
         ],
         "usage_guidance": [
           "Use for tag governance KPI tracking"
-        ]
-      },
-      {
-        "id": "d2e3f4a5b6c7789012345678901234dc",
-        "question": [
-          "Show me cost by owner"
-        ],
-        "sql": [
-          "SELECT * FROM ${catalog}.${gold_schema}.get_cost_by_owner(\n",
-          "  DATE_FORMAT(DATE_TRUNC('month', CURRENT_DATE()), 'yyyy-MM-dd'),\n",
-          "  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')\n",
-          ")"
-        ],
-        "usage_guidance": [
-          "Use for chargeback and cost attribution by owner"
-        ]
-      },
-      {
-        "id": "d2e3f4a5b6c7789012345678901234dd",
-        "question": [
-          "What is our serverless vs non-serverless spend?"
-        ],
-        "sql": [
-          "SELECT \n",
-          "  is_serverless,\n",
-          "  MEASURE(total_cost) as total_cost,\n",
-          "  MEASURE(serverless_ratio) as pct_of_total\n",
-          "FROM ${catalog}.${gold_schema}.cost_analytics\n",
-          "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())\n",
-          "GROUP BY is_serverless"
-        ],
-        "usage_guidance": [
-          "Use for serverless adoption analysis"
-        ]
-      },
-      {
-        "id": "d2e3f4a5b6c7789012345678901234de",
-        "question": [
-          "Is cost increasing over time?"
-        ],
-        "sql": [
-          "SELECT \n",
-          "  window.start AS window_start,\n",
-          "  cost_drift_pct,\n",
-          "  dbu_drift_pct\n",
-          "FROM ${catalog}.${gold_schema}.fact_usage_drift_metrics\n",
-          "WHERE drift_type = 'CONSECUTIVE'\n",
-          "  AND column_name = ':table'\n",
-          "ORDER BY window.start DESC\n",
-          "LIMIT 10"
-        ],
-        "usage_guidance": [
-          "Use for drift/trend detection queries"
         ]
       }
     ],
@@ -771,7 +962,7 @@
           "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
         ],
         "comment": [
-          "Join usage records to SKU for SKU details and usage unit"
+          "Join usage records to SKU for SKU details"
         ]
       }
     ]
@@ -876,11 +1067,16 @@
           {
             "format": "SQL",
             "content": [
-              "SELECT * \n",
-              "FROM ${catalog}.${gold_schema}.cost_anomaly_predictions\n",
-              "WHERE prediction_date = CURRENT_DATE()\n",
-              "  AND is_anomaly = TRUE\n",
-              "ORDER BY anomaly_score DESC"
+              "SELECT \n",
+              "  workspace_id,\n",
+              "  usage_date,\n",
+              "  CASE WHEN prediction < 0 THEN 'ANOMALY' ELSE 'NORMAL' END as anomaly_status,\n",
+              "  prediction as anomaly_score,\n",
+              "  model_name\n",
+              "FROM ${catalog}.${feature_schema}.cost_anomaly_predictions\n",
+              "WHERE usage_date = CURRENT_DATE()\n",
+              "  AND prediction < 0\n",
+              "ORDER BY prediction ASC"
             ]
           }
         ]
@@ -895,14 +1091,14 @@
             "format": "SQL",
             "content": [
               "SELECT \n",
-              "  forecast_date,\n",
-              "  predicted_cost,\n",
-              "  lower_bound,\n",
-              "  upper_bound\n",
-              "FROM ${catalog}.${gold_schema}.cost_forecast_predictions\n",
-              "WHERE forecast_date >= DATE_TRUNC('month', CURRENT_DATE() + INTERVAL 1 MONTH)\n",
-              "  AND forecast_date < DATE_TRUNC('month', CURRENT_DATE() + INTERVAL 2 MONTHS)\n",
-              "ORDER BY forecast_date"
+              "  workspace_id,\n",
+              "  usage_date,\n",
+              "  prediction as predicted_cost,\n",
+              "  model_name,\n",
+              "  scored_at\n",
+              "FROM ${catalog}.${feature_schema}.budget_forecast_predictions\n",
+              "ORDER BY usage_date DESC, prediction DESC\n",
+              "LIMIT 30"
             ]
           }
         ]
@@ -918,11 +1114,10 @@
             "content": [
               "SELECT * FROM ${catalog}.${gold_schema}.get_all_purpose_cluster_cost(\n",
               "  DATE_FORMAT(DATE_TRUNC('month', CURRENT_DATE()), 'yyyy-MM-dd'),\n",
-              "  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')\n",
+              "  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),\n",
+              "  20\n",
               ")\n",
-              "WHERE potential_savings > 0\n",
-              "ORDER BY potential_savings DESC\n",
-              "LIMIT 20"
+              "ORDER BY total_cost DESC"
             ]
           }
         ]
@@ -936,10 +1131,7 @@
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_week_over_week(\n",
-              "  DATE_FORMAT(CURRENT_DATE() - INTERVAL 14 DAYS, 'yyyy-MM-dd'),\n",
-              "  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')\n",
-              ")"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_week_over_week(2)"
             ]
           }
         ]
@@ -991,12 +1183,428 @@
             "format": "SQL",
             "content": [
               "SELECT \n",
-              "  MEASURE(commit_amount) as commit,\n",
-              "  MEASURE(consumed_amount) as consumed,\n",
-              "  MEASURE(remaining_amount) as remaining,\n",
-              "  MEASURE(commit_utilization_pct) as utilization_pct\n",
+              "  MEASURE(mtd_cost) as mtd_spend,\n",
+              "  MEASURE(projected_monthly_cost) as projected_monthly,\n",
+              "  MEASURE(serverless_ratio) as serverless_pct,\n",
+              "  MEASURE(cost_per_dbu) as effective_dbu_rate\n",
               "FROM ${catalog}.${gold_schema}.commit_tracking\n",
-              "WHERE is_over_committed = FALSE"
+              "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234cd",
+        "question": [
+          "What is our DBU consumption by SKU?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  sku_name,\n",
+              "  MEASURE(total_dbu) as total_dbus,\n",
+              "  MEASURE(total_cost) as total_cost\n",
+              "FROM ${catalog}.${gold_schema}.cost_analytics\n",
+              "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())\n",
+              "GROUP BY sku_name\n",
+              "ORDER BY total_dbus DESC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234ce",
+        "question": [
+          "Which users have the highest spend?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  identity_metadata_run_as as user,\n",
+              "  SUM(list_cost) as total_cost\n",
+              "FROM ${catalog}.${gold_schema}.fact_usage\n",
+              "WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "GROUP BY identity_metadata_run_as\n",
+              "ORDER BY total_cost DESC\n",
+              "LIMIT 20"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234cf",
+        "question": [
+          "What's the daily cost breakdown for this week?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  usage_date,\n",
+              "  MEASURE(total_cost) as daily_cost,\n",
+              "  MEASURE(total_dbu) as daily_dbus\n",
+              "FROM ${catalog}.${gold_schema}.cost_analytics\n",
+              "WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "GROUP BY usage_date\n",
+              "ORDER BY usage_date"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d0",
+        "question": [
+          "What is our cost by cloud provider?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  cloud,\n",
+              "  MEASURE(total_cost) as total_cost,\n",
+              "  MEASURE(total_dbu) as total_dbus\n",
+              "FROM ${catalog}.${gold_schema}.cost_analytics\n",
+              "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())\n",
+              "GROUP BY cloud\n",
+              "ORDER BY total_cost DESC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d1",
+        "question": [
+          "Show me the most expensive SKUs this month"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  sku_name,\n",
+              "  MEASURE(total_cost) as total_cost,\n",
+              "  MEASURE(total_dbu) as total_dbus\n",
+              "FROM ${catalog}.${gold_schema}.cost_analytics\n",
+              "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())\n",
+              "GROUP BY sku_name\n",
+              "ORDER BY total_cost DESC\n",
+              "LIMIT 10"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d2",
+        "question": [
+          "What is the cost drift from last week?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  window.start as window_start,\n",
+              "  cost_drift_pct,\n",
+              "  dbu_drift_pct\n",
+              "FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\n",
+              "WHERE column_name = ':table'\n",
+              "  AND drift_type = 'CONSECUTIVE'\n",
+              "ORDER BY window.start DESC\n",
+              "LIMIT 7"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d3",
+        "question": [
+          "Which workspaces have the lowest tag coverage?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  workspace_name,\n",
+              "  MEASURE(tag_coverage_pct) as tag_coverage\n",
+              "FROM ${catalog}.${gold_schema}.cost_analytics\n",
+              "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE())\n",
+              "GROUP BY workspace_name\n",
+              "HAVING MEASURE(tag_coverage_pct) < 50\n",
+              "ORDER BY tag_coverage ASC\n",
+              "LIMIT 20"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d4",
+        "question": [
+          "What are the recommended tags for untagged resources?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_untagged_resources(\n",
+              "  DATE_FORMAT(DATE_TRUNC('month', CURRENT_DATE()), 'yyyy-MM-dd'),\n",
+              "  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')\n",
+              ")\n",
+              "ORDER BY total_cost DESC\n",
+              "LIMIT 20"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d5",
+        "question": [
+          "What is the root cause of our cost increase this month, and what would be the projected savings if we implemented all ML-recommended optimizations?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH cost_growth AS (\n",
+              "  SELECT \n",
+              "    sku_name,\n",
+              "    workspace_id,\n",
+              "    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN list_cost ELSE 0 END) as current_month_cost,\n",
+              "    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE() - INTERVAL 1 MONTH) \n",
+              "             AND usage_date < DATE_TRUNC('month', CURRENT_DATE()) THEN list_cost ELSE 0 END) as prev_month_cost\n",
+              "  FROM ${catalog}.${gold_schema}.fact_usage\n",
+              "  GROUP BY sku_name, workspace_id\n",
+              "),\n",
+              "growth_analysis AS (\n",
+              "  SELECT *, \n",
+              "    current_month_cost - prev_month_cost as cost_delta,\n",
+              "    CASE WHEN prev_month_cost > 0 THEN (current_month_cost - prev_month_cost) / prev_month_cost * 100 ELSE 100 END as growth_pct\n",
+              "  FROM cost_growth\n",
+              "  WHERE current_month_cost > prev_month_cost\n",
+              ")\n",
+              "SELECT \n",
+              "  sku_name,\n",
+              "  workspace_id,\n",
+              "  ROUND(cost_delta, 2) as cost_delta,\n",
+              "  ROUND(growth_pct, 1) as growth_pct,\n",
+              "  CASE \n",
+              "    WHEN growth_pct > 100 THEN 'SPIKE - Review Immediately'\n",
+              "    WHEN growth_pct > 50 THEN 'HIGH GROWTH - Monitor'\n",
+              "    WHEN growth_pct > 20 THEN 'MODERATE GROWTH'\n",
+              "    ELSE 'Normal Growth'\n",
+              "  END as growth_status\n",
+              "FROM growth_analysis\n",
+              "ORDER BY cost_delta DESC\n",
+              "LIMIT 20"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d6",
+        "question": [
+          "Which teams have the highest untagged spend growing fastest, and what tags should we apply based on ML recommendations to improve chargeback accuracy?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH untagged_spend AS (\n",
+              "  SELECT \n",
+              "    identity_metadata_run_as as team_proxy,\n",
+              "    SUM(CASE WHEN custom_tags IS NULL OR size(custom_tags) = 0 THEN list_cost ELSE 0 END) as untagged_cost,\n",
+              "    SUM(list_cost) as total_cost,\n",
+              "    SUM(CASE WHEN custom_tags IS NULL OR size(custom_tags) = 0 THEN list_cost ELSE 0 END) / NULLIF(SUM(list_cost), 0) * 100 as untagged_pct,\n",
+              "    COUNT(DISTINCT usage_metadata_cluster_id) as cluster_count\n",
+              "  FROM ${catalog}.${gold_schema}.fact_usage\n",
+              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  GROUP BY identity_metadata_run_as\n",
+              ")\n",
+              "SELECT \n",
+              "  team_proxy,\n",
+              "  ROUND(untagged_cost, 2) as untagged_cost,\n",
+              "  ROUND(total_cost, 2) as total_cost,\n",
+              "  ROUND(untagged_pct, 1) as untagged_pct,\n",
+              "  cluster_count,\n",
+              "  CASE \n",
+              "    WHEN untagged_pct > 80 THEN 'CRITICAL - Tag Required'\n",
+              "    WHEN untagged_pct > 50 THEN 'HIGH - Review Tags'\n",
+              "    WHEN untagged_pct > 20 THEN 'MODERATE'\n",
+              "    ELSE 'GOOD'\n",
+              "  END as tagging_status\n",
+              "FROM untagged_spend\n",
+              "WHERE untagged_cost > 1000\n",
+              "ORDER BY untagged_cost DESC\n",
+              "LIMIT 15"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d7",
+        "question": [
+          "What would be our total cost savings if we implemented all ML-recommended optimizations across clusters, jobs, and commitments, and how should we prioritize them by ROI and implementation complexity?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH all_purpose_cost AS (\n",
+              "  SELECT \n",
+              "    'All-Purpose to Jobs Migration' as optimization_type,\n",
+              "    COUNT(*) as recommendation_count,\n",
+              "    SUM(total_cost) * 0.3 as estimated_savings\n",
+              "  FROM ${catalog}.${gold_schema}.get_all_purpose_cluster_cost(\n",
+              "    DATE_FORMAT(CURRENT_DATE() - INTERVAL 30 DAYS, 'yyyy-MM-dd'),\n",
+              "    DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),\n",
+              "    50\n",
+              "  )\n",
+              "),\n",
+              "untagged_cost AS (\n",
+              "  SELECT \n",
+              "    'Tag Coverage Improvement' as optimization_type,\n",
+              "    COUNT(DISTINCT workspace_id) as recommendation_count,\n",
+              "    SUM(CASE WHEN custom_tags IS NULL OR size(custom_tags) = 0 THEN list_cost ELSE 0 END) * 0.1 as estimated_savings\n",
+              "  FROM ${catalog}.${gold_schema}.fact_usage\n",
+              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "),\n",
+              "serverless_migration AS (\n",
+              "  SELECT \n",
+              "    'Serverless Migration' as optimization_type,\n",
+              "    COUNT(DISTINCT workspace_id) as recommendation_count,\n",
+              "    SUM(CASE WHEN NOT product_features_is_serverless THEN list_cost ELSE 0 END) * 0.15 as estimated_savings\n",
+              "  FROM ${catalog}.${gold_schema}.fact_usage\n",
+              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              ")\n",
+              "SELECT \n",
+              "  optimization_type,\n",
+              "  recommendation_count,\n",
+              "  ROUND(estimated_savings, 2) as monthly_savings,\n",
+              "  ROUND(estimated_savings * 12, 2) as annual_savings\n",
+              "FROM (\n",
+              "  SELECT * FROM all_purpose_cost\n",
+              "  UNION ALL\n",
+              "  SELECT * FROM untagged_cost\n",
+              "  UNION ALL\n",
+              "  SELECT * FROM serverless_migration\n",
+              ")\n",
+              "ORDER BY estimated_savings DESC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d8",
+        "question": [
+          "Which workspaces have the most volatile spend patterns based on historical trends, anomaly detection, and forecast uncertainty, and what's driving the volatility?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH spend_volatility AS (\n",
+              "  SELECT \n",
+              "    workspace_id,\n",
+              "    STDDEV(daily_cost) as cost_stddev,\n",
+              "    AVG(daily_cost) as avg_daily_cost,\n",
+              "    MIN(daily_cost) as min_daily_cost,\n",
+              "    MAX(daily_cost) as max_daily_cost,\n",
+              "    STDDEV(daily_cost) / NULLIF(AVG(daily_cost), 0) * 100 as coefficient_of_variation,\n",
+              "    COUNT(DISTINCT day) as days_analyzed\n",
+              "  FROM (\n",
+              "    SELECT \n",
+              "      workspace_id,\n",
+              "      DATE_TRUNC('day', usage_date) as day,\n",
+              "      SUM(list_cost) as daily_cost\n",
+              "    FROM ${catalog}.${gold_schema}.fact_usage\n",
+              "    WHERE usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS\n",
+              "    GROUP BY workspace_id, DATE_TRUNC('day', usage_date)\n",
+              "  )\n",
+              "  GROUP BY workspace_id\n",
+              "),\n",
+              "top_skus AS (\n",
+              "  SELECT \n",
+              "    workspace_id,\n",
+              "    COLLECT_LIST(sku_name)[0] as top_sku_by_cost\n",
+              "  FROM (\n",
+              "    SELECT workspace_id, sku_name, SUM(list_cost) as cost\n",
+              "    FROM ${catalog}.${gold_schema}.fact_usage\n",
+              "    WHERE usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS\n",
+              "    GROUP BY workspace_id, sku_name\n",
+              "    ORDER BY cost DESC\n",
+              "  )\n",
+              "  GROUP BY workspace_id\n",
+              ")\n",
+              "SELECT \n",
+              "  v.workspace_id,\n",
+              "  ROUND(v.coefficient_of_variation, 1) as volatility_cv_pct,\n",
+              "  ROUND(v.avg_daily_cost, 2) as avg_daily_cost,\n",
+              "  ROUND(v.max_daily_cost - v.min_daily_cost, 2) as cost_range,\n",
+              "  v.days_analyzed,\n",
+              "  s.top_sku_by_cost,\n",
+              "  CASE \n",
+              "    WHEN v.coefficient_of_variation > 50 THEN 'HIGH VOLATILITY'\n",
+              "    WHEN v.coefficient_of_variation > 30 THEN 'MODERATE VOLATILITY'\n",
+              "    ELSE 'STABLE'\n",
+              "  END as volatility_classification\n",
+              "FROM spend_volatility v\n",
+              "LEFT JOIN top_skus s ON v.workspace_id = s.workspace_id\n",
+              "ORDER BY v.coefficient_of_variation DESC\n",
+              "LIMIT 15"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "02a3b4c5d6e7789012345678901234d9",
+        "question": [
+          "What's the correlation between cost efficiency (DBU cost per output) and platform adoption patterns across teams, and which teams are getting the best ROI from their Databricks investment?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH team_costs AS (\n",
+              "  SELECT \n",
+              "    identity_metadata_run_as as team,\n",
+              "    SUM(list_cost) as total_cost,\n",
+              "    SUM(usage_quantity) as total_dbus\n",
+              "  FROM ${catalog}.${gold_schema}.fact_usage\n",
+              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  GROUP BY identity_metadata_run_as\n",
+              "),\n",
+              "job_output AS (\n",
+              "  SELECT \n",
+              "    j.creator_id as team,\n",
+              "    COUNT(*) as total_job_runs,\n",
+              "    SUM(CASE WHEN jr.result_state = 'SUCCESS' THEN 1 ELSE 0 END) as successful_runs\n",
+              "  FROM ${catalog}.${gold_schema}.fact_job_run_timeline jr\n",
+              "  JOIN ${catalog}.${gold_schema}.dim_job j ON jr.job_id = j.job_id\n",
+              "  WHERE jr.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  GROUP BY j.creator_id\n",
+              ")\n",
+              "SELECT \n",
+              "  c.team,\n",
+              "  ROUND(c.total_cost, 2) as total_spend_30d,\n",
+              "  COALESCE(j.total_job_runs, 0) as job_runs,\n",
+              "  COALESCE(j.successful_runs, 0) as successful_job_runs,\n",
+              "  c.total_cost / NULLIF(j.successful_runs, 0) as cost_per_successful_job,\n",
+              "  CASE \n",
+              "    WHEN c.total_cost / NULLIF(j.successful_runs, 0) < 1 THEN 'HIGH EFFICIENCY'\n",
+              "    WHEN c.total_cost / NULLIF(j.successful_runs, 0) < 5 THEN 'MEDIUM EFFICIENCY'\n",
+              "    ELSE 'REVIEW NEEDED'\n",
+              "  END as efficiency_tier\n",
+              "FROM team_costs c\n",
+              "LEFT JOIN job_output j ON c.team = j.team\n",
+              "WHERE c.total_cost > 100\n",
+              "ORDER BY cost_per_successful_job ASC\n",
+              "LIMIT 20"
             ]
           }
         ]

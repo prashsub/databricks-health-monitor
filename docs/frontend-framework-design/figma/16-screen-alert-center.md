@@ -51,6 +51,8 @@ Header Section:
 - Subtitle: "Configure alerts, notifications, and routing rules"
 - Stats bar: 56 active rules, 4 channels, 8 routes
 - Actions: [+ Create Alert] [Import] [Export]
+             TEAL filled    Gray outl. Gray outl.
+             #2272B4 ✅     #DCE0E2    #DCE0E2 (Navy-900 #0B2026 text) ✅
 
 Tab Bar:
 [Alert Rules (56)] [Notification Channels (4)] [Routing Rules (8)]
@@ -86,6 +88,9 @@ Each row includes:
 
 Bulk Actions (when selected):
 [✓ Enable] [⏸ Pause] [🗑️ Delete] [📋 Duplicate] [👤 Assign]
+ TEAL filled Gray outl.  RED filled  Gray outline   Gray outl.
+ #2272B4 ✅  #DCE0E2     #FF3621     #DCE0E2        #DCE0E2
+ white       #0B2026 ✅  white text  #0B2026 text ✅ #0B2026
 
 ---
 
@@ -124,7 +129,7 @@ Card 4: Webhook
 - [Test] [Edit] [Delete]
 
 Add Channel Button:
-[+ Add Channel]
+[+ Add Channel] (TEAL filled button)
 Options: Slack, Email, PagerDuty, Webhook, Microsoft Teams, OpsGenie
 
 ---
@@ -167,7 +172,7 @@ Rule 4 (Default - All Others):
 - [Edit] [Delete]
 
 Add Rule Button:
-[+ Add Routing Rule]
+[+ Add Routing Rule] (TEAL filled button)
 
 ---
 
@@ -176,7 +181,7 @@ ALERT RULE DETAIL DRAWER (slide from right):
 Header:
 - Name: "Cost threshold exceeded"
 - Status: Active (toggle)
-- [Save] [Cancel]
+- [Save] [Cancel] (Blue-600 filled #2272B4 ✅, Gray outline #DCE0E2 border/#0B2026 text ✅)
 
 Configuration:
 - Name input

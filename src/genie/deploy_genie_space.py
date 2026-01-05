@@ -23,16 +23,19 @@ from typing import Any, Optional
 # Get parameters from widgets
 dbutils.widgets.text("catalog", "", "Unity Catalog Name")
 dbutils.widgets.text("gold_schema", "", "Gold Schema Name")
+dbutils.widgets.text("feature_schema", "", "Feature Schema Name (for ML tables)")
 dbutils.widgets.text("warehouse_id", "", "SQL Warehouse ID")
 dbutils.widgets.text("genie_space_json", "", "JSON Export File Path (optional)")
 
 catalog = dbutils.widgets.get("catalog")
 gold_schema = dbutils.widgets.get("gold_schema")
+feature_schema = dbutils.widgets.get("feature_schema") or f"{gold_schema}_ml"
 warehouse_id = dbutils.widgets.get("warehouse_id")
 genie_space_json = dbutils.widgets.get("genie_space_json")
 
 print(f"Catalog: {catalog}")
 print(f"Gold Schema: {gold_schema}")
+print(f"Feature Schema: {feature_schema}")
 print(f"Warehouse ID: {warehouse_id}")
 print(f"JSON File: {genie_space_json or 'All spaces'}")
 
@@ -68,24 +71,26 @@ GENIE_SPACE_METADATA = {
 
 # COMMAND ----------
 
-def substitute_variables(content: str, catalog: str, gold_schema: str) -> str:
+def substitute_variables(content: str, catalog: str, gold_schema: str, feature_schema: str) -> str:
     """
-    Substitute ${catalog} and ${gold_schema} variables in content.
+    Substitute ${catalog}, ${gold_schema}, and ${feature_schema} variables in content.
     
     Args:
         content: String containing variable placeholders
         catalog: Catalog name to substitute
         gold_schema: Gold schema name to substitute
+        feature_schema: Feature schema name to substitute (for ML tables)
     
     Returns:
         String with variables substituted
     """
     result = content.replace("${catalog}", catalog)
     result = result.replace("${gold_schema}", gold_schema)
+    result = result.replace("${feature_schema}", feature_schema)
     return result
 
 
-def process_json_values(obj: Any, catalog: str, gold_schema: str) -> Any:
+def process_json_values(obj: Any, catalog: str, gold_schema: str, feature_schema: str) -> Any:
     """
     Recursively process JSON object and substitute variables.
     
@@ -93,21 +98,22 @@ def process_json_values(obj: Any, catalog: str, gold_schema: str) -> Any:
         obj: JSON object (dict, list, or primitive)
         catalog: Catalog name to substitute
         gold_schema: Gold schema name to substitute
+        feature_schema: Feature schema name to substitute (for ML tables)
     
     Returns:
         Processed JSON object with variables substituted
     """
     if isinstance(obj, dict):
-        return {k: process_json_values(v, catalog, gold_schema) for k, v in obj.items()}
+        return {k: process_json_values(v, catalog, gold_schema, feature_schema) for k, v in obj.items()}
     elif isinstance(obj, list):
-        return [process_json_values(item, catalog, gold_schema) for item in obj]
+        return [process_json_values(item, catalog, gold_schema, feature_schema) for item in obj]
     elif isinstance(obj, str):
-        return substitute_variables(obj, catalog, gold_schema)
+        return substitute_variables(obj, catalog, gold_schema, feature_schema)
     else:
         return obj
 
 
-def load_genie_space_export(json_path: str, catalog: str, gold_schema: str) -> dict:
+def load_genie_space_export(json_path: str, catalog: str, gold_schema: str, feature_schema: str) -> dict:
     """
     Load and process a Genie Space JSON export file.
     
@@ -115,6 +121,7 @@ def load_genie_space_export(json_path: str, catalog: str, gold_schema: str) -> d
         json_path: Path to JSON export file (can be Workspace path or absolute)
         catalog: Catalog name for variable substitution
         gold_schema: Gold schema name for variable substitution
+        feature_schema: Feature schema name for variable substitution (for ML tables)
     
     Returns:
         Processed GenieSpaceExport dictionary
@@ -137,7 +144,33 @@ def load_genie_space_export(json_path: str, catalog: str, gold_schema: str) -> d
     export_data = json.loads(content)
     
     # Substitute variables
-    processed = process_json_values(export_data, catalog, gold_schema)
+    processed = process_json_values(export_data, catalog, gold_schema, feature_schema)
+    
+    # Sort data_sources.tables by identifier (API requires sorted tables)
+    if 'data_sources' in processed:
+        if 'tables' in processed['data_sources']:
+            processed['data_sources']['tables'].sort(key=lambda x: x.get('identifier', ''))
+            # Also sort column_configs within each table
+            for table in processed['data_sources']['tables']:
+                if 'column_configs' in table:
+                    table['column_configs'].sort(key=lambda x: x.get('column_name', ''))
+        if 'metric_views' in processed['data_sources']:
+            processed['data_sources']['metric_views'].sort(key=lambda x: x.get('identifier', ''))
+            # Also sort column_configs within each metric view
+            for mv in processed['data_sources']['metric_views']:
+                if 'column_configs' in mv:
+                    mv['column_configs'].sort(key=lambda x: x.get('column_name', ''))
+    
+    # Sort instructions by (id, identifier) - API requirement
+    if 'instructions' in processed:
+        if 'sql_functions' in processed['instructions']:
+            processed['instructions']['sql_functions'].sort(key=lambda x: (x.get('id', ''), x.get('identifier', '')))
+        if 'text_instructions' in processed['instructions']:
+            processed['instructions']['text_instructions'].sort(key=lambda x: (x.get('id', ''), x.get('content', '')))
+        if 'example_question_sqls' in processed['instructions']:
+            processed['instructions']['example_question_sqls'].sort(key=lambda x: (x.get('id', ''), x.get('question', '')))
+        if 'join_specs' in processed['instructions']:
+            processed['instructions']['join_specs'].sort(key=lambda x: (x.get('id', '')))
     
     return processed
 
@@ -221,7 +254,8 @@ def update_genie_space_via_api(
     title: str,
     description: str,
     warehouse_id: str,
-    serialized_space: str
+    serialized_space: str,
+    preserve_title: bool = True
 ) -> dict:
     """
     Update an existing Genie Space using the REST API.
@@ -233,10 +267,11 @@ def update_genie_space_via_api(
         host: Databricks workspace host URL
         token: Personal access token
         space_id: Existing Genie Space ID to update
-        title: Genie Space display name
+        title: Genie Space display name (only used if preserve_title=False)
         description: Genie Space description
         warehouse_id: SQL Warehouse ID for compute
         serialized_space: JSON string of GenieSpaceExport
+        preserve_title: If True, don't change the existing title (avoids naming conflicts)
     
     Returns:
         API response dict
@@ -250,15 +285,20 @@ def update_genie_space_via_api(
         "Content-Type": "application/json"
     }
     
+    # Build payload - only include title if we want to change it
     payload = {
-        "title": title,
         "description": description,
         "warehouse_id": warehouse_id,
         "serialized_space": serialized_space
     }
     
+    # Only include title if not preserving existing title
+    if not preserve_title:
+        payload["title"] = title
+    
     print(f"Updating Genie Space: {title}")
     print(f"  Space ID: {space_id}")
+    print(f"  Preserve title: {preserve_title}")
     
     # Use PATCH for partial updates (official API pattern)
     response = requests.patch(url, headers=headers, json=payload)
@@ -278,6 +318,9 @@ def find_existing_genie_space(host: str, token: str, title: str) -> Optional[str
     """
     Find an existing Genie Space by title.
     
+    Handles Databricks's automatic numeric suffix addition (e.g., "My Space (1)", "My Space (2)").
+    Searches for exact match first, then falls back to prefix match.
+    
     Args:
         host: Databricks workspace host URL
         token: Personal access token
@@ -287,6 +330,7 @@ def find_existing_genie_space(host: str, token: str, title: str) -> Optional[str
         space_id if found, None otherwise
     """
     import requests
+    import re
     
     url = f"{host}/api/2.0/genie/spaces"
     
@@ -303,9 +347,31 @@ def find_existing_genie_space(host: str, token: str, title: str) -> Optional[str
     
     spaces = response.json().get("spaces", [])
     
+    # First, try exact match
     for space in spaces:
         if space.get("title") == title:
+            print(f"  Found exact match: {title}")
             return space.get("space_id")
+    
+    # If no exact match, search for spaces with numeric suffix pattern: "Title (N)"
+    # Example: "Health Monitor Cost Intelligence Space (3)"
+    suffix_pattern = re.compile(rf"^{re.escape(title)} \(\d+\)$")
+    
+    matching_spaces = []
+    for space in spaces:
+        space_title = space.get("title", "")
+        if suffix_pattern.match(space_title):
+            matching_spaces.append(space)
+    
+    if matching_spaces:
+        # Return the one with highest suffix number (most recent)
+        def extract_suffix(space):
+            match = re.search(r"\((\d+)\)$", space.get("title", ""))
+            return int(match.group(1)) if match else 0
+        
+        most_recent = max(matching_spaces, key=extract_suffix)
+        print(f"  Found existing space with suffix: {most_recent.get('title')}")
+        return most_recent.get("space_id")
     
     return None
 
@@ -315,6 +381,7 @@ def deploy_genie_space(
     json_file: str,
     catalog: str,
     gold_schema: str,
+    feature_schema: str,
     warehouse_id: str,
     host: Optional[str] = None,
     token: Optional[str] = None,
@@ -327,6 +394,7 @@ def deploy_genie_space(
         json_file: Path to JSON export file
         catalog: Unity Catalog name
         gold_schema: Gold schema name
+        feature_schema: Feature schema name (for ML tables)
         warehouse_id: SQL Warehouse ID
         host: Databricks host (optional, auto-detected)
         token: Access token (optional, auto-detected)
@@ -357,7 +425,7 @@ def deploy_genie_space(
     
     # Load and process JSON
     print(f"Loading JSON: {json_file}")
-    export_data = load_genie_space_export(json_file, catalog, gold_schema)
+    export_data = load_genie_space_export(json_file, catalog, gold_schema, feature_schema)
     serialized_space = serialize_genie_space(export_data)
     
     # Check for existing space
@@ -458,6 +526,7 @@ def main():
                 json_file=json_file,
                 catalog=catalog,
                 gold_schema=gold_schema,
+                feature_schema=feature_schema,
                 warehouse_id=warehouse_id
             )
             deployed_spaces.append((os.path.basename(json_file), space_id))
@@ -478,9 +547,13 @@ def main():
     
     if failed_spaces:
         print(f"\n❌ Failed: {len(failed_spaces)}")
+        error_details = []
         for filename, error in failed_spaces:
             print(f"   - {filename}: {error}")
-        raise RuntimeError(f"Failed to deploy {len(failed_spaces)} Genie Space(s)")
+            error_details.append(f"{filename}: {error[:500]}")  # Truncate long errors
+        
+        error_summary = "\n".join(error_details)
+        raise RuntimeError(f"Failed to deploy {len(failed_spaces)} Genie Space(s):\n{error_summary}")
     
     print("\n✅ All Genie Spaces deployed successfully!")
     dbutils.notebook.exit("SUCCESS")

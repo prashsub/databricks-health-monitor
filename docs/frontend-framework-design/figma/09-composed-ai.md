@@ -168,7 +168,7 @@ Purpose: Show AI tool execution and results
 - query: SQL/data query (blue accent)
 - analysis: Data analysis (purple accent)
 - action: Execute action (orange accent)
-- search: Search operation (teal accent)
+- search: Search operation (Green-600 accent)
 
 **state** (property):
 - running: Show spinner, animated border
@@ -193,11 +193,11 @@ ToolPanel (Card primitive as base)
         └── ViewFullButton (link button)
 ```
 
-### Tool Type Colors:
-- query: brand/primary (#077A9D)
-- analysis: #7C3AED (purple)
-- action: brand/ai-accent (#FFA500)
-- search: #059669 (teal)
+### Tool Type Colors (Official Databricks):
+- query: Blue-600 (#2272B4) ✅
+- analysis: Maroon-500 (#AB4057) - ML/AI features
+- action: Yellow-600 (#FFAB00) - action accent
+- search: Green-600 (#00A972) ✅
 
 ### Example - Running:
 ```

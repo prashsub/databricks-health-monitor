@@ -58,11 +58,11 @@ Create all overlay components for the Databricks Health Monitor: modals, drawers
 | `type=form` | Any | Input required | Form fields + submit |
 
 **Example Modal Content (Confirm Delete):**
-- Icon: AlertTriangle (#DC2626)
+- Icon: AlertTriangle (#FF3621 - semantic/critical)
 - Title: "Delete Alert Rule?"
 - Description: "This action cannot be undone. The alert rule 'Cost Spike Detection' and its history will be permanently removed."
-- Secondary: "Cancel" (gray)
-- Primary: "Delete" (#DC2626 background)
+- Secondary: "Cancel" (Gray outline #DCE0E2 border, Navy-900 #0B2026 text ✅)
+- Primary: "Delete" (#FF3621 background - RED for destructive, white text)
 
 ---
 
@@ -159,11 +159,11 @@ Create all overlay components for the Databricks Health Monitor: modals, drawers
 ```
 
 **Menu Item States:**
-- Default: Text #374151, Icon #6B7280
-- Hover: Background #F3F4F6
-- Selected: Background #EFF6FF, Text #077A9D, Checkmark icon
-- Disabled: Text #9CA3AF, no hover effect
-- Danger: Text #DC2626, Icon #DC2626
+- Default: Text #4A5D6B (neutral/slate), Icon #6B7D8A (neutral/steel)
+- Hover: Background #F0F3F5 (neutral/cloud)
+- Selected: Background #D7EDFE (Blue-200), Text #2272B4 (Blue-600), Checkmark icon ✅
+- Disabled: Text #9DAAB5 (neutral/silver), no hover effect
+- Danger: Text #FF3621 (semantic/critical), Icon #FF3621
 
 **Example Dropdown Content (Signal Actions):**
 1. "View Details" + Eye icon
@@ -208,14 +208,14 @@ Create all overlay components for the Databricks Health Monitor: modals, drawers
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Severity Variants:**
+**Severity Variants (Updated Color System):**
 
 | Variant | Border Color | Icon | Icon Color |
 |---------|-------------|------|------------|
-| `severity=success` | #10B981 | CheckCircle | #10B981 |
-| `severity=error` | #DC2626 | XCircle | #DC2626 |
-| `severity=warning` | #F59E0B | AlertTriangle | #F59E0B |
-| `severity=info` | #077A9D | Info | #077A9D |
+| `severity=success` | #00A972 (semantic/success) | CheckCircle | #00A972 |
+| `severity=error` | #FF3621 (semantic/critical) | XCircle | #FF3621 |
+| `severity=warning` | #FFAB00 (semantic/warning) | AlertTriangle | #FFAB00 |
+| `severity=info` | #2272B4 (Blue-600 semantic/info) ✅ | Info | #2272B4 |
 
 **Example Toast Content (Success):**
 - Icon: CheckCircle (green)
@@ -320,7 +320,7 @@ Create all overlay components for the Databricks Health Monitor: modals, drawers
 │ │ Background: #F9FAFB                                       │ │
 │ │ Padding: 8px                                              │ │
 │ │                                                           │ │
-│ │ [Last 15 minutes]  ← active: bg #EFF6FF, text #077A9D    │ │
+│ │ [Last 15 minutes]  ← active: bg #D7EDFE, text #2272B4 ✅  │ │
 │ │ [Last 1 hour]                                             │ │
 │ │ [Last 4 hours]                                            │ │
 │ │ [Last 24 hours]                                           │ │
@@ -345,10 +345,10 @@ Create all overlay components for the Databricks Health Monitor: modals, drawers
 │ │ └─────────────────────┘ └─────────────────────┘          │ │
 │ │                                                           │ │
 │ │ Selected range highlighted:                               │ │
-│ │ - Start date: bg #077A9D, text white, rounded left       │ │
-│ │ - End date: bg #077A9D, text white, rounded right        │ │
-│ │ - In-between: bg #E0F2FE, text #374151                   │ │
-│ │ - Today: ring 1px #077A9D                                │ │
+│ │ - Start date: bg #2272B4, text white, rounded left ✅    │ │
+│ │ - End date: bg #2272B4, text white, rounded right ✅     │ │
+│ │ - In-between: bg #D7EDFE, text #0B2026 ✅                │ │
+│ │ - Today: ring 1px #2272B4 ✅                             │ │
 │ │ - Hover: bg #F3F4F6                                      │ │
 │ └───────────────────────────────────────────────────────────┘ │
 │                                                                 │
@@ -755,8 +755,8 @@ COMPONENT 3: Dropdown Menu
 - States: default, hover (#F3F4F6), selected (#EFF6FF + check), disabled (#9CA3AF), danger (#DC2626)
 - Divider between groups
 
-COMPONENT 4: Toast
-- Severities: success (#10B981), error (#DC2626), warning (#F59E0B), info (#077A9D)
+COMPONENT 4: Toast (Official Databricks)
+- Severities: success (#00A972 Green-600 ✅), error (#FF3621 Lava-600 ✅), warning (#FFAB00 Yellow-600 ✅), info (#2272B4 Blue-600 ✅)
 - 360px width, left border 4px colored
 - Parts: icon (20px) + title + message + close + optional action link
 - Progress bar at bottom for auto-dismiss
