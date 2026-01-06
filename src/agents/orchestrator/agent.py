@@ -18,7 +18,28 @@ from mlflow.types.agent import (
     ChatContext,
 )
 from databricks.sdk import WorkspaceClient
-from databricks_langchain import DatabricksServingEndpoint, DatabricksLakebase
+
+# Import MLflow resources with graceful fallback for older versions
+try:
+    from mlflow.models.resources import (
+        DatabricksServingEndpoint,
+        DatabricksGenieSpace,
+        DatabricksSQLWarehouse,
+    )
+    # DatabricksLakebase may not be available in all MLflow versions
+    try:
+        from mlflow.models.resources import DatabricksLakebase
+        _HAS_LAKEBASE_RESOURCE = True
+    except ImportError:
+        DatabricksLakebase = None
+        _HAS_LAKEBASE_RESOURCE = False
+except ImportError:
+    # Fallback for older MLflow versions without these resources
+    DatabricksServingEndpoint = None
+    DatabricksGenieSpace = None
+    DatabricksSQLWarehouse = None
+    DatabricksLakebase = None
+    _HAS_LAKEBASE_RESOURCE = False
 
 from .graph import create_orchestrator_graph
 from .state import create_initial_state
@@ -404,16 +425,54 @@ def get_mlflow_resources() -> List:
     """
     Get MLflow resource dependencies for model logging.
 
-    These resources enable automatic authentication passthrough
-    when the agent is deployed to Model Serving.
+    These resources enable **automatic authentication passthrough**
+    when the agent is deployed to Model Serving. Databricks will
+    automatically manage short-lived credentials for all declared resources.
+
+    Reference:
+        https://docs.databricks.com/aws/en/generative-ai/agent-framework/agent-authentication#automatic-authentication-passthrough
+
+    Resources declared:
+        - DatabricksServingEndpoint: LLM endpoint for inference
+        - DatabricksLakebase: Memory storage (short-term & long-term)
+        - DatabricksGenieSpace: All 6 domain Genie Spaces
+        - DatabricksSQLWarehouse: For any direct SQL operations
 
     Returns:
         List of Databricks resource dependencies.
     """
-    return [
-        DatabricksServingEndpoint(settings.llm_endpoint),
-        DatabricksLakebase(database_instance_name=settings.lakebase_instance_name),
-    ]
+    resources = []
+    
+    # LLM Endpoint for agent inference
+    if DatabricksServingEndpoint is not None:
+        resources.append(DatabricksServingEndpoint(endpoint_name=settings.llm_endpoint))
+    
+    # Lakebase for memory persistence (may not be available in all MLflow versions)
+    if _HAS_LAKEBASE_RESOURCE and DatabricksLakebase is not None:
+        resources.append(DatabricksLakebase(database_instance_name=settings.lakebase_instance_name))
+    
+    # SQL Warehouse for direct queries (if needed)
+    if DatabricksSQLWarehouse is not None:
+        resources.append(DatabricksSQLWarehouse(warehouse_id=settings.warehouse_id))
+    
+    # Add all configured Genie Spaces
+    if DatabricksGenieSpace is not None:
+        genie_space_configs = [
+            ("cost", settings.cost_genie_space_id),
+            ("security", settings.security_genie_space_id),
+            ("performance", settings.performance_genie_space_id),
+            ("reliability", settings.reliability_genie_space_id),
+            ("quality", settings.quality_genie_space_id),
+            ("unified", settings.unified_genie_space_id),
+        ]
+        
+        for domain, space_id in genie_space_configs:
+            if space_id:  # Only add if configured
+                resources.append(
+                    DatabricksGenieSpace(genie_space_id=space_id)
+                )
+    
+    return resources
 
 
 def log_agent_to_mlflow(
@@ -469,7 +528,7 @@ def log_agent_to_mlflow(
             resources=get_mlflow_resources(),
             registered_model_name=model_name,
             pip_requirements=[
-                "mlflow>=3.0.0",
+                "mlflow>=3.3.2",  # Required for Lakebase auth passthrough
                 "langchain>=0.3.0",
                 "langgraph>=0.2.0",
                 "langchain-databricks>=0.1.0",

@@ -23,12 +23,11 @@ import mlflow
 
 # CRITICAL: Enable autolog at module level per MLflow GenAI patterns
 # This must be at the TOP of the module before any LangChain imports
-mlflow.langchain.autolog(
-    log_models=True,
-    log_input_examples=True,
-    log_model_signatures=True,
-    log_inputs=True
-)
+# Note: Using minimal parameters for compatibility with current MLflow version
+try:
+    mlflow.langchain.autolog()
+except Exception as e:
+    print(f"⚠ MLflow autolog not available: {e}")
 
 # Set default experiment for agent traces
 EXPERIMENT_NAME = "/Shared/health_monitor/agent_traces"
@@ -39,12 +38,17 @@ except Exception:
     pass
 
 from .config.settings import settings
-from .orchestrator.agent import HealthMonitorAgent
 
+# Lazy imports to avoid cascading dependency issues
+# Import HealthMonitorAgent only when needed
 __all__ = [
     "settings",
-    "HealthMonitorAgent",
     "EXPERIMENT_NAME",
 ]
+
+def get_agent():
+    """Get HealthMonitorAgent with lazy import to avoid dependency issues."""
+    from .orchestrator.agent import HealthMonitorAgent
+    return HealthMonitorAgent
 
 __version__ = "1.0.0"

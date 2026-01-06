@@ -49,23 +49,45 @@ class AgentSettings:
     # =========================================================================
     # Genie Space IDs (from Phase 3.6 deployment)
     # =========================================================================
+    # These IDs are configurable via environment variables for flexibility.
+    # Default values are the deployed Genie Space IDs from the project.
+    # To override: export COST_GENIE_SPACE_ID="your-space-id"
+    # =========================================================================
     cost_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get("COST_GENIE_SPACE_ID", "")
+        default_factory=lambda: os.environ.get(
+            "COST_GENIE_SPACE_ID", 
+            "01f0ea871ffe176fa6aee6f895f83d3b"  # Cost Intelligence Space
+        )
     )
     security_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get("SECURITY_GENIE_SPACE_ID", "")
+        default_factory=lambda: os.environ.get(
+            "SECURITY_GENIE_SPACE_ID", 
+            "01f0ea9367f214d6a4821605432234c4"  # Security Auditor Space
+        )
     )
     performance_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get("PERFORMANCE_GENIE_SPACE_ID", "")
+        default_factory=lambda: os.environ.get(
+            "PERFORMANCE_GENIE_SPACE_ID", 
+            "01f0ea93671e12d490224183f349dba0"  # Performance Space
+        )
     )
     reliability_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get("RELIABILITY_GENIE_SPACE_ID", "")
+        default_factory=lambda: os.environ.get(
+            "RELIABILITY_GENIE_SPACE_ID", 
+            "01f0ea8724fd160e8e959b8a5af1a8c5"  # Job Reliability Space
+        )
     )
     quality_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get("QUALITY_GENIE_SPACE_ID", "")
+        default_factory=lambda: os.environ.get(
+            "QUALITY_GENIE_SPACE_ID", 
+            "01f0ea93616c1978a99a59d3f2e805bd"  # Data Quality Space
+        )
     )
     unified_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get("UNIFIED_GENIE_SPACE_ID", "")
+        default_factory=lambda: os.environ.get(
+            "UNIFIED_GENIE_SPACE_ID", 
+            "01f0ea9368801e019e681aa3abaa0089"  # Overall Health Monitor Space
+        )
     )
 
     # =========================================================================
@@ -170,6 +192,13 @@ class AgentSettings:
     def memory_long_term_table(self) -> str:
         """Full path to long-term memory table."""
         return f"{self.catalog}.{self.agent_schema}.memory_long_term"
+
+    # =========================================================================
+    # SQL Warehouse Configuration
+    # =========================================================================
+    warehouse_id: str = field(
+        default_factory=lambda: os.environ.get("WAREHOUSE_ID", "4b9b953939869799")
+    )
 
     # =========================================================================
     # Timeouts

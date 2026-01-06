@@ -157,6 +157,703 @@
     "join_specs": []
   },
   "benchmarks": {
-    "questions": []
+    "questions": [
+      {
+        "id": "01ac8ad96b284b7ab0ba414fc2334c0e",
+        "question": [
+          "Show me cluster utilization by slice"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  slice_value AS cluster_name,\n",
+              "  AVG(p95_cpu_total_pct) AS avg_p95_cpu,\n",
+              "  SUM(cpu_saturation_hours) AS saturation_hours,\n",
+              "  SUM(cpu_idle_hours) AS idle_hours\n",
+              "FROM ${catalog}.${gold_schema}.fact_node_timeline_profile_metrics\n",
+              "WHERE column_name = ':table'\n",
+              "  AND log_type = 'INPUT'\n",
+              "  AND slice_key = 'cluster_name'\n",
+              "GROUP BY slice_value\n",
+              "ORDER BY saturation_hours DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "048dec76f8db421d8bf872529e4c8e45",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: End-to-end performance health dashboard - combine query latency, cluster utilization, cache efficiency, and ML predictions for executive performance review"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH query_health AS (\n",
+              "  SELECT \n",
+              "    MEASURE(avg_duration_seconds) as avg_query_duration,\n",
+              "    MEASURE(p95_duration_seconds) as p95_query_duration,\n",
+              "    MEASURE(sla_breach_rate) as sla_breach_pct,\n",
+              "    MEASURE(cache_hit_rate) as cache_pct,\n",
+              "    MEASURE(total_queries) as query_volume\n",
+              "  FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "),\n",
+              "cluster_health AS (\n",
+              "  SELECT \n",
+              "    MEASURE(avg_cpu_utilization) as avg_cpu,\n",
+              "    MEASURE(avg_memory_utilization) as avg_memory,\n",
+              "    MEASURE(efficiency_score) as efficiency,\n",
+              "    MEASURE(wasted_hours) as wasted_hours\n",
+              "  FROM ${catalog}.${gold_schema}.mv_cluster_utilization\n",
+              "  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "),\n",
+              "ml_insights AS (\n",
+              "  SELECT \n",
+              "    COUNT(*) as queries_needing_optimization,\n",
+              "    AVG(prediction) as avg_optimization_potential\n",
+              "  FROM ${catalog}.${feature_schema}.query_optimization_classifications\n",
+              "  WHERE prediction > 0.5\n",
+              "),\n",
+              "drift_status AS (\n",
+              "  SELECT \n",
+              "    AVG(p95_duration_drift_pct) as query_drift,\n",
+              "    AVG(cpu_utilization_drift) as cpu_drift\n",
+              "  FROM ${catalog}.${gold_schema}.fact_query_history_drift_metrics\n",
+              "  WHERE drift_type = 'CONSECUTIVE'\n",
+              "    AND column_name = ':table'\n",
+              ")\n",
+              "SELECT \n",
+              "  qh.query_volume,\n",
+              "  qh.avg_query_duration,\n",
+              "  qh.p95_query_duration,\n",
+              "  qh.sla_breach_pct,\n",
+              "  qh.cache_pct,\n",
+              "  ch.avg_cpu,\n",
+              "  ch.avg_memory,\n",
+              "  ch.efficiency,\n",
+              "  ch.wasted_hours,\n",
+              "  mi.queries_needing_optimization,\n",
+              "  mi.avg_optimization_potential,\n",
+              "  ds.query_drift,\n",
+              "  ds.cpu_drift,\n",
+              "  CASE \n",
+              "    WHEN qh.sla_breach_pct > 5 OR ch.efficiency < 50 THEN 'Critical Performance Issues'\n",
+              "    WHEN ds.query_drift > 20 OR ds.cpu_drift > 15 THEN 'Performance Degradation Detected'\n",
+              "    WHEN qh.cache_pct > 80 AND ch.avg_cpu BETWEEN 60 AND 80 THEN 'Optimal Performance'\n",
+              "    ELSE 'Normal'\n",
+              "  END as overall_health_status,\n",
+              "  CASE \n",
+              "    WHEN qh.sla_breach_pct > 5 THEN 'Investigate slow queries immediately'\n",
+              "    WHEN mi.queries_needing_optimization > 100 THEN 'Run ML-recommended optimizations'\n",
+              "    WHEN ch.wasted_hours > 1000 THEN 'Right-size clusters'\n",
+              "    WHEN qh.cache_pct < 50 THEN 'Improve caching strategy'\n",
+              "    ELSE 'Continue monitoring'\n",
+              "  END as recommended_action\n",
+              "FROM query_health qh\n",
+              "CROSS JOIN cluster_health ch\n",
+              "CROSS JOIN ml_insights mi\n",
+              "CROSS JOIN drift_status ds;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1f8a51e377494250918a43fe1a6e1f8f",
+        "question": [
+          "Which jobs don"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_autoscaling_disabled_jobs(\n",
+              "  30\n",
+              ")\n",
+              "ORDER BY estimated_savings DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1f90a83d2dab4dd3af96afa4058bb0a5",
+        "question": [
+          "Show me cluster right-sizing recommendations"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cluster_rightsizing_recommendations(\n",
+              "  30\n",
+              ")\n",
+              "ORDER BY potential_savings DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "26cfd70ccb6b4ed2ac42d19ef6ee1b98",
+        "question": [
+          "What is the P95 query duration?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(p95_duration_seconds) as p95_sec\n",
+              "FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "29dc5b1a558649dd97a9389488f87416",
+        "question": [
+          "What is the SLA breach rate for queries?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(sla_breach_rate) as breach_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "484c4919ae8946a09170df8bee952830",
+        "question": [
+          "What is the P99 query duration?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(p99_duration_seconds) as p99_sec\n",
+              "FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "4afc7335fe944600bb46b701b84910be",
+        "question": [
+          "Show me warehouse utilization metrics"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_warehouse_performance(\n",
+              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
+              "  CURRENT_DATE()::STRING\n",
+              ")\n",
+              "ORDER BY query_count DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "4d3d25fe70884a818d5ba506c2fe56f3",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Cluster resource efficiency with ML right-sizing recommendations - compare actual utilization vs optimal configuration"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH cluster_actual AS (\n",
+              "  SELECT \n",
+              "    cluster_name,\n",
+              "    MEASURE(avg_cpu_utilization) as actual_cpu,\n",
+              "    MEASURE(avg_memory_utilization) as actual_memory,\n",
+              "    MEASURE(total_node_hours) as node_hours,\n",
+              "    MEASURE(wasted_hours) as wasted_hours\n",
+              "  FROM ${catalog}.${gold_schema}.mv_cluster_utilization\n",
+              "  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  GROUP BY cluster_name\n",
+              "),\n",
+              "ml_sizing_recommendations AS (\n",
+              "  SELECT \n",
+              "    c.cluster_name,\n",
+              "    AVG(crr.prediction) as recommended_size_score\n",
+              "  FROM ${catalog}.${feature_schema}.cluster_rightsizing_recommendations crr\n",
+              "  JOIN ${catalog}.${gold_schema}.dim_cluster c ON crr.cluster_id = c.cluster_id\n",
+              "  WHERE crr.utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "  GROUP BY c.cluster_name\n",
+              "),\n",
+              "efficiency_metrics AS (\n",
+              "  SELECT \n",
+              "    cluster_name,\n",
+              "    MEASURE(efficiency_score) as efficiency,\n",
+              "    MEASURE(idle_percentage) as idle_pct\n",
+              "  FROM ${catalog}.${gold_schema}.mv_cluster_efficiency\n",
+              "  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "  GROUP BY cluster_name\n",
+              ")\n",
+              "SELECT \n",
+              "  ca.cluster_name,\n",
+              "  ca.actual_cpu,\n",
+              "  ca.actual_memory,\n",
+              "  ca.node_hours,\n",
+              "  ca.wasted_hours,\n",
+              "  ca.wasted_hours * 100.0 / NULLIF(ca.node_hours, 0) as waste_pct,\n",
+              "  em.efficiency,\n",
+              "  em.idle_pct,\n",
+              "  COALESCE(ml.recommended_size_score, 0) as ml_sizing_score,\n",
+              "  CASE \n",
+              "    WHEN ca.actual_cpu < 20 AND ca.wasted_hours > 100 THEN 'Downsize 50%'\n",
+              "    WHEN ca.actual_cpu < 40 AND ca.wasted_hours > 50 THEN 'Downsize 25%'\n",
+              "    WHEN ca.actual_cpu > 80 AND em.idle_pct < 10 THEN 'Consider Upsize'\n",
+              "    ELSE 'Optimal'\n",
+              "  END as sizing_recommendation,\n",
+              "  ca.wasted_hours * 0.5 as estimated_monthly_savings_hours\n",
+              "FROM cluster_actual ca\n",
+              "JOIN efficiency_metrics em ON ca.cluster_name = em.cluster_name\n",
+              "LEFT JOIN ml_sizing_recommendations ml ON ca.cluster_name = ml.cluster_name\n",
+              "WHERE ca.node_hours > 10\n",
+              "ORDER BY estimated_monthly_savings_hours DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "5dfeed96c3024df682fea25e0d14aa10",
+        "question": [
+          "Show me query performance by warehouse"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  warehouse_name,\n",
+              "  MEASURE(avg_duration_seconds) as avg_duration,\n",
+              "  MEASURE(p95_duration_seconds) as p95_duration,\n",
+              "  MEASURE(total_queries) as queries\n",
+              "FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "GROUP BY warehouse_name\n",
+              "ORDER BY queries DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "67b31bc8426f40919d3eb5e9c481e3c5",
+        "question": [
+          "What is our average query duration?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(avg_duration_seconds) as avg_sec\n",
+              "FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "8761393263c941939e78fd4051fae3d3",
+        "question": [
+          "Which clusters are overprovisioned?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  cluster_name,\n",
+              "  MEASURE(avg_cpu_utilization) as cpu_pct,\n",
+              "  MEASURE(avg_memory_utilization) as memory_pct,\n",
+              "  MEASURE(potential_savings_pct) as savings_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_cluster_utilization\n",
+              "WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "  AND provisioning_status = 'OVERPROVISIONED'\n",
+              "GROUP BY cluster_name\n",
+              "ORDER BY savings_pct DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "98a2b3f78c7d49b5ae2283bef3337ce4",
+        "question": [
+          "Show me underutilized clusters"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_underutilized_clusters(\n",
+              "  30\n",
+              ")\n",
+              "WHERE avg_cpu_pct < 30\n",
+              "ORDER BY potential_savings DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9e3228e9e67b48148c1310ee62ed4a7c",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Query optimization recommendations with ML classification - prioritize queries for manual tuning based on improvement potential"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH query_candidates AS (\n",
+              "  SELECT \n",
+              "    statement_type,\n",
+              "    COUNT(*) as query_count,\n",
+              "    AVG(MEASURE(avg_duration_seconds)) as avg_duration,\n",
+              "    AVG(MEASURE(spill_rate)) as avg_spill_rate\n",
+              "  FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "    AND query_efficiency_status IN ('SLOW', 'HIGH_SPILL')\n",
+              "  GROUP BY statement_type\n",
+              "),\n",
+              "ml_query_classifications AS (\n",
+              "  SELECT \n",
+              "    statement_type,\n",
+              "    COUNT(*) as ml_flagged_count,\n",
+              "    AVG(prediction) as avg_optimization_score\n",
+              "  FROM ${catalog}.${feature_schema}.query_optimization_classifications\n",
+              "  WHERE prediction > 0.5\n",
+              "  GROUP BY statement_type\n",
+              "),\n",
+              "ml_sizing_recommendations AS (\n",
+              "  SELECT \n",
+              "    statement_type,\n",
+              "    COUNT(*) as recommendation_count,\n",
+              "    AVG(prediction) as avg_improvement_potential\n",
+              "  FROM ${catalog}.${feature_schema}.query_optimization_recommendations\n",
+              "  WHERE prediction > 0.3\n",
+              "  GROUP BY statement_type\n",
+              ")\n",
+              "SELECT \n",
+              "  qc.statement_type,\n",
+              "  qc.query_count,\n",
+              "  qc.avg_duration,\n",
+              "  qc.avg_spill_rate,\n",
+              "  COALESCE(mo.ml_flagged_count, 0) as ml_flagged,\n",
+              "  COALESCE(mo.avg_optimization_score, 0) as optimization_score,\n",
+              "  COALESCE(mr.recommendation_count, 0) as has_recommendations,\n",
+              "  COALESCE(mr.avg_improvement_potential, 0) as improvement_potential_pct,\n",
+              "  CASE \n",
+              "    WHEN qc.avg_duration > 30 AND mr.avg_improvement_potential > 50 THEN 'High ROI - Optimize Now'\n",
+              "    WHEN mo.ml_flagged_count > 50 THEN 'Medium ROI - Review'\n",
+              "    ELSE 'Low Priority'\n",
+              "  END as optimization_priority\n",
+              "FROM query_candidates qc\n",
+              "LEFT JOIN ml_query_classifications mo ON qc.statement_type = mo.statement_type\n",
+              "LEFT JOIN ml_query_recommendations mr ON qc.statement_type = mr.statement_type\n",
+              "ORDER BY improvement_potential_pct DESC, qc.avg_duration DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "a4a138e3eedd4cd689003750a431094c",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Query performance bottleneck analysis - identify slow queries with spill, low cache hit, and high queue time for optimization prioritization"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH slow_queries AS (\n",
+              "  SELECT \n",
+              "    warehouse_name,\n",
+              "    statement_type,\n",
+              "    MEASURE(avg_duration_seconds) as avg_duration,\n",
+              "    MEASURE(p95_duration_seconds) as p95_duration,\n",
+              "    MEASURE(total_queries) as query_count\n",
+              "  FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "    AND query_efficiency_status IN ('SLOW', 'HIGH_QUEUE', 'HIGH_SPILL')\n",
+              "  GROUP BY warehouse_name, statement_type\n",
+              "),\n",
+              "spill_detail AS (\n",
+              "  SELECT \n",
+              "    warehouse_id,\n",
+              "    COUNT(*) as spill_query_count,\n",
+              "    AVG(spill_bytes) as avg_spill_bytes\n",
+              "  FROM TABLE(${catalog}.${gold_schema}.get_spill_analysis(7)\n",
+              "  GROUP BY warehouse_id\n",
+              "),\n",
+              "cache_metrics AS (\n",
+              "  SELECT \n",
+              "    warehouse_name,\n",
+              "    MEASURE(cache_hit_rate) as cache_pct\n",
+              "  FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "  GROUP BY warehouse_name\n",
+              ")\n",
+              "SELECT \n",
+              "  sq.warehouse_name,\n",
+              "  sq.statement_type,\n",
+              "  sq.query_count,\n",
+              "  sq.avg_duration,\n",
+              "  sq.p95_duration,\n",
+              "  COALESCE(sd.spill_query_count, 0) as queries_with_spill,\n",
+              "  COALESCE(sd.avg_spill_bytes, 0) / 1024 / 1024 as avg_spill_mb,\n",
+              "  cm.cache_pct,\n",
+              "  CASE \n",
+              "    WHEN sd.spill_query_count > 100 AND cm.cache_pct < 30 THEN 'Critical - Memory & Cache Issues'\n",
+              "    WHEN sq.p95_duration > 60 AND cm.cache_pct < 50 THEN 'High Priority - Cache Optimization'\n",
+              "    WHEN sd.spill_query_count > 50 THEN 'Medium Priority - Memory Tuning'\n",
+              "    ELSE 'Low Priority'\n",
+              "  END as optimization_priority\n",
+              "FROM slow_queries sq\n",
+              "LEFT JOIN spill_detail sd ON sq.warehouse_name = sd.warehouse_id\n",
+              "JOIN cache_metrics cm ON sq.warehouse_name = cm.warehouse_name\n",
+              "WHERE sq.query_count > 10\n",
+              "ORDER BY sq.p95_duration DESC, queries_with_spill DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "aee2443f959f4cb195d3e1e94a1a7c63",
+        "question": [
+          "Show me slow queries from today"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_slowest_queries(\n",
+              "  1,\n",
+              "  30\n",
+              ")\n",
+              "ORDER BY duration_seconds DESC\n",
+              "LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b4da973b520a48ffbe6811954c47a8b3",
+        "question": [
+          "Show me query volume trends"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_query_volume_trends(\n",
+              "  (CURRENT_DATE() - INTERVAL 14 DAYS)::STRING,\n",
+              "  CURRENT_DATE()::STRING\n",
+              ")\n",
+              "ORDER BY query_date DESC;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bce4e80fee414477bd67520b1199836e",
+        "question": [
+          "Which queries have high disk spill?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_spill_analysis(\n",
+              "  7\n",
+              ")\n",
+              "ORDER BY spill_bytes DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bf9e799faf0b4665bf12b8121bdf5af0",
+        "question": [
+          "Show me query performance drift"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  window.start AS period_start,\n",
+              "  p95_duration_drift_pct,\n",
+              "  p99_duration_drift_pct,\n",
+              "  query_volume_drift_pct\n",
+              "FROM ${catalog}.${gold_schema}.fact_query_history_drift_metrics\n",
+              "WHERE drift_type = 'CONSECUTIVE'\n",
+              "  AND column_name = ':table'\n",
+              "ORDER BY window.start DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c02322aae05546d5b14c2a188f63e11f",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Cross-warehouse query performance comparison - identify performance inconsistencies and migration opportunities"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH warehouse_metrics AS (\n",
+              "  SELECT \n",
+              "    warehouse_name,\n",
+              "    MEASURE(avg_duration_seconds) as avg_duration,\n",
+              "    MEASURE(p95_duration_seconds) as p95_duration,\n",
+              "    MEASURE(total_queries) as query_count,\n",
+              "    MEASURE(cache_hit_rate) as cache_pct,\n",
+              "    MEASURE(spill_rate) as spill_pct\n",
+              "  FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "  WHERE query_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  GROUP BY warehouse_name\n",
+              "),\n",
+              "platform_baseline AS (\n",
+              "  SELECT \n",
+              "    AVG(MEASURE(avg_duration_seconds)) as platform_avg_duration,\n",
+              "    AVG(MEASURE(cache_hit_rate)) as platform_avg_cache\n",
+              "  FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "  WHERE query_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              ")\n",
+              "SELECT \n",
+              "  wm.warehouse_name,\n",
+              "  wm.query_count,\n",
+              "  wm.avg_duration,\n",
+              "  wm.p95_duration,\n",
+              "  wm.cache_pct,\n",
+              "  wm.spill_pct,\n",
+              "  pb.platform_avg_duration,\n",
+              "  pb.platform_avg_cache,\n",
+              "  (wm.avg_duration - pb.platform_avg_duration) / NULLIF(pb.platform_avg_duration, 0) * 100 as duration_variance_pct,\n",
+              "  (pb.platform_avg_cache - wm.cache_pct) as cache_gap,\n",
+              "  CASE \n",
+              "    WHEN wm.avg_duration > pb.platform_avg_duration * 1.5 AND wm.cache_pct < pb.platform_avg_cache * 0.5 THEN 'Underperforming - Investigate'\n",
+              "    WHEN wm.spill_pct > 10 THEN 'Memory Pressure - Resize'\n",
+              "    WHEN wm.avg_duration < pb.platform_avg_duration * 0.8 THEN 'Best Practice - Model'\n",
+              "    ELSE 'Normal'\n",
+              "  END as performance_status\n",
+              "FROM warehouse_metrics wm\n",
+              "CROSS JOIN platform_baseline pb\n",
+              "WHERE wm.query_count > 100\n",
+              "ORDER BY duration_variance_pct DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c2943be090694b7cb045b5d86637e7e0",
+        "question": [
+          "What is the cluster efficiency score?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(efficiency_score) as efficiency\n",
+              "FROM ${catalog}.${gold_schema}.mv_cluster_efficiency\n",
+              "WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "d2d051eb46e944c3ba30a8164eb8bc86",
+        "question": [
+          "What is the query cache hit rate?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(cache_hit_rate) as cache_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dec5a01aea954aa287c720c4c59d55d5",
+        "question": [
+          "Show me query latency percentiles by warehouse"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_query_latency_percentiles(\n",
+              "  NULL,\n",
+              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
+              "  CURRENT_DATE()::STRING\n",
+              ")\n",
+              "ORDER BY p99_duration DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ed31d278a61344d98f57f0e94584b27d",
+        "question": [
+          "What is the average CPU utilization?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(avg_cpu_utilization) as cpu_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_cluster_utilization\n",
+              "WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "eff2f8d17934429c8692d9156e56d423",
+        "question": [
+          "What queries need optimization based on ML?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  query_hash,\n",
+              "  prediction as optimization_score\n",
+              "FROM ${catalog}.${feature_schema}.query_optimization_classifications\n",
+              "WHERE prediction > 0.7\n",
+              "ORDER BY prediction DESC\n",
+              "LIMIT 20;"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

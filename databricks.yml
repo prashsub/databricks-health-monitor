@@ -118,6 +118,6 @@ include:
   # AI/BI Dashboards
   - resources/dashboards/*.yml
   
-  # Agent Framework (disabled - missing notebooks: register_prompts.py, run_evaluation.py)
-  # - resources/agents/*.yml
+  # Agent Framework
+  - resources/agents/*.yml
 

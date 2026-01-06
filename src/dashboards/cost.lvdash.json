@@ -983,7 +983,7 @@
                 "fields": [
                   {
                     "fieldName": "sku_name",
-                    "displayName": "SKU",
+                    "displayName": "Billing Origin Product",
                     "queryName": "dashboards/dummy/datasets/ds_select_sku_sku_name"
                   },
                   {
@@ -1002,7 +1002,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "SKU"
+                "title": "Billing Origin Product"
               }
             }
           },
@@ -1540,11 +1540,17 @@
               "encodings": {
                 "color": {
                   "fieldName": "product",
-                  "displayName": "Billing Origin Product"
+                  "displayName": "Billing Origin Product",
+                  "scale": {
+                    "type": "categorical"
+                  }
                 },
-                "angle": {
+                "theta": {
                   "fieldName": "total_cost",
-                  "displayName": "Cost ($)"
+                  "displayName": "Cost ($)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
                 }
               },
               "frame": {
@@ -1659,25 +1665,27 @@
               }
             ],
             "spec": {
-              "version": 2,
-              "widgetType": "table",
+              "version": 3,
+              "widgetType": "pie",
               "encodings": {
-                "columns": [
-                  {
-                    "fieldName": "tag_bucket",
-                    "title": "Tag",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "total_cost",
-                    "title": "Cost ($)",
-                    "type": "number"
+                "color": {
+                  "fieldName": "tag_bucket",
+                  "displayName": "Tag Status",
+                  "scale": {
+                    "type": "categorical"
                   }
-                ]
+                },
+                "theta": {
+                  "fieldName": "total_cost",
+                  "displayName": "Cost ($)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83c\udff7\ufe0f Spend by Tag"
+                "title": "🏷️ Tagged vs Untagged Spend"
               }
             }
           },
@@ -1685,6 +1693,77 @@
             "x": 3,
             "y": 0,
             "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_spend_by_tag_values",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_spend_by_tag_values",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "tag_key",
+                      "expression": "`tag_key`"
+                    },
+                    {
+                      "name": "tag_value",
+                      "expression": "`tag_value`"
+                    },
+                    {
+                      "name": "total_cost",
+                      "expression": "`total_cost`"
+                    },
+                    {
+                      "name": "usage_count",
+                      "expression": "`usage_count`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "tag_key",
+                    "title": "Tag Key",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "tag_value",
+                    "title": "Tag Value",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "total_cost",
+                    "title": "Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "usage_count",
+                    "title": "Usage Records",
+                    "type": "number"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "📊 Spend by Tag Values",
+                "description": "Cost breakdown by actual tag key-value pairs"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
             "height": 6
           }
         },
@@ -4244,6 +4323,10 @@
                     {
                       "name": "variance_pct",
                       "expression": "`variance_pct`"
+                    },
+                    {
+                      "name": "mom_change",
+                      "expression": "`mom_change`"
                     }
                   ],
                   "disaggregated": true
@@ -4255,7 +4338,7 @@
               "widgetType": "table",
               "frame": {
                 "showTitle": true,
-                "title": "Monthly Spend Detail"
+                "title": "📊 Monthly Spend vs Budget (Last 12 Months)"
               },
               "encodings": {
                 "columns": [
@@ -4271,7 +4354,7 @@
                   },
                   {
                     "fieldName": "monthly_target",
-                    "title": "Target ($)",
+                    "title": "Budget ($)",
                     "type": "number"
                   },
                   {
@@ -4281,7 +4364,12 @@
                   },
                   {
                     "fieldName": "variance_pct",
-                    "title": "Variance %",
+                    "title": "vs Budget",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "mom_change",
+                    "title": "MoM Change",
                     "type": "string"
                   }
                 ]
@@ -4305,16 +4393,24 @@
                   "datasetName": "ds_ml_budget_forecast",
                   "fields": [
                     {
-                      "name": "prediction_date",
-                      "expression": "`prediction_date`"
+                      "name": "forecast_date",
+                      "expression": "`forecast_date`"
                     },
                     {
-                      "name": "predicted_daily_cost",
-                      "expression": "`predicted_daily_cost`"
+                      "name": "forecasted_cost",
+                      "expression": "`forecasted_cost`"
                     },
                     {
-                      "name": "predicted_cumulative",
-                      "expression": "`predicted_cumulative`"
+                      "name": "lower_bound",
+                      "expression": "`lower_bound`"
+                    },
+                    {
+                      "name": "upper_bound",
+                      "expression": "`upper_bound`"
+                    },
+                    {
+                      "name": "cumulative_forecast",
+                      "expression": "`cumulative_forecast`"
                     }
                   ],
                   "disaggregated": true
@@ -4326,15 +4422,27 @@
               "widgetType": "line",
               "encodings": {
                 "x": {
-                  "fieldName": "prediction_date",
+                  "fieldName": "forecast_date",
                   "displayName": "Date",
                   "scale": {
                     "type": "temporal"
                   }
                 },
                 "y": {
-                  "fieldName": "predicted_cumulative",
-                  "displayName": "Cumulative Forecast ($)",
+                  "fields": [
+                    {
+                      "fieldName": "forecasted_cost",
+                      "displayName": "Daily Forecast ($)"
+                    },
+                    {
+                      "fieldName": "lower_bound",
+                      "displayName": "Lower Bound"
+                    },
+                    {
+                      "fieldName": "upper_bound",
+                      "displayName": "Upper Bound"
+                    }
+                  ],
                   "scale": {
                     "type": "quantitative"
                   }
@@ -4342,8 +4450,8 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Budget Forecast (Next 30 Days)",
-                "description": "From budget_forecaster model"
+                "title": "📈 30-Day Cost Forecast (with confidence bands)",
+                "description": "Based on 90-day historical average with ±15% bounds"
               }
             }
           },
@@ -4364,6 +4472,10 @@
                   "datasetName": "ds_ml_commitment_rec",
                   "fields": [
                     {
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
                       "name": "recommendation_type",
                       "expression": "`recommendation_type`"
                     },
@@ -4372,12 +4484,20 @@
                       "expression": "`recommended_amount`"
                     },
                     {
-                      "name": "confidence",
-                      "expression": "`confidence`"
+                      "name": "confidence_pct",
+                      "expression": "`confidence_pct`"
                     },
                     {
-                      "name": "annual_savings",
-                      "expression": "`annual_savings`"
+                      "name": "potential_savings",
+                      "expression": "`potential_savings`"
+                    },
+                    {
+                      "name": "rationale",
+                      "expression": "`rationale`"
+                    },
+                    {
+                      "name": "next_step",
+                      "expression": "`next_step`"
                     }
                   ],
                   "disaggregated": true
@@ -4390,31 +4510,46 @@
               "encodings": {
                 "columns": [
                   {
+                    "fieldName": "priority",
+                    "title": "#",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "recommendation_type",
-                    "title": "Recommendation",
+                    "title": "Commitment Type",
                     "type": "string"
                   },
                   {
                     "fieldName": "recommended_amount",
-                    "title": "Amount ($)",
+                    "title": "Amount",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "confidence_pct",
+                    "title": "Confidence %",
                     "type": "number"
                   },
                   {
-                    "fieldName": "confidence",
-                    "title": "Confidence",
-                    "type": "number"
+                    "fieldName": "potential_savings",
+                    "title": "Potential Savings",
+                    "type": "string"
                   },
                   {
-                    "fieldName": "annual_savings",
-                    "title": "Est. Savings ($)",
-                    "type": "number"
+                    "fieldName": "rationale",
+                    "title": "Rationale",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "next_step",
+                    "title": "Next Step",
+                    "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Commitment Recommendations",
-                "description": "From commitment_recommender model"
+                "title": "💡 Commitment Recommendations (Actionable)",
+                "description": "Based on your spend patterns over the past 12 months"
               }
             }
           },
@@ -5637,6 +5772,11 @@
       "query": "SELECT CASE WHEN is_tagged THEN 'Tagged' ELSE 'Untagged' END AS tag_bucket, ROUND(SUM(list_cost), 2) AS total_cost FROM ${catalog}.${gold_schema}.fact_usage WHERE 1=1 GROUP BY 1 ORDER BY total_cost DESC"
     },
     {
+      "name": "ds_spend_by_tag_values",
+      "displayName": "Spend by Tag Values",
+      "query": "-- Spend breakdown by actual tag key/value pairs\nWITH exploded_tags AS (\n  SELECT\n    list_cost,\n    EXPLODE(MAP_FROM_JSON(custom_tags)) AS (tag_key, tag_value)\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE is_tagged = TRUE\n    AND custom_tags IS NOT NULL\n    AND custom_tags != '{}'\n    AND usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS\n)\nSELECT\n  tag_key,\n  tag_value,\n  ROUND(SUM(list_cost), 2) AS total_cost,\n  COUNT(*) AS usage_count\nFROM exploded_tags\nWHERE tag_key IS NOT NULL\nGROUP BY 1, 2\nHAVING SUM(list_cost) > 100\nORDER BY total_cost DESC\nLIMIT 25"
+    },
+    {
       "name": "ds_highest_change_users",
       "displayName": "Highest Change Users",
       "query": "WITH user_spend AS (\n  SELECT \n    identity_metadata_run_as AS owner, \n    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS last_7d, \n    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND usage_date < CURRENT_DATE() - INTERVAL 7 DAYS THEN list_cost ELSE 0 END) AS prev_7d \n  FROM ${catalog}.${gold_schema}.fact_usage \n  WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS\n    AND identity_metadata_run_as IS NOT NULL\n    AND identity_metadata_run_as NOT LIKE '%.gserviceaccount.com'\n    AND identity_metadata_run_as NOT LIKE 'service-principal-%'\n  GROUP BY 1\n) \nSELECT \n  owner, \n  ROUND(last_7d, 2) AS last_7d, \n  ROUND(prev_7d, 2) AS prev_7d, \n  ROUND(last_7d - prev_7d, 2) AS growth,\n  ROUND(100 * (last_7d - prev_7d) / NULLIF(prev_7d, 0), 1) AS growth_pct \nFROM user_spend \nWHERE prev_7d > 0 OR last_7d > 0\nORDER BY (last_7d - prev_7d) DESC \nLIMIT 10",
@@ -6186,7 +6326,7 @@
     {
       "name": "ds_monitor_cost_trend",
       "displayName": "Monitor: Cost Trend",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS total_cost,\n  ROUND(COALESCE(total_daily_dbu, 0), 0) AS total_dbu\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE window.start >= :time_range.min\n  AND window.end <= :time_range.max\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\nORDER BY window.start",
+      "query": "-- Daily cost trend from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  DATE(usage_date) AS window_end,\n  ROUND(SUM(list_cost), 2) AS total_cost,\n  ROUND(SUM(usage_quantity), 0) AS total_dbu,\n  ROUND(SUM(list_cost) / NULLIF(SUM(usage_quantity), 0), 4) AS cost_per_dbu,\n  AVG(SUM(list_cost)) OVER (ORDER BY DATE(usage_date) ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_avg\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE DATE(usage_date) >= :time_range.min\n  AND DATE(usage_date) <= :time_range.max\nGROUP BY DATE(usage_date)\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6210,7 +6350,7 @@
     {
       "name": "ds_monitor_serverless",
       "displayName": "Monitor: Serverless",
-      "query": "SELECT \n  DATE(window.start) AS window_start, \n  ROUND(COALESCE(total_daily_dbu, 0), 0) AS total_dbu,\n  ROUND(COALESCE(serverless_ratio, 0) * 100, 1) AS serverless_pct, \n  ROUND(COALESCE(tag_coverage_pct, 0) * 100, 1) AS tag_coverage_pct,\n  COALESCE(distinct_workspaces, 0) AS unique_users\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics \nWHERE column_name = ':table'\n  AND log_type = 'INPUT' \n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\n  AND window.start <= :time_range.max\nORDER BY 1",
+      "query": "-- Serverless adoption metrics from fact_usage\nSELECT \n  DATE(usage_date) AS window_start, \n  ROUND(SUM(usage_quantity), 0) AS total_dbu,\n  ROUND(SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS serverless_pct, \n  ROUND(SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS tag_coverage_pct,\n  COUNT(DISTINCT workspace_id) AS unique_users\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE DATE(usage_date) >= :time_range.min\n  AND DATE(usage_date) <= :time_range.max\nGROUP BY DATE(usage_date)\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6234,7 +6374,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(cost_drift_pct, 0) * 100, 1) AS cost_drift_pct,\n  ROUND(COALESCE(serverless_ratio_drift, 0) * 100, 1) AS serverless_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\nWHERE column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\n  AND window.start <= :time_range.max\nORDER BY 1",
+      "query": "-- Week-over-week cost drift from fact_usage\nWITH daily_cost AS (\n  SELECT DATE(usage_date) AS day, SUM(list_cost) AS daily_cost,\n    SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0) AS serverless_pct\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE DATE(usage_date) >= :time_range.min AND DATE(usage_date) <= :time_range.max\n  GROUP BY DATE(usage_date)\n),\nweekly_avg AS (\n  SELECT day, daily_cost, serverless_pct,\n    AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_avg,\n    LAG(AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_avg,\n    AVG(serverless_pct) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_serverless,\n    LAG(AVG(serverless_pct) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_serverless\n  FROM daily_cost\n)\nSELECT day AS window_start,\n  ROUND((seven_day_avg - prev_seven_day_avg) * 100.0 / NULLIF(prev_seven_day_avg, 0), 1) AS cost_drift_pct,\n  ROUND(seven_day_serverless - prev_seven_day_serverless, 1) AS serverless_drift\nFROM weekly_avg WHERE prev_seven_day_avg IS NOT NULL ORDER BY day",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6258,7 +6398,7 @@
     {
       "name": "ds_monitor_summary",
       "displayName": "Monitor: Summary",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(total_daily_cost, 0), 2) AS total_cost,\n  ROUND(COALESCE(total_daily_dbu, 0), 0) AS total_dbu,\n  ROUND(COALESCE(serverless_ratio, 0) * 100, 1) AS serverless_pct,\n  ROUND(COALESCE(tag_coverage_pct, 0) * 100, 1) AS tag_coverage_pct,\n  COALESCE(distinct_workspaces, 0) AS unique_users\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY 1 DESC\nLIMIT 10",
+      "query": "-- Last 10 days cost summary from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  ROUND(SUM(list_cost), 2) AS total_cost,\n  ROUND(SUM(usage_quantity), 0) AS total_dbu,\n  ROUND(SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS serverless_pct,\n  ROUND(SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS tag_coverage_pct,\n  COUNT(DISTINCT workspace_id) AS unique_users\nFROM ${catalog}.${gold_schema}.fact_usage\nGROUP BY DATE(usage_date)\nORDER BY 1 DESC\nLIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6539,7 +6679,7 @@
     {
       "name": "ds_monthly_detail",
       "displayName": "Monthly Detail",
-      "query": "WITH monthly AS (\n  SELECT \n    DATE_FORMAT(DATE_TRUNC('month', usage_date), 'MMM yyyy') AS month_name, \n    DATE_TRUNC('month', usage_date) AS month_start, \n    SUM(list_cost) AS monthly_cost \n  FROM ${catalog}.${gold_schema}.fact_usage \n  WHERE YEAR(usage_date) = YEAR(CURRENT_DATE()) \n  GROUP BY 1, 2\n), with_variance AS (\n  SELECT \n    month_name, \n    month_start, \n    ROUND(monthly_cost, 2) AS monthly_cost, \n    ROUND(:annual_commit / 12.0, 2) AS monthly_target,\n    ROUND(monthly_cost - (:annual_commit / 12.0), 2) AS variance, \n    CONCAT(CAST(ROUND((monthly_cost - (:annual_commit / 12.0)) * 100.0 / NULLIF(:annual_commit / 12.0, 0), 1) AS STRING), '%') AS variance_pct \n  FROM monthly\n) \nSELECT * FROM with_variance ORDER BY month_start",
+      "query": "-- Last 12 months spend with MoM comparison\nWITH monthly AS (\n  SELECT \n    DATE_FORMAT(DATE_TRUNC('month', usage_date), 'MMM yyyy') AS month_name, \n    DATE_TRUNC('month', usage_date) AS month_start, \n    SUM(list_cost) AS monthly_cost \n  FROM ${catalog}.${gold_schema}.fact_usage \n  WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE()) - INTERVAL 12 MONTHS\n  GROUP BY 1, 2\n), with_lag AS (\n  SELECT \n    month_name, \n    month_start, \n    ROUND(monthly_cost, 2) AS monthly_cost, \n    ROUND(:annual_commit / 12.0, 2) AS monthly_target,\n    LAG(monthly_cost) OVER (ORDER BY month_start) AS prev_month_cost\n  FROM monthly\n), with_variance AS (\n  SELECT \n    month_name, \n    month_start, \n    monthly_cost, \n    monthly_target,\n    ROUND(monthly_cost - monthly_target, 2) AS variance, \n    CONCAT(CASE WHEN (monthly_cost - monthly_target) > 0 THEN '+' ELSE '' END, CAST(ROUND((monthly_cost - monthly_target) * 100.0 / NULLIF(monthly_target, 0), 1) AS STRING), '%') AS variance_pct,\n    CONCAT(CASE WHEN (monthly_cost - prev_month_cost) > 0 THEN '↑ +' WHEN (monthly_cost - prev_month_cost) < 0 THEN '↓ ' ELSE '→ ' END, CAST(ROUND((monthly_cost - prev_month_cost) * 100.0 / NULLIF(prev_month_cost, 0), 1) AS STRING), '%') AS mom_change\n  FROM with_lag\n) \nSELECT * FROM with_variance ORDER BY month_start DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6577,13 +6717,13 @@
     },
     {
       "name": "ds_ml_budget_forecast",
-      "displayName": "ML: Budget Forecast (Preview)",
-      "query": "WITH daily_avg AS (\n  SELECT \n    ROUND(AVG(list_cost), 2) AS avg_daily_cost,\n    ROUND(STDDEV(list_cost), 2) AS stddev_cost\n  FROM (\n    SELECT DATE(usage_date) AS day, SUM(list_cost) AS list_cost\n    FROM ${catalog}.${gold_schema}.fact_usage\n    WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    GROUP BY 1\n  )\n), forecast AS (\n  SELECT \n    DATE_ADD(CURRENT_DATE(), day_offset) AS forecast_date,\n    day_offset\n  FROM (\n    SELECT EXPLODE(SEQUENCE(1, 30)) AS day_offset\n  )\n)\nSELECT \n  f.forecast_date,\n  ROUND(d.avg_daily_cost + (RAND() - 0.5) * d.stddev_cost, 2) AS forecasted_cost,\n  ROUND(d.avg_daily_cost * 0.85, 2) AS lower_bound,\n  ROUND(d.avg_daily_cost * 1.15, 2) AS upper_bound\nFROM forecast f\nCROSS JOIN daily_avg d\nORDER BY f.forecast_date\nLIMIT 30"
+      "displayName": "ML: Budget Forecast",
+      "query": "-- 30-day cost forecast based on historical patterns\nWITH daily_costs AS (\n  SELECT \n    DATE(usage_date) AS day,\n    SUM(list_cost) AS daily_cost\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS\n  GROUP BY 1\n),\ndaily_stats AS (\n  SELECT \n    ROUND(AVG(daily_cost), 2) AS avg_daily_cost,\n    ROUND(STDDEV(daily_cost), 2) AS stddev_cost,\n    ROUND(PERCENTILE(daily_cost, 0.75), 2) AS p75_cost,\n    ROUND(PERCENTILE(daily_cost, 0.95), 2) AS p95_cost\n  FROM daily_costs\n),\nforecast_days AS (\n  SELECT EXPLODE(SEQUENCE(1, 30)) AS day_offset\n)\nSELECT \n  DATE_ADD(CURRENT_DATE(), f.day_offset) AS forecast_date,\n  ROUND(d.avg_daily_cost, 2) AS forecasted_cost,\n  ROUND(d.avg_daily_cost * 0.85, 2) AS lower_bound,\n  ROUND(d.avg_daily_cost * 1.15, 2) AS upper_bound,\n  SUM(ROUND(d.avg_daily_cost, 2)) OVER (ORDER BY f.day_offset) AS cumulative_forecast,\n  f.day_offset\nFROM forecast_days f\nCROSS JOIN daily_stats d\nORDER BY f.day_offset"
     },
     {
       "name": "ds_ml_commitment_rec",
-      "displayName": "ML: Commitment Recommendations (Preview)",
-      "query": "WITH spend_analysis AS (\n  SELECT \n    SUM(list_cost) AS annual_spend,\n    AVG(list_cost) AS avg_daily_spend,\n    STDDEV(list_cost) AS spend_variability\n  FROM (\n    SELECT DATE(usage_date) AS day, SUM(list_cost) AS list_cost\n    FROM ${catalog}.${gold_schema}.fact_usage\n    WHERE usage_date >= CURRENT_DATE() - INTERVAL 365 DAYS\n    GROUP BY 1\n  )\n), recommendations AS (\n  SELECT\n    'Annual Commit' AS recommendation_type,\n    ROUND(annual_spend * 0.9, -3) AS recommended_amount,\n    CASE WHEN spend_variability / NULLIF(avg_daily_spend, 0) < 0.3 THEN 0.85 ELSE 0.70 END AS confidence,\n    ROUND(annual_spend * 0.1, 2) AS annual_savings\n  FROM spend_analysis\n  UNION ALL\n  SELECT\n    'Monthly Commit' AS recommendation_type,\n    ROUND(annual_spend / 12 * 0.95, -2) AS recommended_amount,\n    CASE WHEN spend_variability / NULLIF(avg_daily_spend, 0) < 0.2 THEN 0.80 ELSE 0.65 END AS confidence,\n    ROUND(annual_spend * 0.05, 2) AS annual_savings\n  FROM spend_analysis\n  UNION ALL\n  SELECT\n    'No Commit (PAYG)' AS recommendation_type,\n    0 AS recommended_amount,\n    CASE WHEN spend_variability / NULLIF(avg_daily_spend, 0) > 0.5 THEN 0.75 ELSE 0.50 END AS confidence,\n    0 AS annual_savings\n  FROM spend_analysis\n)\nSELECT * FROM recommendations\nORDER BY confidence DESC"
+      "displayName": "ML: Commitment Recommendations",
+      "query": "-- Actionable commitment recommendations based on spend patterns\nWITH spend_analysis AS (\n  SELECT \n    SUM(list_cost) AS annual_spend,\n    AVG(list_cost) AS avg_daily_spend,\n    STDDEV(list_cost) AS spend_variability,\n    MIN(list_cost) AS min_daily,\n    MAX(list_cost) AS max_daily,\n    PERCENTILE(list_cost, 0.25) AS p25_daily,\n    PERCENTILE(list_cost, 0.75) AS p75_daily\n  FROM (\n    SELECT DATE(usage_date) AS day, SUM(list_cost) AS list_cost\n    FROM ${catalog}.${gold_schema}.fact_usage\n    WHERE usage_date >= CURRENT_DATE() - INTERVAL 365 DAYS\n    GROUP BY 1\n  )\n)\nSELECT \n  1 AS priority,\n  '💰 Annual Commit' AS recommendation_type,\n  CONCAT('$', FORMAT_NUMBER(ROUND(annual_spend * 0.9, -3), 0)) AS recommended_amount,\n  ROUND(CASE WHEN spend_variability / NULLIF(avg_daily_spend, 0) < 0.3 THEN 0.85 ELSE 0.70 END * 100, 0) AS confidence_pct,\n  CONCAT('$', FORMAT_NUMBER(ROUND(annual_spend * 0.1, 0), 0), '/year') AS potential_savings,\n  CASE \n    WHEN spend_variability / NULLIF(avg_daily_spend, 0) < 0.3 THEN '✅ Stable spend pattern - ideal for annual commit'\n    ELSE '⚠️ Variable spend - annual commit risky'\n  END AS rationale,\n  'Contact Databricks Sales for annual commitment pricing' AS next_step\nFROM spend_analysis\nUNION ALL\nSELECT \n  2 AS priority,\n  '📅 Monthly Commit' AS recommendation_type,\n  CONCAT('$', FORMAT_NUMBER(ROUND(annual_spend / 12 * 0.95, -2), 0), '/mo') AS recommended_amount,\n  ROUND(CASE WHEN spend_variability / NULLIF(avg_daily_spend, 0) < 0.2 THEN 0.80 ELSE 0.65 END * 100, 0) AS confidence_pct,\n  CONCAT('$', FORMAT_NUMBER(ROUND(annual_spend * 0.05, 0), 0), '/year') AS potential_savings,\n  CASE \n    WHEN spend_variability / NULLIF(avg_daily_spend, 0) < 0.2 THEN '✅ Very stable - monthly commit recommended'\n    ELSE '⚠️ Moderate variability - evaluate monthly'\n  END AS rationale,\n  'Set up monthly billing cap in Account Console' AS next_step\nFROM spend_analysis\nUNION ALL\nSELECT \n  3 AS priority,\n  '💳 Pay-As-You-Go' AS recommendation_type,\n  'Variable' AS recommended_amount,\n  ROUND(CASE WHEN spend_variability / NULLIF(avg_daily_spend, 0) > 0.5 THEN 0.75 ELSE 0.50 END * 100, 0) AS confidence_pct,\n  '$0 (no savings)' AS potential_savings,\n  CASE \n    WHEN spend_variability / NULLIF(avg_daily_spend, 0) > 0.5 THEN '✅ High variability - PAYG is safer'\n    ELSE '⚠️ Stable spend - consider commitment'\n  END AS rationale,\n  'No action needed - current billing model' AS next_step\nFROM spend_analysis\nORDER BY priority"
     },
     {
       "name": "ds_time_windows",
@@ -6662,7 +6802,7 @@
     {
       "name": "ds_monitor_cost_aggregate",
       "displayName": "Cost Aggregate Metrics",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  total_daily_cost,\n  total_daily_dbu,\n  tagged_cost_total,\n  untagged_cost_total,\n  serverless_cost,\n  dlt_cost\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "query": "-- Daily cost aggregates from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  DATE(usage_date) AS window_end,\n  ROUND(SUM(list_cost), 2) AS total_daily_cost,\n  ROUND(SUM(usage_quantity), 0) AS total_daily_dbu,\n  ROUND(SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END), 2) AS tagged_cost_total,\n  ROUND(SUM(CASE WHEN has_tags = false OR has_tags IS NULL THEN list_cost ELSE 0 END), 2) AS untagged_cost_total,\n  ROUND(SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END), 2) AS serverless_cost,\n  ROUND(SUM(CASE WHEN billing_origin_product = 'DLT' OR sku_name LIKE '%DLT%' THEN list_cost ELSE 0 END), 2) AS dlt_cost\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date >= :monitor_time_start\n  AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(usage_date)\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6729,7 +6869,7 @@
     {
       "name": "ds_monitor_cost_derived",
       "displayName": "Cost Derived KPIs",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  tag_coverage_pct,\n  serverless_ratio\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND log_type = 'INPUT'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "query": "-- Derived cost KPIs from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  DATE(usage_date) AS window_end,\n  ROUND(SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 2) AS tag_coverage_pct,\n  ROUND(SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 2) AS serverless_ratio\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date >= :monitor_time_start\n  AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(usage_date)\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6796,7 +6936,7 @@
     {
       "name": "ds_monitor_cost_drift",
       "displayName": "Cost Drift Metrics",
-      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  cost_drift_pct,\n  tag_coverage_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics\nWHERE window.start >= :monitor_time_start\n  AND window.start <= :monitor_time_end\n  AND drift_type = 'CONSECUTIVE'\n  AND column_name = ':table'\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start",
+      "query": "-- Week-over-week cost drift calculation\nWITH daily_cost AS (\n  SELECT DATE(usage_date) AS day, SUM(list_cost) AS daily_cost,\n    SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0) AS tag_coverage\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= :monitor_time_start AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\n  GROUP BY DATE(usage_date)\n),\nweekly_avg AS (\n  SELECT day, daily_cost, tag_coverage,\n    AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_avg,\n    LAG(AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_avg,\n    AVG(tag_coverage) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_tag,\n    LAG(AVG(tag_coverage) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_tag\n  FROM daily_cost\n)\nSELECT day AS window_start, 'CONSECUTIVE' AS drift_type,\n  ROUND((seven_day_avg - prev_seven_day_avg) * 100.0 / NULLIF(prev_seven_day_avg, 0), 2) AS cost_drift_pct,\n  ROUND(seven_day_tag - prev_seven_day_tag, 2) AS tag_coverage_drift\nFROM weekly_avg WHERE prev_seven_day_avg IS NOT NULL ORDER BY day",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6863,7 +7003,7 @@
     {
       "name": "ds_monitor_cost_slice_keys",
       "displayName": "Cost Slice Keys",
-      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_key\n  FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_key IS NOT NULL\n)\nSELECT 'No Slice' AS slice_key\nUNION ALL\nSELECT slice_key FROM profile_metrics\nORDER BY slice_key",
+      "query": "-- Available slice keys for cost analysis\nSELECT 'All' AS slice_key\nUNION ALL\nSELECT 'workspace_name' AS slice_key\nUNION ALL\nSELECT 'billing_origin_product' AS slice_key\nUNION ALL\nSELECT 'sku_name' AS slice_key\nORDER BY slice_key",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6900,7 +7040,7 @@
     {
       "name": "ds_monitor_cost_slice_values",
       "displayName": "Cost Slice Values",
-      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_value, COALESCE(slice_key, 'No Slice') AS sk\n  FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_value IS NOT NULL\n)\nSELECT 'No Slice' AS slice_value\nUNION ALL\nSELECT slice_value FROM profile_metrics WHERE sk = :monitor_slice_key\nORDER BY slice_value",
+      "query": "-- Available slice values based on selected slice key\nSELECT 'All' AS slice_value\nUNION ALL\nSELECT DISTINCT \n  CASE \n    WHEN :monitor_slice_key = 'workspace_name' THEN workspace_name\n    WHEN :monitor_slice_key = 'billing_origin_product' THEN billing_origin_product\n    WHEN :monitor_slice_key = 'sku_name' THEN sku_name\n    ELSE 'All'\n  END AS slice_value\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date >= :monitor_time_start\n  AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\n  AND :monitor_slice_key != 'All'\nLIMIT 50",
       "parameters": [
         {
           "displayName": "monitor_time_start",

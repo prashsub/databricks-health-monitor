@@ -270,6 +270,119 @@ SELECT * FROM get_function_name(params);
 
 ---
 
+### Benchmark Question Best Practices
+
+**⚠️ CRITICAL: Schema Validation is Non-Negotiable**
+
+Before writing ANY benchmark SQL:
+
+1. **Read source of truth documents:**
+   - `docs/semantic-framework/24-metric-views-reference.md` - Metric view schemas
+   - `docs/semantic-framework/appendices/A-quick-reference.md` - TVF signatures
+   - `docs/lakehouse-monitoring-design/04-monitor-catalog.md` - Monitoring tables
+   - Metric view YAML files - Exact column names
+
+2. **Common Column Name Errors to Avoid:**
+
+| Asset | ❌ WRONG Column | ✅ CORRECT Column |
+|---|---|---|
+| `mv_query_performance` | `execution_date` | `query_date` |
+| `mv_cluster_utilization` | `metric_date` | `utilization_date` |
+| `mv_job_performance` | `execution_date` | `run_date` |
+| `mv_cost_analytics` | `date` | `usage_date` |
+| `mv_security_events` | `audit_date` | `event_date` |
+
+3. **Metric View Naming Convention:**
+
+```sql
+-- ❌ WRONG: Missing mv_ prefix
+FROM ${catalog}.${gold_schema}.cost_analytics
+FROM ${catalog}.${gold_schema}.query_performance
+
+-- ✅ CORRECT: Always use mv_ prefix
+FROM ${catalog}.${gold_schema}.mv_cost_analytics
+FROM ${catalog}.${gold_schema}.mv_query_performance
+```
+
+4. **Start Simple, Add Complexity Later:**
+
+**✅ SIMPLE (preferred for initial benchmarks):**
+```sql
+-- Single metric view with MEASURE()
+SELECT MEASURE(total_cost) as cost
+FROM ${catalog}.${gold_schema}.mv_cost_analytics
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS;
+
+-- Group by dimension
+SELECT 
+  workspace_name,
+  MEASURE(success_rate) as success_pct
+FROM ${catalog}.${gold_schema}.mv_job_performance
+WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+GROUP BY workspace_name;
+```
+
+**❌ AVOID (until simple queries validate):**
+```sql
+-- Complex CTEs with assumptions
+WITH base AS (
+  SELECT execution_date, ...  -- Wrong column name!
+  FROM cost_analytics          -- Missing mv_ prefix!
+  WHERE ...
+)
+```
+
+5. **Validation Process:**
+
+```bash
+# All benchmark SQL is validated with EXPLAIN before deployment
+databricks bundle run -t dev genie_spaces_deployment_job
+
+# Validation uses EXPLAIN to check:
+# - Table/view exists
+# - Column names are correct
+# - Functions are valid
+# - No syntax errors
+```
+
+6. **ML Prediction Table Standard:**
+
+All ML prediction tables use generic `prediction` column:
+
+```sql
+-- ✅ CORRECT: Use generic prediction column
+SELECT 
+  workspace_name,
+  prediction as anomaly_score
+FROM ${catalog}.${gold_schema}_ml.cost_anomaly_predictions;
+
+-- ❌ WRONG: Assuming specific column names
+SELECT 
+  workspace_name,
+  is_anomaly,              -- ❌ Doesn't exist
+  anomaly_score,           -- ❌ Doesn't exist
+  failure_probability      -- ❌ Doesn't exist
+FROM ...;
+```
+
+7. **Lakehouse Monitoring Tables:**
+
+**✅ CORRECT:** Use monitoring tables that exist:
+```sql
+-- Profile metrics tables (exist for monitored Gold tables)
+${catalog}.${gold_schema}.fact_usage_profile_metrics
+${catalog}.${gold_schema}.fact_job_run_timeline_profile_metrics
+${catalog}.${gold_schema}.fact_query_history_profile_metrics
+```
+
+**❌ WRONG:** Assumed monitoring tables (don't exist):
+```sql
+${catalog}.${gold_schema}.fact_table_quality_profile_metrics
+${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics
+```
+
+---
+
 ## ✅ DELIVERABLE CHECKLIST
 
 Before submitting ANY Genie Space document:

@@ -36,7 +36,7 @@ This document provides a comprehensive inventory of all Genie Spaces implemented
 | **🔄 Reliability** | `job_failure_predictor` | #50 Failure Rate | `job_failure_predictions` |
 | **🔄 Reliability** | `job_duration_forecaster` | #59-70 Duration | `job_duration_predictions` |
 | **🔄 Reliability** | `sla_breach_predictor` | #94-96 SLA Compliance | `incident_impact_predictions` |
-| **🔄 Reliability** | `pipeline_health_scorer` | #101-102 Pipeline Health | `pipeline_health_scores` |
+| **🔄 Reliability** | `pipeline_health_scorer` | #101-102 Pipeline Health | `pipeline_health_predictions` |
 | **🔄 Reliability** | `retry_success_predictor` | #97 Retry Effectiveness | `retry_success_predictions` |
 | **⚡ Performance** | `query_performance_forecaster` | #118 P99 Duration | `query_optimization_recommendations` |
 | **⚡ Performance** | `warehouse_optimizer` | #148 Warehouse Utilization | `cluster_capacity_recommendations` |
@@ -101,7 +101,7 @@ This document provides a comprehensive inventory of all Genie Spaces implemented
 **Data Assets:**
 - **Metric Views (1):** `job_performance`
 - **TVFs (12):** `get_failed_jobs`, `get_job_success_rate`, `get_job_duration_percentiles`, `get_job_failure_trends`, `get_job_sla_compliance`, `get_job_run_details`, `get_most_expensive_jobs`, `get_job_retry_analysis`, `get_job_repair_costs`, `get_job_spend_trend_analysis`, `get_job_failure_costs`, `get_job_run_duration_analysis`
-- **ML Tables (5):** `job_failure_predictions`, `retry_success_predictions`, `pipeline_health_scores`, `incident_impact_predictions`, `self_healing_recommendations`
+- **ML Tables (5):** `job_failure_predictions`, `retry_success_predictions`, `pipeline_health_predictions`, `sla_breach_predictions`, `duration_predictions`
 - **Monitoring Tables (2):** `fact_job_run_timeline_profile_metrics`, `fact_job_run_timeline_drift_metrics`
 
 **Sample Questions:**

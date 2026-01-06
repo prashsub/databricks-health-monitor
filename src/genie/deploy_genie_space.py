@@ -505,18 +505,19 @@ def main():
         print(f"Notebook path: {notebook_path}")
         print(f"Script directory: {script_dir}")
         
-        # Find all *_export.json files using os.listdir (most reliable in workspace)
-        try:
-            all_files = os.listdir(script_dir)
-            json_files = [
-                os.path.join(script_dir, f)
-                for f in all_files
-                if f.endswith('_export.json')
-            ]
-        except Exception as e:
-            # If os.listdir fails, log error and raise
-            print(f"Error listing files in {script_dir}: {e}")
-            raise
+        # Deploy all 6 Genie Space exports (explicit list for reliability)
+        json_files = [
+            os.path.join(script_dir, "cost_intelligence_genie_export.json"),
+            os.path.join(script_dir, "job_health_monitor_genie_export.json"),
+            os.path.join(script_dir, "data_quality_monitor_genie_export.json"),
+            os.path.join(script_dir, "performance_genie_export.json"),
+            os.path.join(script_dir, "security_auditor_genie_export.json"),
+            os.path.join(script_dir, "unified_health_monitor_genie_export.json")
+        ]
+        
+        print(f"Deploying {len(json_files)} Genie Spaces:")
+        for f in json_files:
+            print(f"  - {os.path.basename(f)}")
         
         if not json_files:
             raise ValueError(f"No *_export.json files found in {script_dir}")

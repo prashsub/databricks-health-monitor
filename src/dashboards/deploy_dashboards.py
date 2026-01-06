@@ -71,15 +71,14 @@ except ImportError:
 # COMMAND ----------
 
 # Dashboard files to deploy
-# Note: Display names use parentheses instead of square brackets 
-# because square brackets cause API validation errors
+# Note: Professional naming convention - clear, concise domain names
 DASHBOARDS = [
-    ("cost.lvdash.json", "Health Monitor - Cost & Commitment"),
-    ("performance.lvdash.json", "Health Monitor - Performance"),
-    ("reliability.lvdash.json", "Health Monitor - Reliability"),
-    ("security.lvdash.json", "Health Monitor - Security"),
-    ("quality.lvdash.json", "Health Monitor - Quality & Governance"),
-    ("unified.lvdash.json", "Health Monitor - Unified Dashboard"),
+    ("cost.lvdash.json", "Databricks Cost Intelligence"),
+    ("performance.lvdash.json", "Databricks Performance Analytics"),
+    ("reliability.lvdash.json", "Databricks Reliability Monitor"),
+    ("security.lvdash.json", "Databricks Security & Compliance"),
+    ("quality.lvdash.json", "Databricks Data Quality Hub"),
+    ("unified.lvdash.json", "Databricks Health Monitor"),
 ]
 
 # COMMAND ----------

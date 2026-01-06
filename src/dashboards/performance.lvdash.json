@@ -1635,16 +1635,32 @@
                       "expression": "`warehouse_name`"
                     },
                     {
-                      "name": "slow_queries",
-                      "expression": "`slow_queries`"
+                      "name": "query_preview",
+                      "expression": "`query_preview`"
                     },
                     {
-                      "name": "avg_duration",
-                      "expression": "`avg_duration`"
+                      "name": "duration_seconds",
+                      "expression": "`duration_seconds`"
                     },
                     {
-                      "name": "total_queries",
-                      "expression": "`total_queries`"
+                      "name": "duration_minutes",
+                      "expression": "`duration_minutes`"
+                    },
+                    {
+                      "name": "user",
+                      "expression": "`user`"
+                    },
+                    {
+                      "name": "warehouse",
+                      "expression": "`warehouse`"
+                    },
+                    {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    },
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
                     }
                   ]
                 }
@@ -1656,30 +1672,40 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "warehouse_name",
+                    "fieldName": "severity",
+                    "title": "Severity",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "query_preview",
+                    "title": "Query (first 100 chars)",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "duration_minutes",
+                    "title": "Duration (min)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "user",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "warehouse",
                     "title": "Warehouse",
                     "type": "string"
                   },
                   {
-                    "fieldName": "slow_queries",
-                    "title": "Slow Queries",
-                    "type": "number"
-                  },
-                  {
-                    "fieldName": "avg_duration",
-                    "title": "Avg Duration (s)",
-                    "type": "number"
-                  },
-                  {
-                    "fieldName": "total_queries",
-                    "title": "Total Queries",
-                    "type": "number"
+                    "fieldName": "run_date",
+                    "title": "Date",
+                    "type": "date"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83c\udfed Slow Queries by Warehouse"
+                "title": "\ud83d\udc0c Top Slow Queries (Actionable Detail)"
               }
             }
           },
@@ -2608,20 +2634,36 @@
                   "disaggregated": true,
                   "fields": [
                     {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    },
+                    {
                       "name": "query_pattern",
                       "expression": "`query_pattern`"
                     },
                     {
-                      "name": "current_duration",
-                      "expression": "`current_duration`"
+                      "name": "user",
+                      "expression": "`user`"
                     },
                     {
-                      "name": "predicted_duration",
-                      "expression": "`predicted_duration`"
+                      "name": "warehouse",
+                      "expression": "`warehouse`"
+                    },
+                    {
+                      "name": "p95_duration_sec",
+                      "expression": "`p95_duration_sec`"
+                    },
+                    {
+                      "name": "execution_count",
+                      "expression": "`execution_count`"
                     },
                     {
                       "name": "optimization_tip",
                       "expression": "`optimization_tip`"
+                    },
+                    {
+                      "name": "rationale",
+                      "expression": "`rationale`"
                     }
                   ]
                 }
@@ -2633,31 +2675,51 @@
               "encodings": {
                 "columns": [
                   {
+                    "fieldName": "severity",
+                    "title": "Severity",
+                    "type": "string"
+                  },
+                  {
                     "fieldName": "query_pattern",
                     "title": "Query Pattern",
                     "type": "string"
                   },
                   {
-                    "fieldName": "current_duration",
-                    "title": "Current (s)",
+                    "fieldName": "user",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "warehouse",
+                    "title": "Warehouse",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "p95_duration_sec",
+                    "title": "P95 (sec)",
                     "type": "number"
                   },
                   {
-                    "fieldName": "predicted_duration",
-                    "title": "Predicted (s)",
+                    "fieldName": "execution_count",
+                    "title": "Runs",
                     "type": "number"
                   },
                   {
                     "fieldName": "optimization_tip",
-                    "title": "Optimization",
+                    "title": "Optimization Tip",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "rationale",
+                    "title": "Evidence",
                     "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Query Optimization Recommendations",
-                "description": "From query optimizer model"
+                "title": "\ud83e\udd16 Query Optimization Recommendations",
+                "description": "Recurring slow query patterns with actionable optimization tips"
               }
             }
           },
@@ -2665,7 +2727,7 @@
             "x": 0,
             "y": 0,
             "width": 6,
-            "height": 6
+            "height": 8
           }
         },
         {
@@ -2679,16 +2741,28 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "query_id",
-                      "expression": "`query_id`"
+                      "name": "severity",
+                      "expression": "`severity`"
                     },
                     {
-                      "name": "baseline_duration",
-                      "expression": "`baseline_duration`"
+                      "name": "query_pattern",
+                      "expression": "`query_pattern`"
                     },
                     {
-                      "name": "current_duration",
-                      "expression": "`current_duration`"
+                      "name": "user",
+                      "expression": "`user`"
+                    },
+                    {
+                      "name": "warehouse",
+                      "expression": "`warehouse`"
+                    },
+                    {
+                      "name": "baseline_avg_sec",
+                      "expression": "`baseline_avg_sec`"
+                    },
+                    {
+                      "name": "recent_avg_sec",
+                      "expression": "`recent_avg_sec`"
                     },
                     {
                       "name": "regression_pct",
@@ -2697,6 +2771,10 @@
                     {
                       "name": "root_cause",
                       "expression": "`root_cause`"
+                    },
+                    {
+                      "name": "rationale",
+                      "expression": "`rationale`"
                     }
                   ]
                 }
@@ -2708,43 +2786,58 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "query_id",
-                    "title": "Query ID",
+                    "fieldName": "severity",
+                    "title": "Severity",
                     "type": "string"
                   },
                   {
-                    "fieldName": "baseline_duration",
+                    "fieldName": "query_pattern",
+                    "title": "Query",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "user",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "baseline_avg_sec",
                     "title": "Baseline (s)",
                     "type": "number"
                   },
                   {
-                    "fieldName": "current_duration",
-                    "title": "Current (s)",
+                    "fieldName": "recent_avg_sec",
+                    "title": "Recent (s)",
                     "type": "number"
                   },
                   {
                     "fieldName": "regression_pct",
-                    "title": "Regression %",
+                    "title": "Δ %",
                     "type": "number"
                   },
                   {
                     "fieldName": "root_cause",
                     "title": "Root Cause",
                     "type": "string"
+                  },
+                  {
+                    "fieldName": "rationale",
+                    "title": "Evidence",
+                    "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Query Regression Detection",
-                "description": "Anomaly detection model"
+                "title": "\ud83d\udcc9 Query Performance Regression Detection",
+                "description": "Queries that have slowed down vs their baseline (last 7 days vs prior 23 days)"
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 6,
-            "width": 3,
+            "y": 8,
+            "width": 6,
             "height": 6
           }
         },
@@ -2759,20 +2852,40 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "warehouse_name",
-                      "expression": "`warehouse_name`"
-                    },
-                    {
                       "name": "recommendation",
                       "expression": "`recommendation`"
                     },
                     {
-                      "name": "reason",
-                      "expression": "`reason`"
+                      "name": "warehouse",
+                      "expression": "`warehouse`"
                     },
                     {
-                      "name": "confidence",
-                      "expression": "`confidence`"
+                      "name": "total_queries",
+                      "expression": "`total_queries`"
+                    },
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    },
+                    {
+                      "name": "p95_duration_sec",
+                      "expression": "`p95_duration_sec`"
+                    },
+                    {
+                      "name": "slow_query_pct",
+                      "expression": "`slow_query_pct`"
+                    },
+                    {
+                      "name": "rationale",
+                      "expression": "`rationale`"
+                    },
+                    {
+                      "name": "evidence",
+                      "expression": "`evidence`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ]
                 }
@@ -2784,38 +2897,58 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "warehouse_name",
+                    "fieldName": "recommendation",
+                    "title": "Status",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "warehouse",
                     "title": "Warehouse",
                     "type": "string"
                   },
                   {
-                    "fieldName": "recommendation",
-                    "title": "Recommendation",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "reason",
-                    "title": "Reason",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "confidence",
-                    "title": "Confidence",
+                    "fieldName": "total_queries",
+                    "title": "Queries",
                     "type": "number"
+                  },
+                  {
+                    "fieldName": "unique_users",
+                    "title": "Users",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "p95_duration_sec",
+                    "title": "P95 (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "slow_query_pct",
+                    "title": "Slow %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "rationale",
+                    "title": "Rationale",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Action",
+                    "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Warehouse Sizing Recommendations",
-                "description": "From capacity planner model"
+                "title": "\ud83c\udfed Warehouse Sizing Recommendations",
+                "description": "Based on actual query performance metrics (P95, slow query %, utilization)"
               }
             }
           },
           "position": {
-            "x": 3,
-            "y": 6,
-            "width": 3,
+            "x": 0,
+            "y": 14,
+            "width": 6,
             "height": 6
           }
         }
@@ -3153,6 +3286,113 @@
             "y": 14,
             "width": 6,
             "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table_drift_investigation",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_drift_investigation",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "impact",
+                      "expression": "`impact`"
+                    },
+                    {
+                      "name": "spike_date",
+                      "expression": "`spike_date`"
+                    },
+                    {
+                      "name": "query_pattern",
+                      "expression": "`query_pattern`"
+                    },
+                    {
+                      "name": "user",
+                      "expression": "`user`"
+                    },
+                    {
+                      "name": "warehouse",
+                      "expression": "`warehouse`"
+                    },
+                    {
+                      "name": "executions",
+                      "expression": "`executions`"
+                    },
+                    {
+                      "name": "total_time_sec",
+                      "expression": "`total_time_sec`"
+                    },
+                    {
+                      "name": "investigation_note",
+                      "expression": "`investigation_note`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "impact",
+                    "title": "Impact",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "spike_date",
+                    "title": "Spike Date",
+                    "type": "date"
+                  },
+                  {
+                    "fieldName": "query_pattern",
+                    "title": "Query Pattern",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "user",
+                    "title": "User",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "warehouse",
+                    "title": "Warehouse",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "executions",
+                    "title": "Runs",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "total_time_sec",
+                    "title": "Total Time (s)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "investigation_note",
+                    "title": "Investigation Notes",
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "\ud83d\udd0d Drift Spike Investigation - What Caused the Spikes?",
+                "description": "Shows top queries contributing to days with >50% duration drift"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 6,
+            "height": 8
           }
         },
         {
@@ -4127,34 +4367,35 @@
                 "columns": [
                   {
                     "fieldName": "cluster_name",
-                    "title": "Cluster",
+                    "title": "Warehouse",
                     "type": "string"
                   },
                   {
                     "fieldName": "current_size",
-                    "title": "Current Size",
+                    "title": "Status",
                     "type": "string"
                   },
                   {
                     "fieldName": "recommended_size",
-                    "title": "Recommended",
+                    "title": "Recommendation",
                     "type": "string"
                   },
                   {
                     "fieldName": "avg_cpu",
-                    "title": "Avg CPU %",
+                    "title": "Slow Query %",
                     "type": "number"
                   },
                   {
                     "fieldName": "potential_savings",
-                    "title": "Savings ($)",
+                    "title": "Est. Savings ($)",
                     "type": "number"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcb0 Right-Sizing Recommendations"
+                "title": "\ud83d\udcb0 Warehouse Right-Sizing Recommendations",
+                "description": "Based on slow query % - oversized warehouses have potential savings"
               }
             }
           },
@@ -4216,7 +4457,7 @@
                   },
                   {
                     "fieldName": "avg_cpu",
-                    "title": "Avg CPU %",
+                    "title": "Success Rate %",
                     "type": "number"
                   },
                   {
@@ -4226,14 +4467,15 @@
                   },
                   {
                     "fieldName": "potential_savings",
-                    "title": "Savings ($)",
+                    "title": "Est. Savings ($)",
                     "type": "number"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcc9 Low CPU + High Cost Jobs"
+                "title": "\ud83d\udcc9 High-Success High-Cost Jobs",
+                "description": "Jobs running well but costing a lot - optimization candidates"
               }
             }
           },
@@ -4286,12 +4528,12 @@
                   },
                   {
                     "fieldName": "avg_memory",
-                    "title": "Avg Mem %",
+                    "title": "Avg Duration (min)",
                     "type": "number"
                   },
                   {
                     "fieldName": "peak_memory",
-                    "title": "Peak Mem %",
+                    "title": "Max Duration (min)",
                     "type": "number"
                   },
                   {
@@ -4303,7 +4545,8 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udd25 High Memory Usage Jobs"
+                "title": "\ud83d\udd25 Long-Running Jobs Analysis",
+                "description": "Jobs with high P95 duration - may need optimization"
               }
             }
           },
@@ -4389,8 +4632,8 @@
                   "disaggregated": true,
                   "fields": [
                     {
-                      "name": "job_name",
-                      "expression": "`job_name`"
+                      "name": "cluster_name",
+                      "expression": "`cluster_name`"
                     },
                     {
                       "name": "current_workers",
@@ -4414,30 +4657,26 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "job_name",
-                    "title": "Job",
-                    "type": "string"
+                    "fieldName": "cluster_name",
+                    "title": "Warehouse"
                   },
                   {
                     "fieldName": "current_workers",
-                    "title": "Current Workers",
-                    "type": "number"
+                    "title": "Current Workers"
                   },
                   {
                     "fieldName": "recommended_workers",
-                    "title": "Recommended",
-                    "type": "number"
+                    "title": "Recommended"
                   },
                   {
                     "fieldName": "confidence",
-                    "title": "Confidence",
-                    "type": "number"
+                    "title": "Confidence"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Capacity Planning Predictions",
+                "title": "🤖 ML: Capacity Planning Predictions",
                 "description": "Gradient Boosting capacity planner"
               }
             }
@@ -4464,16 +4703,16 @@
                       "expression": "`cluster_name`"
                     },
                     {
-                      "name": "current_node_type",
-                      "expression": "`current_node_type`"
+                      "name": "current_size",
+                      "expression": "`current_size`"
                     },
                     {
-                      "name": "recommended_type",
-                      "expression": "`recommended_type`"
+                      "name": "recommended",
+                      "expression": "`recommended`"
                     },
                     {
-                      "name": "predicted_savings",
-                      "expression": "`predicted_savings`"
+                      "name": "potential_savings",
+                      "expression": "`potential_savings`"
                     }
                   ]
                 }
@@ -4486,29 +4725,25 @@
                 "columns": [
                   {
                     "fieldName": "cluster_name",
-                    "title": "Cluster",
-                    "type": "string"
+                    "title": "Warehouse"
                   },
                   {
-                    "fieldName": "current_node_type",
-                    "title": "Current Type",
-                    "type": "string"
+                    "fieldName": "current_size",
+                    "title": "Current Size"
                   },
                   {
-                    "fieldName": "recommended_type",
-                    "title": "Recommended",
-                    "type": "string"
+                    "fieldName": "recommended",
+                    "title": "Recommended"
                   },
                   {
-                    "fieldName": "predicted_savings",
-                    "title": "Savings ($)",
-                    "type": "number"
+                    "fieldName": "potential_savings",
+                    "title": "Savings ($)"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Right-Sizing Recommendations",
+                "title": "🤖 ML: Right-Sizing Recommendations",
                 "description": "Multi-output regression model"
               }
             }
@@ -6563,7 +6798,7 @@
     {
       "name": "ds_slowest_queries",
       "displayName": "Slowest Queries",
-      "query": "SELECT statement_id AS query_id, COALESCE(executed_by, CAST(executed_by_user_id AS STRING)) AS user_identity_email, compute_type AS warehouse_name, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, execution_status AS status FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max ORDER BY total_duration_ms DESC LIMIT 20",
+      "query": "SELECT statement_id AS query_id, CAST(executed_by_user_id AS STRING) AS user_identity_email, COALESCE(warehouse_name, compute_type) AS warehouse_name, ROUND(total_duration_ms / 1000.0, 1) AS duration_sec, execution_status AS status FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max ORDER BY total_duration_ms DESC LIMIT 20",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6611,7 +6846,7 @@
     {
       "name": "ds_slow_by_warehouse",
       "displayName": "Slow by Warehouse",
-      "query": "SELECT compute_type AS warehouse_name, SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries, ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration, COUNT(*) AS total_queries FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max GROUP BY 1 HAVING SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) > 0 ORDER BY slow_queries DESC LIMIT 15",
+      "query": "SELECT \n  LEFT(REGEXP_REPLACE(statement_text, '\\\\s+', ' '), 100) AS query_preview,\n  ROUND(total_duration_ms / 1000.0, 1) AS duration_seconds,\n  ROUND(total_duration_ms / 60000.0, 1) AS duration_minutes,\n  executed_by_user_id AS user,\n  COALESCE(warehouse_name, compute_type) AS warehouse,\n  DATE(start_time) AS run_date,\n  statement_id,\n  CASE \n    WHEN total_duration_ms > 300000 THEN '🔴 Critical (>5min)'\n    WHEN total_duration_ms > 120000 THEN '🟠 High (>2min)'\n    WHEN total_duration_ms > 60000 THEN '🟡 Medium (>1min)'\n    ELSE '⚪ Slow (>30s)'\n  END AS severity\nFROM ${catalog}.${gold_schema}.fact_query_history \nWHERE start_time BETWEEN :time_range.min AND :time_range.max\n  AND total_duration_ms > 30000\n  AND statement_text IS NOT NULL\nORDER BY total_duration_ms DESC\nLIMIT 25",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6659,7 +6894,7 @@
     {
       "name": "ds_failed_queries",
       "displayName": "Failed Queries",
-      "query": "SELECT statement_id AS query_id, COALESCE(executed_by, CAST(executed_by_user_id AS STRING)) AS user_identity_email, compute_type AS warehouse_name, error_message, start_time AS execution_time FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_status = 'FAILED' ORDER BY start_time DESC LIMIT 30",
+      "query": "SELECT statement_id AS query_id, CAST(executed_by_user_id AS STRING) AS user_identity_email, COALESCE(warehouse_name, compute_type) AS warehouse_name, error_message, start_time AS execution_time FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time BETWEEN :time_range.min AND :time_range.max AND execution_status = 'FAILED' ORDER BY start_time DESC LIMIT 30",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6928,17 +7163,17 @@
     {
       "name": "ds_ml_optimization",
       "displayName": "ML: Optimization",
-      "query": "SELECT\n  warehouse_id AS query_pattern,\n  ROUND(prediction * 100, 1) AS current_duration,\n  ROUND(prediction * 80, 1) AS predicted_duration,\n  CASE \n    WHEN prediction > 0.7 THEN 'Add indexes'\n    WHEN prediction > 0.4 THEN 'Optimize joins'\n    ELSE 'Query is efficient'\n  END AS optimization_tip,\n  scored_at\nFROM ${catalog}.${feature_schema}.query_optimization_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
+      "query": "WITH slow_patterns AS (\n  SELECT\n    LEFT(REGEXP_REPLACE(statement_text, '\\\\s+', ' '), 80) AS query_pattern,\n    executed_by_user_id AS user,\n    compute_type AS warehouse,\n    ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration_sec,\n    ROUND(MAX(total_duration_ms / 1000.0), 1) AS max_duration_sec,\n    COUNT(*) AS execution_count,\n    MAX(start_time) AS last_run,\n    ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) / 1000.0, 1) AS p95_duration_sec\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND total_duration_ms > 10000\n    AND statement_text IS NOT NULL\n  GROUP BY 1, 2, 3\n  HAVING COUNT(*) >= 3\n)\nSELECT\n  query_pattern,\n  user,\n  warehouse,\n  avg_duration_sec,\n  p95_duration_sec,\n  execution_count,\n  last_run,\n  CASE \n    WHEN p95_duration_sec > 120 THEN '🔴 Critical'\n    WHEN p95_duration_sec > 60 THEN '🟠 High'\n    WHEN p95_duration_sec > 30 THEN '🟡 Medium'\n    ELSE '⚪ Low'\n  END AS severity,\n  CASE \n    WHEN LOWER(query_pattern) LIKE '%select *%' THEN 'Avoid SELECT * - specify columns'\n    WHEN LOWER(query_pattern) LIKE '%cross join%' THEN 'Replace CROSS JOIN with explicit joins'\n    WHEN LOWER(query_pattern) LIKE '%not in%' THEN 'Replace NOT IN with LEFT JOIN / NOT EXISTS'\n    WHEN LOWER(query_pattern) LIKE '%distinct%' THEN 'Review DISTINCT usage - may indicate join issues'\n    WHEN p95_duration_sec > avg_duration_sec * 2 THEN 'High variance - check data skew or caching'\n    WHEN execution_count > 100 THEN 'Frequent query - consider materialized view'\n    ELSE 'Add indexes on filter/join columns'\n  END AS optimization_tip,\n  CONCAT('Query runs ', execution_count, 'x with P95 of ', p95_duration_sec, 's. Last run: ', DATE(last_run)) AS rationale\nFROM slow_patterns\nORDER BY p95_duration_sec DESC\nLIMIT 25"
     },
     {
       "name": "ds_ml_regression",
       "displayName": "ML: Regression",
-      "query": "SELECT\n  COALESCE(statement_id, warehouse_id, 'Unknown') AS query_id,\n  ROUND(COALESCE(prediction, 0) * 50, 1) AS baseline_duration,\n  ROUND(COALESCE(prediction, 0) * 75, 1) AS current_duration,\n  ROUND((COALESCE(prediction, 0) - 0.5) * 100, 1) AS regression_pct,\n  CASE \n    WHEN prediction > 0.7 THEN 'High resource contention'\n    WHEN prediction > 0.4 THEN 'Data growth'\n    ELSE 'Normal variation'\n  END AS root_cause,\n  scored_at\nFROM ${catalog}.${feature_schema}.performance_regression_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nAND prediction > 0.5\nORDER BY prediction DESC\nLIMIT 30"
+      "query": "WITH query_baseline AS (\n  SELECT\n    LEFT(REGEXP_REPLACE(statement_text, '\\\\s+', ' '), 60) AS query_pattern,\n    executed_by_user_id AS user,\n    compute_type AS warehouse,\n    ROUND(AVG(CASE WHEN start_time < CURRENT_DATE() - INTERVAL 7 DAYS THEN total_duration_ms END) / 1000.0, 1) AS baseline_avg_sec,\n    ROUND(AVG(CASE WHEN start_time >= CURRENT_DATE() - INTERVAL 7 DAYS THEN total_duration_ms END) / 1000.0, 1) AS recent_avg_sec,\n    COUNT(CASE WHEN start_time < CURRENT_DATE() - INTERVAL 7 DAYS THEN 1 END) AS baseline_runs,\n    COUNT(CASE WHEN start_time >= CURRENT_DATE() - INTERVAL 7 DAYS THEN 1 END) AS recent_runs,\n    MAX(start_time) AS last_run\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND total_duration_ms > 5000\n    AND statement_text IS NOT NULL\n  GROUP BY 1, 2, 3\n  HAVING COUNT(CASE WHEN start_time < CURRENT_DATE() - INTERVAL 7 DAYS THEN 1 END) >= 3\n    AND COUNT(CASE WHEN start_time >= CURRENT_DATE() - INTERVAL 7 DAYS THEN 1 END) >= 2\n)\nSELECT\n  query_pattern,\n  user,\n  warehouse,\n  baseline_avg_sec,\n  recent_avg_sec,\n  ROUND((recent_avg_sec - baseline_avg_sec) * 100.0 / NULLIF(baseline_avg_sec, 0), 1) AS regression_pct,\n  CASE \n    WHEN (recent_avg_sec - baseline_avg_sec) / NULLIF(baseline_avg_sec, 0) > 1.0 THEN '🔴 Major regression (>100%)'\n    WHEN (recent_avg_sec - baseline_avg_sec) / NULLIF(baseline_avg_sec, 0) > 0.5 THEN '🟠 Significant (>50%)'\n    WHEN (recent_avg_sec - baseline_avg_sec) / NULLIF(baseline_avg_sec, 0) > 0.25 THEN '🟡 Moderate (>25%)'\n    ELSE '⚪ Minor'\n  END AS severity,\n  CASE \n    WHEN recent_runs > baseline_runs * 2 THEN 'Increased query frequency'\n    WHEN recent_avg_sec > baseline_avg_sec * 2 THEN 'Data volume growth likely'\n    WHEN LOWER(query_pattern) LIKE '%join%' THEN 'Check join statistics / table growth'\n    ELSE 'Resource contention or config change'\n  END AS root_cause,\n  CONCAT('Baseline: ', baseline_avg_sec, 's (', baseline_runs, ' runs) → Recent: ', recent_avg_sec, 's (', recent_runs, ' runs). Last: ', DATE(last_run)) AS rationale,\n  'Review query plan and table statistics. Consider adding indexes or updating stats.' AS recommended_action\nFROM query_baseline\nWHERE recent_avg_sec > baseline_avg_sec * 1.25\nORDER BY (recent_avg_sec - baseline_avg_sec) DESC\nLIMIT 20"
     },
     {
       "name": "ds_ml_warehouse",
       "displayName": "ML: Warehouse",
-      "query": "SELECT\n  warehouse_id AS warehouse_name,\n  CASE \n    WHEN prediction > 0.7 THEN 'Scale up'\n    WHEN prediction > 0.4 THEN 'Optimize queries'\n    ELSE 'Current config optimal'\n  END AS recommendation,\n  CASE \n    WHEN prediction > 0.7 THEN 'High utilization detected'\n    WHEN prediction > 0.4 THEN 'Moderate queue times'\n    ELSE 'Resources underutilized'\n  END AS reason,\n  ROUND(prediction, 2) AS confidence\nFROM ${catalog}.${feature_schema}.warehouse_optimizer_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 20"
+      "query": "WITH warehouse_stats AS (\n  SELECT\n    compute_type AS warehouse,\n    COUNT(*) AS total_queries,\n    COUNT(DISTINCT executed_by_user_id) AS unique_users,\n    ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration_sec,\n    ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) / 1000.0, 1) AS p95_duration_sec,\n    SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries,\n    MAX(start_time) AS last_query_time,\n    ROUND(SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS slow_query_pct\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS\n  GROUP BY 1\n  HAVING COUNT(*) >= 10\n)\nSELECT\n  warehouse,\n  total_queries,\n  unique_users,\n  avg_duration_sec,\n  p95_duration_sec,\n  slow_queries,\n  slow_query_pct,\n  CASE \n    WHEN slow_query_pct > 20 THEN '🔴 Scale Up Required'\n    WHEN slow_query_pct > 10 THEN '🟠 Consider Scaling'\n    WHEN slow_query_pct > 5 THEN '🟡 Monitor Closely'\n    WHEN slow_query_pct < 1 AND total_queries < 100 THEN '🔵 Consider Scale Down'\n    ELSE '✅ Optimal'\n  END AS recommendation,\n  CASE \n    WHEN slow_query_pct > 20 THEN CONCAT(slow_query_pct, '% queries slow - upgrade to larger cluster size')\n    WHEN slow_query_pct > 10 THEN CONCAT(slow_query_pct, '% queries slow - review query patterns or scale up')\n    WHEN slow_query_pct > 5 THEN CONCAT(slow_query_pct, '% queries slow - optimize queries or add resources during peak')\n    WHEN slow_query_pct < 1 AND total_queries < 100 THEN 'Low utilization - consider smaller size or auto-suspend'\n    ELSE 'Performance is healthy'\n  END AS rationale,\n  CONCAT(total_queries, ' queries from ', unique_users, ' users. P95: ', p95_duration_sec, 's. Last activity: ', DATE(last_query_time)) AS evidence,\n  CASE \n    WHEN slow_query_pct > 20 THEN 'Increase cluster size by 1 tier or enable auto-scaling'\n    WHEN slow_query_pct > 10 THEN 'Review top slow queries for optimization opportunities'\n    WHEN slow_query_pct < 1 AND total_queries < 100 THEN 'Reduce cluster size or increase auto-suspend timeout'\n    ELSE 'No action needed'\n  END AS recommended_action\nFROM warehouse_stats\nORDER BY slow_query_pct DESC, total_queries DESC\nLIMIT 15"
     },
     {
       "name": "ds_monitor_latest",
@@ -6991,7 +7226,7 @@
     {
       "name": "ds_monitor_volume",
       "displayName": "Monitor: Volume",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(query_count, 0) AS query_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start BETWEEN :time_range.min AND :time_range.max\nORDER BY 1",
+      "query": "SELECT \n  DATE(start_time) AS window_start,\n  COUNT(*) AS total_queries,\n  COUNT(DISTINCT executed_by_user_id) AS unique_users\nFROM ${catalog}.${gold_schema}.fact_query_history\nWHERE start_time BETWEEN :time_range.min AND :time_range.max\nGROUP BY 1\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -7015,7 +7250,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(p95_duration_drift_pct, 0), 2) AS duration_drift,\n  ROUND(COALESCE(query_volume_drift_pct, 0), 2) AS volume_drift,\n  0 AS cpu_drift,\n  0 AS memory_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics\nWHERE column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\n  AND window.start BETWEEN :time_range.min AND :time_range.max\nORDER BY 1 DESC",
+      "query": "WITH daily_metrics AS (\n  SELECT\n    DATE(start_time) AS day,\n    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) AS p95_duration,\n    COUNT(*) AS query_count\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time BETWEEN :time_range.min AND :time_range.max\n  GROUP BY 1\n),\nwith_prev AS (\n  SELECT\n    day,\n    p95_duration,\n    query_count,\n    LAG(p95_duration) OVER (ORDER BY day) AS prev_p95,\n    LAG(query_count) OVER (ORDER BY day) AS prev_count\n  FROM daily_metrics\n)\nSELECT\n  day AS window_start,\n  ROUND((p95_duration - prev_p95) * 100.0 / NULLIF(prev_p95, 0), 1) AS duration_drift,\n  ROUND((query_count - prev_count) * 100.0 / NULLIF(prev_count, 0), 1) AS volume_drift,\n  0 AS cpu_drift,\n  0 AS memory_drift\nFROM with_prev\nWHERE prev_p95 IS NOT NULL\nORDER BY day",
       "parameters": [
         {
           "displayName": "time_range",
@@ -7039,7 +7274,31 @@
     {
       "name": "ds_monitor_detailed",
       "displayName": "Monitor: Detailed",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(query_count, 0) AS total_queries,\n  ROUND(COALESCE(avg_duration_sec, 0), 2) AS avg_duration,\n  ROUND(COALESCE(p95_duration_sec, 0), 2) AS p95_duration,\n  ROUND(COALESCE(sla_breach_rate, 0) * 100, 2) AS slow_query_rate,\n  ROUND(COALESCE(100 - query_success_rate, 0), 3) AS failure_rate,\n  0 AS total_nodes,\n  0 AS avg_cpu,\n  0 AS p95_cpu,\n  0 AS avg_memory,\n  0 AS avg_io_wait\nFROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min AND window.end <= :time_range.max\nORDER BY 1 DESC",
+      "query": "SELECT \n  DATE(start_time) AS window_start,\n  COUNT(*) AS total_queries,\n  ROUND(AVG(total_duration_ms / 1000.0), 2) AS avg_duration,\n  ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) / 1000.0, 2) AS p95_duration,\n  ROUND(SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS slow_query_rate,\n  ROUND(SUM(CASE WHEN error_message IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 3) AS failure_rate,\n  0 AS total_nodes,\n  0 AS avg_cpu,\n  0 AS p95_cpu,\n  0 AS avg_memory,\n  0 AS avg_io_wait\nFROM ${catalog}.${gold_schema}.fact_query_history\nWHERE start_time BETWEEN :time_range.min AND :time_range.max\nGROUP BY 1\nORDER BY 1 DESC",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_drift_investigation",
+      "displayName": "Drift Investigation",
+      "query": "WITH daily_p95 AS (\n  SELECT\n    DATE(start_time) AS day,\n    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) AS p95_today\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time BETWEEN :time_range.min AND :time_range.max\n  GROUP BY 1\n),\nwith_drift AS (\n  SELECT\n    day,\n    p95_today,\n    LAG(p95_today) OVER (ORDER BY day) AS p95_yesterday,\n    ROUND((p95_today - LAG(p95_today) OVER (ORDER BY day)) * 100.0 / NULLIF(LAG(p95_today) OVER (ORDER BY day), 0), 1) AS drift_pct\n  FROM daily_p95\n),\nhigh_drift_days AS (\n  SELECT day FROM with_drift WHERE ABS(drift_pct) > 50\n),\ncontributors AS (\n  SELECT\n    DATE(q.start_time) AS spike_date,\n    LEFT(REGEXP_REPLACE(q.statement_text, '\\\\s+', ' '), 60) AS query_pattern,\n    q.executed_by_user_id AS user,\n    COALESCE(q.warehouse_name, q.compute_type) AS warehouse,\n    COUNT(*) AS executions,\n    ROUND(AVG(q.total_duration_ms / 1000.0), 1) AS avg_duration_sec,\n    ROUND(MAX(q.total_duration_ms / 1000.0), 1) AS max_duration_sec,\n    ROUND(SUM(q.total_duration_ms / 1000.0), 0) AS total_time_sec\n  FROM ${catalog}.${gold_schema}.fact_query_history q\n  INNER JOIN high_drift_days h ON DATE(q.start_time) = h.day\n  WHERE q.total_duration_ms > 10000\n  GROUP BY 1, 2, 3, 4\n)\nSELECT\n  spike_date,\n  query_pattern,\n  user,\n  warehouse,\n  executions,\n  avg_duration_sec,\n  max_duration_sec,\n  total_time_sec,\n  CASE \n    WHEN total_time_sec > 3600 THEN '🔴 Major Impact'\n    WHEN total_time_sec > 600 THEN '🟠 High Impact'\n    WHEN total_time_sec > 60 THEN '🟡 Medium Impact'\n    ELSE '⚪ Low Impact'\n  END AS impact,\n  CONCAT('Query ran ', executions, 'x, total ', ROUND(total_time_sec/60, 1), ' min on spike day') AS investigation_note\nFROM contributors\nORDER BY spike_date DESC, total_time_sec DESC\nLIMIT 30",
       "parameters": [
         {
           "displayName": "time_range",
@@ -7375,12 +7634,12 @@
     {
       "name": "ds_rightsizing_recommendations",
       "displayName": "Right-Sizing Recommendations",
-      "query": "SELECT 'Cluster right-sizing requires ML model inference' AS cluster_name, 'N/A' AS current_size, 'N/A' AS recommended_size, 0.0 AS avg_cpu, 0.00 AS potential_savings WHERE 1=0 UNION ALL SELECT 'Run ML inference pipeline for recommendations' AS cluster_name, 'N/A' AS current_size, 'Pending' AS recommended_size, 0.0 AS avg_cpu, 0.00 AS potential_savings LIMIT 1"
+      "query": "WITH warehouse_usage AS (\n  SELECT\n    COALESCE(warehouse_name, compute_type, 'Unknown') AS cluster_name,\n    COUNT(*) AS total_queries,\n    ROUND(AVG(total_duration_ms / 1000.0), 1) AS avg_duration_sec,\n    ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) / 1000.0, 1) AS p95_duration_sec,\n    SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries,\n    COUNT(DISTINCT executed_by_user_id) AS unique_users\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY 1\n  HAVING COUNT(*) >= 10\n),\ncost_data AS (\n  SELECT\n    COALESCE(warehouse_name, 'All Warehouses') AS wh_name,\n    ROUND(SUM(list_cost), 2) AS total_cost_30d\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY 1\n)\nSELECT\n  w.cluster_name,\n  CASE \n    WHEN w.slow_queries * 100.0 / NULLIF(w.total_queries, 0) > 20 THEN 'Undersized'\n    WHEN w.slow_queries * 100.0 / NULLIF(w.total_queries, 0) < 2 AND w.total_queries < 100 THEN 'Oversized'\n    ELSE 'Current'\n  END AS current_size,\n  CASE \n    WHEN w.slow_queries * 100.0 / NULLIF(w.total_queries, 0) > 20 THEN '⬆️ Scale Up'\n    WHEN w.slow_queries * 100.0 / NULLIF(w.total_queries, 0) < 2 AND w.total_queries < 100 THEN '⬇️ Scale Down'\n    ELSE '✅ Optimal'\n  END AS recommended_size,\n  ROUND(w.slow_queries * 100.0 / NULLIF(w.total_queries, 0), 1) AS avg_cpu,\n  ROUND(COALESCE(c.total_cost_30d, 0) * CASE WHEN w.slow_queries * 100.0 / NULLIF(w.total_queries, 0) < 2 AND w.total_queries < 100 THEN 0.3 ELSE 0 END, 2) AS potential_savings\nFROM warehouse_usage w\nLEFT JOIN cost_data c ON w.cluster_name = c.wh_name\nORDER BY potential_savings DESC, w.slow_queries DESC\nLIMIT 15"
     },
     {
       "name": "ds_low_cpu_high_cost",
       "displayName": "Low CPU High Cost",
-      "query": "SELECT 'Low CPU analysis requires cost data join' AS job_name, 'N/A' AS workspace_name, 0.0 AS avg_cpu, 0.00 AS cost_30d, 0.00 AS potential_savings WHERE 1=0 UNION ALL SELECT 'Run cost analysis job' AS job_name, 'Pending' AS workspace_name, 0.0 AS avg_cpu, 0.00 AS cost_30d, 0.00 AS potential_savings LIMIT 1",
+      "query": "WITH job_metrics AS (\n  SELECT\n    j.job_id,\n    COALESCE(j.name, CAST(j.job_id AS STRING)) AS job_name,\n    COALESCE(w.workspace_name, CAST(j.workspace_id AS STRING)) AS workspace_name,\n    COUNT(*) AS total_runs,\n    ROUND(AVG(f.run_duration_seconds), 0) AS avg_duration_sec,\n    SUM(CASE WHEN f.termination_code = 'SUCCESS' THEN 1 ELSE 0 END) AS successful_runs\n  FROM ${catalog}.${gold_schema}.dim_job j\n  LEFT JOIN ${catalog}.${gold_schema}.fact_job_run_timeline f ON j.job_id = f.job_id AND j.workspace_id = f.workspace_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON j.workspace_id = w.workspace_id\n  WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND (ARRAY_CONTAINS(:param_workspace, 'all') OR ARRAY_CONTAINS(:param_workspace, w.workspace_name))\n  GROUP BY 1, 2, 3\n  HAVING COUNT(*) >= 3\n),\njob_costs AS (\n  SELECT\n    j.job_id,\n    ROUND(SUM(u.list_cost), 2) AS cost_30d\n  FROM ${catalog}.${gold_schema}.fact_usage u\n  JOIN ${catalog}.${gold_schema}.dim_job j ON u.workspace_id = j.workspace_id\n  WHERE u.usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY 1\n)\nSELECT\n  m.job_name,\n  m.workspace_name,\n  ROUND(m.successful_runs * 100.0 / NULLIF(m.total_runs, 0), 1) AS avg_cpu,\n  COALESCE(c.cost_30d, 0) AS cost_30d,\n  ROUND(COALESCE(c.cost_30d, 0) * 0.3, 2) AS potential_savings\nFROM job_metrics m\nLEFT JOIN job_costs c ON m.job_id = c.job_id\nWHERE m.successful_runs * 100.0 / NULLIF(m.total_runs, 0) > 90\n  AND COALESCE(c.cost_30d, 0) > 10\nORDER BY c.cost_30d DESC NULLS LAST\nLIMIT 15",
       "parameters": [
         {
           "displayName": "param_workspace",
@@ -7403,12 +7662,12 @@
     {
       "name": "ds_high_memory_jobs",
       "displayName": "High Memory Jobs",
-      "query": "SELECT 'High memory job analysis pending' AS job_name, 0.0 AS avg_memory, 0.0 AS peak_memory, 'N/A' AS recommendation WHERE 1=0 UNION ALL SELECT 'Run memory analysis job' AS job_name, 0.0 AS avg_memory, 0.0 AS peak_memory, 'Pending' AS recommendation LIMIT 1"
+      "query": "WITH job_duration AS (\n  SELECT\n    COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name,\n    COUNT(*) AS total_runs,\n    ROUND(AVG(f.run_duration_seconds), 0) AS avg_duration_sec,\n    ROUND(MAX(f.run_duration_seconds), 0) AS max_duration_sec,\n    ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY f.run_duration_seconds), 0) AS p95_duration_sec,\n    SUM(f.run_duration_seconds) AS total_time_sec\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id AND f.workspace_id = j.workspace_id\n  WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND f.run_duration_seconds IS NOT NULL\n    AND f.run_duration_seconds > 0\n  GROUP BY 1\n  HAVING COUNT(*) >= 3\n)\nSELECT\n  job_name,\n  ROUND(avg_duration_sec / 60.0, 1) AS avg_memory,\n  ROUND(max_duration_sec / 60.0, 1) AS peak_memory,\n  CASE \n    WHEN max_duration_sec > avg_duration_sec * 3 THEN '🔴 High variance - check for memory pressure'\n    WHEN p95_duration_sec > 3600 THEN '🟠 Long-running - consider optimization'\n    WHEN total_time_sec > 86400 THEN '🟡 Heavy workload - review resource allocation'\n    ELSE '✅ Normal'\n  END AS recommendation\nFROM job_duration\nWHERE p95_duration_sec > 300\nORDER BY total_time_sec DESC\nLIMIT 15"
     },
     {
       "name": "ds_savings_opportunity",
       "displayName": "Savings Opportunity",
-      "query": "SELECT 'Underutilized' AS category, 0.00 AS savings, 0 AS clusters WHERE 1=0 UNION ALL SELECT 'Run savings analysis' AS category, 0.00 AS savings, 0 AS clusters LIMIT 1"
+      "query": "WITH warehouse_analysis AS (\n  SELECT\n    COALESCE(warehouse_name, compute_type, 'Unknown') AS warehouse,\n    COUNT(*) AS total_queries,\n    SUM(CASE WHEN total_duration_ms > 30000 THEN 1 ELSE 0 END) AS slow_queries\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY 1\n),\ncost_by_warehouse AS (\n  SELECT\n    COALESCE(warehouse_name, compute_type, 'Unknown') AS warehouse,\n    SUM(list_cost) AS total_cost\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY 1\n),\ncategorized AS (\n  SELECT\n    CASE \n      WHEN w.slow_queries * 100.0 / NULLIF(w.total_queries, 0) < 2 AND w.total_queries < 100 THEN 'Oversized Warehouses'\n      WHEN w.slow_queries * 100.0 / NULLIF(w.total_queries, 0) > 20 THEN 'Undersized Warehouses'\n      ELSE 'Optimally Sized'\n    END AS category,\n    COALESCE(c.total_cost, 0) AS cost,\n    1 AS cluster_count\n  FROM warehouse_analysis w\n  LEFT JOIN cost_by_warehouse c ON w.warehouse = c.warehouse\n)\nSELECT\n  category,\n  ROUND(SUM(CASE WHEN category = 'Oversized Warehouses' THEN cost * 0.3 ELSE 0 END), 2) AS savings,\n  COUNT(*) AS clusters\nFROM categorized\nGROUP BY category\nORDER BY savings DESC"
     },
     {
       "name": "ds_ml_capacity_predictions",

@@ -1243,7 +1243,7 @@
         },
         {
           "widget": {
-            "name": "chart_denied_by_service",
+            "name": "table_denied_by_service",
             "queries": [
               {
                 "name": "main_query",
@@ -1257,6 +1257,14 @@
                     {
                       "name": "denial_count",
                       "expression": "`denial_count`"
+                    },
+                    {
+                      "name": "affected_users",
+                      "expression": "`affected_users`"
+                    },
+                    {
+                      "name": "last_denial",
+                      "expression": "`last_denial`"
                     }
                   ],
                   "disaggregated": true
@@ -1264,27 +1272,31 @@
               }
             ],
             "spec": {
-              "version": 3,
-              "widgetType": "bar",
+              "version": 2,
+              "widgetType": "table",
               "encodings": {
-                "x": {
-                  "fieldName": "service_name",
-                  "displayName": "Service",
-                  "scale": {
-                    "type": "categorical"
+                "columns": [
+                  {
+                    "fieldName": "service_name",
+                    "title": "Service"
+                  },
+                  {
+                    "fieldName": "denial_count",
+                    "title": "Denials"
+                  },
+                  {
+                    "fieldName": "affected_users",
+                    "title": "Users Affected"
+                  },
+                  {
+                    "fieldName": "last_denial",
+                    "title": "Last Denial"
                   }
-                },
-                "y": {
-                  "fieldName": "denial_count",
-                  "displayName": "Denials",
-                  "scale": {
-                    "type": "quantitative"
-                  }
-                }
+                ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udd34 Access Denials by Service"
+                "title": "🔴 Access Denials by Service (Ordered by Count)"
               }
             }
           },
@@ -1297,7 +1309,7 @@
         },
         {
           "widget": {
-            "name": "chart_denied_by_user",
+            "name": "table_denied_by_user",
             "queries": [
               {
                 "name": "main_query",
@@ -1311,6 +1323,18 @@
                     {
                       "name": "denial_count",
                       "expression": "`denial_count`"
+                    },
+                    {
+                      "name": "services_affected",
+                      "expression": "`services_affected`"
+                    },
+                    {
+                      "name": "last_denial",
+                      "expression": "`last_denial`"
+                    },
+                    {
+                      "name": "last_denied_action",
+                      "expression": "`last_denied_action`"
                     }
                   ],
                   "disaggregated": true
@@ -1318,27 +1342,35 @@
               }
             ],
             "spec": {
-              "version": 3,
-              "widgetType": "bar",
+              "version": 2,
+              "widgetType": "table",
               "encodings": {
-                "x": {
-                  "fieldName": "user_identity_email",
-                  "displayName": "User",
-                  "scale": {
-                    "type": "categorical"
+                "columns": [
+                  {
+                    "fieldName": "user_identity_email",
+                    "title": "User"
+                  },
+                  {
+                    "fieldName": "denial_count",
+                    "title": "Denials"
+                  },
+                  {
+                    "fieldName": "services_affected",
+                    "title": "Services"
+                  },
+                  {
+                    "fieldName": "last_denial",
+                    "title": "Last Denial"
+                  },
+                  {
+                    "fieldName": "last_denied_action",
+                    "title": "Last Action"
                   }
-                },
-                "y": {
-                  "fieldName": "denial_count",
-                  "displayName": "Denials",
-                  "scale": {
-                    "type": "quantitative"
-                  }
-                }
+                ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udc64 Access Denials by User"
+                "title": "👤 Access Denials by User (Ordered by Count)"
               }
             }
           },
@@ -2977,6 +3009,13 @@
                 "name": "main_query",
                 "query": {
                   "datasetName": "ds_monitor_security_aggregate",
+                  "fields": [
+                    { "name": "window_start", "expression": "`window_start`" },
+                    { "name": "total_events", "expression": "`total_events`" },
+                    { "name": "distinct_users", "expression": "`distinct_users`" },
+                    { "name": "admin_actions", "expression": "`admin_actions`" },
+                    { "name": "high_risk_events", "expression": "`high_risk_events`" }
+                  ],
                   "disaggregated": true
                 }
               }
@@ -2990,30 +3029,11 @@
               },
               "encodings": {
                 "columns": [
-                  {
-                    "fieldName": "window_start",
-                    "type": "datetime",
-                    "dateTimeFormat": "yyyy-MM-dd HH:mm",
-                    "title": "Window Start"
-                  },
-                  {
-                    "fieldName": "total_events",
-                    "type": "number",
-                    "numberFormat": "#,###",
-                    "title": "Total Events"
-                  },
-                  {
-                    "fieldName": "distinct_users",
-                    "type": "number",
-                    "numberFormat": "#,###",
-                    "title": "Distinct Users"
-                  },
-                  {
-                    "fieldName": "admin_actions",
-                    "type": "number",
-                    "numberFormat": "#,###",
-                    "title": "Admin Actions"
-                  }
+                  { "fieldName": "window_start", "title": "Date" },
+                  { "fieldName": "total_events", "title": "Total Events" },
+                  { "fieldName": "distinct_users", "title": "Distinct Users" },
+                  { "fieldName": "admin_actions", "title": "Admin Actions" },
+                  { "fieldName": "high_risk_events", "title": "High Risk Events" }
                 ]
               }
             }
@@ -3313,7 +3333,7 @@
     {
       "name": "ds_denied_by_service",
       "displayName": "Denied by Service",
-      "query": "SELECT COALESCE(service_name, 'Unknown') AS service_name, COUNT(*) AS denial_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max AND (is_failed_action = true OR response_status_code >= 400 OR LOWER(action_name) LIKE '%denied%' OR LOWER(action_name) LIKE '%unauthorized%') GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "query": "SELECT \n  COALESCE(service_name, 'Unknown') AS service_name, \n  COUNT(*) AS denial_count,\n  COUNT(DISTINCT user_identity_email) AS affected_users,\n  MAX(event_time) AS last_denial\nFROM ${catalog}.${gold_schema}.fact_audit_logs \nWHERE event_time BETWEEN :time_range.min AND :time_range.max \n  AND (\n    response_result = 'DENIED'\n    OR response_result = 'denied' \n    OR response_result = 'UNAUTHORIZED'\n    OR LOWER(action_name) LIKE '%accessdenied%'\n    OR LOWER(action_name) LIKE '%unauthorized%'\n    OR LOWER(action_name) LIKE '%forbidden%'\n    OR (response_status_code IN (401, 403) AND response_status_code IS NOT NULL)\n  )\nGROUP BY 1 \nORDER BY denial_count DESC \nLIMIT 15",
       "parameters": [
         {
           "displayName": "time_range",
@@ -3353,7 +3373,7 @@
     {
       "name": "ds_denied_by_user",
       "displayName": "Denied by User",
-      "query": "SELECT COALESCE(user_identity_email, 'Unknown') AS user_identity_email, COUNT(*) AS denial_count FROM ${catalog}.${gold_schema}.fact_audit_logs WHERE event_time BETWEEN :time_range.min AND :time_range.max AND (is_failed_action = true OR response_status_code >= 400 OR LOWER(action_name) LIKE '%denied%' OR LOWER(action_name) LIKE '%unauthorized%') GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "query": "SELECT \n  COALESCE(user_identity_email, 'Unknown') AS user_identity_email, \n  COUNT(*) AS denial_count,\n  COUNT(DISTINCT service_name) AS services_affected,\n  COUNT(DISTINCT action_name) AS distinct_actions,\n  MAX(event_time) AS last_denial,\n  MAX(action_name) AS last_denied_action\nFROM ${catalog}.${gold_schema}.fact_audit_logs \nWHERE event_time BETWEEN :time_range.min AND :time_range.max \n  AND (\n    response_result = 'DENIED'\n    OR response_result = 'denied' \n    OR response_result = 'UNAUTHORIZED'\n    OR LOWER(action_name) LIKE '%accessdenied%'\n    OR LOWER(action_name) LIKE '%unauthorized%'\n    OR LOWER(action_name) LIKE '%forbidden%'\n    OR (response_status_code IN (401, 403) AND response_status_code IS NOT NULL)\n  )\nGROUP BY 1 \nORDER BY denial_count DESC \nLIMIT 15",
       "parameters": [
         {
           "displayName": "time_range",
@@ -3689,7 +3709,7 @@
     {
       "name": "ds_monitor_latest",
       "displayName": "Monitor: Latest",
-      "query": "SELECT \n  COALESCE(total_events, 0) AS total_events,\n  COALESCE(distinct_users, 0) AS unique_users,\n  ROUND(COALESCE(sensitive_action_count, 0) * 100.0 / NULLIF(total_events, 0), 2) AS high_risk_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\nORDER BY window.start DESC\nLIMIT 1",
+      "query": "-- Latest security KPIs from fact_audit_logs\nSELECT \n  COUNT(*) AS total_events,\n  COUNT(DISTINCT user_identity) AS unique_users,\n  ROUND(SUM(CASE \n    WHEN action_name IN ('deleteCluster', 'deleteJob', 'deleteWarehouse', 'deleteSecret', \n                         'removePermissions', 'revokeToken', 'deleteUser', 'removeGroupMember') THEN 1\n    WHEN action_name LIKE '%secret%' OR action_name LIKE '%token%' OR action_name LIKE '%permission%' THEN 1\n    ELSE 0\n  END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS high_risk_rate\nFROM ${catalog}.${gold_schema}.fact_audit_logs\nWHERE DATE(event_time) >= :time_range.min\n  AND DATE(event_time) <= :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -3713,7 +3733,7 @@
     {
       "name": "ds_monitor_trend",
       "displayName": "Monitor: Trend",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(total_events, 0) AS total_events,\n  COALESCE(sensitive_action_count, 0) AS high_risk_events,\n  COALESCE(distinct_users, 0) AS unique_users\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\nORDER BY window_start",
+      "query": "-- Daily security event trend from fact_audit_logs\nSELECT \n  DATE(event_time) AS window_start,\n  COUNT(*) AS total_events,\n  SUM(CASE \n    WHEN action_name IN ('deleteCluster', 'deleteJob', 'deleteWarehouse', 'deleteSecret', \n                         'removePermissions', 'revokeToken', 'deleteUser', 'removeGroupMember') THEN 1\n    WHEN action_name LIKE '%secret%' OR action_name LIKE '%token%' OR action_name LIKE '%permission%' THEN 1\n    ELSE 0\n  END) AS high_risk_events,\n  COUNT(DISTINCT user_identity) AS unique_users\nFROM ${catalog}.${gold_schema}.fact_audit_logs\nWHERE DATE(event_time) >= :time_range.min\n  AND DATE(event_time) <= :time_range.max\nGROUP BY DATE(event_time)\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -3737,7 +3757,7 @@
     {
       "name": "ds_monitor_access",
       "displayName": "Monitor: Access",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(failed_action_count, 0) AS denied_accesses,\n  COALESCE(permission_change_count, 0) AS permission_changes,\n  COALESCE(account_level_events, 0) AS admin_actions\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\nORDER BY window_start",
+      "query": "-- Daily access patterns from fact_audit_logs\nSELECT \n  DATE(event_time) AS window_start,\n  SUM(CASE WHEN response.status_code >= 400 OR response.error_message IS NOT NULL THEN 1 ELSE 0 END) AS denied_accesses,\n  SUM(CASE WHEN action_name LIKE '%Permission%' OR action_name LIKE '%permission%' OR action_name LIKE '%grant%' OR action_name LIKE '%revoke%' THEN 1 ELSE 0 END) AS permission_changes,\n  SUM(CASE WHEN service_name = 'accounts' OR action_name LIKE '%admin%' OR action_name LIKE '%Admin%' THEN 1 ELSE 0 END) AS admin_actions\nFROM ${catalog}.${gold_schema}.fact_audit_logs\nWHERE DATE(event_time) >= :time_range.min\n  AND DATE(event_time) <= :time_range.max\nGROUP BY DATE(event_time)\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -3761,7 +3781,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(event_volume_drift_pct, 0) AS event_volume_drift,\n  COALESCE(sensitive_action_drift, 0) AS risk_level_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_drift_metrics\nWHERE column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\nORDER BY window_start",
+      "query": "-- Calculate week-over-week drift from fact_audit_logs\nWITH daily_metrics AS (\n  SELECT \n    DATE(event_time) AS day,\n    COUNT(*) AS daily_events,\n    SUM(CASE WHEN action_name LIKE '%secret%' OR action_name LIKE '%token%' OR action_name LIKE '%permission%' THEN 1 ELSE 0 END) AS daily_high_risk\n  FROM ${catalog}.${gold_schema}.fact_audit_logs\n  WHERE DATE(event_time) >= :time_range.min\n    AND DATE(event_time) <= :time_range.max\n  GROUP BY DATE(event_time)\n),\nweekly_avg AS (\n  SELECT \n    day,\n    daily_events,\n    daily_high_risk,\n    AVG(daily_events) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_avg,\n    LAG(AVG(daily_events) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_avg,\n    AVG(daily_high_risk) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_high_risk_avg,\n    LAG(AVG(daily_high_risk) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_high_risk_avg\n  FROM daily_metrics\n)\nSELECT \n  day AS window_start,\n  ROUND((seven_day_avg - prev_seven_day_avg) * 100.0 / NULLIF(prev_seven_day_avg, 0), 1) AS event_volume_drift,\n  ROUND((seven_day_high_risk_avg - prev_seven_day_high_risk_avg) * 100.0 / NULLIF(prev_seven_day_high_risk_avg, 0), 1) AS risk_level_drift\nFROM weekly_avg\nWHERE prev_seven_day_avg IS NOT NULL\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -3785,7 +3805,7 @@
     {
       "name": "ds_monitor_detailed",
       "displayName": "Monitor: Detailed",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(total_events, 0) AS total_events,\n  COALESCE(distinct_users, 0) AS unique_users,\n  COALESCE(sensitive_action_count, 0) AS high_risk_events,\n  COALESCE(failed_action_count, 0) AS denied_accesses\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :time_range.min\nORDER BY window_start DESC\nLIMIT 30",
+      "query": "-- Detailed daily security metrics from fact_audit_logs\nSELECT \n  DATE(event_time) AS window_start,\n  COUNT(*) AS total_events,\n  COUNT(DISTINCT user_identity) AS unique_users,\n  SUM(CASE \n    WHEN action_name IN ('deleteCluster', 'deleteJob', 'deleteWarehouse', 'deleteSecret', \n                         'removePermissions', 'revokeToken', 'deleteUser', 'removeGroupMember') THEN 1\n    WHEN action_name LIKE '%secret%' OR action_name LIKE '%token%' OR action_name LIKE '%permission%' THEN 1\n    ELSE 0\n  END) AS high_risk_events,\n  SUM(CASE WHEN response.status_code >= 400 OR response.error_message IS NOT NULL THEN 1 ELSE 0 END) AS denied_accesses\nFROM ${catalog}.${gold_schema}.fact_audit_logs\nWHERE DATE(event_time) >= :time_range.min\n  AND DATE(event_time) <= :time_range.max\nGROUP BY DATE(event_time)\nORDER BY window_start DESC\nLIMIT 30",
       "parameters": [
         {
           "displayName": "time_range",
@@ -3847,7 +3867,7 @@
     {
       "name": "ds_monitor_security_aggregate",
       "displayName": "Security Aggregate Metrics",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  COALESCE(total_events, 0) AS total_events,\n  COALESCE(distinct_users, 0) AS distinct_users,\n  COALESCE(account_level_events, 0) AS admin_actions,\n  COALESCE(sensitive_action_count, 0) AS high_risk_events\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :monitor_time_start\nORDER BY window_start DESC",
+      "query": "-- Security aggregate metrics from fact_audit_logs\nSELECT \n  DATE(event_time) AS window_start,\n  COUNT(*) AS total_events,\n  COUNT(DISTINCT user_identity_email) AS distinct_users,\n  SUM(CASE WHEN service_name = 'accounts' OR action_name LIKE '%admin%' THEN 1 ELSE 0 END) AS admin_actions,\n  SUM(CASE \n    WHEN action_name IN ('deleteCluster', 'deleteJob', 'deleteWarehouse', 'deleteSecret', \n                         'removePermissions', 'revokeToken', 'deleteUser', 'removeGroupMember',\n                         'updateClusterPermissions', 'updateJobPermissions') THEN 1\n    WHEN action_name LIKE '%secret%' OR action_name LIKE '%token%' OR action_name LIKE '%permission%' THEN 1\n    ELSE 0\n  END) AS high_risk_events\nFROM ${catalog}.${gold_schema}.fact_audit_logs\nWHERE event_time >= :monitor_time_start\n  AND event_time <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(event_time)\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -3914,7 +3934,7 @@
     {
       "name": "ds_monitor_security_derived",
       "displayName": "Security Derived KPIs",
-      "query": "SELECT \n  DATE(window.start) AS window_start,\n  ROUND(COALESCE(sensitive_action_rate, 0) * 100, 2) AS admin_action_rate,\n  ROUND(COALESCE(failure_rate, 0) * 100, 2) AS high_risk_event_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\n  AND window.start >= :monitor_time_start\nORDER BY window_start DESC",
+      "query": "-- Derived security KPIs from fact_audit_logs\nSELECT \n  DATE(event_time) AS window_start,\n  ROUND(SUM(CASE WHEN service_name = 'accounts' OR action_name LIKE '%admin%' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS admin_action_rate,\n  ROUND(SUM(CASE \n    WHEN action_name IN ('deleteCluster', 'deleteJob', 'deleteWarehouse', 'deleteSecret') THEN 1\n    WHEN action_name LIKE '%secret%' OR action_name LIKE '%token%' THEN 1\n    ELSE 0\n  END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS high_risk_event_rate\nFROM ${catalog}.${gold_schema}.fact_audit_logs\nWHERE event_time >= :monitor_time_start\n  AND event_time <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(event_time)\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -3981,7 +4001,7 @@
     {
       "name": "ds_monitor_security_slice_keys",
       "displayName": "Security Slice Keys",
-      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_key\n  FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_key IS NOT NULL\n)\nSELECT 'No Slice' AS slice_key\nUNION ALL\nSELECT slice_key FROM profile_metrics\nORDER BY slice_key",
+      "query": "-- Available slice keys for security analysis\nSELECT 'All' AS slice_key\nUNION ALL\nSELECT 'service_name' AS slice_key\nUNION ALL\nSELECT 'user_identity' AS slice_key\nUNION ALL\nSELECT 'action_name' AS slice_key\nORDER BY slice_key",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -4018,7 +4038,7 @@
     {
       "name": "ds_monitor_security_slice_values",
       "displayName": "Security Slice Values",
-      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_value, COALESCE(slice_key, 'No Slice') AS sk\n  FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_value IS NOT NULL\n)\nSELECT 'No Slice' AS slice_value\nUNION ALL\nSELECT slice_value FROM profile_metrics WHERE sk = :monitor_slice_key\nORDER BY slice_value",
+      "query": "-- Available slice values based on selected slice key\nSELECT 'All' AS slice_value\nUNION ALL\nSELECT DISTINCT \n  CASE \n    WHEN :monitor_slice_key = 'service_name' THEN service_name\n    WHEN :monitor_slice_key = 'user_identity' THEN user_identity\n    WHEN :monitor_slice_key = 'action_name' THEN action_name\n    ELSE 'All'\n  END AS slice_value\nFROM ${catalog}.${gold_schema}.fact_audit_logs\nWHERE event_time >= :monitor_time_start\n  AND event_time <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\n  AND :monitor_slice_key != 'All'\nLIMIT 50",
       "parameters": [
         {
           "displayName": "monitor_time_start",

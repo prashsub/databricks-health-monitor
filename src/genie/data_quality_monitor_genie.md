@@ -60,13 +60,13 @@
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_table_freshness` | Table freshness metrics | "stale tables" |
-| `get_job_data_quality_status` | Job quality status | "job quality" |
-| `get_data_freshness_by_domain` | Freshness by domain | "freshness by domain" |
-| `get_data_quality_summary` | Quality summary | "quality score" |
-| `get_tables_failing_quality` | Failed quality checks | "failing quality" |
-| `get_table_activity_status` | Activity status | "inactive tables" |
-| `get_pipeline_data_lineage` | Pipeline lineage | "pipeline dependencies" |
+| `get_stale_tables` | Table freshness metrics | "stale tables" |
+| `get_table_activity_summary` | Job quality status | "job quality" |
+| `get_table_activity_summary` | Freshness by domain | "freshness by domain" |
+| `get_table_activity_summary` | Quality summary | "quality score" |
+| `get_stale_tables` | Failed quality checks | "failing quality" |
+| `get_table_activity_summary` | Activity status | "inactive tables" |
+| `get_data_lineage_summary` | Pipeline lineage | "pipeline dependencies" |
 
 ### ML Prediction Tables 🤖 (3 Models)
 
@@ -205,9 +205,9 @@ ORDER BY window.start DESC;
 │  "Is quality degrading?"           → Custom Metrics (_drift_metrics)│
 │  "Freshness trend"                 → Custom Metrics (_profile_metrics)│
 │  ─────────────────────────────────────────────────────────────  │
-│  "Which tables are stale?"         → TVF (get_table_freshness)   │
-│  "Tables failing quality"          → TVF (get_tables_failing_quality)│
-│  "Lineage for pipeline X"          → TVF (get_pipeline_data_lineage)│
+│  "Which tables are stale?"         → TVF (get_stale_tables)   │
+│  "Tables failing quality"          → TVF (get_stale_tables)│
+│  "Lineage for pipeline X"          → TVF (get_data_lineage_summary)│
 │  ─────────────────────────────────────────────────────────────  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -219,9 +219,9 @@ ORDER BY window.start DESC;
 |--------------|-----------|---------|
 | **Overall quality score** | Metric View | "Data quality" → `data_quality` |
 | **Quality trend** | Custom Metrics | "Is quality degrading?" → `_drift_metrics` |
-| **List of stale tables** | TVF | "Stale tables" → `get_table_freshness` |
+| **List of stale tables** | TVF | "Stale tables" → `get_stale_tables` |
 | **Quality predictions** | ML Tables | "Quality anomalies" → `quality_anomaly_predictions` |
-| **Lineage analysis** | TVF | "Pipeline dependencies" → `get_pipeline_data_lineage` |
+| **Lineage analysis** | TVF | "Pipeline dependencies" → `get_data_lineage_summary` |
 
 ### Priority Order
 
@@ -250,7 +250,7 @@ You are a data quality and governance analyst. Follow these rules:
 11. **Synonyms:** stale=outdated=old, quality=health=status
 12. **ML Anomaly:** For "quality anomalies" → query quality_anomaly_predictions
 13. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
-14. **Lineage:** For "dependencies" → use get_pipeline_data_lineage TVF
+14. **Lineage:** For "dependencies" → use get_data_lineage_summary TVF
 15. **Context:** Explain ACTIVE vs INACTIVE vs ORPHANED status
 16. **Performance:** Never scan Bronze/Silver tables
 ```
@@ -263,31 +263,31 @@ You are a data quality and governance analyst. Follow these rules:
 
 | Function Name | Signature | Purpose | When to Use |
 |---------------|-----------|---------|-------------|
-| `get_table_freshness` | `(start_date STRING, end_date STRING, stale_threshold_hours INT)` | Freshness | "stale tables" |
-| `get_data_quality_summary` | `(start_date STRING, end_date STRING)` | Quality summary | "quality score" |
-| `get_tables_failing_quality` | `(start_date STRING, end_date STRING)` | Failed checks | "failing quality" |
-| `get_table_activity_status` | `(start_date STRING, end_date STRING, activity_days INT)` | Activity status | "inactive tables" |
-| `get_pipeline_data_lineage` | `(pipeline_name STRING, start_date STRING, end_date STRING)` | Lineage | "dependencies" |
+| `get_stale_tables` | `(start_date STRING, end_date STRING, stale_threshold_hours INT)` | Freshness | "stale tables" |
+| `get_table_activity_summary` | `(start_date STRING, end_date STRING)` | Quality summary | "quality score" |
+| `get_stale_tables` | `(start_date STRING, end_date STRING)` | Failed checks | "failing quality" |
+| `get_table_activity_summary` | `(start_date STRING, end_date STRING, activity_days INT)` | Activity status | "inactive tables" |
+| `get_data_lineage_summary` | `(pipeline_name STRING, start_date STRING, end_date STRING)` | Lineage | "dependencies" |
 
 ### TVF Details
 
-#### get_table_freshness
-- **Signature:** `get_table_freshness(start_date STRING, end_date STRING, stale_threshold_hours INT)`
+#### get_stale_tables
+- **Signature:** `get_stale_tables(start_date STRING, end_date STRING, stale_threshold_hours INT)`
 - **Returns:** table_name, last_update, hours_since_update, freshness_status
 - **Use When:** User asks for "stale tables" or "data freshness"
-- **Example:** `SELECT * FROM ${catalog}.${gold_schema}.get_table_freshness('2024-12-01', '2024-12-31', 24)`
+- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables('2024-12-01', '2024-12-31', 24)`
 
-#### get_data_quality_summary
-- **Signature:** `get_data_quality_summary(start_date STRING, end_date STRING)`
+#### get_table_activity_summary
+- **Signature:** `get_table_activity_summary(start_date STRING, end_date STRING)`
 - **Returns:** domain, table_count, avg_quality_score, completeness_rate, validity_rate
 - **Use When:** User asks for "quality score" or "data quality summary"
-- **Example:** `SELECT * FROM ${catalog}.${gold_schema}.get_data_quality_summary('2024-12-01', '2024-12-31')`
+- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary('2024-12-01', '2024-12-31')`
 
-#### get_table_activity_status
-- **Signature:** `get_table_activity_status(start_date STRING, end_date STRING, activity_days INT)`
+#### get_table_activity_summary
+- **Signature:** `get_table_activity_summary(start_date STRING, end_date STRING, activity_days INT)`
 - **Returns:** table_name, last_access, activity_status, days_inactive
 - **Use When:** User asks for "inactive tables" or "orphaned tables"
-- **Example:** `SELECT * FROM ${catalog}.${gold_schema}.get_table_activity_status('2024-12-01', '2024-12-31', 14)`
+- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary('2024-12-01', '2024-12-31', 14)`
 
 ---
 
@@ -353,293 +353,243 @@ USER QUESTION                           → USE THIS
 
 ## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
 
-### Question 1: "Which tables are stale?"
+> **TOTAL: 25 Questions (20 Normal + 5 Deep Research)**
+> **Grounded in:** mv_data_quality, mv_ml_intelligence, TVFs, ML Tables
+
+### ✅ Normal Benchmark Questions (Q1-Q20)
+
+### Question 1: "What is our overall data quality score?"
 **Expected SQL:**
 ```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_table_freshness(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-  24
-)
+SELECT MEASURE(quality_score) as overall_quality
+FROM ${catalog}.${gold_schema}.mv_data_quality
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+```
+**Expected Result:** Overall data quality score (0-100 scale)
+
+---
+
+### Question 2: "Show me tables with freshness issues"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(7, 24))
 WHERE freshness_status IN ('STALE', 'CRITICAL')
 ORDER BY hours_since_update DESC
 LIMIT 20;
 ```
-**Expected Result:** Tables not updated in 24+ hours
+**Expected Result:** Tables not updated within expected timeframe
 
 ---
 
-### Question 2: "What is our overall data quality score?"
+### Question 3: "What is the completeness rate?"
+**Expected SQL:**
+```sql
+SELECT MEASURE(completeness_rate) as completeness_pct
+FROM ${catalog}.${gold_schema}.mv_data_quality
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+```
+**Expected Result:** Overall data completeness percentage
+
+---
+
+### Question 4: "Show me tables failing quality checks"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(7))
+WHERE failed_checks > 0
+ORDER BY failed_checks DESC, quality_score ASC
+LIMIT 20;
+```
+**Expected Result:** Tables with failed data quality validations
+
+---
+
+### Question 5: "What is our data freshness by domain?"
+**Expected SQL:**
+```sql
+SELECT
+  domain,
+  total_tables,
+  stale_tables,
+  avg_hours_since_update
+FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(7))
+GROUP BY domain
+ORDER BY stale_tables DESC
+LIMIT 15;
+```
+**Expected Result:** Freshness metrics aggregated by domain
+
+---
+
+### Question 6: "Show me the data quality summary"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(7))
+ORDER BY quality_score ASC
+LIMIT 20;
+```
+**Expected Result:** Comprehensive quality summary across all tables
+
+---
+
+### Question 7: "What is the validity rate?"
+**Expected SQL:**
+```sql
+SELECT MEASURE(validity_rate) as validity_pct
+FROM ${catalog}.${gold_schema}.mv_data_quality
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+```
+**Expected Result:** Overall data validity percentage
+
+---
+
+### Question 8: "Show me inactive tables"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(30))
+WHERE activity_status IN ('INACTIVE', 'ORPHANED')
+ORDER BY days_since_last_access DESC
+LIMIT 20;
+```
+**Expected Result:** Tables with no recent activity requiring review
+
+---
+
+### Question 9: "What is the freshness rate?"
+**Expected SQL:**
+```sql
+SELECT MEASURE(freshness_rate) as fresh_pct
+FROM ${catalog}.${gold_schema}.mv_data_quality
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+```
+**Expected Result:** Percentage of tables meeting freshness SLA
+
+---
+
+### Question 10: "Show me pipeline data lineage"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_data_lineage_summary('main', '%'))
+ORDER BY dependency_depth ASC
+LIMIT 50;
+```
+**Expected Result:** Complete lineage graph for specified pipeline
+
+---
+
+### Question 11: "What is the job quality status?"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(7))
+ORDER BY quality_score ASC
+LIMIT 15;
+```
+**Expected Result:** Data quality health by job/pipeline
+
+---
+
+### Question 12: "What is the staleness rate?"
+**Expected SQL:**
+```sql
+SELECT MEASURE(staleness_rate) as stale_pct
+FROM ${catalog}.${gold_schema}.mv_data_quality
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+```
+**Expected Result:** Percentage of stale tables
+
+---
+
+### Question 13: "Show me quality score by domain"
 **Expected SQL:**
 ```sql
 SELECT 
-  AVG(avg_quality_score) as overall_quality_score
-FROM ${catalog}.${gold_schema}.get_data_quality_summary(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-);
+  domain,
+  MEASURE(quality_score) as avg_quality,
+  MEASURE(total_tables) as table_count
+FROM ${catalog}.${gold_schema}.mv_data_quality
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+GROUP BY domain
+ORDER BY avg_quality ASC
+LIMIT 10;
 ```
-**Expected Result:** Single quality score (0-100)
+**Expected Result:** Quality metrics grouped by domain
 
 ---
 
-### Question 3: "Which tables are failing quality checks?"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_tables_failing_quality(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY failure_count DESC
-LIMIT 20;
-```
-**Expected Result:** Tables with quality failures
-
----
-
-### Question 4: "Show me inactive tables"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_table_activity_status(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 30 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-  14
-)
-WHERE activity_status = 'INACTIVE'
-ORDER BY days_inactive DESC
-LIMIT 20;
-```
-**Expected Result:** Tables not accessed in 14+ days
-
----
-
-### Question 5: "Are there any quality anomalies?"
-**Expected SQL:**
-```sql
-SELECT 
-  table_name,
-  anomaly_score,
-  is_anomaly,
-  dimension
-FROM ${catalog}.${gold_schema}.quality_anomaly_predictions
-WHERE is_anomaly = TRUE
-ORDER BY anomaly_score DESC
-LIMIT 20;
-```
-**Expected Result:** Tables with detected quality anomalies
-
----
-
-### Question 6: "Which tables have degrading quality?"
-**Expected SQL:**
-```sql
-SELECT 
-  table_name,
-  predicted_quality_score,
-  forecast_date
-FROM ${catalog}.${gold_schema}.quality_trend_predictions
-WHERE predicted_quality_score < 70
-ORDER BY predicted_quality_score ASC
-LIMIT 20;
-```
-**Expected Result:** Tables predicted to have low quality
-
----
-
-### Question 7: "What is the data freshness by domain?"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_data_freshness_by_domain(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY stale_table_count DESC;
-```
-**Expected Result:** Freshness summary by domain
-
----
-
-### Question 8: "Predict data freshness issues"
-**Expected SQL:**
-```sql
-SELECT 
-  table_name,
-  staleness_probability,
-  expected_stale_date
-FROM ${catalog}.${gold_schema}.freshness_alert_predictions
-WHERE staleness_probability > 0.5
-ORDER BY staleness_probability DESC
-LIMIT 20;
-```
-**Expected Result:** Tables likely to become stale
-
----
-
-### Question 9: "Show me pipeline data lineage"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_pipeline_data_lineage(
-  NULL,
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 30 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY dependency_count DESC
-LIMIT 20;
-```
-**Expected Result:** Pipelines with their data dependencies
-
----
-
-### Question 10: "What tables have the most reads?"
-**Expected SQL:**
-```sql
-SELECT 
-  entity_name as table_name,
-  MEASURE(read_events) as read_count
-FROM ${catalog}.${gold_schema}.fact_table_lineage_profile_metrics
-WHERE column_name = ':table'
-  AND window_start >= CURRENT_DATE() - INTERVAL 7 DAYS
-GROUP BY entity_name
-ORDER BY read_count DESC
-LIMIT 20;
-```
-**Expected Result:** Most frequently accessed tables
-
----
-
-### Question 11: "What is the completeness rate by schema?"
-**Expected SQL:**
-```sql
-SELECT 
-  slice_value AS schema_name,
-  AVG(completeness_rate) AS avg_completeness_rate
-FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
-WHERE column_name = ':table'
-  AND log_type = 'INPUT'
-  AND slice_key = 'schema_name'
-GROUP BY slice_value
-ORDER BY avg_completeness_rate ASC
-LIMIT 20;
-```
-**Expected Result:** Completeness rates by schema
-
----
-
-### Question 12: "Show me tables with data drift"
+### Question 14: "Are there any quality anomalies?"
 **Expected SQL:**
 ```sql
 SELECT 
   table_name,
-  drift_score,
-  is_drifted,
-  drift_columns
-FROM ${catalog}.${gold_schema}.quality_anomaly_predictions
-WHERE is_drifted = TRUE
-ORDER BY drift_score DESC
+  prediction as drift_score,
+  evaluation_date
+FROM ${catalog}.${feature_schema}.quality_anomaly_predictions
+WHERE prediction > 0.5
+ORDER BY prediction DESC
 LIMIT 20;
 ```
-**Expected Result:** Tables with detected data drift
+**Expected Result:** ML-detected data quality drift and anomalies
 
 ---
 
-### Question 13: "What is the quality trend this week?"
+### Question 15: "What is our ML model performance?"
 **Expected SQL:**
 ```sql
 SELECT 
-  window.start as window_start,
-  quality_score,
-  completeness_rate,
-  validity_rate
-FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
-WHERE column_name = ':table'
-  AND log_type = 'INPUT'
-  AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS
-ORDER BY window.start;
+  MEASURE(accuracy) as ml_accuracy,
+  MEASURE(drift_score) as ml_drift,
+  MEASURE(prediction_count) as total_predictions
+FROM ${catalog}.${gold_schema}.mv_ml_intelligence
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ```
-**Expected Result:** Daily quality metrics for the week
+**Expected Result:** ML model performance metrics across all models
 
 ---
 
-### Question 14: "Which tables have the highest write activity?"
-**Expected SQL:**
-```sql
-SELECT 
-  target_table as table_name,
-  COUNT(*) as write_count
-FROM ${catalog}.${gold_schema}.fact_table_lineage
-WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  AND event_type = 'WRITE'
-GROUP BY target_table
-ORDER BY write_count DESC
-LIMIT 20;
-```
-**Expected Result:** Tables with most write operations
-
----
-
-### Question 15: "Show me orphaned tables"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_table_activity_status(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 90 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-  30
-)
-WHERE activity_status = 'ORPHANED'
-ORDER BY days_inactive DESC
-LIMIT 20;
-```
-**Expected Result:** Tables not accessed in 30+ days
-
----
-
-### Question 16: "What DQ checks are failing most often?"
-**Expected SQL:**
-```sql
-SELECT 
-  check_name,
-  table_name,
-  COUNT(*) as failure_count
-FROM ${catalog}.${gold_schema}.fact_dq_monitoring
-WHERE check_result = 'FAILED'
-  AND check_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-GROUP BY check_name, table_name
-ORDER BY failure_count DESC
-LIMIT 20;
-```
-**Expected Result:** Most frequently failing DQ checks
-
----
-
-### Question 17: "Which tables have schema change predictions?"
+### Question 16: "Show me tables at risk of staleness"
 **Expected SQL:**
 ```sql
 SELECT 
   table_name,
-  change_probability,
-  predicted_change_type,
-  risk_factors
-FROM ${catalog}.${gold_schema}.quality_trend_predictions
-WHERE change_probability > 0.5
-ORDER BY change_probability DESC
+  prediction as staleness_probability,
+  evaluation_date
+FROM ${catalog}.${feature_schema}.freshness_alert_predictions
+WHERE prediction > 0.7
+ORDER BY prediction DESC
 LIMIT 20;
 ```
-**Expected Result:** Tables at risk of schema changes
+**Expected Result:** Predicted freshness issues before they occur
 
 ---
 
-### Question 18: "Show me tables with critical freshness issues"
+### Question 17: "What is our ML prediction accuracy?"
 **Expected SQL:**
 ```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_table_freshness(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-  72
-)
-WHERE freshness_status = 'CRITICAL'
-ORDER BY hours_since_update DESC;
+SELECT 
+  MEASURE(accuracy) as model_accuracy,
+  MEASURE(prediction_count) as predictions
+FROM ${catalog}.${gold_schema}.mv_ml_intelligence
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ```
-**Expected Result:** Tables not updated in 72+ hours
+**Expected Result:** ML model performance metrics
+
+---
+
+### Question 18: "Show me quality drift metrics"
+**Expected SQL:**
+```sql
+SELECT 
+  window.start AS period_start,
+  quality_score_drift_pct,
+  completeness_drift_pct,
+  validity_drift_pct
+FROM ${catalog}.${gold_schema}.fact_table_quality_drift_metrics
+WHERE drift_type = 'CONSECUTIVE'
+  AND column_name = ':table'
+ORDER BY window.start DESC
+LIMIT 10;
+```
+**Expected Result:** Data quality degradation trends from Lakehouse Monitoring
 
 ---
 
@@ -648,478 +598,544 @@ ORDER BY hours_since_update DESC;
 ```sql
 SELECT 
   window.start AS window_start,
-  tag_coverage,
-  lineage_coverage
+  tag_coverage_rate,
+  lineage_coverage_rate
 FROM ${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics
 WHERE column_name = ':table'
   AND log_type = 'INPUT'
+  AND slice_key IS NULL
 ORDER BY window.start DESC
-LIMIT 7;
-```
-**Expected Result:** Governance metrics over time
-
----
-
-### Question 20: "Which pipelines have the most dependencies?"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_pipeline_data_lineage(
-  NULL,
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 30 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY dependency_count DESC
 LIMIT 10;
 ```
-**Expected Result:** Pipelines with highest dependency counts
+**Expected Result:** Governance metadata coverage from Lakehouse Monitoring
 
 ---
 
-### 🔬 DEEP RESEARCH QUESTIONS (Complex Multi-Source Analysis)
-
-### Question 21: "Which critical business tables are showing quality degradation AND are predicted to have schema changes, and what is the downstream impact on dependent pipelines?"
-**Deep Research Complexity:** Combines quality trend analysis, ML schema change predictions, lineage analysis, and downstream impact assessment across multiple data sources.
-
-**Expected SQL (Multi-Step Analysis):**
+### Question 20: "Show me quality score distribution"
+**Expected SQL:**
 ```sql
--- Step 1: Identify tables with declining quality scores
-WITH quality_decline AS (
-  SELECT 
-    table_name,
-    AVG(CASE WHEN window.start >= CURRENT_DATE() - INTERVAL 7 DAYS THEN quality_score END) as recent_quality,
-    AVG(CASE WHEN window.start >= CURRENT_DATE() - INTERVAL 30 DAYS 
-             AND window.start < CURRENT_DATE() - INTERVAL 7 DAYS THEN quality_score END) as prev_quality
-  FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
-  WHERE column_name = ':table' AND log_type = 'INPUT'
-  GROUP BY table_name
-  HAVING recent_quality < prev_quality * 0.95  -- 5%+ decline
-),
--- Step 2: Cross-reference with schema change predictions
-schema_risk AS (
-  SELECT 
-    table_name,
-    change_probability,
-    predicted_change_type,
-    risk_factors
-  FROM ${catalog}.${gold_schema}.quality_trend_predictions
-  WHERE change_probability > 0.5
-),
--- Step 3: Get downstream dependencies from lineage
-downstream_impact AS (
-  SELECT 
-    source_table,
-    COUNT(DISTINCT target_table) as downstream_table_count,
-    COUNT(DISTINCT pipeline_name) as dependent_pipeline_count
-  FROM ${catalog}.${gold_schema}.fact_table_lineage
-  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY source_table
-)
 SELECT 
-  q.table_name,
-  q.recent_quality,
-  q.prev_quality,
-  ROUND((q.prev_quality - q.recent_quality) / q.prev_quality * 100, 1) as quality_decline_pct,
-  s.change_probability as schema_change_risk,
-  s.predicted_change_type,
-  d.downstream_table_count,
-  d.dependent_pipeline_count,
   CASE 
-    WHEN d.dependent_pipeline_count > 5 THEN 'CRITICAL - HIGH BLAST RADIUS'
-    WHEN d.dependent_pipeline_count > 2 THEN 'HIGH - MULTIPLE DEPENDENCIES'
-    ELSE 'MEDIUM - LIMITED IMPACT'
-  END as impact_severity
-FROM quality_decline q
-JOIN schema_risk s ON q.table_name = s.table_name
-LEFT JOIN downstream_impact d ON q.table_name = d.source_table
-ORDER BY d.dependent_pipeline_count DESC, s.change_probability DESC
-LIMIT 15;
+    WHEN MEASURE(quality_score) >= 90 THEN 'Excellent (90-100)'
+    WHEN MEASURE(quality_score) >= 70 THEN 'Good (70-89)'
+    WHEN MEASURE(quality_score) >= 50 THEN 'Fair (50-69)'
+    ELSE 'Poor (<50)'
+  END as quality_tier,
+  COUNT(*) as table_count
+FROM ${catalog}.${gold_schema}.mv_data_quality
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+GROUP BY quality_tier
+ORDER BY MIN(MEASURE(quality_score)) DESC;
 ```
-**Expected Result:** Critical tables with both quality issues AND predicted schema changes, with full downstream impact assessment.
+**Expected Result:** Distribution of tables across quality tiers
 
 ---
 
-### Question 22: "What is the correlation between data freshness issues and downstream job failures, and which tables should be prioritized for monitoring based on their blast radius?"
-**Deep Research Complexity:** Combines freshness analysis, job failure correlation, lineage-based blast radius calculation, and monitoring prioritization.
+### 🔬 Deep Research Questions (Q21-Q25)
 
-**Expected SQL (Multi-Step Analysis):**
+### Question 21: "🔬 DEEP RESEARCH: Comprehensive table health assessment - combine freshness, quality, activity, and ML predictions"
+**Expected SQL:**
 ```sql
--- Step 1: Get tables with freshness issues
-WITH stale_tables AS (
-  SELECT 
+WITH freshness AS (
+  SELECT
     table_name,
     hours_since_update,
-    freshness_status
-  FROM ${catalog}.${gold_schema}.get_table_freshness(
-    DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-    DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-    24
-  )
-  WHERE freshness_status IN ('STALE', 'CRITICAL')
+    freshness_status,
+    expected_update_frequency_hours
+  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(30, 24))
 ),
--- Step 2: Find jobs that read from these tables
-dependent_jobs AS (
-  SELECT 
-    l.source_table as table_name,
-    j.job_name,
-    j.result_state,
-    j.run_date
-  FROM ${catalog}.${gold_schema}.fact_table_lineage l
-  JOIN ${catalog}.${gold_schema}.fact_job_run_timeline j 
-    ON l.job_id = j.job_id
-  WHERE l.event_type = 'READ'
-    AND j.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-),
--- Step 3: Calculate failure correlation
-failure_correlation AS (
-  SELECT 
-    d.table_name,
-    COUNT(DISTINCT d.job_name) as dependent_job_count,
-    SUM(CASE WHEN d.result_state = 'FAILED' THEN 1 ELSE 0 END) as job_failures,
-    SUM(CASE WHEN d.result_state = 'SUCCESS' THEN 1 ELSE 0 END) as job_successes,
-    SUM(CASE WHEN d.result_state = 'FAILED' THEN 1 ELSE 0 END) * 1.0 / 
-      NULLIF(COUNT(*), 0) * 100 as failure_rate_when_stale
-  FROM dependent_jobs d
-  JOIN stale_tables s ON d.table_name = s.table_name
-  GROUP BY d.table_name
-),
--- Step 4: Calculate blast radius from lineage
-blast_radius AS (
-  SELECT 
-    source_table as table_name,
-    COUNT(DISTINCT target_table) as downstream_tables,
-    COUNT(DISTINCT user_identity) as data_consumers
-  FROM ${catalog}.${gold_schema}.fact_table_lineage
-  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY source_table
-)
-SELECT 
-  s.table_name,
-  s.hours_since_update,
-  s.freshness_status,
-  f.dependent_job_count,
-  f.job_failures,
-  f.failure_rate_when_stale,
-  b.downstream_tables,
-  b.data_consumers,
-  (f.dependent_job_count * 2 + b.downstream_tables + b.data_consumers) as monitoring_priority_score,
-  CASE 
-    WHEN f.failure_rate_when_stale > 50 AND b.downstream_tables > 5 THEN '🔴 CRITICAL - IMMEDIATE ACTION'
-    WHEN f.failure_rate_when_stale > 25 OR b.downstream_tables > 3 THEN '🟠 HIGH - PRIORITIZE'
-    ELSE '🟡 MEDIUM - MONITOR'
-  END as priority_recommendation
-FROM stale_tables s
-LEFT JOIN failure_correlation f ON s.table_name = f.table_name
-LEFT JOIN blast_radius b ON s.table_name = b.table_name
-ORDER BY monitoring_priority_score DESC
-LIMIT 15;
-```
-**Expected Result:** Correlation analysis between stale tables and job failures, with blast radius assessment and prioritized monitoring recommendations.
-
----
-
-### Question 23: "What's the end-to-end data quality SLA compliance across our entire data platform, showing which domains and tables are meeting vs. missing SLAs, with root cause attribution?"
-**Deep Research Complexity:** Combines freshness SLAs, quality score thresholds, drift tolerances, and ML anomaly detection across all domains to produce a comprehensive SLA compliance report.
-
-**Expected SQL (Multi-Step Analysis):**
-```sql
--- Step 1: Define SLA thresholds by domain (could be parameterized)
-WITH sla_definitions AS (
-  SELECT 'gold' as domain, 24 as freshness_sla_hours, 80 as quality_sla_score, 0.1 as drift_sla_threshold
-  UNION ALL SELECT 'silver', 12, 90, 0.15
-  UNION ALL SELECT 'bronze', 6, 70, 0.2
-),
--- Step 2: Get current freshness status
-freshness_status AS (
-  SELECT 
+quality AS (
+  SELECT
     table_name,
-    CASE 
-      WHEN table_name LIKE '%gold%' THEN 'gold'
-      WHEN table_name LIKE '%silver%' THEN 'silver'
-      ELSE 'bronze'
-    END as domain,
-    hours_since_update,
-    freshness_status
-  FROM ${catalog}.${gold_schema}.get_table_freshness(
-    DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-    DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-    24
-  )
-),
--- Step 3: Get quality scores from monitoring
-quality_scores AS (
-  SELECT 
-    table_name,
-    CASE 
-      WHEN table_name LIKE '%gold%' THEN 'gold'
-      WHEN table_name LIKE '%silver%' THEN 'silver'
-      ELSE 'bronze'
-    END as domain,
     quality_score,
+    failed_checks,
     completeness_rate,
     validity_rate
-  FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
-  WHERE window_end >= CURRENT_DATE() - INTERVAL 1 DAY
-    AND column_name = ':table'
-    AND log_type = 'INPUT'
+  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(30))
 ),
--- Step 4: Get drift alerts
-drift_alerts AS (
-  SELECT 
+activity AS (
+  SELECT
     table_name,
-    drift_score,
-    is_drifted
-  FROM ${catalog}.${gold_schema}.quality_anomaly_predictions
-  WHERE prediction_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+    activity_status,
+    days_since_last_access,
+    daily_read_count,
+    daily_write_count
+  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(30))
 ),
--- Step 5: Calculate SLA compliance
-sla_compliance AS (
-  SELECT 
-    COALESCE(f.domain, q.domain) as domain,
-    COALESCE(f.table_name, q.table_name) as table_name,
-    f.hours_since_update,
-    s.freshness_sla_hours,
-    CASE WHEN f.hours_since_update <= s.freshness_sla_hours THEN 1 ELSE 0 END as freshness_sla_met,
-    q.quality_score,
-    s.quality_sla_score,
-    CASE WHEN q.quality_score >= s.quality_sla_score THEN 1 ELSE 0 END as quality_sla_met,
-    d.drift_score,
-    s.drift_sla_threshold,
-    CASE WHEN COALESCE(d.drift_score, 0) <= s.drift_sla_threshold THEN 1 ELSE 0 END as drift_sla_met
-  FROM freshness_status f
-  FULL OUTER JOIN quality_scores q ON f.table_name = q.table_name
-  LEFT JOIN drift_alerts d ON COALESCE(f.table_name, q.table_name) = d.table_name
-  LEFT JOIN sla_definitions s ON COALESCE(f.domain, q.domain) = s.domain
-)
-SELECT 
-  domain,
-  COUNT(*) as total_tables,
-  SUM(freshness_sla_met) as freshness_compliant,
-  SUM(quality_sla_met) as quality_compliant,
-  SUM(drift_sla_met) as drift_compliant,
-  ROUND(SUM(freshness_sla_met) * 100.0 / COUNT(*), 1) as freshness_compliance_pct,
-  ROUND(SUM(quality_sla_met) * 100.0 / COUNT(*), 1) as quality_compliance_pct,
-  ROUND(SUM(drift_sla_met) * 100.0 / COUNT(*), 1) as drift_compliance_pct,
-  ROUND((SUM(freshness_sla_met) + SUM(quality_sla_met) + SUM(drift_sla_met)) * 100.0 / (COUNT(*) * 3), 1) as overall_sla_compliance_pct,
-  COUNT(*) - SUM(freshness_sla_met) as freshness_violations,
-  COUNT(*) - SUM(quality_sla_met) as quality_violations,
-  COUNT(*) - SUM(drift_sla_met) as drift_violations,
-  CASE 
-    WHEN (SUM(freshness_sla_met) + SUM(quality_sla_met) + SUM(drift_sla_met)) * 100.0 / (COUNT(*) * 3) >= 95 THEN '🟢 EXCELLENT'
-    WHEN (SUM(freshness_sla_met) + SUM(quality_sla_met) + SUM(drift_sla_met)) * 100.0 / (COUNT(*) * 3) >= 80 THEN '🟡 ACCEPTABLE'
-    ELSE '🔴 NEEDS ATTENTION'
-  END as sla_status
-FROM sla_compliance
-GROUP BY domain
-ORDER BY overall_sla_compliance_pct DESC;
-```
-**Expected Result:** SLA compliance summary by domain showing freshness, quality, and drift compliance percentages with violation counts and overall status.
-
----
-
-### Question 24: "Which data quality issues are causing the most downstream impact in terms of failed jobs, user complaints, and data product degradation, and what's the estimated business cost?"
-**Deep Research Complexity:** Correlates quality issues with job failures, user activity drops, and lineage impact to quantify the business impact of quality problems.
-
-**Expected SQL (Multi-Step Analysis):**
-```sql
--- Step 1: Get tables with quality issues
-WITH quality_issues AS (
-  SELECT 
-    table_name,
-    quality_score,
-    completeness_rate,
-    validity_rate,
-    CASE 
-      WHEN quality_score < 50 THEN 'CRITICAL'
-      WHEN quality_score < 70 THEN 'WARNING'
-      ELSE 'OK'
-    END as severity
-  FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
-  WHERE window_end >= CURRENT_DATE() - INTERVAL 7 DAYS
-    AND column_name = ':table'
-    AND log_type = 'INPUT'
-    AND quality_score < 80
-),
--- Step 2: Find downstream jobs that failed after reading these tables
-job_impact AS (
-  SELECT 
-    l.source_table as table_name,
-    COUNT(DISTINCT j.job_id) as affected_jobs,
-    SUM(CASE WHEN j.result_state = 'FAILED' THEN 1 ELSE 0 END) as failed_runs,
-    SUM(j.compute_cost_usd) as wasted_compute_cost
-  FROM ${catalog}.${gold_schema}.fact_table_lineage l
-  JOIN ${catalog}.${gold_schema}.fact_job_run_timeline j ON l.job_id = j.job_id
-  WHERE l.event_type = 'READ'
-    AND j.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-    AND j.result_state = 'FAILED'
-  GROUP BY l.source_table
-),
--- Step 3: Find user activity drops (fewer queries on problematic tables)
-user_impact AS (
-  SELECT 
-    source_table as table_name,
-    COUNT(DISTINCT executed_by) as users_affected,
-    COUNT(*) as queries_7d,
-    LAG(COUNT(*), 1, COUNT(*)) OVER (PARTITION BY source_table ORDER BY DATE_TRUNC('week', execution_date)) as queries_prev_week
-  FROM ${catalog}.${gold_schema}.fact_query_history q
-  JOIN ${catalog}.${gold_schema}.fact_table_lineage l ON q.statement_id = l.statement_id
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 14 DAYS
-  GROUP BY source_table, DATE_TRUNC('week', execution_date)
-),
--- Step 4: Calculate blast radius from lineage
-blast_radius AS (
-  SELECT 
-    source_table as table_name,
-    COUNT(DISTINCT target_table) as downstream_tables,
-    COUNT(DISTINCT workspace_id) as workspaces_affected
-  FROM ${catalog}.${gold_schema}.fact_table_lineage
-  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY source_table
-)
-SELECT 
-  q.table_name,
-  q.quality_score,
-  q.severity as quality_severity,
-  ROUND(q.completeness_rate * 100, 1) as completeness_pct,
-  ROUND(q.validity_rate * 100, 1) as validity_pct,
-  COALESCE(j.affected_jobs, 0) as downstream_jobs_affected,
-  COALESCE(j.failed_runs, 0) as failed_job_runs,
-  ROUND(COALESCE(j.wasted_compute_cost, 0), 2) as wasted_compute_usd,
-  COALESCE(u.users_affected, 0) as users_impacted,
-  COALESCE(b.downstream_tables, 0) as downstream_tables,
-  COALESCE(b.workspaces_affected, 0) as workspaces_affected,
-  -- Calculate composite business impact score
-  (COALESCE(j.failed_runs, 0) * 10 + 
-   COALESCE(u.users_affected, 0) * 5 + 
-   COALESCE(b.downstream_tables, 0) * 3 +
-   (100 - q.quality_score) * 2) as business_impact_score,
-  -- Estimated business cost (heuristic: $50/failed job + $10/affected user + compute waste)
-  ROUND(COALESCE(j.failed_runs, 0) * 50 + COALESCE(u.users_affected, 0) * 10 + COALESCE(j.wasted_compute_cost, 0), 2) as estimated_business_cost_usd,
-  CASE 
-    WHEN q.severity = 'CRITICAL' AND j.failed_runs > 10 THEN '🔴 CRITICAL: Causing significant downstream failures'
-    WHEN q.severity = 'CRITICAL' OR j.failed_runs > 5 THEN '🟠 HIGH: Review and remediate within 24h'
-    ELSE '🟡 MEDIUM: Schedule remediation'
-  END as remediation_priority
-FROM quality_issues q
-LEFT JOIN job_impact j ON q.table_name = j.table_name
-LEFT JOIN user_impact u ON q.table_name = u.table_name
-LEFT JOIN blast_radius b ON q.table_name = b.table_name
-ORDER BY business_impact_score DESC
-LIMIT 20;
-```
-**Expected Result:** Tables with quality issues ranked by business impact including failed jobs, wasted compute, affected users, and estimated cost.
-
----
-
-### Question 25: "What's the predicted quality trajectory for each critical table over the next 7 days based on historical patterns and ML models, and which tables need proactive intervention?"
-**Deep Research Complexity:** Uses ML quality predictions, historical trends, and drift detection to forecast quality trajectory and identify tables needing proactive attention.
-
-**Expected SQL (Multi-Step Analysis):**
-```sql
--- Step 1: Get current quality baseline
-WITH current_quality AS (
-  SELECT 
-    table_name,
-    quality_score as current_score,
-    completeness_rate as current_completeness,
-    validity_rate as current_validity,
-    window_end as measurement_time
-  FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
-  WHERE window_end >= CURRENT_DATE() - INTERVAL 1 DAY
-    AND column_name = ':table'
-    AND log_type = 'INPUT'
-),
--- Step 2: Get historical quality trend (30 days)
-historical_trend AS (
-  SELECT 
-    table_name,
-    -- Calculate 30-day trend
-    CORR(DATEDIFF(window_end, CURRENT_DATE()), quality_score) as quality_trend_slope,
-    AVG(quality_score) as avg_quality_30d,
-    STDDEV(quality_score) as quality_volatility,
-    MIN(quality_score) as min_quality_30d,
-    MAX(quality_score) as max_quality_30d
-  FROM ${catalog}.${gold_schema}.fact_table_quality_profile_metrics
-  WHERE window_end >= CURRENT_DATE() - INTERVAL 30 DAYS
-    AND column_name = ':table'
-    AND log_type = 'INPUT'
-  GROUP BY table_name
-),
--- Step 3: Get ML quality predictions
 ml_predictions AS (
   SELECT 
     table_name,
-    drift_score,
-    is_drifted,
-    prediction_confidence
-  FROM ${catalog}.${gold_schema}.quality_anomaly_predictions
-  WHERE prediction_date = CURRENT_DATE()
+    AVG(CASE WHEN evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN prediction ELSE NULL END) as avg_drift_score
+  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions
+  WHERE prediction > 0.3
+  GROUP BY table_name
 ),
--- Step 4: Get quality trend predictions
-trend_predictions AS (
+freshness_predictions AS (
   SELECT 
     table_name,
-    predicted_quality_score,
-    trend_direction,
-    confidence
-  FROM ${catalog}.${gold_schema}.quality_trend_predictions
-  WHERE prediction_date BETWEEN CURRENT_DATE() AND CURRENT_DATE() + INTERVAL 7 DAYS
-),
--- Step 5: Combine and predict trajectory
-predictions AS (
-  SELECT 
-    c.table_name,
-    c.current_score,
-    h.quality_trend_slope,
-    h.avg_quality_30d,
-    h.quality_volatility,
-    m.drift_score,
-    m.is_drifted,
-    t.predicted_quality_score as ml_predicted_score,
-    t.trend_direction,
-    -- Calculate predicted score (weighted: 60% ML, 40% trend extrapolation)
-    COALESCE(t.predicted_quality_score, c.current_score + (h.quality_trend_slope * 7)) * 0.6 +
-    (c.current_score + (h.quality_trend_slope * 7)) * 0.4 as weighted_predicted_score,
-    -- Risk assessment
-    CASE 
-      WHEN m.is_drifted AND h.quality_trend_slope < -1 THEN 'HIGH_RISK'
-      WHEN h.quality_trend_slope < -0.5 OR c.current_score < 70 THEN 'MEDIUM_RISK'
-      ELSE 'LOW_RISK'
-    END as risk_level
-  FROM current_quality c
-  LEFT JOIN historical_trend h ON c.table_name = h.table_name
-  LEFT JOIN ml_predictions m ON c.table_name = m.table_name
-  LEFT JOIN trend_predictions t ON c.table_name = t.table_name
+    AVG(prediction) as staleness_probability
+  FROM ${catalog}.${feature_schema}.freshness_alert_predictions
+  WHERE prediction > 0.5
+    AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  GROUP BY table_name
 )
-SELECT 
-  table_name,
-  ROUND(current_score, 1) as current_quality_score,
-  ROUND(weighted_predicted_score, 1) as predicted_7d_score,
-  ROUND(weighted_predicted_score - current_score, 1) as predicted_change,
-  ROUND(quality_trend_slope, 2) as daily_trend_slope,
-  ROUND(quality_volatility, 2) as volatility,
-  COALESCE(is_drifted, FALSE) as drift_detected,
-  ROUND(drift_score, 3) as drift_score,
-  risk_level,
+SELECT
+  f.table_name,
+  f.hours_since_update,
+  f.freshness_status,
+  COALESCE(q.quality_score, 0) as quality_score,
+  COALESCE(q.failed_checks, 0) as failed_checks,
+  COALESCE(q.completeness_rate, 0) as completeness_pct,
+  COALESCE(q.validity_rate, 0) as validity_pct,
+  COALESCE(a.activity_status, 'UNKNOWN') as activity_status,
+  COALESCE(a.daily_read_count, 0) as daily_reads,
+  COALESCE(a.daily_write_count, 0) as daily_writes,
+  COALESCE(ml.avg_drift_score, 0) as ml_drift_score,
+  COALESCE(fp.staleness_probability, 0) as predicted_staleness,
   CASE 
-    WHEN weighted_predicted_score < 60 AND current_score >= 60 THEN '🔴 PREDICTED DEGRADATION: Quality will drop below threshold'
-    WHEN weighted_predicted_score < current_score - 10 THEN '🟠 DECLINING: Significant quality drop expected'
-    WHEN weighted_predicted_score > current_score + 5 THEN '🟢 IMPROVING: Quality trending upward'
-    ELSE '🟡 STABLE: Minor fluctuation expected'
-  END as trajectory_status,
+    WHEN f.freshness_status = 'CRITICAL' AND q.quality_score < 50 THEN 'Critical - Data Integrity Risk'
+    WHEN ml.avg_drift_score > 0.7 AND fp.staleness_probability > 0.7 THEN 'High Risk - Immediate Attention'
+    WHEN f.freshness_status = 'STALE' OR q.quality_score < 70 THEN 'Medium Risk - Monitor'
+    WHEN a.activity_status = 'INACTIVE' THEN 'Low Priority - Consider Archive'
+    ELSE 'Healthy'
+  END as health_status,
   CASE 
-    WHEN risk_level = 'HIGH_RISK' THEN 'IMMEDIATE: Review data sources and pipeline health'
-    WHEN risk_level = 'MEDIUM_RISK' THEN 'THIS WEEK: Schedule quality check and root cause analysis'
-    ELSE 'MONITOR: Continue standard monitoring'
-  END as intervention_recommendation
-FROM predictions
-WHERE risk_level IN ('HIGH_RISK', 'MEDIUM_RISK') OR weighted_predicted_score < 80
-ORDER BY weighted_predicted_score ASC, risk_level DESC
-LIMIT 20;
+    WHEN f.freshness_status = 'CRITICAL' THEN 'Investigate data pipeline immediately'
+    WHEN q.quality_score < 50 THEN 'Review and fix data quality rules'
+    WHEN ml.avg_drift_score > 0.7 THEN 'Analyze schema or data changes'
+    WHEN a.activity_status = 'INACTIVE' THEN 'Archive or decommission table'
+    ELSE 'Continue monitoring'
+  END as recommended_action
+FROM freshness f
+LEFT JOIN quality q ON f.table_name = q.table_name
+LEFT JOIN activity a ON f.table_name = a.table_name
+LEFT JOIN ml_predictions ml ON f.table_name = ml.table_name
+LEFT JOIN freshness_predictions fp ON f.table_name = fp.table_name
+ORDER BY 
+  CASE 
+    WHEN f.freshness_status = 'CRITICAL' AND COALESCE(q.quality_score, 0) < 50 THEN 1
+    WHEN COALESCE(ml.avg_drift_score, 0) > 0.7 THEN 2
+    WHEN f.freshness_status = 'STALE' THEN 3
+    ELSE 4
+  END,
+  hours_since_update DESC
+LIMIT 25;
 ```
-**Expected Result:** Tables with predicted quality trajectory showing current vs. predicted scores, trend analysis, and proactive intervention recommendations.
+**Expected Result:** Multi-dimensional table health assessment combining freshness, quality, activity, and ML insights
 
 ---
 
+### Question 22: "🔬 DEEP RESEARCH: Domain-level data quality scorecard - aggregate quality metrics with freshness and governance"
+**Expected SQL:**
+```sql
+WITH domain_quality AS (
+  SELECT 
+    domain,
+    MEASURE(quality_score) as avg_quality,
+    MEASURE(completeness_rate) as avg_completeness,
+    MEASURE(validity_rate) as avg_validity,
+    MEASURE(total_tables) as table_count
+  FROM ${catalog}.${gold_schema}.mv_data_quality
+  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY domain
+),
+domain_freshness AS (
+  SELECT
+    domain,
+    AVG(hours_since_update) as avg_hours_stale,
+    SUM(CASE WHEN freshness_status = 'FRESH' THEN 1 ELSE 0 END) as fresh_count,
+    SUM(CASE WHEN freshness_status IN ('STALE', 'CRITICAL') THEN 1 ELSE 0 END) as stale_count
+  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(30, 24)) tf
+  JOIN ${catalog}.${gold_schema}.mv_data_quality dq
+    ON tf.table_name = dq.table_full_name
+  GROUP BY domain
+),
+domain_activity AS (
+  SELECT
+    domain,
+    SUM(daily_read_count) as total_daily_reads,
+    SUM(daily_write_count) as total_daily_writes,
+    SUM(CASE WHEN activity_status = 'ACTIVE' THEN 1 ELSE 0 END) as active_tables,
+    SUM(CASE WHEN activity_status IN ('INACTIVE', 'ORPHANED') THEN 1 ELSE 0 END) as inactive_tables
+  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(30)) ta
+  JOIN ${catalog}.${gold_schema}.mv_data_quality dq
+    ON ta.table_name = dq.table_full_name
+  GROUP BY domain
+),
+domain_governance AS (
+  SELECT 
+    slice_value AS domain,
+    AVG(tag_coverage_rate) as avg_tag_coverage,
+    AVG(lineage_coverage_rate) as avg_lineage_coverage
+  FROM ${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics
+  WHERE column_name = ':table'
+    AND log_type = 'INPUT'
+    AND slice_key = 'domain'
+  GROUP BY slice_value
+)
+SELECT 
+  dq.domain,
+  dq.table_count,
+  dq.avg_quality,
+  dq.avg_completeness,
+  dq.avg_validity,
+  df.fresh_count,
+  df.stale_count,
+  df.stale_count * 100.0 / NULLIF(dq.table_count, 0) as staleness_pct,
+  da.active_tables,
+  da.inactive_tables,
+  da.total_daily_reads,
+  da.total_daily_writes,
+  COALESCE(dg.avg_tag_coverage, 0) as tag_coverage_pct,
+  COALESCE(dg.avg_lineage_coverage, 0) as lineage_coverage_pct,
+  CASE 
+    WHEN dq.avg_quality < 70 OR df.stale_count * 100.0 / NULLIF(dq.table_count, 0) > 20 THEN 'Critical Domain'
+    WHEN dq.avg_quality < 80 OR da.inactive_tables * 100.0 / NULLIF(dq.table_count, 0) > 30 THEN 'Needs Improvement'
+    WHEN dq.avg_quality >= 90 AND dg.avg_tag_coverage >= 80 THEN 'Excellent'
+    ELSE 'Good'
+  END as domain_health_status,
+  CASE 
+    WHEN dq.avg_quality < 70 THEN 'Implement stricter quality rules'
+    WHEN df.stale_count * 100.0 / NULLIF(dq.table_count, 0) > 20 THEN 'Review pipeline schedules'
+    WHEN dg.avg_tag_coverage < 50 THEN 'Improve metadata tagging'
+    WHEN da.inactive_tables > 10 THEN 'Archive unused tables'
+    ELSE 'Maintain current standards'
+  END as recommended_action
+FROM domain_quality dq
+LEFT JOIN domain_freshness df ON dq.domain = df.domain
+LEFT JOIN domain_activity da ON dq.domain = da.domain
+LEFT JOIN domain_governance dg ON dq.domain = dg.domain
+ORDER BY dq.avg_quality ASC, staleness_pct DESC
+LIMIT 15;
+```
+**Expected Result:** Domain-level data quality scorecard with actionable recommendations
+
+---
+
+### Question 23: "🔬 DEEP RESEARCH: Pipeline data quality impact analysis - trace quality issues through lineage"
+**Expected SQL:**
+```sql
+WITH pipeline_lineage AS (
+  SELECT
+    source_table,
+    target_table,
+    dependency_depth,
+    pipeline_name
+  FROM TABLE(${catalog}.${gold_schema}.get_data_lineage_summary('main', '%'))
+),
+table_quality AS (
+  SELECT
+    table_name,
+    quality_score,
+    failed_checks,
+    completeness_rate,
+    validity_rate
+  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(30))
+),
+freshness AS (
+  SELECT
+    table_name,
+    hours_since_update,
+    freshness_status
+  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(30, 24))
+),
+ml_drift AS (
+  SELECT 
+    table_name,
+    AVG(prediction) as avg_drift_score
+  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions
+  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+    AND prediction > 0.3
+  GROUP BY table_name
+)
+SELECT 
+  pl.source_table,
+  pl.target_table,
+  pl.dependency_depth,
+  pl.pipeline_name,
+  COALESCE(sq.quality_score, 100) as source_quality_score,
+  COALESCE(sq.failed_checks, 0) as source_failed_checks,
+  COALESCE(tq.quality_score, 100) as target_quality_score,
+  COALESCE(tq.failed_checks, 0) as target_failed_checks,
+  COALESCE(sf.freshness_status, 'UNKNOWN') as source_freshness,
+  COALESCE(tf.freshness_status, 'UNKNOWN') as target_freshness,
+  COALESCE(sml.avg_drift_score, 0) as source_drift,
+  COALESCE(tml.avg_drift_score, 0) as target_drift,
+  CASE 
+    WHEN COALESCE(sq.quality_score, 100) < 50 AND COALESCE(tq.quality_score, 100) < 50 THEN 'Critical - Cascading Failure'
+    WHEN COALESCE(sq.quality_score, 100) < 70 AND COALESCE(tq.quality_score, 100) < 80 THEN 'High - Quality Degradation Propagating'
+    WHEN COALESCE(sf.freshness_status, 'FRESH') IN ('STALE', 'CRITICAL') AND COALESCE(tf.freshness_status, 'FRESH') IN ('STALE', 'CRITICAL') THEN 'High - Freshness Cascade'
+    WHEN COALESCE(sml.avg_drift_score, 0) > 0.6 THEN 'Medium - Upstream Drift Detected'
+    ELSE 'Normal'
+  END as impact_status,
+  CASE 
+    WHEN COALESCE(sq.quality_score, 100) < 50 THEN 'Fix source data quality immediately'
+    WHEN COALESCE(sf.freshness_status, 'FRESH') = 'CRITICAL' THEN 'Investigate source pipeline failure'
+    WHEN COALESCE(sml.avg_drift_score, 0) > 0.6 THEN 'Review schema changes in source'
+    WHEN COALESCE(tq.failed_checks, 0) > 5 THEN 'Review downstream validation rules'
+    ELSE 'Monitor pipeline health'
+  END as recommended_action
+FROM pipeline_lineage pl
+LEFT JOIN table_quality sq ON pl.source_table = sq.table_name
+LEFT JOIN table_quality tq ON pl.target_table = tq.table_name
+LEFT JOIN freshness sf ON pl.source_table = sf.table_name
+LEFT JOIN freshness tf ON pl.target_table = tf.table_name
+LEFT JOIN ml_drift sml ON pl.source_table = sml.table_name
+LEFT JOIN ml_drift tml ON pl.target_table = tml.table_name
+WHERE COALESCE(sq.quality_score, 100) < 80 
+   OR COALESCE(tq.quality_score, 100) < 80
+   OR COALESCE(sf.freshness_status, 'FRESH') IN ('STALE', 'CRITICAL')
+ORDER BY 
+  CASE impact_status
+    WHEN 'Critical - Cascading Failure' THEN 1
+    WHEN 'High - Quality Degradation Propagating' THEN 2
+    WHEN 'High - Freshness Cascade' THEN 3
+    ELSE 4
+  END,
+  pl.dependency_depth ASC
+LIMIT 25;
+```
+**Expected Result:** Pipeline quality impact analysis showing how issues propagate through lineage
+
+---
+
+### Question 24: "🔬 DEEP RESEARCH: ML-powered predictive quality monitoring - identify tables at risk before failures occur"
+**Expected SQL:**
+```sql
+WITH current_quality AS (
+  SELECT 
+    table_full_name as table_name,
+    quality_score,
+    failed_checks,
+    completeness_rate,
+    validity_rate
+  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(
+    (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
+    CURRENT_DATE()::STRING
+  )
+),
+ml_drift_predictions AS (
+  SELECT 
+    table_name,
+    AVG(prediction) as avg_drift_score,
+    MAX(prediction) as max_drift_score
+  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions
+  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+    AND prediction > 0.3
+  GROUP BY table_name
+),
+ml_schema_change_risk AS (
+  SELECT 
+    table_name,
+    AVG(prediction) as change_probability
+  FROM ${catalog}.${feature_schema}.quality_trend_predictions
+  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+    AND prediction > 0.4
+  GROUP BY table_name
+),
+freshness_risk AS (
+  SELECT 
+    table_name,
+    AVG(prediction) as staleness_probability
+  FROM ${catalog}.${feature_schema}.freshness_alert_predictions
+  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+    AND prediction > 0.5
+  GROUP BY table_name
+),
+quality_drift AS (
+  SELECT 
+    table_name,
+    AVG(quality_score_drift_pct) as avg_quality_drift,
+    MAX(quality_score_drift_pct) as max_quality_drift
+  FROM ${catalog}.${gold_schema}.fact_table_quality_drift_metrics
+  WHERE drift_type = 'CONSECUTIVE'
+    AND column_name = ':table'
+    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS
+  GROUP BY table_name
+)
+SELECT 
+  cq.table_name,
+  cq.quality_score as current_quality_score,
+  cq.failed_checks,
+  COALESCE(dp.avg_drift_score, 0) as ml_drift_score,
+  COALESCE(sc.change_probability, 0) as schema_change_risk,
+  COALESCE(fr.staleness_probability, 0) as freshness_risk,
+  COALESCE(qd.avg_quality_drift, 0) as recent_quality_drift,
+  COALESCE(qd.max_quality_drift, 0) as max_quality_drift,
+  CASE 
+    WHEN COALESCE(dp.max_drift_score, 0) > 0.8 AND cq.quality_score < 70 THEN 'Critical - Imminent Failure'
+    WHEN COALESCE(sc.change_probability, 0) > 0.7 AND COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'High - Multiple Risk Factors'
+    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'High - Rapid Quality Degradation'
+    WHEN COALESCE(dp.avg_drift_score, 0) > 0.5 OR COALESCE(sc.change_probability, 0) > 0.6 THEN 'Medium - Elevated Risk'
+    WHEN cq.quality_score >= 90 THEN 'Low Risk - Healthy'
+    ELSE 'Monitor'
+  END as risk_status,
+  CASE 
+    WHEN COALESCE(dp.max_drift_score, 0) > 0.8 THEN 'Immediate investigation - data drift detected'
+    WHEN COALESCE(sc.change_probability, 0) > 0.7 THEN 'Review for schema evolution or changes'
+    WHEN COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'Check pipeline schedule and dependencies'
+    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Analyze recent data source changes'
+    WHEN cq.failed_checks > 3 THEN 'Review and update validation rules'
+    ELSE 'Continue monitoring'
+  END as recommended_action,
+  CASE 
+    WHEN COALESCE(dp.max_drift_score, 0) > 0.8 OR COALESCE(qd.max_quality_drift, 0) > 50 THEN 'Today'
+    WHEN COALESCE(sc.change_probability, 0) > 0.7 OR COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'This Week'
+    WHEN COALESCE(dp.avg_drift_score, 0) > 0.5 THEN 'Next 2 Weeks'
+    ELSE 'Monitor'
+  END as time_to_failure_estimate
+FROM current_quality cq
+LEFT JOIN ml_drift_predictions dp ON cq.table_name = dp.table_name
+LEFT JOIN ml_schema_change_risk sc ON cq.table_name = sc.table_name
+LEFT JOIN freshness_risk fr ON cq.table_name = fr.table_name
+LEFT JOIN quality_drift qd ON cq.table_name = qd.table_name
+WHERE COALESCE(dp.avg_drift_score, 0) > 0.3 
+   OR COALESCE(sc.change_probability, 0) > 0.4 
+   OR COALESCE(fr.staleness_probability, 0) > 0.5
+   OR COALESCE(qd.max_quality_drift, 0) > 20
+ORDER BY 
+  CASE risk_status
+    WHEN 'Critical - Imminent Failure' THEN 1
+    WHEN 'High - Multiple Risk Factors' THEN 2
+    WHEN 'High - Rapid Quality Degradation' THEN 3
+    ELSE 4
+  END,
+  COALESCE(dp.max_drift_score, 0) DESC,
+  COALESCE(qd.max_quality_drift, 0) DESC
+LIMIT 25;
+```
+**Expected Result:** Predictive quality monitoring combining current state, ML predictions, and drift analysis with time-to-failure estimates
+
+---
+
+### Question 25: "🔬 DEEP RESEARCH: Executive data quality dashboard - comprehensive quality, freshness, governance, and ML intelligence"
+**Expected SQL:**
+```sql
+WITH quality_summary AS (
+  SELECT 
+    MEASURE(quality_score) as avg_quality,
+    MEASURE(completeness_rate) as avg_completeness,
+    MEASURE(validity_rate) as avg_validity,
+    MEASURE(freshness_rate) as freshness_pct,
+    MEASURE(staleness_rate) as staleness_pct,
+    MEASURE(total_tables) as table_count
+  FROM ${catalog}.${gold_schema}.mv_data_quality
+  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+failing_tables AS (
+  SELECT 
+    COUNT(*) as tables_failing_quality,
+    SUM(failed_checks) as total_failed_checks
+  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(
+    (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
+    CURRENT_DATE()::STRING
+  )
+  WHERE quality_score < 70
+),
+stale_tables AS (
+  SELECT 
+    COUNT(*) as stale_count,
+    AVG(hours_since_update) as avg_hours_stale
+  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(7)
+  WHERE freshness_status IN ('STALE', 'CRITICAL')
+),
+ml_intelligence AS (
+  SELECT 
+    MEASURE(accuracy) as ml_accuracy,
+    MEASURE(drift_score) as avg_drift,
+    MEASURE(prediction_count) as predictions
+  FROM ${catalog}.${gold_schema}.mv_ml_intelligence
+  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+ml_anomaly_predictions AS (
+  SELECT 
+    COUNT(*) as tables_with_drift,
+    AVG(prediction) as avg_drift_score
+  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions
+  WHERE prediction > 0.5
+    AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+ml_risk_predictions AS (
+  SELECT 
+    COUNT(DISTINCT table_name) as tables_at_risk,
+    AVG(prediction) as avg_risk_score
+  FROM (
+    SELECT table_name, prediction 
+    FROM ${catalog}.${feature_schema}.quality_trend_predictions
+    WHERE prediction > 0.6 AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+    UNION ALL
+    SELECT table_name, prediction 
+    FROM ${catalog}.${feature_schema}.freshness_alert_predictions
+    WHERE prediction > 0.7 AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  )
+),
+governance_status AS (
+  SELECT 
+    AVG(tag_coverage_rate) as avg_tag_coverage,
+    AVG(lineage_coverage_rate) as avg_lineage_coverage
+  FROM ${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics
+  WHERE column_name = ':table'
+    AND log_type = 'INPUT'
+    AND slice_key IS NULL
+    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+quality_drift AS (
+  SELECT 
+    AVG(quality_score_drift_pct) as avg_quality_drift,
+    MAX(quality_score_drift_pct) as max_quality_drift
+  FROM ${catalog}.${gold_schema}.fact_table_quality_drift_metrics
+  WHERE drift_type = 'CONSECUTIVE'
+    AND column_name = ':table'
+    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS
+)
+SELECT 
+  qs.table_count as total_tables,
+  qs.avg_quality as overall_quality_score,
+  qs.avg_completeness as completeness_pct,
+  qs.avg_validity as validity_pct,
+  qs.freshness_pct,
+  qs.staleness_pct,
+  COALESCE(ft.tables_failing_quality, 0) as failing_tables,
+  COALESCE(ft.total_failed_checks, 0) as total_failed_checks,
+  COALESCE(st.stale_count, 0) as stale_tables,
+  COALESCE(st.avg_hours_stale, 0) as avg_hours_stale,
+  COALESCE(ml.ml_accuracy, 0) as ml_model_accuracy,
+  COALESCE(ml.avg_drift, 0) as ml_detected_drift,
+  COALESCE(ap.tables_with_drift, 0) as tables_with_anomalies,
+  COALESCE(rp.tables_at_risk, 0) as tables_at_risk,
+  COALESCE(gs.avg_tag_coverage, 0) as tag_coverage_pct,
+  COALESCE(gs.avg_lineage_coverage, 0) as lineage_coverage_pct,
+  COALESCE(qd.avg_quality_drift, 0) as recent_quality_drift,
+  COALESCE(qd.max_quality_drift, 0) as max_quality_drift,
+  CASE 
+    WHEN qs.avg_quality < 70 OR COALESCE(ft.tables_failing_quality, 0) > 10 THEN 'Critical Data Quality Crisis'
+    WHEN qs.staleness_pct > 20 OR COALESCE(st.stale_count, 0) > 20 THEN 'Critical Freshness Issues'
+    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Quality Degradation Detected'
+    WHEN COALESCE(rp.tables_at_risk, 0) > 15 THEN 'High Risk - Predictive Alerts'
+    WHEN qs.avg_quality >= 90 AND qs.freshness_pct >= 95 THEN 'Excellent Data Health'
+    ELSE 'Normal'
+  END as overall_data_health_status,
+  CASE 
+    WHEN qs.avg_quality < 70 THEN 'Audit and strengthen quality rules across all domains'
+    WHEN COALESCE(ft.tables_failing_quality, 0) > 10 THEN 'Investigate top failing tables immediately'
+    WHEN qs.staleness_pct > 20 THEN 'Review pipeline schedules and dependencies'
+    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Analyze recent changes causing quality degradation'
+    WHEN COALESCE(rp.tables_at_risk, 0) > 15 THEN 'Proactive monitoring of at-risk tables'
+    WHEN COALESCE(gs.avg_tag_coverage, 0) < 70 THEN 'Improve metadata tagging and governance'
+    ELSE 'Continue monitoring and maintain standards'
+  END as top_priority_action
+FROM quality_summary qs
+CROSS JOIN failing_tables ft
+CROSS JOIN stale_tables st
+CROSS JOIN ml_intelligence ml
+CROSS JOIN ml_anomaly_predictions ap
+CROSS JOIN ml_risk_predictions rp
+CROSS JOIN governance_status gs
+CROSS JOIN quality_drift qd;
+```
+**Expected Result:** Executive data quality dashboard combining all quality dimensions with health status and prioritized actions
+
+---
 ## ✅ DELIVERABLE CHECKLIST
 
 | Section | Requirement | Status |

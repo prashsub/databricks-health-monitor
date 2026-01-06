@@ -1,0 +1,36 @@
+# Cost Intelligence Genie Space Validation Job
+# Validates SQL queries for cost_intelligence_genie only
+
+resources:
+  jobs:
+    validate_cost_genie_job:
+      name: "[${bundle.target}] Validate Cost Intelligence Genie"
+      description: "Validates SQL benchmark questions for Cost Intelligence Genie Space"
+      
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+      
+      tasks:
+        - task_key: validate_cost_benchmarks
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+              genie_space: cost_intelligence_genie
+      
+      email_notifications:
+        on_failure:
+          - prashanth.subrahmanyam@databricks.com
+      
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: semantic
+        job_type: validation
+        genie_space: cost_intelligence
+

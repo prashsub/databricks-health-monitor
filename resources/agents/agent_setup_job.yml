@@ -1,59 +1,142 @@
 # Agent Framework Setup Job
-# Creates consolidated schema and infrastructure for the Health Monitor Agent
+# ===========================================================================
+# Complete pipeline to deploy the Health Monitor Agent:
+#   1. Create infrastructure (schemas, tables, volumes)
+#   2. Register prompts to MLflow
+#   3. Log agent model to Unity Catalog
+#   4. Run evaluation pipeline
+#   5. Create serving endpoint (programmatic, not declarative YAML)
+#
+# Why programmatic endpoint creation (Task 5)?
+#   - Declarative YAML requires model to exist at `bundle deploy` time
+#   - Model doesn't exist until Task 3 runs
+#   - Programmatic creation happens AFTER model is registered
+#   - No manual intervention or uncommenting needed
+#
+# Reference: https://docs.databricks.com/aws/en/generative-ai/agent-framework/deploy-agent.html
 #
 # Single Schema (avoids sprawl):
 #   Dev: prashanth_subrahmanyam_catalog.dev_<user>_system_gold_agent
 #   Prod: main.system_gold_agent
 #
 # Contains: Models, Tables (structured), Volumes (unstructured)
+# ===========================================================================
 
 resources:
   jobs:
     agent_setup_job:
       name: "[${bundle.target}] Health Monitor - Agent Setup"
       description: >
-        Creates consolidated agent schema with all infrastructure:
-        models, config tables, inference logs, memory tables, and volumes.
-        Must run before deploying the agent model serving endpoint.
+        Complete agent deployment pipeline:
+        Creates infrastructure, registers prompts, logs model, runs evaluation,
+        and creates serving endpoint. All steps run sequentially in one job.
       
+      # Different environments for different task requirements
       environments:
-        - environment_key: default
+        # Minimal env for SQL-only tasks
+        - environment_key: sql_only
+          spec:
+            environment_version: "4"
+        
+        # MLflow env for prompt registry and evaluation
+        - environment_key: mlflow_env
           spec:
             environment_version: "4"
             dependencies:
               - mlflow>=3.0.0
-              - langchain>=0.3.0
-              - langgraph>=0.2.0
-              - databricks-sdk>=0.28.0
+        
+        # Full env for agent model logging
+        - environment_key: agent_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - mlflow
+              - langchain
+              - langgraph
+              - langchain-databricks
+              - databricks-sdk
+        
+        # SDK env for endpoint creation
+        - environment_key: sdk_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk
+              - mlflow
       
       tasks:
+        # ==================================================================
+        # Task 1: Create Infrastructure (schemas, tables, volumes)
+        # ==================================================================
         - task_key: create_agent_infrastructure
-          environment_key: default
+          environment_key: sql_only
           notebook_task:
             notebook_path: ../../src/agents/setup/create_schemas.py
             base_parameters:
               catalog: ${var.catalog}
               agent_schema: ${var.agent_schema}
         
+        # ==================================================================
+        # Task 2: Register Prompts to MLflow Prompt Registry
+        # ==================================================================
         - task_key: register_prompts
           depends_on:
             - task_key: create_agent_infrastructure
-          environment_key: default
+          environment_key: mlflow_env
           notebook_task:
             notebook_path: ../../src/agents/setup/register_prompts.py
             base_parameters:
               catalog: ${var.catalog}
               agent_schema: ${var.agent_schema}
         
+        # ==================================================================
+        # Task 3: Log Agent Model to Unity Catalog
+        # ==================================================================
         - task_key: log_agent_model
           depends_on:
             - task_key: register_prompts
-          environment_key: default
+          environment_key: agent_env
           notebook_task:
             notebook_path: ../../src/agents/setup/log_agent_model.py
             base_parameters:
               catalog: ${var.catalog}
               agent_schema: ${var.agent_schema}
+        
+        # ==================================================================
+        # Task 4: Run Evaluation Pipeline
+        # ==================================================================
+        - task_key: run_evaluation
+          depends_on:
+            - task_key: log_agent_model
+          environment_key: mlflow_env
+          notebook_task:
+            notebook_path: ../../src/agents/setup/run_evaluation.py
+            base_parameters:
+              catalog: ${var.catalog}
+              agent_schema: ${var.agent_schema}
+        
+        # ==================================================================
+        # Task 5: Create Serving Endpoint (Programmatic)
+        # 
+        # This task MUST run AFTER log_agent_model because:
+        #   - The model must exist in Unity Catalog before endpoint creation
+        #   - Using SDK allows sequential execution in same job
+        #   - No manual "uncomment YAML" step needed
+        # ==================================================================
+        - task_key: create_serving_endpoint
+          depends_on:
+            - task_key: log_agent_model
+            # Note: Can run in parallel with evaluation
+          environment_key: sdk_env
+          notebook_task:
+            notebook_path: ../../src/agents/setup/create_serving_endpoint.py
+            base_parameters:
+              catalog: ${var.catalog}
+              agent_schema: ${var.agent_schema}
+              endpoint_name: health_monitor_agent_${bundle.target}
+      
+      # Timeout - endpoint creation can take 15-20 min
+      timeout_seconds: 3600  # 1 hour
       
       email_notifications:
         on_failure:
@@ -65,4 +148,3 @@ resources:
         layer: agent
         job_level: atomic
         job_type: setup
-

@@ -1650,6 +1650,18 @@
                       "expression": "`termination_code`"
                     },
                     {
+                      "name": "owner",
+                      "expression": "`owner`"
+                    },
+                    {
+                      "name": "tags",
+                      "expression": "`tags`"
+                    },
+                    {
+                      "name": "duration_minutes",
+                      "expression": "`duration_minutes`"
+                    },
+                    {
                       "name": "run_time",
                       "expression": "`run_time`"
                     }
@@ -1668,14 +1680,24 @@
                     "type": "string"
                   },
                   {
-                    "fieldName": "workspace_name",
-                    "title": "Workspace",
+                    "fieldName": "termination_code",
+                    "title": "Error",
                     "type": "string"
                   },
                   {
-                    "fieldName": "termination_code",
-                    "title": "Reason",
+                    "fieldName": "owner",
+                    "title": "Owner",
                     "type": "string"
+                  },
+                  {
+                    "fieldName": "tags",
+                    "title": "Tags",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "duration_minutes",
+                    "title": "Duration (min)",
+                    "type": "number"
                   },
                   {
                     "fieldName": "run_time",
@@ -1686,7 +1708,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udd34 Failed Jobs Today"
+                "title": "\ud83d\udd34 Failed Jobs Today (with Owner & Dependencies)"
               }
             }
           },
@@ -1722,6 +1744,14 @@
                     {
                       "name": "success_rate",
                       "expression": "`success_rate`"
+                    },
+                    {
+                      "name": "owner",
+                      "expression": "`owner`"
+                    },
+                    {
+                      "name": "tags",
+                      "expression": "`tags`"
                     }
                   ]
                 }
@@ -1751,6 +1781,16 @@
                     "fieldName": "success_rate",
                     "title": "Success %",
                     "type": "number"
+                  },
+                  {
+                    "fieldName": "owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "tags",
+                    "title": "Tags",
+                    "type": "string"
                   }
                 ]
               },
@@ -1792,6 +1832,14 @@
                     {
                       "name": "failure_cost",
                       "expression": "`failure_cost`"
+                    },
+                    {
+                      "name": "owner",
+                      "expression": "`owner`"
+                    },
+                    {
+                      "name": "tags",
+                      "expression": "`tags`"
                     }
                   ]
                 }
@@ -1820,6 +1868,16 @@
                   {
                     "fieldName": "failure_cost",
                     "title": "Fail Cost ($)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "tags",
+                    "title": "Tags",
                     "type": "number"
                   }
                 ]
@@ -1998,6 +2056,14 @@
                     {
                       "name": "repair_time_min",
                       "expression": "`repair_time_min`"
+                    },
+                    {
+                      "name": "owner",
+                      "expression": "`owner`"
+                    },
+                    {
+                      "name": "tags",
+                      "expression": "`tags`"
                     }
                   ]
                 }
@@ -2027,6 +2093,16 @@
                     "fieldName": "repair_time_min",
                     "title": "Repair Time (min)",
                     "type": "number"
+                  },
+                  {
+                    "fieldName": "owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "tags",
+                    "title": "Tags",
+                    "type": "string"
                   }
                 ]
               },
@@ -2426,20 +2502,40 @@
                   "disaggregated": true,
                   "fields": [
                     {
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
                       "name": "job_name",
                       "expression": "`job_name`"
                     },
                     {
-                      "name": "failure_probability",
-                      "expression": "`failure_probability`"
+                      "name": "owner",
+                      "expression": "`owner`"
+                    },
+                    {
+                      "name": "failure_rate_pct",
+                      "expression": "`failure_rate_pct`"
                     },
                     {
                       "name": "risk_level",
                       "expression": "`risk_level`"
                     },
                     {
-                      "name": "contributing_factors",
-                      "expression": "`contributing_factors`"
+                      "name": "failure_summary",
+                      "expression": "`failure_summary`"
+                    },
+                    {
+                      "name": "last_issue",
+                      "expression": "`last_issue`"
+                    },
+                    {
+                      "name": "last_failure",
+                      "expression": "`last_failure`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ]
                 }
@@ -2451,31 +2547,51 @@
               "encodings": {
                 "columns": [
                   {
+                    "fieldName": "priority",
+                    "title": "#",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "job_name",
                     "title": "Job",
                     "type": "string"
                   },
                   {
-                    "fieldName": "failure_probability",
-                    "title": "Fail Prob %",
+                    "fieldName": "owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "failure_rate_pct",
+                    "title": "Fail Rate %",
                     "type": "number"
                   },
                   {
                     "fieldName": "risk_level",
-                    "title": "Risk Level",
+                    "title": "Risk",
                     "type": "string"
                   },
                   {
-                    "fieldName": "contributing_factors",
-                    "title": "Factors",
+                    "fieldName": "last_issue",
+                    "title": "Last Error",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_failure",
+                    "title": "Last Failure",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Recommended Action",
                     "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Jobs at Risk of Failure",
-                "description": "XGBoost failure prediction model"
+                "title": "🎯 Jobs at Risk (Prioritized by Failure Rate)",
+                "description": "Based on 30-day failure patterns. Contact owner for resolution."
               }
             }
           },
@@ -2497,20 +2613,36 @@
                   "disaggregated": true,
                   "fields": [
                     {
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
                       "name": "job_name",
                       "expression": "`job_name`"
+                    },
+                    {
+                      "name": "owner",
+                      "expression": "`owner`"
                     },
                     {
                       "name": "health_score",
                       "expression": "`health_score`"
                     },
                     {
-                      "name": "health_category",
-                      "expression": "`health_category`"
+                      "name": "health_status",
+                      "expression": "`health_status`"
                     },
                     {
                       "name": "trend",
                       "expression": "`trend`"
+                    },
+                    {
+                      "name": "run_summary",
+                      "expression": "`run_summary`"
+                    },
+                    {
+                      "name": "action_needed",
+                      "expression": "`action_needed`"
                     }
                   ]
                 }
@@ -2522,23 +2654,43 @@
               "encodings": {
                 "columns": [
                   {
+                    "fieldName": "priority",
+                    "title": "#",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "job_name",
                     "title": "Job",
                     "type": "string"
                   },
                   {
+                    "fieldName": "owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
                     "fieldName": "health_score",
-                    "title": "Health Score",
+                    "title": "Health %",
                     "type": "number"
                   },
                   {
-                    "fieldName": "health_category",
-                    "title": "Category",
+                    "fieldName": "health_status",
+                    "title": "Status",
                     "type": "string"
                   },
                   {
                     "fieldName": "trend",
                     "title": "Trend",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "run_summary",
+                    "title": "Run Summary",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "action_needed",
+                    "title": "Action Needed",
                     "type": "string"
                   }
                 ]
@@ -2568,16 +2720,36 @@
                   "disaggregated": true,
                   "fields": [
                     {
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
                       "name": "job_name",
                       "expression": "`job_name`"
                     },
                     {
-                      "name": "retry_success_prob",
-                      "expression": "`retry_success_prob`"
+                      "name": "owner",
+                      "expression": "`owner`"
+                    },
+                    {
+                      "name": "retry_success_pct",
+                      "expression": "`retry_success_pct`"
+                    },
+                    {
+                      "name": "retry_summary",
+                      "expression": "`retry_summary`"
                     },
                     {
                       "name": "recommendation",
                       "expression": "`recommendation`"
+                    },
+                    {
+                      "name": "typical_error",
+                      "expression": "`typical_error`"
+                    },
+                    {
+                      "name": "action",
+                      "expression": "`action`"
                     }
                   ]
                 }
@@ -2589,26 +2761,46 @@
               "encodings": {
                 "columns": [
                   {
+                    "fieldName": "priority",
+                    "title": "#",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "job_name",
                     "title": "Job",
                     "type": "string"
                   },
                   {
-                    "fieldName": "retry_success_prob",
+                    "fieldName": "owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "retry_success_pct",
                     "title": "Retry Success %",
                     "type": "number"
                   },
                   {
+                    "fieldName": "retry_summary",
+                    "title": "History",
+                    "type": "string"
+                  },
+                  {
                     "fieldName": "recommendation",
                     "title": "Recommendation",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "action",
+                    "title": "Action",
                     "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Retry Success Predictions",
-                "description": "XGBoost retry outcome predictor"
+                "title": "🔄 Retry Candidates (Best Success Rate First)",
+                "description": "Jobs where auto-retry is most effective based on historical patterns"
               }
             }
           },
@@ -2630,20 +2822,40 @@
                   "disaggregated": true,
                   "fields": [
                     {
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
                       "name": "job_name",
                       "expression": "`job_name`"
                     },
                     {
-                      "name": "blast_radius",
-                      "expression": "`blast_radius`"
+                      "name": "owner",
+                      "expression": "`owner`"
                     },
                     {
-                      "name": "downstream_jobs",
-                      "expression": "`downstream_jobs`"
+                      "name": "impact_level",
+                      "expression": "`impact_level`"
                     },
                     {
-                      "name": "severity",
-                      "expression": "`severity`"
+                      "name": "impact_summary",
+                      "expression": "`impact_summary`"
+                    },
+                    {
+                      "name": "resource_impact",
+                      "expression": "`resource_impact`"
+                    },
+                    {
+                      "name": "last_incident",
+                      "expression": "`last_incident`"
+                    },
+                    {
+                      "name": "error_type",
+                      "expression": "`error_type`"
+                    },
+                    {
+                      "name": "recommended_action",
+                      "expression": "`recommended_action`"
                     }
                   ]
                 }
@@ -2655,31 +2867,51 @@
               "encodings": {
                 "columns": [
                   {
+                    "fieldName": "priority",
+                    "title": "#",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "job_name",
                     "title": "Job",
                     "type": "string"
                   },
                   {
-                    "fieldName": "blast_radius",
-                    "title": "Blast Radius",
-                    "type": "number"
+                    "fieldName": "owner",
+                    "title": "Owner",
+                    "type": "string"
                   },
                   {
-                    "fieldName": "downstream_jobs",
-                    "title": "Downstream Jobs",
-                    "type": "number"
+                    "fieldName": "impact_level",
+                    "title": "Impact",
+                    "type": "string"
                   },
                   {
-                    "fieldName": "severity",
-                    "title": "Severity",
+                    "fieldName": "impact_summary",
+                    "title": "Summary",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "resource_impact",
+                    "title": "Resources",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "last_incident",
+                    "title": "Last Incident",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommended_action",
+                    "title": "Action",
                     "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Incident Impact Estimates",
-                "description": "Random Forest blast radius estimator"
+                "title": "💥 High Impact Jobs (Prioritized by Blast Radius)",
+                "description": "Jobs with highest impact when failures occur. Based on frequency, runtime, and active days."
               }
             }
           },
@@ -2701,6 +2933,10 @@
                   "disaggregated": true,
                   "fields": [
                     {
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
                       "name": "error_pattern",
                       "expression": "`error_pattern`"
                     },
@@ -2709,12 +2945,24 @@
                       "expression": "`healing_action`"
                     },
                     {
-                      "name": "confidence",
-                      "expression": "`confidence`"
+                      "name": "total_occurrences",
+                      "expression": "`total_occurrences`"
                     },
                     {
-                      "name": "historical_success",
-                      "expression": "`historical_success`"
+                      "name": "jobs_affected",
+                      "expression": "`jobs_affected`"
+                    },
+                    {
+                      "name": "example_affected_job",
+                      "expression": "`example_affected_job`"
+                    },
+                    {
+                      "name": "job_owner",
+                      "expression": "`job_owner`"
+                    },
+                    {
+                      "name": "implementation_guide",
+                      "expression": "`implementation_guide`"
                     }
                   ]
                 }
@@ -2726,31 +2974,51 @@
               "encodings": {
                 "columns": [
                   {
+                    "fieldName": "priority",
+                    "title": "#",
+                    "type": "number"
+                  },
+                  {
                     "fieldName": "error_pattern",
                     "title": "Error Pattern",
                     "type": "string"
                   },
                   {
                     "fieldName": "healing_action",
-                    "title": "Recommended Action",
+                    "title": "Healing Action",
                     "type": "string"
                   },
                   {
-                    "fieldName": "confidence",
-                    "title": "Confidence",
+                    "fieldName": "total_occurrences",
+                    "title": "Occurrences",
                     "type": "number"
                   },
                   {
-                    "fieldName": "historical_success",
-                    "title": "Historical Success %",
+                    "fieldName": "jobs_affected",
+                    "title": "Jobs",
                     "type": "number"
+                  },
+                  {
+                    "fieldName": "example_affected_job",
+                    "title": "Example Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "job_owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "implementation_guide",
+                    "title": "How to Fix",
+                    "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Self-Healing Recommendations",
-                "description": "Thompson Sampling action recommender"
+                "title": "🔧 Error Patterns & Auto-Healing (By Frequency)",
+                "description": "Common error patterns with recommended fixes. Ordered by occurrence frequency."
               }
             }
           },
@@ -2763,7 +3031,7 @@
         },
         {
           "widget": {
-            "name": "chart_ml_duration_forecast",
+            "name": "table_ml_duration_forecast",
             "queries": [
               {
                 "name": "main_query",
@@ -2771,16 +3039,36 @@
                   "datasetName": "ds_ml_duration_forecast",
                   "fields": [
                     {
+                      "name": "priority",
+                      "expression": "`priority`"
+                    },
+                    {
                       "name": "job_name",
                       "expression": "`job_name`"
                     },
                     {
-                      "name": "predicted_duration",
-                      "expression": "`predicted_duration`"
+                      "name": "owner",
+                      "expression": "`owner`"
                     },
                     {
-                      "name": "historical_avg",
-                      "expression": "`historical_avg`"
+                      "name": "recent_duration_min",
+                      "expression": "`recent_duration_min`"
+                    },
+                    {
+                      "name": "baseline_duration_min",
+                      "expression": "`baseline_duration_min`"
+                    },
+                    {
+                      "name": "deviation_pct",
+                      "expression": "`deviation_pct`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "recommendation",
+                      "expression": "`recommendation`"
                     }
                   ],
                   "disaggregated": true
@@ -2788,36 +3076,56 @@
               }
             ],
             "spec": {
-              "version": 3,
-              "widgetType": "bar",
+              "version": 2,
+              "widgetType": "table",
               "encodings": {
-                "x": {
-                  "fieldName": "job_name",
-                  "displayName": "Job",
-                  "scale": {
-                    "type": "categorical"
+                "columns": [
+                  {
+                    "fieldName": "priority",
+                    "title": "#",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "job_name",
+                    "title": "Job",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recent_duration_min",
+                    "title": "Recent (min)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "baseline_duration_min",
+                    "title": "Baseline (min)",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "deviation_pct",
+                    "title": "Deviation %",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "status",
+                    "title": "Status",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "recommendation",
+                    "title": "Recommendation",
+                    "type": "string"
                   }
-                },
-                "y": {
-                  "fields": [
-                    {
-                      "fieldName": "predicted_duration",
-                      "displayName": "Predicted (min)"
-                    },
-                    {
-                      "fieldName": "historical_avg",
-                      "displayName": "Historical Avg (min)"
-                    }
-                  ],
-                  "scale": {
-                    "type": "quantitative"
-                  }
-                }
+                ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83e\udd16 ML: Duration Predictions vs Historical",
-                "description": "Gradient Boosting duration predictor"
+                "title": "⏱️ Duration Anomalies (Prioritized by Deviation)",
+                "description": "Jobs with significant runtime changes vs baseline. Ordered by absolute deviation."
               }
             }
           },
@@ -4499,14 +4807,10 @@
                 "query": {
                   "datasetName": "ds_monitor_reliability_drift",
                   "fields": [
-                    {
-                      "name": "window_start",
-                      "expression": "`window_start`"
-                    },
-                    {
-                      "name": "success_rate_drift",
-                      "expression": "`success_rate_drift`"
-                    }
+                    { "name": "window_start", "expression": "`window_start`" },
+                    { "name": "success_rate_drift", "expression": "`success_rate_drift`" },
+                    { "name": "duration_drift", "expression": "`duration_drift`" },
+                    { "name": "volume_drift", "expression": "`volume_drift`" }
                   ],
                   "disaggregated": true
                 }
@@ -4515,29 +4819,22 @@
             "spec": {
               "encodings": {
                 "x": {
-                  "axis": {
-                    "title": "Time"
-                  },
+                  "axis": { "title": "Time" },
                   "displayName": "Window",
                   "fieldName": "window_start",
-                  "scale": {
-                    "type": "temporal"
-                  }
+                  "scale": { "type": "temporal" }
                 },
                 "y": {
                   "fields": [
-                    {
-                      "displayName": "Success Rate Drift",
-                      "fieldName": "success_rate_drift"
-                    }
+                    { "displayName": "Success Rate Drift %", "fieldName": "success_rate_drift" },
+                    { "displayName": "Duration Drift %", "fieldName": "duration_drift" },
+                    { "displayName": "Volume Drift %", "fieldName": "volume_drift" }
                   ],
-                  "scale": {
-                    "type": "quantitative"
-                  }
+                  "scale": { "type": "quantitative" }
                 }
               },
               "frame": {
-                "description": "Track period-over-period changes",
+                "description": "Track period-over-period changes in success rate, duration, and job volume",
                 "showDescription": true,
                 "showTitle": true,
                 "title": "Drift Metrics (Period Comparison)"
@@ -4561,6 +4858,14 @@
                 "name": "main_query",
                 "query": {
                   "datasetName": "ds_monitor_reliability_aggregate",
+                  "fields": [
+                    { "name": "window_start", "expression": "`window_start`" },
+                    { "name": "total_runs", "expression": "`total_runs`" },
+                    { "name": "success_count", "expression": "`success_count`" },
+                    { "name": "failure_count", "expression": "`failure_count`" },
+                    { "name": "timeout_count", "expression": "`timeout_count`" },
+                    { "name": "distinct_jobs", "expression": "`distinct_jobs`" }
+                  ],
                   "disaggregated": true
                 }
               }
@@ -4851,7 +5156,7 @@
     {
       "name": "ds_runs_by_status",
       "displayName": "Runs by Status",
-      "query": "SELECT DATE(run_date) AS run_date, SUM(CASE WHEN termination_code = 'SUCCESS' THEN 1 ELSE 0 END) AS successful, SUM(CASE WHEN termination_code IN ('FAILED', 'INTERNAL_ERROR') THEN 1 ELSE 0 END) AS failed, SUM(CASE WHEN termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) AS timed_out, SUM(CASE WHEN termination_code = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled FROM ${catalog}.${gold_schema}.fact_job_run_timeline  WHERE run_date BETWEEN :time_range.min AND :time_range.max AND termination_code IS NOT NULL GROUP BY 1 ORDER BY 1",
+      "query": "-- Daily job runs by status using result_state (handles various status spellings)\nSELECT \n  DATE(run_date) AS run_date,\n  SUM(CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) AS successful,\n  SUM(CASE WHEN result_state IN ('FAILED', 'INTERNAL_ERROR', 'ERROR') THEN 1 ELSE 0 END) AS failed,\n  SUM(CASE WHEN result_state IN ('TIMEDOUT', 'TIMED_OUT', 'TIMEOUT') OR termination_code IN ('TIMEDOUT', 'TIMED_OUT') THEN 1 ELSE 0 END) AS timed_out,\n  SUM(CASE WHEN result_state IN ('CANCELED', 'CANCELLED') OR termination_code IN ('CANCELED', 'CANCELLED', 'USER_CANCELLED') THEN 1 ELSE 0 END) AS cancelled\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE run_date BETWEEN :time_range.min AND :time_range.max\n  AND result_state IS NOT NULL\nGROUP BY 1\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -4931,7 +5236,7 @@
     {
       "name": "ds_failed_today",
       "displayName": "Failed Today",
-      "query": "SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name, f.termination_code, f.run_date AS run_time FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE f.run_date >= :time_range.min AND f.termination_code IS NOT NULL AND f.termination_code != 'SUCCESS' ORDER BY f.run_date DESC LIMIT 50",
+      "query": "SELECT \n  COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name,\n  COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n  f.termination_code,\n  f.run_date AS run_time,\n  ROUND(f.run_duration_seconds / 60.0, 1) AS duration_minutes,\n  COALESCE(u.email, j.run_as, j.creator_id, 'Unknown') AS owner,\n  COALESCE(j.tags_json, '{}') AS tags\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline f\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j \n  ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id\nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w \n  ON f.workspace_id = w.workspace_id\nLEFT JOIN ${catalog}.${gold_schema}.dim_user u \n  ON CAST(COALESCE(j.run_as, j.creator_id) AS STRING) = u.user_id\nWHERE f.run_date BETWEEN :time_range.min AND :time_range.max\n  AND f.termination_code IS NOT NULL \n  AND f.termination_code NOT IN ('SUCCESS', 'SKIPPED')\n  AND (ARRAY_CONTAINS(:param_workspace, 'all') OR ARRAY_CONTAINS(:param_workspace, w.workspace_name))\nORDER BY f.run_date DESC\nLIMIT 50",
       "parameters": [
         {
           "displayName": "time_range",
@@ -4987,7 +5292,7 @@
     {
       "name": "ds_low_success_jobs",
       "displayName": "Low Success Jobs",
-      "query": "SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, COUNT(*) AS total_runs, SUM(CASE WHEN f.termination_code IS NOT NULL AND f.termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS failures, ROUND(SUM(CASE WHEN f.termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.termination_code IS NOT NULL GROUP BY 1 HAVING COUNT(*) >= 5 ORDER BY success_rate ASC LIMIT 15",
+      "query": "SELECT \n  COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name,\n  COUNT(*) AS total_runs,\n  SUM(CASE WHEN f.termination_code IS NOT NULL AND f.termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS failures,\n  ROUND(SUM(CASE WHEN f.termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS success_rate,\n  COALESCE(u.email, j.run_as, j.creator_id, 'Unknown') AS owner,\n  COALESCE(j.tags_json, '{}') AS tags\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline f\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id\nLEFT JOIN ${catalog}.${gold_schema}.dim_user u ON CAST(COALESCE(j.run_as, j.creator_id) AS STRING) = u.user_id\nWHERE f.run_date BETWEEN :time_range.min AND :time_range.max \n  AND f.termination_code IS NOT NULL\nGROUP BY 1, u.email, j.run_as, j.creator_id, j.tags_json\nHAVING COUNT(*) >= 5\nORDER BY success_rate ASC\nLIMIT 15",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5043,7 +5348,7 @@
     {
       "name": "ds_highest_failure_jobs",
       "displayName": "Highest Failure Jobs",
-      "query": "SELECT COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name, SUM(CASE WHEN f.termination_code IS NOT NULL AND f.termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS failures, ROUND(SUM(CASE WHEN f.termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS success_rate, 0.00 AS failure_cost FROM ${catalog}.${gold_schema}.fact_job_run_timeline f LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id WHERE f.run_date BETWEEN :time_range.min AND :time_range.max AND f.termination_code IS NOT NULL GROUP BY 1 ORDER BY failures DESC LIMIT 15",
+      "query": "SELECT \n  COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name,\n  SUM(CASE WHEN f.termination_code IS NOT NULL AND f.termination_code != 'SUCCESS' THEN 1 ELSE 0 END) AS failures,\n  ROUND(SUM(CASE WHEN f.termination_code = 'SUCCESS' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS success_rate,\n  ROUND(SUM(CASE WHEN f.termination_code != 'SUCCESS' THEN COALESCE(f.run_duration_seconds, 0) / 3600.0 * 0.15 ELSE 0 END), 2) AS failure_cost,\n  COALESCE(u.email, j.run_as, j.creator_id, 'Unknown') AS owner,\n  COALESCE(j.tags_json, '{}') AS tags\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline f\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id\nLEFT JOIN ${catalog}.${gold_schema}.dim_user u ON CAST(COALESCE(j.run_as, j.creator_id) AS STRING) = u.user_id\nWHERE f.run_date BETWEEN :time_range.min AND :time_range.max \n  AND f.termination_code IS NOT NULL\nGROUP BY 1, u.email, j.run_as, j.creator_id, j.tags_json\nORDER BY failures DESC\nLIMIT 15",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5179,7 +5484,26 @@
     {
       "name": "ds_most_repaired",
       "displayName": "Most Repaired",
-      "query": "SELECT 'Repair tracking requires job history analysis' AS job_name, 0 AS repairs, 0.00 AS repair_cost, 0 AS repair_time_min WHERE 1=0 UNION ALL SELECT 'Run repair cost analysis job' AS job_name, 0 AS repairs, 0.00 AS repair_cost, 0 AS repair_time_min LIMIT 1"
+      "query": "-- Jobs with most retry/repair runs (failures followed by success within same job)\nWITH job_runs AS (\n  SELECT \n    f.job_id,\n    f.workspace_id,\n    f.run_date,\n    f.result_state,\n    f.run_duration_seconds,\n    LEAD(f.result_state) OVER (PARTITION BY f.job_id ORDER BY f.period_start_time) AS next_state,\n    LEAD(f.run_duration_seconds) OVER (PARTITION BY f.job_id ORDER BY f.period_start_time) AS retry_duration\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline f\n  WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\nrepair_runs AS (\n  SELECT \n    job_id,\n    workspace_id,\n    COUNT(*) AS repairs,\n    SUM(retry_duration) AS total_repair_seconds\n  FROM job_runs\n  WHERE result_state IN ('FAILED', 'ERROR', 'INTERNAL_ERROR')\n    AND next_state IN ('SUCCESS', 'SUCCEEDED')\n  GROUP BY job_id, workspace_id\n)\nSELECT \n  COALESCE(j.name, CAST(r.job_id AS STRING)) AS job_name,\n  r.repairs,\n  ROUND(r.repairs * 0.50, 2) AS repair_cost,\n  ROUND(r.total_repair_seconds / 60.0, 1) AS repair_time_min,\n  COALESCE(u.email, j.run_as, j.creator_id, 'Unknown') AS owner,\n  COALESCE(j.tags_json, '{}') AS tags\nFROM repair_runs r\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j ON r.job_id = j.job_id\nLEFT JOIN ${catalog}.${gold_schema}.dim_user u ON CAST(COALESCE(j.run_as, j.creator_id) AS STRING) = u.user_id\nWHERE r.repairs > 0\nORDER BY r.repairs DESC\nLIMIT 15",
+      "parameters": [
+        {
+          "displayName": "time_range",
+          "keyword": "time_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-30d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "ds_slowest_jobs",
@@ -5432,32 +5756,32 @@
     {
       "name": "ds_ml_failure_risk",
       "displayName": "ML: Failure Risk",
-      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction, 2) AS failure_probability,\n  CASE \n    WHEN prediction > 0.7 THEN 'HIGH'\n    WHEN prediction > 0.3 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS risk_level,\n  'Based on historical patterns' AS contributing_factors\nFROM ${catalog}.${feature_schema}.job_failure_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
+      "query": "-- Actionable failure risk with context, owner, and last failure details\nWITH job_stats AS (\n  SELECT \n    r.job_id,\n    COALESCE(j.name, CAST(r.job_id AS STRING)) AS job_name,\n    COALESCE(j.creator_id, 'Unknown') AS owner,\n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) AS failed_runs,\n    MAX(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN r.run_date END) AS last_failure_date,\n    MAX(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN r.result_state END) AS last_failure_state,\n    MAX(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN r.termination_code END) AS last_error_code,\n    ROUND(STDDEV(r.run_duration_seconds), 1) AS duration_variance,\n    AVG(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN r.run_duration_seconds END) AS avg_failure_duration\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline r\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON r.job_id = j.job_id\n  WHERE r.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY r.job_id, j.name, j.creator_id\n  HAVING COUNT(*) >= 3\n)\nSELECT \n  ROW_NUMBER() OVER (ORDER BY (failed_runs * 100.0 / total_runs) DESC) AS priority,\n  job_name,\n  owner,\n  ROUND(failed_runs * 100.0 / total_runs, 1) AS failure_rate_pct,\n  CASE \n    WHEN failed_runs * 100.0 / total_runs > 50 THEN 'CRITICAL'\n    WHEN failed_runs * 100.0 / total_runs > 25 THEN 'HIGH'\n    WHEN failed_runs * 100.0 / total_runs > 10 THEN 'MEDIUM'\n    ELSE 'LOW'\n  END AS risk_level,\n  failed_runs || ' of ' || total_runs || ' runs failed' AS failure_summary,\n  COALESCE(last_failure_state, 'N/A') || COALESCE(' (' || last_error_code || ')', '') AS last_issue,\n  COALESCE(CAST(last_failure_date AS STRING), 'N/A') AS last_failure,\n  CASE \n    WHEN last_error_code LIKE '%TIMEOUT%' THEN 'Increase timeout or optimize job'\n    WHEN last_error_code LIKE '%OOM%' OR last_error_code LIKE '%MEMORY%' THEN 'Increase cluster memory'\n    WHEN last_error_code LIKE '%INTERNAL%' THEN 'Check cluster health, retry may help'\n    WHEN duration_variance > 300 THEN 'High duration variance - investigate data skew'\n    WHEN failed_runs * 100.0 / total_runs > 50 THEN 'Critical: Review job config and dependencies'\n    ELSE 'Review logs for recent failures'\n  END AS recommended_action\nFROM job_stats\nWHERE failed_runs > 0\nORDER BY (failed_runs * 100.0 / total_runs) DESC\nLIMIT 15"
     },
     {
       "name": "ds_ml_pipeline_health",
       "displayName": "ML: Pipeline Health",
-      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction * 100, 1) AS health_score,\n  CASE \n    WHEN prediction > 0.8 THEN 'Healthy'\n    WHEN prediction > 0.5 THEN 'Degraded'\n    ELSE 'Critical'\n  END AS health_category,\n  CASE WHEN prediction > 0.7 THEN 'Stable' ELSE 'Declining' END AS trend\nFROM ${catalog}.${feature_schema}.pipeline_health_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction ASC\nLIMIT 30"
+      "query": "-- Pipeline health score based on success rate, consistency, and recent trend\nWITH job_health AS (\n  SELECT \n    r.job_id,\n    COALESCE(j.name, CAST(r.job_id AS STRING)) AS job_name,\n    COALESCE(j.creator_id, 'Unknown') AS owner,\n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN r.result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) AS success_runs,\n    AVG(r.run_duration_seconds) AS avg_duration,\n    STDDEV(r.run_duration_seconds) AS duration_stddev,\n    MAX(r.run_date) AS last_run_date,\n    MAX(CASE WHEN r.result_state IN ('SUCCESS', 'SUCCEEDED') THEN r.run_date END) AS last_success_date,\n    MAX(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN r.run_date END) AS last_failure_date\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline r\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON r.job_id = j.job_id\n  WHERE r.run_date >= CURRENT_DATE() - INTERVAL 14 DAYS\n  GROUP BY r.job_id, j.name, j.creator_id\n  HAVING COUNT(*) >= 3\n),\nrecent_health AS (\n  SELECT job_id,\n    SUM(CASE WHEN result_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS recent_success_rate\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= CURRENT_DATE() - INTERVAL 3 DAYS\n  GROUP BY job_id\n)\nSELECT \n  ROW_NUMBER() OVER (ORDER BY (jh.success_runs * 100.0 / jh.total_runs) ASC) AS priority,\n  jh.job_name,\n  jh.owner,\n  ROUND(jh.success_runs * 100.0 / jh.total_runs, 0) AS health_score,\n  CASE \n    WHEN jh.success_runs * 100.0 / jh.total_runs >= 95 THEN '🟢 Healthy'\n    WHEN jh.success_runs * 100.0 / jh.total_runs >= 80 THEN '🟡 Degraded'\n    WHEN jh.success_runs * 100.0 / jh.total_runs >= 50 THEN '🟠 Poor'\n    ELSE '🔴 Critical'\n  END AS health_status,\n  CASE \n    WHEN COALESCE(rh.recent_success_rate, 0) > jh.success_runs * 100.0 / jh.total_runs THEN '📈 Improving'\n    WHEN COALESCE(rh.recent_success_rate, 0) < jh.success_runs * 100.0 / jh.total_runs - 10 THEN '📉 Declining'\n    ELSE '➡️ Stable'\n  END AS trend,\n  jh.total_runs || ' runs, ' || (jh.total_runs - jh.success_runs) || ' failed' AS run_summary,\n  CASE \n    WHEN jh.last_failure_date > jh.last_success_date THEN 'Last run failed - investigate immediately'\n    WHEN jh.success_runs * 100.0 / jh.total_runs < 50 THEN 'Critical: Review job config and dependencies'\n    WHEN COALESCE(rh.recent_success_rate, 0) < 80 THEN 'Recent degradation - check recent changes'\n    ELSE 'Monitor for further issues'\n  END AS action_needed\nFROM job_health jh\nLEFT JOIN recent_health rh ON jh.job_id = rh.job_id\nWHERE jh.success_runs * 100.0 / jh.total_runs < 95\nORDER BY (jh.success_runs * 100.0 / jh.total_runs) ASC\nLIMIT 15"
     },
     {
       "name": "ds_ml_retry_success",
       "displayName": "ML: Retry Success",
-      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction, 2) AS retry_success_prob,\n  CASE \n    WHEN prediction > 0.7 THEN 'Retry Recommended'\n    ELSE 'Investigate First'\n  END AS recommendation\nFROM ${catalog}.${feature_schema}.retry_success_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
+      "query": "-- Jobs where retry is likely to succeed based on historical retry patterns\nWITH job_retries AS (\n  SELECT \n    r1.job_id,\n    COALESCE(j.name, CAST(r1.job_id AS STRING)) AS job_name,\n    COALESCE(j.creator_id, 'Unknown') AS owner,\n    r1.result_state AS initial_state,\n    r1.termination_code AS error_code,\n    r2.result_state AS retry_state,\n    r1.run_date\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline r1\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON r1.job_id = j.job_id\n  JOIN ${catalog}.${gold_schema}.fact_job_run_timeline r2 \n    ON r1.job_id = r2.job_id \n    AND DATE(r1.run_date) = DATE(r2.run_date)\n    AND r2.period_start_time > r1.period_start_time\n    AND r2.period_start_time < r1.period_start_time + INTERVAL 4 HOURS\n  WHERE r1.result_state NOT IN ('SUCCESS', 'SUCCEEDED')\n    AND r1.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n),\nretry_stats AS (\n  SELECT \n    job_id,\n    job_name,\n    owner,\n    COUNT(*) AS total_retries,\n    SUM(CASE WHEN retry_state IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) AS successful_retries,\n    MAX(error_code) AS common_error,\n    MAX(run_date) AS last_retry_date\n  FROM job_retries\n  GROUP BY job_id, job_name, owner\n)\nSELECT \n  ROW_NUMBER() OVER (ORDER BY (successful_retries * 100.0 / total_retries) DESC) AS priority,\n  job_name,\n  owner,\n  ROUND(successful_retries * 100.0 / total_retries, 0) AS retry_success_pct,\n  successful_retries || ' of ' || total_retries || ' retries succeeded' AS retry_summary,\n  CASE \n    WHEN successful_retries * 100.0 / total_retries >= 80 THEN '✅ Auto-retry recommended'\n    WHEN successful_retries * 100.0 / total_retries >= 50 THEN '⚠️ Retry may help'\n    ELSE '🔍 Investigate first'\n  END AS recommendation,\n  COALESCE(common_error, 'Unknown') AS typical_error,\n  CASE \n    WHEN successful_retries * 100.0 / total_retries >= 80 THEN 'Configure max_retries=3 in job settings'\n    WHEN common_error LIKE '%TIMEOUT%' THEN 'Increase timeout before retry'\n    WHEN common_error LIKE '%OOM%' THEN 'Increase cluster resources'\n    ELSE 'Review logs before enabling auto-retry'\n  END AS action\nFROM retry_stats\nWHERE total_retries >= 2\nORDER BY (successful_retries * 100.0 / total_retries) DESC, total_retries DESC\nLIMIT 15"
     },
     {
       "name": "ds_ml_incident_impact",
       "displayName": "ML: Incident Impact",
-      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction * 10, 0) AS blast_radius,\n  ROUND(prediction * 5, 0) AS downstream_jobs,\n  CASE \n    WHEN prediction > 0.8 THEN 'Critical'\n    WHEN prediction > 0.5 THEN 'High'\n    ELSE 'Low'\n  END AS severity\nFROM ${catalog}.${feature_schema}.sla_breach_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
+      "query": "-- Jobs with highest impact when they fail (based on frequency and recent failures)\nWITH job_impact AS (\n  SELECT \n    r.job_id,\n    COALESCE(j.name, CAST(r.job_id AS STRING)) AS job_name,\n    COALESCE(j.creator_id, 'Unknown') AS owner,\n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) AS failed_runs,\n    AVG(r.run_duration_seconds / 60.0) AS avg_duration_min,\n    COUNT(DISTINCT DATE(r.run_date)) AS active_days,\n    MAX(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN r.run_date END) AS last_failure,\n    MAX(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN r.termination_code END) AS last_error\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline r\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON r.job_id = j.job_id\n  WHERE r.run_date >= CURRENT_DATE() - INTERVAL 14 DAYS\n  GROUP BY r.job_id, j.name, j.creator_id\n  HAVING SUM(CASE WHEN r.result_state NOT IN ('SUCCESS', 'SUCCEEDED') THEN 1 ELSE 0 END) > 0\n)\nSELECT \n  ROW_NUMBER() OVER (ORDER BY (active_days * failed_runs * avg_duration_min) DESC) AS priority,\n  job_name,\n  owner,\n  CASE \n    WHEN active_days >= 12 AND failed_runs > 5 THEN '🔴 Critical'\n    WHEN active_days >= 7 AND failed_runs > 2 THEN '🟠 High'\n    WHEN active_days >= 3 THEN '🟡 Medium'\n    ELSE '⚪ Low'\n  END AS impact_level,\n  active_days || ' days active, ' || failed_runs || ' failures' AS impact_summary,\n  ROUND(avg_duration_min, 1) || ' min avg runtime' AS resource_impact,\n  COALESCE(CAST(last_failure AS STRING), 'N/A') AS last_incident,\n  COALESCE(last_error, 'Unknown') AS error_type,\n  CASE \n    WHEN active_days >= 12 THEN 'Critical path job - prioritize fix and add monitoring'\n    WHEN failed_runs > 5 THEN 'Frequent failures - investigate root cause'\n    WHEN avg_duration_min > 60 THEN 'Long-running job - failures waste significant resources'\n    ELSE 'Monitor and fix when capacity allows'\n  END AS recommended_action\nFROM job_impact\nORDER BY (active_days * failed_runs * avg_duration_min) DESC\nLIMIT 15"
     },
     {
       "name": "ds_ml_self_healing",
       "displayName": "ML: Self Healing",
-      "query": "SELECT\n  'Pattern-' || CAST(job_id AS STRING) AS error_pattern,\n  CASE \n    WHEN prediction > 0.8 THEN 'Auto-retry'\n    WHEN prediction > 0.5 THEN 'Scale resources'\n    ELSE 'Manual intervention'\n  END AS healing_action,\n  ROUND(prediction, 2) AS confidence,\n  ROUND(1 - prediction, 2) AS historical_success\nFROM ${catalog}.${feature_schema}.job_failure_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nAND prediction > 0.5\nORDER BY prediction DESC\nLIMIT 20"
+      "query": "-- Self-healing recommendations based on error patterns and historical resolution\nWITH error_patterns AS (\n  SELECT \n    r.termination_code AS error_pattern,\n    COALESCE(j.name, CAST(r.job_id AS STRING)) AS example_job,\n    COALESCE(j.creator_id, 'Unknown') AS owner,\n    COUNT(*) AS occurrences,\n    COUNT(DISTINCT r.job_id) AS affected_jobs,\n    MAX(r.run_date) AS last_seen\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline r\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON r.job_id = j.job_id\n  WHERE r.result_state NOT IN ('SUCCESS', 'SUCCEEDED')\n    AND r.run_date >= CURRENT_DATE() - INTERVAL 14 DAYS\n    AND r.termination_code IS NOT NULL\n  GROUP BY r.termination_code, j.name, r.job_id, j.creator_id\n)\nSELECT \n  ROW_NUMBER() OVER (ORDER BY occurrences DESC) AS priority,\n  error_pattern,\n  CASE \n    WHEN error_pattern LIKE '%TIMEOUT%' OR error_pattern LIKE '%TIMED_OUT%' THEN '⏱️ Auto-retry with backoff'\n    WHEN error_pattern LIKE '%OOM%' OR error_pattern LIKE '%MEMORY%' THEN '📈 Scale cluster memory'\n    WHEN error_pattern LIKE '%INTERNAL%' THEN '🔄 Auto-retry (transient)'\n    WHEN error_pattern LIKE '%CANCEL%' THEN '⚠️ Manual review needed'\n    WHEN error_pattern LIKE '%DRIVER%' THEN '🔧 Check driver logs'\n    WHEN error_pattern LIKE '%NETWORK%' OR error_pattern LIKE '%CONNECTION%' THEN '🌐 Retry with network check'\n    ELSE '🔍 Manual investigation'\n  END AS healing_action,\n  occurrences AS total_occurrences,\n  affected_jobs AS jobs_affected,\n  example_job AS example_affected_job,\n  owner AS job_owner,\n  CASE \n    WHEN error_pattern LIKE '%TIMEOUT%' THEN 'Configure retry policy: max_retries=3, retry_on_timeout=true'\n    WHEN error_pattern LIKE '%OOM%' THEN 'Increase spark.executor.memory or use larger instance type'\n    WHEN error_pattern LIKE '%INTERNAL%' THEN 'Usually transient - auto-retry resolves 80%+ cases'\n    WHEN error_pattern LIKE '%CANCEL%' THEN 'Check if job was manually cancelled or hit cluster termination'\n    ELSE 'Review job logs in Spark UI for detailed error'\n  END AS implementation_guide\nFROM error_patterns\nWHERE occurrences >= 2\nORDER BY occurrences DESC\nLIMIT 15"
     },
     {
       "name": "ds_ml_duration_forecast",
       "displayName": "ML: Duration Forecast",
-      "query": "SELECT\n  job_id AS job_name,\n  ROUND(prediction, 1) AS predicted_duration,\n  ROUND(prediction * 0.9, 1) AS historical_avg\nFROM ${catalog}.${feature_schema}.duration_predictions\nWHERE scored_at >= CURRENT_DATE() - INTERVAL 7 DAYS\nORDER BY prediction DESC\nLIMIT 30"
+      "query": "-- Duration analysis: Jobs with significant deviation from baseline (prioritized by impact)\nWITH job_durations AS (\n  SELECT \n    r.job_id,\n    COALESCE(j.name, CAST(r.job_id AS STRING)) AS job_name,\n    COALESCE(j.creator_id, 'Unknown') AS owner,\n    COUNT(*) AS total_runs,\n    ROUND(AVG(r.run_duration_seconds / 60.0), 1) AS avg_duration_min,\n    ROUND(PERCENTILE(r.run_duration_seconds / 60.0, 0.5), 1) AS median_duration_min,\n    ROUND(PERCENTILE(r.run_duration_seconds / 60.0, 0.95), 1) AS p95_duration_min,\n    ROUND(MAX(r.run_duration_seconds / 60.0), 1) AS max_duration_min,\n    ROUND(STDDEV(r.run_duration_seconds / 60.0), 1) AS std_dev_min\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline r\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON r.job_id = j.job_id\n  WHERE r.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n    AND r.result_state IN ('SUCCESS', 'SUCCEEDED')\n    AND r.run_duration_seconds > 0\n  GROUP BY r.job_id, j.name, j.creator_id\n  HAVING COUNT(*) >= 5\n),\nrecent_runs AS (\n  SELECT \n    r.job_id,\n    ROUND(AVG(r.run_duration_seconds / 60.0), 1) AS recent_avg_min\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline r\n  WHERE r.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n    AND r.result_state IN ('SUCCESS', 'SUCCEEDED')\n  GROUP BY r.job_id\n)\nSELECT \n  ROW_NUMBER() OVER (ORDER BY ABS(rr.recent_avg_min - jd.avg_duration_min) DESC) AS priority,\n  jd.job_name,\n  jd.owner,\n  COALESCE(rr.recent_avg_min, jd.avg_duration_min) AS recent_duration_min,\n  jd.avg_duration_min AS baseline_duration_min,\n  ROUND(((COALESCE(rr.recent_avg_min, jd.avg_duration_min) - jd.avg_duration_min) / NULLIF(jd.avg_duration_min, 0)) * 100, 1) AS deviation_pct,\n  CASE \n    WHEN rr.recent_avg_min > jd.p95_duration_min THEN '🔴 Critical: Exceeds P95'\n    WHEN rr.recent_avg_min > jd.avg_duration_min * 1.5 THEN '🟠 High: >50% slower'\n    WHEN rr.recent_avg_min > jd.avg_duration_min * 1.2 THEN '🟡 Medium: >20% slower'\n    WHEN rr.recent_avg_min < jd.avg_duration_min * 0.7 THEN '🟢 Improved: >30% faster'\n    ELSE '✅ Normal range'\n  END AS status,\n  CASE \n    WHEN rr.recent_avg_min > jd.p95_duration_min THEN 'Check for data growth, cluster sizing, or new dependencies'\n    WHEN rr.recent_avg_min > jd.avg_duration_min * 1.5 THEN 'Review recent code changes or data volume increases'\n    WHEN jd.std_dev_min > jd.avg_duration_min * 0.5 THEN 'High variability - investigate data skew or resource contention'\n    ELSE 'Duration within expected range'\n  END AS recommendation\nFROM job_durations jd\nLEFT JOIN recent_runs rr ON jd.job_id = rr.job_id\nWHERE ABS(COALESCE(rr.recent_avg_min, jd.avg_duration_min) - jd.avg_duration_min) > jd.avg_duration_min * 0.1\nORDER BY ABS(rr.recent_avg_min - jd.avg_duration_min) DESC\nLIMIT 15"
     },
     {
       "name": "ds_monitor_latest",
@@ -5582,7 +5906,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  window.start AS window_start,\n  ROUND(COALESCE(success_rate_drift, 0), 2) AS success_rate_drift,\n  ROUND(COALESCE(duration_drift_pct, 0), 2) AS duration_drift,\n  ROUND(COALESCE(total_runs_drift_pct, 0), 2) AS volume_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\nORDER BY window.start",
+      "query": "SELECT \n  window.start AS window_start,\n  ROUND(COALESCE(success_rate_drift, 0), 2) AS success_rate_drift,\n  ROUND(COALESCE(duration_drift_pct, 0), 2) AS duration_drift,\n  ROUND(COALESCE(run_count_drift_pct, 0), 2) AS volume_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\nORDER BY window.start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5908,7 +6232,7 @@
     {
       "name": "ds_monitor_reliability_aggregate",
       "displayName": "Reliability Aggregate Metrics",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  COALESCE(total_runs, 0) AS total_runs,\n  COALESCE(success_count, 0) AS success_count,\n  COALESCE(failure_count, 0) AS failure_count,\n  COALESCE(timeout_count, 0) AS timeout_count,\n  COALESCE(distinct_jobs, 0) AS distinct_jobs\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "query": "-- Reliability aggregate metrics from fact_job_run_timeline\nSELECT\n  DATE(period_start_time) AS window_start,\n  COUNT(*) AS total_runs,\n  SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) AS success_count,\n  SUM(CASE WHEN result_state IN ('FAILED', 'ERROR') THEN 1 ELSE 0 END) AS failure_count,\n  SUM(CASE WHEN result_state = 'TIMEDOUT' OR termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) AS timeout_count,\n  COUNT(DISTINCT job_id) AS distinct_jobs\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE period_start_time >= :monitor_time_start\n  AND period_start_time <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(period_start_time)\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6042,7 +6366,7 @@
     {
       "name": "ds_monitor_reliability_drift",
       "displayName": "Reliability Drift Metrics",
-      "query": "SELECT \n  window.start AS window_start,\n  drift_type,\n  ROUND(COALESCE(success_rate_drift, 0), 2) AS success_rate_drift,\n  ROUND(COALESCE(duration_drift_pct, 0), 2) AS duration_drift,\n  ROUND(COALESCE(total_runs_drift_pct, 0), 2) AS volume_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND window.start >= :monitor_time_start\n  AND window.start <= :monitor_time_end\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start",
+      "query": "-- Calculate week-over-week drift from fact_job_run_timeline\nWITH weekly_stats AS (\n  SELECT\n    DATE_TRUNC('week', period_start_time) AS week_start,\n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) AS successes,\n    ROUND(AVG(total_duration_ms / 60000.0), 2) AS avg_duration_min\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE period_start_time >= :monitor_time_start\n    AND period_start_time <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\n  GROUP BY DATE_TRUNC('week', period_start_time)\n),\ndrift_calc AS (\n  SELECT\n    week_start AS window_start,\n    total_runs,\n    successes,\n    avg_duration_min,\n    LAG(total_runs) OVER (ORDER BY week_start) AS prev_runs,\n    LAG(successes) OVER (ORDER BY week_start) AS prev_successes,\n    LAG(avg_duration_min) OVER (ORDER BY week_start) AS prev_duration\n  FROM weekly_stats\n)\nSELECT\n  window_start,\n  ROUND(CASE WHEN prev_successes > 0 THEN ((successes * 100.0 / total_runs) - (prev_successes * 100.0 / prev_runs)) ELSE 0 END, 2) AS success_rate_drift,\n  ROUND(CASE WHEN prev_duration > 0 THEN ((avg_duration_min - prev_duration) / prev_duration * 100) ELSE 0 END, 2) AS duration_drift,\n  ROUND(CASE WHEN prev_runs > 0 THEN ((total_runs - prev_runs) / prev_runs * 100.0) ELSE 0 END, 2) AS volume_drift\nFROM drift_calc\nWHERE prev_runs IS NOT NULL\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "monitor_time_start",

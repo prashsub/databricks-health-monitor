@@ -1,0 +1,54 @@
+# User Sync Job
+# =============
+#
+# Syncs Databricks user IDs to emails for dashboard display.
+# This enables the reliability dashboard to show actual user emails
+# instead of numeric user IDs.
+#
+# Creates/updates dim_user table with:
+#   - user_id -> email mapping
+#   - display_name
+#   - active status
+#   - service principal information
+#
+# Schedule: Daily at 6 AM (recommended)
+# Run manually after initial Gold layer setup.
+#
+# Usage:
+#   databricks bundle run -t dev user_sync_job
+
+resources:
+  jobs:
+    user_sync_job:
+      name: "[${bundle.target}] Health Monitor - User Sync"
+      description: "Syncs Databricks user IDs to emails for dashboard display"
+      
+      # Serverless environment
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+      
+      tasks:
+        - task_key: sync_users
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/health_monitor_gold/sync_users.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+      
+      # Schedule: Daily at 6 AM (PAUSED - enable after initial setup)
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: "America/Los_Angeles"
+        pause_status: PAUSED
+      
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: gold
+        job_type: identity_sync
+        compute_type: serverless
+        job_level: atomic
+

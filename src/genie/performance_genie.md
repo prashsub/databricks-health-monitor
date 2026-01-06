@@ -12,7 +12,7 @@
 
 **Powered by:**
 - 3 Metric Views (query_performance, cluster_utilization, cluster_efficiency)
-- 16 Table-Valued Functions (query analysis, cluster utilization, right-sizing)
+- 21 Table-Valued Functions (10 query analysis, 11 cluster utilization)
 - 7 ML Prediction Tables (optimization, capacity planning, right-sizing)
 - 4 Lakehouse Monitoring Tables (query and cluster drift/profile metrics)
 - 5 Dimension Tables (warehouse, cluster, node_type, workspace, date)
@@ -57,26 +57,38 @@
 | `cluster_utilization` | Resource metrics | avg_cpu_utilization, avg_memory_utilization, total_node_hours |
 | `cluster_efficiency` | Efficiency analytics | p95_cpu_total_pct, cpu_saturation_hours, cpu_idle_hours, underprovisioned_hours |
 
-### Table-Valued Functions (16 TVFs)
+### Table-Valued Functions (21 TVFs)
+
+#### Query TVFs (10)
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_slow_queries` | Queries exceeding threshold | "slow queries" |
-| `get_warehouse_utilization` | Warehouse metrics | "warehouse utilization" |
-| `get_query_efficiency` | Efficiency analysis | "query efficiency" |
-| `get_high_spill_queries` | Memory pressure queries | "high spill", "memory issues" |
+| `get_slowest_queries` | Queries exceeding threshold | "slow queries" |
+| `get_query_latency_percentiles` | Latency percentiles | "P95 latency", "percentiles" |
+| `get_warehouse_performance` | Warehouse metrics | "warehouse utilization" |
 | `get_query_volume_trends` | Query volume trends | "query volume" |
-| `get_user_query_summary` | User-level summary | "queries by user" |
-| `get_query_latency_percentiles` | Latency percentiles | "P95 latency" |
-| `get_failed_queries` | Failed queries | "failed queries" |
-| `get_query_efficiency_analysis` | Full efficiency analysis | "efficiency report" |
-| `get_job_outlier_runs` | Duration outliers | "outlier jobs" |
+| `get_top_users_by_query_count` | Top users by query count | "queries by user", "top users" |
+| `get_query_efficiency_by_user` | User-level efficiency | "user efficiency" |
+| `get_query_queue_analysis` | Queue time analysis | "queue time", "queueing" |
+| `get_failed_queries_summary` | Failed queries | "failed queries", "errors" |
+| `get_cache_hit_analysis` | Cache effectiveness | "cache hit", "caching" |
+| `get_spill_analysis` | Memory pressure queries | "spill", "memory issues" |
+
+#### Cluster TVFs (11)
+
+| Function Name | Purpose | When to Use |
+|---------------|---------|-------------|
 | `get_cluster_utilization` | Cluster resource metrics | "cluster utilization" |
-| `get_cluster_resource_metrics` | Detailed metrics | "CPU/memory details" |
+| `get_cluster_resource_metrics` | Detailed resource metrics | "CPU/memory details" |
 | `get_underutilized_clusters` | Underutilized clusters | "underutilized", "wasted capacity" |
-| `get_jobs_without_autoscaling` | Jobs missing autoscale | "jobs without autoscaling" |
-| `get_jobs_on_legacy_dbr` | Legacy DBR jobs | "legacy DBR" |
-| `get_cluster_right_sizing_recommendations` | Right-sizing suggestions | "right-sizing" |
+| `get_cluster_rightsizing_recommendations` | Right-sizing suggestions | "right-sizing", "resize" |
+| `get_autoscaling_disabled_jobs` | Jobs missing autoscale | "jobs without autoscaling" |
+| `get_legacy_dbr_jobs` | Legacy DBR jobs | "legacy DBR", "old runtime" |
+| `get_cluster_cost_by_type` | Cost breakdown by type | "cluster costs", "cost by type" |
+| `get_cluster_uptime_analysis` | Uptime patterns | "uptime", "cluster hours" |
+| `get_cluster_scaling_events` | Autoscaling events | "scaling events", "autoscale history" |
+| `get_cluster_efficiency_metrics` | Efficiency scores | "efficiency metrics" |
+| `get_node_utilization_by_cluster` | Per-node utilization | "node utilization" |
 
 ### ML Prediction Tables 🤖 (7 Models)
 
@@ -107,7 +119,7 @@
 
 ```sql
 -- ✅ CORRECT: Get query performance metrics
-SELECT 
+SELECT
   window.start AS window_start,
   p99_duration_ms,
   sla_breach_rate,
@@ -119,7 +131,7 @@ WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
 ORDER BY window.start DESC;
 
 -- ✅ CORRECT: Get cluster utilization metrics
-SELECT 
+SELECT
   window.start AS window_start,
   p95_cpu_total_pct,
   cpu_saturation_hours,
@@ -131,7 +143,7 @@ WHERE column_name = ':table'
 ORDER BY window.start DESC;
 
 -- ✅ CORRECT: Get performance by warehouse (sliced)
-SELECT 
+SELECT
   slice_value AS warehouse_id,
   AVG(p99_duration_ms) AS avg_p99_duration
 FROM ${catalog}.${gold_schema}.fact_query_history_profile_metrics
@@ -141,7 +153,7 @@ WHERE column_name = ':table'
 GROUP BY slice_value;
 
 -- ✅ CORRECT: Get performance drift
-SELECT 
+SELECT
   window.start AS window_start,
   duration_drift,
   qps_drift
@@ -228,9 +240,9 @@ ORDER BY window.start DESC;
 │  "Is latency increasing?"          → Custom Metrics (_drift_metrics)│
 │  "Query performance trend"         → Custom Metrics (_profile_metrics)│
 │  ─────────────────────────────────────────────────────────────  │
-│  "List slow queries today"         → TVF (get_slow_queries)      │
+│  "List slow queries today"         → TVF (get_slowest_queries)      │
 │  "Underutilized clusters"          → TVF (get_underutilized_clusters)│
-│  "Queries with high spill"         → TVF (get_high_spill_queries)│
+│  "Queries with high spill"         → TVF (get_spill_analysis)│
 │  ─────────────────────────────────────────────────────────────  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -242,8 +254,8 @@ ORDER BY window.start DESC;
 |--------------|-----------|---------|
 | **Current P95/P99 latency** | Metric View | "Query latency" → `query_performance` |
 | **Latency trend** | Custom Metrics | "Is latency degrading?" → `_drift_metrics` |
-| **List of slow queries** | TVF | "Slow queries >30s" → `get_slow_queries` |
-| **Right-sizing recs** | TVF/ML | "Cluster recommendations" → `get_cluster_rightsizing` |
+| **List of slow queries** | TVF | "Slow queries >30s" → `get_slowest_queries` |
+| **Right-sizing recs** | TVF/ML | "Cluster recommendations" → `get_cluster_rightsizing_recommendations` |
 | **Optimization suggestions** | ML Tables | "Optimize queries" → `query_optimization_recommendations` |
 
 ### Priority Order
@@ -263,7 +275,7 @@ You are a Databricks performance analyst. Follow these rules:
 1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends
 2. **Query Questions:** Use query_performance metric view for dashboard KPIs
 3. **Cluster Questions:** Use cluster_utilization or cluster_efficiency for aggregates
-4. **TVFs for Lists:** Use TVFs for "slow queries", "underutilized", "spill" queries
+4. **TVFs for Lists:** Use TVFs with TABLE() wrapper for "slow queries", "underutilized", "spill" queries
 5. **Trends:** For "is latency increasing?" check _drift_metrics tables
 6. **Date Default:** Queries=last 24h, Clusters=last 7 days
 7. **Duration Units:** Queries in seconds, jobs in minutes
@@ -271,7 +283,7 @@ You are a Databricks performance analyst. Follow these rules:
 9. **Limits:** Top 20 for performance lists
 10. **Percentiles:** P50=median, P95=tail, P99=extreme
 11. **SLA Threshold:** 60 seconds default, high spill = any spill > 0
-12. **ML Optimization:** For "optimize queries" → query query_optimization_recommendations
+12. **ML Tables:** Use ${catalog}.${feature_schema} for ML prediction tables
 13. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
 14. **Synonyms:** query=statement=SQL, cluster=compute, warehouse=endpoint
 15. **Performance:** Never scan Bronze/Silver tables
@@ -281,29 +293,40 @@ You are a Databricks performance analyst. Follow these rules:
 
 ## ████ SECTION G: TABLE-VALUED FUNCTIONS ████
 
-### Query TVFs
+### Query TVFs (10 Functions)
 
 | Function Name | Signature | Purpose | When to Use |
 |---------------|-----------|---------|-------------|
-| `get_slow_queries` | `(start_date STRING, end_date STRING, threshold_seconds INT)` | Slow queries | "slow queries today" |
-| `get_warehouse_utilization` | `(start_date STRING, end_date STRING)` | Warehouse metrics | "warehouse utilization" |
-| `get_high_spill_queries` | `(start_date STRING, end_date STRING)` | Memory pressure | "spill queries" |
-| `get_query_efficiency_analysis` | `(warehouse_id STRING, start_date STRING, end_date STRING)` | Full efficiency | "efficiency report" |
-| `get_query_latency_percentiles` | `(warehouse_id STRING, start_date STRING, end_date STRING)` | Latency stats | "P95 latency" |
+| `get_slowest_queries` | `(days_back INT, duration_threshold_sec INT DEFAULT 30)` | Slow queries | "slow queries today" |
+| `get_query_latency_percentiles` | `(start_date STRING, end_date STRING)` | Latency percentiles | "P95 latency" |
+| `get_warehouse_performance` | `(start_date STRING, end_date STRING)` | Warehouse metrics | "warehouse utilization" |
+| `get_query_volume_trends` | `(start_date STRING, end_date STRING)` | Query volume trends | "query volume" |
+| `get_top_users_by_query_count` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 20)` | Top users by queries | "top users" |
+| `get_query_efficiency_by_user` | `(start_date STRING, end_date STRING)` | User efficiency | "user efficiency" |
+| `get_query_queue_analysis` | `(start_date STRING, end_date STRING)` | Queue time analysis | "queue time" |
+| `get_failed_queries_summary` | `(days_back INT)` | Failed queries | "failed queries" |
+| `get_cache_hit_analysis` | `(days_back INT)` | Cache effectiveness | "cache hit rate" |
+| `get_spill_analysis` | `(days_back INT)` | Memory pressure | "spill queries" |
 
-### Cluster TVFs
+### Cluster TVFs (11 Functions)
 
 | Function Name | Signature | Purpose | When to Use |
 |---------------|-----------|---------|-------------|
 | `get_cluster_utilization` | `(start_date STRING, end_date STRING)` | Cluster metrics | "cluster utilization" |
-| `get_underutilized_clusters` | `(start_date STRING, end_date STRING, cpu_threshold DOUBLE)` | Underutilized | "wasted capacity" |
-| `get_jobs_without_autoscaling` | `(start_date STRING, end_date STRING)` | Missing autoscale | "no autoscaling" |
-| `get_jobs_on_legacy_dbr` | `(start_date STRING, end_date STRING)` | Legacy DBR | "old DBR versions" |
-| `get_cluster_right_sizing_recommendations` | `(start_date STRING, end_date STRING)` | Right-sizing | "optimization" |
+| `get_cluster_resource_metrics` | `(start_date STRING, end_date STRING)` | Detailed metrics | "CPU/memory details" |
+| `get_underutilized_clusters` | `(days_back INT)` | Underutilized clusters | "wasted capacity" |
+| `get_cluster_rightsizing_recommendations` | `(days_back INT)` | Right-sizing suggestions | "right-sizing" |
+| `get_autoscaling_disabled_jobs` | `(days_back INT)` | Missing autoscale | "no autoscaling" |
+| `get_legacy_dbr_jobs` | `(days_back INT)` | Legacy DBR jobs | "old DBR versions" |
+| `get_cluster_cost_by_type` | `(start_date STRING, end_date STRING)` | Cost by cluster type | "cluster costs" |
+| `get_cluster_uptime_analysis` | `(start_date STRING, end_date STRING)` | Uptime patterns | "uptime" |
+| `get_cluster_scaling_events` | `(days_back INT)` | Scaling events | "autoscale history" |
+| `get_cluster_efficiency_metrics` | `(start_date STRING, end_date STRING)` | Efficiency scores | "efficiency metrics" |
+| `get_node_utilization_by_cluster` | `(start_date STRING, end_date STRING)` | Per-node utilization | "node utilization" |
 
 ---
 
-## ████ SECTION G: ML MODEL INTEGRATION (7 Models) ████
+## ████ SECTION H: ML MODEL INTEGRATION (7 Models) ████
 
 ### Performance ML Models Quick Reference
 
@@ -323,10 +346,10 @@ You are a Databricks performance analyst. Follow these rules:
 - **Question Triggers:** "how to optimize", "improve query", "optimization suggestions", "tune query"
 - **Query Pattern:**
 ```sql
-SELECT query_id, statement_text, 
+SELECT query_id, statement_text,
        needs_partition_pruning, needs_caching, needs_join_reorder,
        estimated_improvement_pct
-FROM ${catalog}.${gold_schema}.query_optimization_classifications
+FROM ${catalog}.${feature_schema}.query_optimization_classifications
 WHERE optimization_flags > 0
 ORDER BY estimated_improvement_pct DESC
 LIMIT 20;
@@ -336,9 +359,9 @@ LIMIT 20;
 - **Question Triggers:** "right-size", "optimize cluster", "savings", "too big", "too small"
 - **Query Pattern:**
 ```sql
-SELECT cluster_name, current_size, recommended_size, 
+SELECT cluster_name, current_size, recommended_size,
        recommended_action, potential_savings_usd
-FROM ${catalog}.${gold_schema}.cluster_rightsizing_recommendations
+FROM ${catalog}.${feature_schema}.cluster_rightsizing_recommendations
 WHERE recommended_action != 'NO_CHANGE'
 ORDER BY potential_savings_usd DESC;
 ```
@@ -349,7 +372,7 @@ ORDER BY potential_savings_usd DESC;
 ```sql
 SELECT warehouse_id, predicted_cache_hit_rate,
        cache_optimization_potential
-FROM ${catalog}.${gold_schema}.cache_hit_predictions
+FROM ${catalog}.${feature_schema}.cache_hit_predictions
 ORDER BY cache_optimization_potential DESC;
 ```
 
@@ -365,763 +388,576 @@ USER QUESTION                           → USE THIS
 ────────────────────────────────────────────────────
 "What is P95 latency?"                  → Metric View: query_performance
 "Is latency trending up?"               → Custom Metrics: _drift_metrics
-"Show slow queries"                     → TVF: get_slow_queries
+"Show slow queries"                     → TVF: get_slowest_queries
 ```
 
 ---
 
-## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
+## ████ SECTION I: BENCHMARK QUESTIONS WITH SQL ████
+
+> **TOTAL: 25 Questions (20 Normal + 5 Deep Research)**
+> **Grounded in:** mv_query_performance, mv_cluster_utilization, mv_cluster_efficiency, TVFs, ML Tables
+
+### ✅ Normal Benchmark Questions (Q1-Q20)
 
 ### Question 1: "What is our average query duration?"
 **Expected SQL:**
 ```sql
-SELECT 
-  MEASURE(avg_duration_ms) / 1000.0 as avg_duration_seconds
-FROM ${catalog}.${gold_schema}.query_performance
-WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT MEASURE(avg_duration_seconds) as avg_sec
+FROM ${catalog}.${gold_schema}.mv_query_performance
+WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ```
-**Expected Result:** Single value in seconds
+**Expected Result:** Average query execution time in seconds for last 7 days
 
 ---
 
-### Question 2: "Show me slow queries from today"
+### Question 2: "Show me query performance by warehouse"
 **Expected SQL:**
 ```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_slow_queries(
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-  60
-)
+SELECT
+  warehouse_name,
+  MEASURE(avg_duration_seconds) as avg_duration,
+  MEASURE(p95_duration_seconds) as p95_duration,
+  MEASURE(total_queries) as queries
+FROM ${catalog}.${gold_schema}.mv_query_performance
+WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+GROUP BY warehouse_name
+ORDER BY queries DESC
+LIMIT 10;
+```
+**Expected Result:** Top 10 warehouses by query volume with latency metrics
+
+---
+
+### Question 3: "What is the average CPU utilization?"
+**Expected SQL:**
+```sql
+SELECT MEASURE(avg_cpu_utilization) as cpu_pct
+FROM ${catalog}.${gold_schema}.mv_cluster_utilization
+WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+```
+**Expected Result:** Average CPU utilization percentage across all clusters
+
+---
+
+### Question 4: "What is the P95 query duration?"
+**Expected SQL:**
+```sql
+SELECT MEASURE(p95_duration_seconds) as p95_sec
+FROM ${catalog}.${gold_schema}.mv_query_performance
+WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+```
+**Expected Result:** P95 query latency for SLA tracking
+
+---
+
+### Question 5: "Show me slow queries from today"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_slowest_queries(1, 30))
 ORDER BY duration_seconds DESC
 LIMIT 20;
 ```
-**Expected Result:** Table of slow queries (>60s) from today
+**Expected Result:** Queries exceeding 30-second threshold with execution details
 
 ---
 
-### Question 3: "What is our average CPU utilization?"
+### Question 6: "What is the query cache hit rate?"
 **Expected SQL:**
 ```sql
-SELECT 
-  MEASURE(avg_cpu_utilization) as avg_cpu_pct
-FROM ${catalog}.${gold_schema}.cluster_utilization
-WHERE metric_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT MEASURE(cache_hit_rate) as cache_pct
+FROM ${catalog}.${gold_schema}.mv_query_performance
+WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ```
-**Expected Result:** Single percentage value
+**Expected Result:** Overall cache efficiency percentage
 
 ---
 
-### Question 4: "Which clusters are underutilized?"
+### Question 7: "Show me warehouse utilization metrics"
 **Expected SQL:**
 ```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_underutilized_clusters(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-  30.0
-)
-ORDER BY potential_savings DESC
-LIMIT 20;
-```
-**Expected Result:** Clusters with <30% CPU utilization
-
----
-
-### Question 5: "What is the P95 query duration?"
-**Expected SQL:**
-```sql
-SELECT 
-  MEASURE(p95_duration_ms) / 1000.0 as p95_duration_seconds
-FROM ${catalog}.${gold_schema}.query_performance
-WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
-```
-**Expected Result:** Single value in seconds
-
----
-
-### Question 6: "Show me right-sizing recommendations"
-**Expected SQL:**
-```sql
-SELECT 
-  cluster_id,
-  current_size,
-  recommended_size,
-  potential_savings
-FROM ${catalog}.${gold_schema}.cluster_rightsizing_recommendations
-WHERE potential_savings > 0
-ORDER BY potential_savings DESC
-LIMIT 20;
-```
-**Expected Result:** Clusters with recommended downsizing
-
----
-
-### Question 7: "Which warehouse has the highest queue time?"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_warehouse_utilization(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY avg_queue_time DESC
-LIMIT 5;
-```
-**Expected Result:** Warehouses sorted by queue time
-
----
-
-### Question 8: "Which queries should I optimize?"
-**Expected SQL:**
-```sql
-SELECT 
-  query_id,
-  needs_optimization,
-  reason
-FROM ${catalog}.${gold_schema}.query_optimization_classifications
-WHERE needs_optimization = TRUE
-ORDER BY query_id DESC
-LIMIT 20;
-```
-**Expected Result:** Queries flagged for optimization
-
----
-
-### Question 9: "Show me clusters without autoscaling"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_jobs_without_autoscaling(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 30 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY total_cost DESC
-LIMIT 20;
-```
-**Expected Result:** Jobs without autoscaling enabled
-
----
-
-### Question 10: "What are the potential savings from right-sizing?"
-**Expected SQL:**
-```sql
-SELECT 
-  SUM(potential_savings) as total_potential_savings
-FROM ${catalog}.${gold_schema}.cluster_rightsizing_recommendations
-WHERE potential_savings > 0;
-```
-**Expected Result:** Total potential savings amount
-
----
-
-### Question 11: "Show me queries with high spill"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_high_spill_queries(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY spill_to_disk_bytes DESC
-LIMIT 20;
-```
-**Expected Result:** Queries with memory pressure issues
-
----
-
-### Question 12: "What is the query volume trend?"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_query_volume_trends(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 30 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY query_date;
-```
-**Expected Result:** Daily query volume over 30 days
-
----
-
-### Question 13: "Show me failed queries today"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_failed_queries(
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY execution_time DESC
-LIMIT 20;
-```
-**Expected Result:** Failed queries with error details
-
----
-
-### Question 14: "What is the cache hit rate by warehouse?"
-**Expected SQL:**
-```sql
-SELECT 
-  warehouse_id,
-  MEASURE(cache_hit_rate) as cache_hit_rate
-FROM ${catalog}.${gold_schema}.query_performance
-WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-GROUP BY warehouse_id
-ORDER BY cache_hit_rate ASC;
-```
-**Expected Result:** Cache performance by warehouse
-
----
-
-### Question 15: "Show me cluster capacity recommendations"
-**Expected SQL:**
-```sql
-SELECT 
-  cluster_id,
-  cluster_name,
-  predicted_peak_utilization,
-  recommended_nodes,
-  scaling_recommendation
-FROM ${catalog}.${gold_schema}.cluster_capacity_recommendations
-ORDER BY predicted_peak_utilization DESC
-LIMIT 20;
-```
-**Expected Result:** Capacity planning recommendations
-
----
-
-### Question 16: "What is the SLA breach rate?"
-**Expected SQL:**
-```sql
-SELECT 
-  MEASURE(sla_breach_rate) as sla_breach_rate,
-  MEASURE(total_queries) as total_queries
-FROM ${catalog}.${gold_schema}.query_performance
-WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
-```
-**Expected Result:** SLA breach percentage
-
----
-
-### Question 17: "Show me jobs on legacy DBR versions"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_jobs_on_legacy_dbr(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 30 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY dbr_version ASC
-LIMIT 20;
-```
-**Expected Result:** Jobs needing DBR upgrade
-
----
-
-### Question 18: "What is the DBR migration risk?"
-**Expected SQL:**
-```sql
-SELECT 
-  cluster_name,
-  current_dbr,
-  risk_level,
-  risk_score,
-  migration_recommendation
-FROM ${catalog}.${gold_schema}.dbr_migration_risk_scores
-WHERE risk_level IN ('HIGH', 'MEDIUM')
-ORDER BY risk_score DESC
-LIMIT 20;
-```
-**Expected Result:** DBR upgrade risk assessment
-
----
-
-### Question 19: "Show me query performance by user"
-**Expected SQL:**
-```sql
-SELECT * FROM ${catalog}.${gold_schema}.get_user_query_summary(
-  DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 DAYS, 'yyyy-MM-dd'),
-  DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM-dd')
-)
-ORDER BY total_query_time DESC
-LIMIT 20;
-```
-**Expected Result:** Query metrics by user
-
----
-
-### Question 20: "What is the memory utilization by cluster?"
-**Expected SQL:**
-```sql
-SELECT 
-  cluster_name,
-  MEASURE(avg_memory_utilization) as avg_memory_pct,
-  MEASURE(p95_memory_utilization) as p95_memory_pct
-FROM ${catalog}.${gold_schema}.cluster_utilization
-WHERE metric_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-GROUP BY cluster_name
-ORDER BY avg_memory_pct DESC
-LIMIT 20;
-```
-**Expected Result:** Memory usage by cluster
-
----
-
-### 🔬 DEEP RESEARCH QUESTIONS (Complex Multi-Source Analysis)
-
-### Question 21: "Which queries are causing the most resource contention, and what would be the cluster-wide performance improvement if we applied all ML-recommended optimizations?"
-**Deep Research Complexity:** Combines query resource analysis, contention detection, ML optimization recommendations, and projected improvement estimation.
-
-**Expected SQL (Multi-Step Analysis):**
-```sql
--- Step 1: Identify high-resource queries causing contention
-WITH resource_heavy_queries AS (
-  SELECT 
-    query_id,
-    warehouse_id,
-    statement_type,
-    total_duration_ms,
-    spill_to_disk_bytes,
-    rows_produced,
-    bytes_scanned,
-    CASE 
-      WHEN spill_to_disk_bytes > 0 THEN 'MEMORY_PRESSURE'
-      WHEN total_duration_ms > 300000 THEN 'LONG_RUNNING'
-      WHEN bytes_scanned > 10737418240 THEN 'LARGE_SCAN' -- 10GB
-      ELSE 'NORMAL'
-    END as contention_type
-  FROM ${catalog}.${gold_schema}.fact_query_history
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-    AND execution_status = 'FINISHED'
-),
--- Step 2: Aggregate contention by warehouse
-warehouse_contention AS (
-  SELECT 
-    warehouse_id,
-    COUNT(*) as total_queries,
-    SUM(CASE WHEN contention_type != 'NORMAL' THEN 1 ELSE 0 END) as contention_queries,
-    SUM(CASE WHEN contention_type = 'MEMORY_PRESSURE' THEN 1 ELSE 0 END) as memory_pressure_count,
-    SUM(CASE WHEN contention_type = 'LONG_RUNNING' THEN 1 ELSE 0 END) as long_running_count,
-    AVG(total_duration_ms) as avg_duration_ms
-  FROM resource_heavy_queries
-  GROUP BY warehouse_id
-),
--- Step 3: Get ML optimization recommendations
-ml_optimizations AS (
-  SELECT 
-    query_id,
-    needs_partition_pruning,
-    needs_caching,
-    needs_broadcast_join,
-    estimated_improvement_pct
-  FROM ${catalog}.${gold_schema}.query_optimization_classifications
-  WHERE estimated_improvement_pct > 0
-),
--- Step 4: Calculate projected improvements
-projected_improvements AS (
-  SELECT 
-    r.warehouse_id,
-    COUNT(DISTINCT m.query_id) as optimizable_queries,
-    AVG(m.estimated_improvement_pct) as avg_improvement_pct,
-    SUM(r.total_duration_ms * m.estimated_improvement_pct / 100) as projected_time_savings_ms
-  FROM resource_heavy_queries r
-  JOIN ml_optimizations m ON r.query_id = m.query_id
-  GROUP BY r.warehouse_id
-)
-SELECT 
-  wc.warehouse_id,
-  wc.total_queries,
-  wc.contention_queries,
-  ROUND(wc.contention_queries * 100.0 / wc.total_queries, 1) as contention_rate_pct,
-  wc.memory_pressure_count,
-  wc.long_running_count,
-  wc.avg_duration_ms / 1000 as avg_duration_sec,
-  COALESCE(pi.optimizable_queries, 0) as queries_with_ml_recommendations,
-  COALESCE(pi.avg_improvement_pct, 0) as avg_predicted_improvement_pct,
-  COALESCE(pi.projected_time_savings_ms / 1000 / 60, 0) as projected_time_savings_minutes,
-  CASE 
-    WHEN wc.contention_queries > 100 AND pi.avg_improvement_pct > 30 THEN '🔴 HIGH IMPACT - OPTIMIZE IMMEDIATELY'
-    WHEN wc.contention_queries > 50 OR pi.avg_improvement_pct > 20 THEN '🟠 MEDIUM IMPACT - PRIORITIZE'
-    ELSE '🟢 LOW IMPACT - MONITOR'
-  END as optimization_priority
-FROM warehouse_contention wc
-LEFT JOIN projected_improvements pi ON wc.warehouse_id = pi.warehouse_id
-ORDER BY wc.contention_queries DESC
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_warehouse_performance(
+  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
+  CURRENT_DATE()::STRING
+))
+ORDER BY query_count DESC
 LIMIT 10;
 ```
-**Expected Result:** Warehouse-level contention analysis with ML-predicted performance improvements from applying optimizations.
+**Expected Result:** Warehouse-level query volumes, concurrency, and queue times
 
 ---
 
-### Question 22: "What is the correlation between cluster underutilization and query queue times, and what right-sizing changes would improve both cost efficiency and query performance?"
-**Deep Research Complexity:** Combines utilization analysis, queue time correlation, right-sizing recommendations, and dual-optimization (cost + performance) assessment.
-
-**Expected SQL (Multi-Step Analysis):**
+### Question 8: "Which queries have high disk spill?"
+**Expected SQL:**
 ```sql
--- Step 1: Get cluster utilization metrics
-WITH cluster_utilization AS (
-  SELECT 
-    cluster_id,
-    cluster_name,
-    AVG(cpu_utilization_pct) as avg_cpu_util,
-    AVG(memory_utilization_pct) as avg_memory_util,
-    SUM(CASE WHEN cpu_utilization_pct < 30 THEN uptime_hours ELSE 0 END) as idle_hours,
-    SUM(uptime_hours) as total_hours
-  FROM ${catalog}.${gold_schema}.fact_node_timeline
-  WHERE metric_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY cluster_id, cluster_name
-),
--- Step 2: Get warehouse queue times (warehouses often run on clusters)
-queue_analysis AS (
-  SELECT 
-    compute_warehouse_id as warehouse_id,
-    AVG(queue_time_ms) as avg_queue_time_ms,
-    PERCENTILE(queue_time_ms, 0.95) as p95_queue_time_ms,
-    COUNT(*) as total_queries,
-    SUM(CASE WHEN queue_time_ms > 5000 THEN 1 ELSE 0 END) as queries_with_wait
-  FROM ${catalog}.${gold_schema}.fact_query_history
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY compute_warehouse_id
-),
--- Step 3: Get ML right-sizing recommendations
-rightsizing AS (
-  SELECT 
-    cluster_id,
-    cluster_name,
-    current_size,
-    recommended_size,
-    recommended_action,
-    potential_savings_usd
-  FROM ${catalog}.${gold_schema}.cluster_rightsizing_recommendations
-),
--- Step 4: Correlate underutilization with queue times
-correlation_analysis AS (
-  SELECT 
-    cu.cluster_name,
-    cu.avg_cpu_util,
-    cu.idle_hours,
-    cu.total_hours,
-    cu.idle_hours / cu.total_hours * 100 as idle_pct,
-    qa.avg_queue_time_ms,
-    qa.p95_queue_time_ms,
-    qa.queries_with_wait,
-    CASE 
-      WHEN cu.avg_cpu_util < 30 AND qa.avg_queue_time_ms < 1000 THEN 'OVERPROVISIONED_NO_QUEUE'
-      WHEN cu.avg_cpu_util < 30 AND qa.avg_queue_time_ms >= 1000 THEN 'MISCONFIGURED_IDLE_BUT_QUEUING'
-      WHEN cu.avg_cpu_util >= 70 AND qa.avg_queue_time_ms >= 5000 THEN 'UNDERPROVISIONED_HIGH_QUEUE'
-      ELSE 'BALANCED'
-    END as utilization_queue_pattern
-  FROM cluster_utilization cu
-  LEFT JOIN queue_analysis qa ON cu.cluster_name LIKE CONCAT('%', qa.warehouse_id, '%')
-)
-SELECT 
-  ca.cluster_name,
-  ROUND(ca.avg_cpu_util, 1) as avg_cpu_util_pct,
-  ROUND(ca.idle_pct, 1) as idle_time_pct,
-  ROUND(ca.avg_queue_time_ms / 1000, 2) as avg_queue_time_sec,
-  ROUND(ca.p95_queue_time_ms / 1000, 2) as p95_queue_time_sec,
-  ca.utilization_queue_pattern,
-  rs.current_size,
-  rs.recommended_size,
-  rs.recommended_action,
-  rs.potential_savings_usd,
-  CASE ca.utilization_queue_pattern
-    WHEN 'OVERPROVISIONED_NO_QUEUE' THEN '💰 DOWNSIZE: Save $' || ROUND(rs.potential_savings_usd) || ' with no performance impact'
-    WHEN 'MISCONFIGURED_IDLE_BUT_QUEUING' THEN '⚙️ RECONFIGURE: Autoscaling or concurrency settings issue'
-    WHEN 'UNDERPROVISIONED_HIGH_QUEUE' THEN '⬆️ UPSIZE: Performance suffering, consider larger cluster'
-    ELSE '✅ OPTIMAL: Current sizing is appropriate'
-  END as optimization_recommendation
-FROM correlation_analysis ca
-LEFT JOIN rightsizing rs ON ca.cluster_name = rs.cluster_name
-ORDER BY rs.potential_savings_usd DESC NULLS LAST
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_spill_analysis(7))
+ORDER BY spill_bytes DESC
 LIMIT 15;
 ```
-**Expected Result:** Correlation analysis between utilization and queue times, with specific right-sizing recommendations that balance cost and performance.
+**Expected Result:** Memory-pressure queries with spill-to-disk metrics
 
 ---
 
-### Question 23: "What's the total platform performance debt - cumulative slow query time, suboptimal cluster configurations, and missed optimization opportunities - and what's the prioritized remediation plan?"
-**Deep Research Complexity:** Aggregates all performance inefficiencies across queries, clusters, and warehouses to quantify total performance debt and prioritize improvements.
-
-**Expected SQL (Multi-Step Analysis):**
+### Question 9: "What is the cluster efficiency score?"
+**Expected SQL:**
 ```sql
--- Step 1: Calculate query performance debt
-WITH query_debt AS (
-  SELECT 
-    'Query Optimization' as debt_category,
-    COUNT(*) as items,
-    SUM(CASE WHEN duration_ms > 30000 THEN duration_ms - 30000 ELSE 0 END) / 1000.0 as excess_duration_seconds,
-    SUM(CASE WHEN total_bytes_spilled > 0 THEN total_bytes_spilled ELSE 0 END) / 1e9 as spill_gb,
-    COUNT(CASE WHEN total_bytes_spilled > 1e9 THEN 1 END) as high_spill_queries,
-    SUM(CASE WHEN rows_produced_per_second_scanned < 1000 THEN 1 ELSE 0 END) as inefficient_scan_queries
-  FROM ${catalog}.${gold_schema}.fact_query_history
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-),
--- Step 2: Calculate cluster configuration debt
-cluster_debt AS (
-  SELECT 
-    'Cluster Configuration' as debt_category,
-    COUNT(*) as items,
-    SUM(CASE WHEN cpu_percent < 30 THEN (30 - cpu_percent) * duration_hours ELSE 0 END) as underutilization_hours,
-    SUM(CASE WHEN memory_percent > 90 THEN (memory_percent - 90) * duration_hours ELSE 0 END) as overcommit_hours,
-    COUNT(CASE WHEN autoscale_enabled = FALSE AND worker_count > 2 THEN 1 END) as no_autoscale_fixed_clusters
-  FROM ${catalog}.${gold_schema}.fact_node_timeline
-  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-),
--- Step 3: Calculate warehouse debt
-warehouse_debt AS (
-  SELECT 
-    'Warehouse Configuration' as debt_category,
-    COUNT(DISTINCT warehouse_id) as items,
-    SUM(CASE WHEN avg_queue_time_ms > 5000 THEN avg_queue_time_ms - 5000 ELSE 0 END) / 1000.0 as excess_queue_seconds,
-    COUNT(CASE WHEN num_queued_queries > 10 THEN 1 END) as high_queue_events,
-    SUM(CASE WHEN cluster_count > 1 AND active_queries < cluster_count THEN cluster_count - active_queries ELSE 0 END) as wasted_cluster_capacity
-  FROM ${catalog}.${gold_schema}.fact_warehouse_events
-  WHERE event_time >= CURRENT_DATE() - INTERVAL 30 DAYS
-),
--- Step 4: Get ML optimization potential
-optimization_potential AS (
-  SELECT 
-    SUM(potential_improvement_pct) as total_improvement_potential,
-    COUNT(*) as actionable_recommendations,
-    SUM(CASE WHEN confidence > 0.8 THEN 1 ELSE 0 END) as high_confidence_recs
-  FROM ${catalog}.${gold_schema}.query_optimization_recommendations
-  WHERE recommendation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-),
--- Step 5: Summarize total debt
-debt_summary AS (
-  SELECT 
-    debt_category,
-    items,
-    excess_duration_seconds / 3600.0 as performance_debt_hours,
-    CAST(NULL AS DOUBLE) as efficiency_debt_score
-  FROM query_debt
-  UNION ALL
-  SELECT 
-    debt_category,
-    items,
-    underutilization_hours as performance_debt_hours,
-    overcommit_hours as efficiency_debt_score
-  FROM cluster_debt
-  UNION ALL
-  SELECT 
-    debt_category,
-    items,
-    excess_queue_seconds / 3600.0 as performance_debt_hours,
-    wasted_cluster_capacity as efficiency_debt_score
-  FROM warehouse_debt
-)
-SELECT 
-  debt_category,
-  items as affected_items,
-  ROUND(performance_debt_hours, 1) as wasted_hours_30d,
-  ROUND(performance_debt_hours * 50, 2) as estimated_cost_impact_usd,  -- $50/hour estimate
-  CASE 
-    WHEN performance_debt_hours > 100 THEN '🔴 HIGH DEBT: Immediate optimization needed'
-    WHEN performance_debt_hours > 50 THEN '🟠 MEDIUM DEBT: Schedule optimization sprint'
-    ELSE '🟢 LOW DEBT: Continuous improvement'
-  END as debt_severity,
-  CASE debt_category
-    WHEN 'Query Optimization' THEN 'Run query analyzer, add caching, optimize joins'
-    WHEN 'Cluster Configuration' THEN 'Enable autoscaling, right-size instances'
-    ELSE 'Tune warehouse concurrency, add auto-resume'
-  END as remediation_action
-FROM debt_summary
-ORDER BY performance_debt_hours DESC;
+SELECT MEASURE(efficiency_score) as efficiency
+FROM ${catalog}.${gold_schema}.mv_cluster_efficiency
+WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ```
-**Expected Result:** Total performance debt quantified across queries, clusters, and warehouses with estimated cost impact and prioritized remediation plan.
+**Expected Result:** Combined cluster efficiency metric (0-100 scale)
 
 ---
 
-### Question 24: "Which users or teams are experiencing the worst performance degradation over the past month, and what specific resources or configurations are causing their bottlenecks?"
-**Deep Research Complexity:** Combines user-level performance trending, bottleneck attribution, and resource contention analysis to identify and diagnose user-specific performance issues.
-
-**Expected SQL (Multi-Step Analysis):**
+### Question 10: "Show me underutilized clusters"
+**Expected SQL:**
 ```sql
--- Step 1: Calculate user performance trends
-WITH user_performance_baseline AS (
-  SELECT 
-    executed_by as user_identity,
-    DATE_TRUNC('week', execution_date) as week,
-    AVG(duration_ms) as avg_duration_ms,
-    PERCENTILE(duration_ms, 0.95) as p95_duration_ms,
-    COUNT(*) as query_count,
-    SUM(total_bytes_read) / 1e9 as data_scanned_gb
-  FROM ${catalog}.${gold_schema}.fact_query_history
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY executed_by, DATE_TRUNC('week', execution_date)
-),
--- Step 2: Calculate week-over-week performance change
-performance_trends AS (
-  SELECT 
-    user_identity,
-    MAX(CASE WHEN week = DATE_TRUNC('week', CURRENT_DATE()) THEN avg_duration_ms END) as current_week_avg,
-    MAX(CASE WHEN week = DATE_TRUNC('week', CURRENT_DATE() - INTERVAL 7 DAYS) THEN avg_duration_ms END) as prev_week_avg,
-    MAX(CASE WHEN week = DATE_TRUNC('week', CURRENT_DATE()) THEN p95_duration_ms END) as current_p95,
-    MAX(CASE WHEN week = DATE_TRUNC('week', CURRENT_DATE() - INTERVAL 7 DAYS) THEN p95_duration_ms END) as prev_p95,
-    SUM(query_count) as total_queries
-  FROM user_performance_baseline
-  GROUP BY user_identity
-),
--- Step 3: Identify bottleneck resources per user
-bottleneck_analysis AS (
-  SELECT 
-    executed_by as user_identity,
-    compute_warehouse_id as primary_warehouse,
-    AVG(CASE WHEN total_bytes_spilled > 0 THEN 1 ELSE 0 END) * 100 as spill_rate_pct,
-    AVG(CASE WHEN execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100 as failure_rate_pct,
-    AVG(queue_time_ms) as avg_queue_time_ms,
-    MODE(cluster_name) as most_used_cluster,
-    COUNT(DISTINCT cluster_name) as clusters_used
-  FROM ${catalog}.${gold_schema}.fact_query_history
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY executed_by, compute_warehouse_id
-),
--- Step 4: Identify resource contention
-resource_contention AS (
-  SELECT 
-    executed_by as user_identity,
-    COUNT(*) as contention_events,
-    AVG(TIMESTAMPDIFF(SECOND, queue_start_time, execution_start_time)) as avg_wait_seconds
-  FROM ${catalog}.${gold_schema}.fact_query_history
-  WHERE queue_time_ms > 5000  -- Queued for more than 5 seconds
-    AND execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY executed_by
-)
-SELECT 
-  t.user_identity,
-  t.total_queries,
-  ROUND(t.current_week_avg / 1000.0, 2) as current_avg_duration_sec,
-  ROUND(t.prev_week_avg / 1000.0, 2) as prev_week_avg_sec,
-  ROUND((t.current_week_avg - COALESCE(t.prev_week_avg, t.current_week_avg)) / NULLIF(t.prev_week_avg, 0) * 100, 1) as duration_change_pct,
-  ROUND(t.current_p95 / 1000.0, 2) as current_p95_sec,
-  b.primary_warehouse,
-  ROUND(b.spill_rate_pct, 1) as memory_spill_rate_pct,
-  ROUND(b.failure_rate_pct, 1) as query_failure_rate_pct,
-  ROUND(b.avg_queue_time_ms / 1000.0, 2) as avg_queue_time_sec,
-  COALESCE(c.contention_events, 0) as queue_contention_events,
-  CASE 
-    WHEN (t.current_week_avg - COALESCE(t.prev_week_avg, t.current_week_avg)) / NULLIF(t.prev_week_avg, 0) > 0.5 THEN '🔴 SIGNIFICANT DEGRADATION'
-    WHEN (t.current_week_avg - COALESCE(t.prev_week_avg, t.current_week_avg)) / NULLIF(t.prev_week_avg, 0) > 0.2 THEN '🟠 MODERATE DEGRADATION'
-    WHEN (t.current_week_avg - COALESCE(t.prev_week_avg, t.current_week_avg)) / NULLIF(t.prev_week_avg, 0) < -0.1 THEN '🟢 IMPROVED'
-    ELSE '🟡 STABLE'
-  END as performance_trend,
-  CASE 
-    WHEN b.spill_rate_pct > 30 THEN 'MEMORY: High spill rate - increase cluster memory'
-    WHEN c.contention_events > 20 THEN 'CONTENTION: High queue times - scale warehouse'
-    WHEN b.failure_rate_pct > 10 THEN 'RELIABILITY: High failure rate - review query patterns'
-    WHEN b.avg_queue_time_ms > 10000 THEN 'QUEUE: Long wait times - add warehouse capacity'
-    ELSE 'OPTIMIZE: Review specific slow queries'
-  END as bottleneck_diagnosis
-FROM performance_trends t
-LEFT JOIN bottleneck_analysis b ON t.user_identity = b.user_identity
-LEFT JOIN resource_contention c ON t.user_identity = c.user_identity
-WHERE t.total_queries > 10  -- Filter out inactive users
-ORDER BY (t.current_week_avg - COALESCE(t.prev_week_avg, t.current_week_avg)) / NULLIF(t.prev_week_avg, 0) DESC
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_underutilized_clusters(30))
+WHERE avg_cpu_pct < 30
+ORDER BY potential_savings DESC
+LIMIT 15;
+```
+**Expected Result:** Clusters with low utilization and quantified savings opportunities
+
+---
+
+### Question 11: "What is the SLA breach rate for queries?"
+**Expected SQL:**
+```sql
+SELECT MEASURE(sla_breach_rate) as breach_pct
+FROM ${catalog}.${gold_schema}.mv_query_performance
+WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+```
+**Expected Result:** Percentage of queries exceeding 60-second SLA
+
+---
+
+### Question 12: "Show me query volume trends"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_query_volume_trends(
+  (CURRENT_DATE() - INTERVAL 14 DAYS)::STRING,
+  CURRENT_DATE()::STRING
+))
+ORDER BY query_date DESC;
+```
+**Expected Result:** Daily query counts with user and duration trends
+
+---
+
+### Question 13: "Which clusters are overprovisioned?"
+**Expected SQL:**
+```sql
+SELECT
+  cluster_name,
+  MEASURE(avg_cpu_utilization) as cpu_pct,
+  MEASURE(avg_memory_utilization) as memory_pct,
+  MEASURE(potential_savings_pct) as savings_pct
+FROM ${catalog}.${gold_schema}.mv_cluster_utilization
+WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  AND provisioning_status = 'OVERPROVISIONED'
+GROUP BY cluster_name
+ORDER BY savings_pct DESC
+LIMIT 10;
+```
+**Expected Result:** Overprovisioned clusters with sizing recommendations
+
+---
+
+### Question 14: "Show me query latency percentiles by warehouse"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_query_latency_percentiles(
+  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
+  CURRENT_DATE()::STRING
+))
+ORDER BY p99_duration DESC
+LIMIT 10;
+```
+**Expected Result:** Detailed percentile breakdown (P50/P90/P95/P99) per warehouse
+
+---
+
+### Question 15: "Which jobs don't have autoscaling enabled?"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_autoscaling_disabled_jobs(30))
+ORDER BY estimated_savings DESC
+LIMIT 15;
+```
+**Expected Result:** Jobs with fixed cluster sizes and autoscaling potential
+
+---
+
+### Question 16: "Show me cluster right-sizing recommendations"
+**Expected SQL:**
+```sql
+SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cluster_rightsizing_recommendations(30))
+ORDER BY potential_savings DESC
+LIMIT 15;
+```
+**Expected Result:** ML-powered cluster sizing recommendations with cost impact
+
+---
+
+### Question 17: "What queries need optimization based on ML?"
+**Expected SQL:**
+```sql
+SELECT
+  query_hash,
+  prediction as optimization_score
+FROM ${catalog}.${feature_schema}.query_optimization_classifications
+WHERE prediction > 0.7
+ORDER BY prediction DESC
 LIMIT 20;
 ```
-**Expected Result:** Users with performance degradation including trend analysis, specific bottleneck diagnosis, and recommended remediation per user.
+**Expected Result:** Queries flagged for optimization by ML classifier
 
 ---
 
-### Question 25: "What's the optimal cache strategy for our workload based on query patterns, data access frequency, and cache hit analysis, and what would be the performance impact of implementing it?"
-**Deep Research Complexity:** Analyzes query patterns, data access frequency, current cache utilization, and ML cache predictions to recommend optimal caching strategy with projected impact.
-
-**Expected SQL (Multi-Step Analysis):**
+### Question 18: "What is the P99 query duration?"
+**Expected SQL:**
 ```sql
--- Step 1: Analyze query repeatability (cache candidates)
-WITH query_patterns AS (
-  SELECT 
-    statement_id,
-    query_hash,
-    COUNT(*) as execution_count,
-    AVG(duration_ms) as avg_duration_ms,
-    SUM(total_bytes_read) / COUNT(*) as avg_bytes_per_query,
-    AVG(CASE WHEN cache_hit THEN 1 ELSE 0 END) * 100 as current_cache_hit_rate
-  FROM ${catalog}.${gold_schema}.fact_query_history
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY statement_id, query_hash
-  HAVING COUNT(*) > 5  -- Repeated queries
-),
--- Step 2: Analyze data access patterns
-data_access AS (
-  SELECT 
-    source_table,
-    COUNT(*) as access_count,
-    COUNT(DISTINCT executed_by) as unique_users,
-    COUNT(DISTINCT DATE_TRUNC('hour', execution_date)) as active_hours,
-    AVG(total_bytes_read) / 1e9 as avg_data_read_gb
-  FROM ${catalog}.${gold_schema}.fact_query_history q
-  JOIN ${catalog}.${gold_schema}.fact_table_lineage l ON q.statement_id = l.statement_id
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-    AND l.event_type = 'READ'
-  GROUP BY source_table
-),
--- Step 3: Get ML cache predictions
-cache_predictions AS (
-  SELECT 
-    query_pattern,
-    predicted_cache_hit_rate,
-    recommended_cache_policy,
-    expected_performance_improvement_pct
-  FROM ${catalog}.${gold_schema}.cache_hit_predictions
-  WHERE prediction_date = CURRENT_DATE()
-),
--- Step 4: Calculate cache strategy metrics
-cache_strategy AS (
-  SELECT 
-    'RESULT_CACHE' as cache_type,
-    COUNT(CASE WHEN p.execution_count > 10 AND p.current_cache_hit_rate < 50 THEN 1 END) as cacheable_queries,
-    SUM(CASE WHEN p.execution_count > 10 AND p.current_cache_hit_rate < 50 
-        THEN p.avg_duration_ms * p.execution_count END) / 1000.0 as potential_time_saved_seconds,
-    'Enable result caching for repeated analytical queries' as recommendation
-  FROM query_patterns p
-  UNION ALL
-  SELECT 
-    'DATA_CACHE' as cache_type,
-    COUNT(CASE WHEN access_count > 20 AND unique_users > 3 THEN 1 END) as cacheable_tables,
-    SUM(CASE WHEN access_count > 20 THEN avg_data_read_gb * access_count * 0.3 END) as potential_io_saved_gb,
-    'Enable SSD caching for frequently accessed tables' as recommendation
-  FROM data_access
-  UNION ALL
-  SELECT 
-    'DELTA_CACHE' as cache_type,
-    COUNT(*) as hot_tables,
-    SUM(avg_data_read_gb * access_count * 0.5) as potential_io_saved_gb,
-    'Pre-warm Delta cache for hot data' as recommendation
-  FROM data_access
-  WHERE access_count > 100
-),
--- Step 5: Project performance impact
-performance_projection AS (
-  SELECT 
-    'CURRENT' as scenario,
-    AVG(duration_ms) / 1000.0 as avg_query_duration_sec,
-    AVG(CASE WHEN cache_hit THEN 1 ELSE 0 END) * 100 as cache_hit_rate_pct,
-    SUM(total_bytes_read) / 1e12 as total_data_read_tb
-  FROM ${catalog}.${gold_schema}.fact_query_history
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  UNION ALL
-  SELECT 
-    'PROJECTED' as scenario,
-    AVG(duration_ms) * 0.6 / 1000.0 as avg_query_duration_sec,  -- 40% improvement estimate
-    75.0 as cache_hit_rate_pct,  -- Target 75% cache hit
-    SUM(total_bytes_read) * 0.5 / 1e12 as total_data_read_tb  -- 50% IO reduction
-  FROM ${catalog}.${gold_schema}.fact_query_history
-  WHERE execution_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-)
-SELECT 
-  s.cache_type,
-  s.cacheable_queries as cache_candidates,
-  ROUND(s.potential_time_saved_seconds / 3600, 1) as potential_hours_saved_30d,
-  s.recommendation,
-  CASE 
-    WHEN s.cache_type = 'RESULT_CACHE' AND s.potential_time_saved_seconds > 10000 THEN '🔴 HIGH IMPACT: Enable immediately'
-    WHEN s.cache_type = 'DATA_CACHE' AND s.cacheable_queries > 50 THEN '🟠 MEDIUM IMPACT: Plan implementation'
-    ELSE '🟢 LOW IMPACT: Nice to have'
-  END as priority,
-  CASE s.cache_type
-    WHEN 'RESULT_CACHE' THEN 'SET spark.databricks.io.cache.enabled = true'
-    WHEN 'DATA_CACHE' THEN 'ALTER TABLE SET TBLPROPERTIES ("delta.dataSkippingNumIndexedCols" = 32)'
-    ELSE 'dbutils.fs.cache(path) for hot datasets'
-  END as implementation_command
-FROM cache_strategy s
-ORDER BY potential_time_saved_seconds DESC NULLS LAST;
+SELECT MEASURE(p99_duration_seconds) as p99_sec
+FROM ${catalog}.${gold_schema}.mv_query_performance
+WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ```
-**Expected Result:** Cache strategy analysis showing cache type recommendations, potential performance improvements, implementation commands, and prioritized action plan.
+**Expected Result:** P99 query latency for worst-case analysis
+
+---
+
+### Question 19: "Show me query performance drift"
+**Expected SQL:**
+```sql
+SELECT
+  window.start AS period_start,
+  p95_duration_drift_pct,
+  p99_duration_drift_pct,
+  query_volume_drift_pct
+FROM ${catalog}.${gold_schema}.fact_query_history_drift_metrics
+WHERE drift_type = 'CONSECUTIVE'
+  AND column_name = ':table'
+ORDER BY window.start DESC
+LIMIT 10;
+```
+**Expected Result:** Query performance degradation metrics from Lakehouse Monitoring
+
+---
+
+### Question 20: "Show me cluster utilization by slice"
+**Expected SQL:**
+```sql
+SELECT
+  slice_value AS cluster_name,
+  AVG(p95_cpu_total_pct) AS avg_p95_cpu,
+  SUM(cpu_saturation_hours) AS saturation_hours,
+  SUM(cpu_idle_hours) AS idle_hours
+FROM ${catalog}.${gold_schema}.fact_node_timeline_profile_metrics
+WHERE column_name = ':table'
+  AND log_type = 'INPUT'
+  AND slice_key = 'cluster_name'
+GROUP BY slice_value
+ORDER BY saturation_hours DESC
+LIMIT 10;
+```
+**Expected Result:** Per-cluster resource metrics from Lakehouse Monitoring
+
+---
+
+### 🔬 Deep Research Questions (Q21-Q25)
+
+### Question 21: "🔬 DEEP RESEARCH: Query performance bottleneck analysis - identify slow queries with spill, low cache hit, and high queue time for optimization prioritization"
+**Expected SQL:**
+```sql
+WITH slow_queries AS (
+  SELECT
+    warehouse_name,
+    statement_type,
+    MEASURE(avg_duration_seconds) as avg_duration,
+    MEASURE(p95_duration_seconds) as p95_duration,
+    MEASURE(total_queries) as query_count
+  FROM ${catalog}.${gold_schema}.mv_query_performance
+  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+    AND query_efficiency_status IN ('SLOW', 'HIGH_QUEUE', 'HIGH_SPILL')
+  GROUP BY warehouse_name, statement_type
+),
+spill_detail AS (
+  SELECT
+    warehouse_id,
+    COUNT(*) as spill_query_count,
+    AVG(spill_bytes) as avg_spill_bytes
+  FROM TABLE(${catalog}.${gold_schema}.get_spill_analysis(7))
+  GROUP BY warehouse_id
+),
+cache_metrics AS (
+  SELECT
+    warehouse_name,
+    MEASURE(cache_hit_rate) as cache_pct
+  FROM ${catalog}.${gold_schema}.mv_query_performance
+  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  GROUP BY warehouse_name
+)
+SELECT
+  sq.warehouse_name,
+  sq.statement_type,
+  sq.query_count,
+  sq.avg_duration,
+  sq.p95_duration,
+  COALESCE(sd.spill_query_count, 0) as queries_with_spill,
+  COALESCE(sd.avg_spill_bytes, 0) / 1024 / 1024 as avg_spill_mb,
+  cm.cache_pct,
+  CASE
+    WHEN sd.spill_query_count > 100 AND cm.cache_pct < 30 THEN 'Critical - Memory & Cache Issues'
+    WHEN sq.p95_duration > 60 AND cm.cache_pct < 50 THEN 'High Priority - Cache Optimization'
+    WHEN sd.spill_query_count > 50 THEN 'Medium Priority - Memory Tuning'
+    ELSE 'Low Priority'
+  END as optimization_priority
+FROM slow_queries sq
+LEFT JOIN spill_detail sd ON sq.warehouse_name = sd.warehouse_id
+JOIN cache_metrics cm ON sq.warehouse_name = cm.warehouse_name
+WHERE sq.query_count > 10
+ORDER BY sq.p95_duration DESC, queries_with_spill DESC
+LIMIT 15;
+```
+**Expected Result:** Multi-dimensional query bottleneck analysis combining latency, spill, and cache metrics for targeted optimization
+
+---
+
+### Question 22: "🔬 DEEP RESEARCH: Cluster resource efficiency with ML right-sizing recommendations - compare actual utilization vs optimal configuration"
+**Expected SQL:**
+```sql
+WITH cluster_actual AS (
+  SELECT
+    cluster_name,
+    MEASURE(avg_cpu_utilization) as actual_cpu,
+    MEASURE(avg_memory_utilization) as actual_memory,
+    MEASURE(total_node_hours) as node_hours,
+    MEASURE(wasted_hours) as wasted_hours
+  FROM ${catalog}.${gold_schema}.mv_cluster_utilization
+  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY cluster_name
+),
+ml_sizing_recommendations AS (
+  SELECT
+    c.cluster_name,
+    AVG(crr.prediction) as recommended_size_score
+  FROM ${catalog}.${feature_schema}.cluster_rightsizing_recommendations crr
+  JOIN ${catalog}.${gold_schema}.dim_cluster c ON crr.cluster_id = c.cluster_id
+  WHERE crr.utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  GROUP BY c.cluster_name
+),
+efficiency_metrics AS (
+  SELECT
+    cluster_name,
+    MEASURE(efficiency_score) as efficiency,
+    MEASURE(idle_percentage) as idle_pct
+  FROM ${catalog}.${gold_schema}.mv_cluster_efficiency
+  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  GROUP BY cluster_name
+)
+SELECT
+  ca.cluster_name,
+  ca.actual_cpu,
+  ca.actual_memory,
+  ca.node_hours,
+  ca.wasted_hours,
+  ca.wasted_hours * 100.0 / NULLIF(ca.node_hours, 0) as waste_pct,
+  em.efficiency,
+  em.idle_pct,
+  COALESCE(ml.recommended_size_score, 0) as ml_sizing_score,
+  CASE
+    WHEN ca.actual_cpu < 20 AND ca.wasted_hours > 100 THEN 'Downsize 50%'
+    WHEN ca.actual_cpu < 40 AND ca.wasted_hours > 50 THEN 'Downsize 25%'
+    WHEN ca.actual_cpu > 80 AND em.idle_pct < 10 THEN 'Consider Upsize'
+    ELSE 'Optimal'
+  END as sizing_recommendation,
+  ca.wasted_hours * 0.5 as estimated_monthly_savings_hours
+FROM cluster_actual ca
+JOIN efficiency_metrics em ON ca.cluster_name = em.cluster_name
+LEFT JOIN ml_sizing_recommendations ml ON ca.cluster_name = ml.cluster_name
+WHERE ca.node_hours > 10
+ORDER BY estimated_monthly_savings_hours DESC
+LIMIT 15;
+```
+**Expected Result:** Comprehensive cluster sizing analysis combining utilization metrics, efficiency scores, and ML recommendations with quantified savings
+
+---
+
+### Question 23: "🔬 DEEP RESEARCH: Cross-warehouse query performance comparison - identify performance inconsistencies and migration opportunities"
+**Expected SQL:**
+```sql
+WITH warehouse_metrics AS (
+  SELECT
+    warehouse_name,
+    MEASURE(avg_duration_seconds) as avg_duration,
+    MEASURE(p95_duration_seconds) as p95_duration,
+    MEASURE(total_queries) as query_count,
+    MEASURE(cache_hit_rate) as cache_pct,
+    MEASURE(spill_rate) as spill_pct
+  FROM ${catalog}.${gold_schema}.mv_query_performance
+  WHERE query_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY warehouse_name
+),
+platform_baseline AS (
+  SELECT
+    AVG(MEASURE(avg_duration_seconds)) as platform_avg_duration,
+    AVG(MEASURE(cache_hit_rate)) as platform_avg_cache
+  FROM ${catalog}.${gold_schema}.mv_query_performance
+  WHERE query_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+)
+SELECT
+  wm.warehouse_name,
+  wm.query_count,
+  wm.avg_duration,
+  wm.p95_duration,
+  wm.cache_pct,
+  wm.spill_pct,
+  pb.platform_avg_duration,
+  pb.platform_avg_cache,
+  (wm.avg_duration - pb.platform_avg_duration) / NULLIF(pb.platform_avg_duration, 0) * 100 as duration_variance_pct,
+  (pb.platform_avg_cache - wm.cache_pct) as cache_gap,
+  CASE
+    WHEN wm.avg_duration > pb.platform_avg_duration * 1.5 AND wm.cache_pct < pb.platform_avg_cache * 0.5 THEN 'Underperforming - Investigate'
+    WHEN wm.spill_pct > 10 THEN 'Memory Pressure - Resize'
+    WHEN wm.avg_duration < pb.platform_avg_duration * 0.8 THEN 'Best Practice - Model'
+    ELSE 'Normal'
+  END as performance_status
+FROM warehouse_metrics wm
+CROSS JOIN platform_baseline pb
+WHERE wm.query_count > 100
+ORDER BY duration_variance_pct DESC
+LIMIT 15;
+```
+**Expected Result:** Cross-warehouse performance analysis identifying outliers and best practices for standardization
+
+---
+
+### Question 24: "🔬 DEEP RESEARCH: Query optimization recommendations with ML classification - prioritize queries for manual tuning based on improvement potential"
+**Expected SQL:**
+```sql
+WITH query_candidates AS (
+  SELECT
+    statement_type,
+    COUNT(*) as query_count,
+    AVG(MEASURE(avg_duration_seconds)) as avg_duration,
+    AVG(MEASURE(spill_rate)) as avg_spill_rate
+  FROM ${catalog}.${gold_schema}.mv_query_performance
+  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+    AND query_efficiency_status IN ('SLOW', 'HIGH_SPILL')
+  GROUP BY statement_type
+),
+ml_query_classifications AS (
+  SELECT
+    statement_type,
+    COUNT(*) as ml_flagged_count,
+    AVG(prediction) as avg_optimization_score
+  FROM ${catalog}.${feature_schema}.query_optimization_classifications
+  WHERE prediction > 0.5
+  GROUP BY statement_type
+),
+ml_sizing_recommendations AS (
+  SELECT
+    statement_type,
+    COUNT(*) as recommendation_count,
+    AVG(prediction) as avg_improvement_potential
+  FROM ${catalog}.${feature_schema}.query_optimization_recommendations
+  WHERE prediction > 0.3
+  GROUP BY statement_type
+)
+SELECT
+  qc.statement_type,
+  qc.query_count,
+  qc.avg_duration,
+  qc.avg_spill_rate,
+  COALESCE(mo.ml_flagged_count, 0) as ml_flagged,
+  COALESCE(mo.avg_optimization_score, 0) as optimization_score,
+  COALESCE(mr.recommendation_count, 0) as has_recommendations,
+  COALESCE(mr.avg_improvement_potential, 0) as improvement_potential_pct,
+  CASE
+    WHEN qc.avg_duration > 30 AND mr.avg_improvement_potential > 50 THEN 'High ROI - Optimize Now'
+    WHEN mo.ml_flagged_count > 50 THEN 'Medium ROI - Review'
+    ELSE 'Low Priority'
+  END as optimization_priority
+FROM query_candidates qc
+LEFT JOIN ml_query_classifications mo ON qc.statement_type = mo.statement_type
+LEFT JOIN ml_sizing_recommendations mr ON qc.statement_type = mr.statement_type
+ORDER BY improvement_potential_pct DESC, qc.avg_duration DESC
+LIMIT 15;
+```
+**Expected Result:** ML-driven query optimization roadmap with ROI prioritization combining performance metrics and improvement potential
+
+---
+
+### Question 25: "🔬 DEEP RESEARCH: End-to-end performance health dashboard - combine query latency, cluster utilization, cache efficiency, and ML predictions for executive performance review"
+**Expected SQL:**
+```sql
+WITH query_health AS (
+  SELECT
+    MEASURE(avg_duration_seconds) as avg_query_duration,
+    MEASURE(p95_duration_seconds) as p95_query_duration,
+    MEASURE(sla_breach_rate) as sla_breach_pct,
+    MEASURE(cache_hit_rate) as cache_pct,
+    MEASURE(total_queries) as query_volume
+  FROM ${catalog}.${gold_schema}.mv_query_performance
+  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+cluster_health AS (
+  SELECT
+    MEASURE(avg_cpu_utilization) as avg_cpu,
+    MEASURE(avg_memory_utilization) as avg_memory,
+    MEASURE(efficiency_score) as efficiency,
+    MEASURE(wasted_hours) as wasted_hours
+  FROM ${catalog}.${gold_schema}.mv_cluster_utilization
+  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+),
+ml_insights AS (
+  SELECT
+    COUNT(*) as queries_needing_optimization,
+    AVG(prediction) as avg_optimization_potential
+  FROM ${catalog}.${feature_schema}.query_optimization_classifications
+  WHERE prediction > 0.5
+),
+drift_status AS (
+  SELECT
+    AVG(p95_duration_drift_pct) as query_drift,
+    AVG(cpu_utilization_drift) as cpu_drift
+  FROM ${catalog}.${gold_schema}.fact_query_history_drift_metrics
+  WHERE drift_type = 'CONSECUTIVE'
+    AND column_name = ':table'
+)
+SELECT
+  qh.query_volume,
+  qh.avg_query_duration,
+  qh.p95_query_duration,
+  qh.sla_breach_pct,
+  qh.cache_pct,
+  ch.avg_cpu,
+  ch.avg_memory,
+  ch.efficiency,
+  ch.wasted_hours,
+  mi.queries_needing_optimization,
+  mi.avg_optimization_potential,
+  ds.query_drift,
+  ds.cpu_drift,
+  CASE
+    WHEN qh.sla_breach_pct > 5 OR ch.efficiency < 50 THEN 'Critical Performance Issues'
+    WHEN ds.query_drift > 20 OR ds.cpu_drift > 15 THEN 'Performance Degradation Detected'
+    WHEN qh.cache_pct > 80 AND ch.avg_cpu BETWEEN 60 AND 80 THEN 'Optimal Performance'
+    ELSE 'Normal'
+  END as overall_health_status,
+  CASE
+    WHEN qh.sla_breach_pct > 5 THEN 'Investigate slow queries immediately'
+    WHEN mi.queries_needing_optimization > 100 THEN 'Run ML-recommended optimizations'
+    WHEN ch.wasted_hours > 1000 THEN 'Right-size clusters'
+    WHEN qh.cache_pct < 50 THEN 'Improve caching strategy'
+    ELSE 'Continue monitoring'
+  END as recommended_action
+FROM query_health qh
+CROSS JOIN cluster_health ch
+CROSS JOIN ml_insights mi
+CROSS JOIN drift_status ds;
+```
+**Expected Result:** Executive performance dashboard combining all performance dimensions (query, cluster, cache, ML) with health status and prioritized recommendations
 
 ---
 
@@ -1133,9 +969,9 @@ ORDER BY potential_time_saved_seconds DESC NULLS LAST;
 | **B. Space Description** | 2-3 sentences | ✅ |
 | **C. Sample Questions** | 15 questions | ✅ |
 | **D. Data Assets** | All tables, views, TVFs, ML tables | ✅ |
-| **E. General Instructions** | 17 lines (≤20) | ✅ |
-| **F. TVFs** | 16 functions with signatures | ✅ |
-| **H. Benchmark Questions** | 25 with SQL answers (incl. 5 Deep Research) | ✅ |
+| **F. General Instructions** | 15 lines (≤20) | ✅ |
+| **G. TVFs** | 21 functions with signatures | ✅ |
+| **I. Benchmark Questions** | 25 with SQL answers (incl. 5 Deep Research) | ✅ |
 
 ---
 
@@ -1158,10 +994,9 @@ ORDER BY potential_time_saved_seconds DESC NULLS LAST;
 - [Custom Metrics Reference](../../docs/lakehouse-monitoring-design/03-custom-metrics.md) - 80+ performance-specific custom metrics
 
 ### 📁 Asset Inventories
-- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md) - 16 Performance TVFs (Query + Cluster)
+- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md) - 21 Performance TVFs (Query + Cluster)
 - [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md) - 3 Performance Metric Views
 - [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md) - 7 Performance ML Models
 
 ### 🚀 Deployment Guides
 - [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup and troubleshooting
-

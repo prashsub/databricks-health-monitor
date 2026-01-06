@@ -730,7 +730,7 @@
           }
         }
       ],
-      "query": "-- Calculates week-over-week drift from actual Gold layer data\nWITH cost_weekly AS (\n  SELECT\n    DATE_TRUNC('week', usage_date) AS week_start,\n    SUM(usage_cost) AS weekly_cost\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= :time_range.min AND usage_date <= :time_range.max\n  GROUP BY DATE_TRUNC('week', usage_date)\n),\njob_weekly AS (\n  SELECT\n    DATE_TRUNC('week', run_date) AS week_start,\n    COUNT(*) AS weekly_jobs\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= :time_range.min AND run_date <= :time_range.max\n  GROUP BY DATE_TRUNC('week', run_date)\n),\nquery_weekly AS (\n  SELECT\n    DATE_TRUNC('week', start_time) AS week_start,\n    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_time_ms) AS p95_duration\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= :time_range.min AND start_time <= :time_range.max\n  GROUP BY DATE_TRUNC('week', start_time)\n),\ncost_drift AS (\n  SELECT week_start AS day,\n    ROUND(((weekly_cost - LAG(weekly_cost) OVER (ORDER BY week_start)) * 100.0 / NULLIF(LAG(weekly_cost) OVER (ORDER BY week_start), 0)), 1) AS cost_drift\n  FROM cost_weekly\n),\njob_drift AS (\n  SELECT week_start AS day,\n    ROUND(((weekly_jobs - LAG(weekly_jobs) OVER (ORDER BY week_start)) * 100.0 / NULLIF(LAG(weekly_jobs) OVER (ORDER BY week_start), 0)), 1) AS job_drift\n  FROM job_weekly\n),\nquery_drift AS (\n  SELECT week_start AS day,\n    ROUND(((p95_duration - LAG(p95_duration) OVER (ORDER BY week_start)) * 100.0 / NULLIF(LAG(p95_duration) OVER (ORDER BY week_start), 0)), 1) AS query_drift\n  FROM query_weekly\n)\nSELECT\n  COALESCE(c.day, j.day, q.day) AS day,\n  COALESCE(c.cost_drift, 0) AS cost_drift,\n  COALESCE(j.job_drift, 0) AS job_drift,\n  COALESCE(q.query_drift, 0) AS query_drift\nFROM cost_drift c\nFULL OUTER JOIN job_drift j ON c.day = j.day\nFULL OUTER JOIN query_drift q ON COALESCE(c.day, j.day) = q.day\nWHERE COALESCE(c.day, j.day, q.day) IS NOT NULL\nORDER BY day"
+      "query": "-- Calculates week-over-week drift from actual Gold layer data\nWITH cost_weekly AS (\n  SELECT\n    DATE_TRUNC('week', usage_date) AS week_start,\n    SUM(list_cost) AS weekly_cost\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= :time_range.min AND usage_date <= :time_range.max\n  GROUP BY DATE_TRUNC('week', usage_date)\n),\njob_weekly AS (\n  SELECT\n    DATE_TRUNC('week', run_date) AS week_start,\n    COUNT(*) AS weekly_jobs\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= :time_range.min AND run_date <= :time_range.max\n  GROUP BY DATE_TRUNC('week', run_date)\n),\nquery_weekly AS (\n  SELECT\n    DATE_TRUNC('week', start_time) AS week_start,\n    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) AS p95_duration\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= :time_range.min AND start_time <= :time_range.max\n  GROUP BY DATE_TRUNC('week', start_time)\n),\ncost_drift AS (\n  SELECT week_start AS day,\n    ROUND(((weekly_cost - LAG(weekly_cost) OVER (ORDER BY week_start)) * 100.0 / NULLIF(LAG(weekly_cost) OVER (ORDER BY week_start), 0)), 1) AS cost_drift\n  FROM cost_weekly\n),\njob_drift AS (\n  SELECT week_start AS day,\n    ROUND(((weekly_jobs - LAG(weekly_jobs) OVER (ORDER BY week_start)) * 100.0 / NULLIF(LAG(weekly_jobs) OVER (ORDER BY week_start), 0)), 1) AS job_drift\n  FROM job_weekly\n),\nquery_drift AS (\n  SELECT week_start AS day,\n    ROUND(((p95_duration - LAG(p95_duration) OVER (ORDER BY week_start)) * 100.0 / NULLIF(LAG(p95_duration) OVER (ORDER BY week_start), 0)), 1) AS query_drift\n  FROM query_weekly\n)\nSELECT\n  COALESCE(c.day, j.day, q.day) AS day,\n  COALESCE(c.cost_drift, 0) AS cost_drift,\n  COALESCE(j.job_drift, 0) AS job_drift,\n  COALESCE(q.query_drift, 0) AS query_drift\nFROM cost_drift c\nFULL OUTER JOIN job_drift j ON c.day = j.day\nFULL OUTER JOIN query_drift q ON COALESCE(c.day, j.day) = q.day\nWHERE COALESCE(c.day, j.day, q.day) IS NOT NULL\nORDER BY day"
     },
     {
       "name": "ds_event_trend",
@@ -1044,6 +1044,18 @@
       "displayName": "Billing Origin Product Breakdown",
       "parameters": [
         {
+          "displayName": "param_sku_type",
+          "keyword": "param_sku_type",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [{"value": "all"}]
+            }
+          }
+        },
+        {
           "displayName": "time_range",
           "keyword": "time_range",
           "dataType": "DATE",
@@ -1061,7 +1073,7 @@
           }
         }
       ],
-      "query": "SELECT \n  COALESCE(billing_origin_product, 'Unknown') AS product, \n  ROUND(SUM(list_cost), 2) AS cost \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max \nGROUP BY 1 \nHAVING SUM(list_cost) > 0\nORDER BY cost DESC \nLIMIT 10"
+      "query": "SELECT \n  COALESCE(billing_origin_product, 'Unknown') AS product, \n  ROUND(SUM(list_cost), 2) AS cost \nFROM ${catalog}.${gold_schema}.fact_usage \nWHERE usage_date >= :time_range.min AND usage_date <= :time_range.max \n  AND (ARRAY_CONTAINS(:param_sku_type, 'all') OR ARRAY_CONTAINS(:param_sku_type, sku_name) OR :param_sku_type IS NULL)\nGROUP BY 1 \nHAVING SUM(list_cost) > 0\nORDER BY cost DESC \nLIMIT 10"
     },
     {
       "name": "ds_kpi_admin",
@@ -1313,7 +1325,7 @@
     {
       "name": "ds_drift_alerts",
       "displayName": "Drift Alerts",
-      "query": "-- Calculates week-over-week drift alerts from actual Gold layer data\nWITH this_week_cost AS (\n  SELECT SUM(usage_cost) AS total FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nlast_week_cost AS (\n  SELECT SUM(usage_cost) AS total FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND usage_date < CURRENT_DATE() - INTERVAL 7 DAYS\n),\nthis_week_jobs AS (\n  SELECT COUNT(*) AS total FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nlast_week_jobs AS (\n  SELECT COUNT(*) AS total FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND run_date < CURRENT_DATE() - INTERVAL 7 DAYS\n),\nthis_week_p95 AS (\n  SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_time_ms) AS p95 FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nlast_week_p95 AS (\n  SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_time_ms) AS p95 FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 14 DAYS AND start_time < CURRENT_DATE() - INTERVAL 7 DAYS\n)\nSELECT \n  'Cost' AS area,\n  'Week-over-Week Cost %' AS metric,\n  ROUND((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 20 THEN 'high'\n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 10 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM this_week_cost tw, last_week_cost lw\nUNION ALL\nSELECT \n  'Reliability' AS area,\n  'Week-over-Week Job Volume %' AS metric,\n  ROUND((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 50 THEN 'high'\n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 25 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM this_week_jobs tw, last_week_jobs lw\nUNION ALL\nSELECT \n  'Performance' AS area,\n  'Week-over-Week P95 Query Duration %' AS metric,\n  ROUND((tw.p95 - lw.p95) * 100.0 / NULLIF(lw.p95, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS((tw.p95 - lw.p95) * 100.0 / NULLIF(lw.p95, 0)) > 30 THEN 'high'\n    WHEN ABS((tw.p95 - lw.p95) * 100.0 / NULLIF(lw.p95, 0)) > 15 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM this_week_p95 tw, last_week_p95 lw\nORDER BY ABS(drift_pct) DESC"
+      "query": "-- Calculates week-over-week drift alerts from actual Gold layer data\nWITH this_week_cost AS (\n  SELECT SUM(list_cost) AS total FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nlast_week_cost AS (\n  SELECT SUM(list_cost) AS total FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND usage_date < CURRENT_DATE() - INTERVAL 7 DAYS\n),\nthis_week_jobs AS (\n  SELECT COUNT(*) AS total FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nlast_week_jobs AS (\n  SELECT COUNT(*) AS total FROM ${catalog}.${gold_schema}.fact_job_run_timeline WHERE run_date >= CURRENT_DATE() - INTERVAL 14 DAYS AND run_date < CURRENT_DATE() - INTERVAL 7 DAYS\n),\nthis_week_p95 AS (\n  SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) AS p95 FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 7 DAYS\n),\nlast_week_p95 AS (\n  SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) AS p95 FROM ${catalog}.${gold_schema}.fact_query_history WHERE start_time >= CURRENT_DATE() - INTERVAL 14 DAYS AND start_time < CURRENT_DATE() - INTERVAL 7 DAYS\n)\nSELECT \n  'Cost' AS area,\n  'Week-over-Week Cost %' AS metric,\n  ROUND((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 20 THEN 'high'\n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 10 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM this_week_cost tw, last_week_cost lw\nUNION ALL\nSELECT \n  'Reliability' AS area,\n  'Week-over-Week Job Volume %' AS metric,\n  ROUND((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 50 THEN 'high'\n    WHEN ABS((tw.total - lw.total) * 100.0 / NULLIF(lw.total, 0)) > 25 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM this_week_jobs tw, last_week_jobs lw\nUNION ALL\nSELECT \n  'Performance' AS area,\n  'Week-over-Week P95 Query Duration %' AS metric,\n  ROUND((tw.p95 - lw.p95) * 100.0 / NULLIF(lw.p95, 0), 2) AS drift_pct,\n  CASE \n    WHEN ABS((tw.p95 - lw.p95) * 100.0 / NULLIF(lw.p95, 0)) > 30 THEN 'high'\n    WHEN ABS((tw.p95 - lw.p95) * 100.0 / NULLIF(lw.p95, 0)) > 15 THEN 'medium'\n    ELSE 'low'\n  END AS severity\nFROM this_week_p95 tw, last_week_p95 lw\nORDER BY ABS(drift_pct) DESC"
     },
     {
       "name": "ds_kpi_failed",
@@ -1527,7 +1539,7 @@
     {
       "name": "ds_select_sku",
       "displayName": "ds_select_sku",
-      "query": "SELECT DISTINCT sku_name AS sku_category FROM ${catalog}.${gold_schema}.fact_usage WHERE sku_name IS NOT NULL ORDER BY 1",
+      "query": "SELECT 'all' AS sku_category UNION ALL SELECT DISTINCT sku_name AS sku_category FROM ${catalog}.${gold_schema}.fact_usage WHERE sku_name IS NOT NULL ORDER BY 1",
       "parameters": []
     }
   ],
@@ -6010,7 +6022,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "SKU Type"
+                "title": "Billing Origin Product"
               }
             }
           },

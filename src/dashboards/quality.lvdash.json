@@ -1624,26 +1624,11 @@
                 "query": {
                   "datasetName": "ds_largest_tables",
                   "fields": [
-                    {
-                      "name": "table_name",
-                      "expression": "`table_name`"
-                    },
-                    {
-                      "name": "schema_name",
-                      "expression": "`schema_name`"
-                    },
-                    {
-                      "name": "size_gb",
-                      "expression": "`size_gb`"
-                    },
-                    {
-                      "name": "num_files",
-                      "expression": "`num_files`"
-                    },
-                    {
-                      "name": "avg_file_mb",
-                      "expression": "`avg_file_mb`"
-                    }
+                    { "name": "table_name", "expression": "`table_name`" },
+                    { "name": "schema_name", "expression": "`schema_name`" },
+                    { "name": "catalog_name", "expression": "`catalog_name`" },
+                    { "name": "table_type", "expression": "`table_type`" },
+                    { "name": "last_altered", "expression": "`last_altered`" }
                   ],
                   "disaggregated": true
                 }
@@ -1654,36 +1639,16 @@
               "widgetType": "table",
               "frame": {
                 "showTitle": true,
-                "title": "Largest Tables",
-                "description": "Top tables by storage size"
+                "title": "Recently Modified Tables",
+                "description": "Tables ordered by last modification"
               },
               "encodings": {
                 "columns": [
-                  {
-                    "fieldName": "table_name",
-                    "title": "Table",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "schema_name",
-                    "title": "Schema",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "size_gb",
-                    "title": "Size (GB)",
-                    "type": "number"
-                  },
-                  {
-                    "fieldName": "num_files",
-                    "title": "Files",
-                    "type": "number"
-                  },
-                  {
-                    "fieldName": "avg_file_mb",
-                    "title": "Avg File (MB)",
-                    "type": "number"
-                  }
+                  { "fieldName": "table_name", "title": "Table" },
+                  { "fieldName": "schema_name", "title": "Schema" },
+                  { "fieldName": "catalog_name", "title": "Catalog" },
+                  { "fieldName": "table_type", "title": "Type" },
+                  { "fieldName": "last_altered", "title": "Last Modified" }
                 ]
               }
             }
@@ -1704,26 +1669,11 @@
                 "query": {
                   "datasetName": "ds_needs_compaction",
                   "fields": [
-                    {
-                      "name": "table_name",
-                      "expression": "`table_name`"
-                    },
-                    {
-                      "name": "schema_name",
-                      "expression": "`schema_name`"
-                    },
-                    {
-                      "name": "size_gb",
-                      "expression": "`size_gb`"
-                    },
-                    {
-                      "name": "num_files",
-                      "expression": "`num_files`"
-                    },
-                    {
-                      "name": "optimization_status",
-                      "expression": "`optimization_status`"
-                    }
+                    { "name": "table_name", "expression": "`table_name`" },
+                    { "name": "schema_name", "expression": "`schema_name`" },
+                    { "name": "catalog_name", "expression": "`catalog_name`" },
+                    { "name": "last_altered", "expression": "`last_altered`" },
+                    { "name": "optimization_status", "expression": "`optimization_status`" }
                   ],
                   "disaggregated": true
                 }
@@ -1734,36 +1684,16 @@
               "widgetType": "table",
               "frame": {
                 "showTitle": true,
-                "title": "Tables Needing Optimization",
-                "description": "Tables with many small files needing compaction"
+                "title": "Stale Tables (Needs Review)",
+                "description": "Tables that haven't been modified recently"
               },
               "encodings": {
                 "columns": [
-                  {
-                    "fieldName": "table_name",
-                    "title": "Table",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "schema_name",
-                    "title": "Schema",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "size_gb",
-                    "title": "Size (GB)",
-                    "type": "number"
-                  },
-                  {
-                    "fieldName": "num_files",
-                    "title": "Files",
-                    "type": "number"
-                  },
-                  {
-                    "fieldName": "optimization_status",
-                    "title": "Status",
-                    "type": "string"
-                  }
+                  { "fieldName": "table_name", "title": "Table" },
+                  { "fieldName": "schema_name", "title": "Schema" },
+                  { "fieldName": "catalog_name", "title": "Catalog" },
+                  { "fieldName": "last_altered", "title": "Last Modified" },
+                  { "fieldName": "optimization_status", "title": "Status" }
                 ]
               }
             }
@@ -1784,18 +1714,11 @@
                 "query": {
                   "datasetName": "ds_empty_tables",
                   "fields": [
-                    {
-                      "name": "table_name",
-                      "expression": "`table_name`"
-                    },
-                    {
-                      "name": "schema_name",
-                      "expression": "`schema_name`"
-                    },
-                    {
-                      "name": "created_at",
-                      "expression": "`created_at`"
-                    }
+                    { "name": "table_name", "expression": "`table_name`" },
+                    { "name": "schema_name", "expression": "`schema_name`" },
+                    { "name": "catalog_name", "expression": "`catalog_name`" },
+                    { "name": "table_type", "expression": "`table_type`" },
+                    { "name": "created_at", "expression": "`created_at`" }
                   ],
                   "disaggregated": true
                 }
@@ -1806,27 +1729,16 @@
               "widgetType": "table",
               "frame": {
                 "showTitle": true,
-                "title": "Empty Tables",
-                "description": "Tables with zero rows"
+                "title": "Recently Created Tables",
+                "description": "Tables created in the last 30 days"
               },
               "encodings": {
                 "columns": [
-                  {
-                    "fieldName": "table_name",
-                    "title": "Table",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "schema_name",
-                    "title": "Schema",
-                    "type": "string"
-                  },
-                  {
-                    "fieldName": "created_at",
-                    "title": "Created",
-                    "type": "datetime",
-                    "dateTimeFormat": "yyyy-MM-dd"
-                  }
+                  { "fieldName": "table_name", "title": "Table" },
+                  { "fieldName": "schema_name", "title": "Schema" },
+                  { "fieldName": "catalog_name", "title": "Catalog" },
+                  { "fieldName": "table_type", "title": "Type" },
+                  { "fieldName": "created_at", "title": "Created" }
                 ]
               }
             }
@@ -2290,7 +2202,7 @@
     {
       "name": "ds_tables_by_catalog",
       "displayName": "Tables by Catalog",
-      "query": "SELECT catalog_name, COUNT(DISTINCT table_full_name) AS table_count FROM (SELECT COALESCE(source_table_catalog, target_table_catalog) AS catalog_name, COALESCE(source_table_full_name, target_table_full_name) AS table_full_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE source_table_catalog IS NOT NULL OR target_table_catalog IS NOT NULL) WHERE catalog_name IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10",
+      "query": "-- Tables by catalog from system tables\nSELECT \n  table_catalog AS catalog_name,\n  COUNT(*) AS table_count\nFROM system.information_schema.tables\nWHERE table_catalog IS NOT NULL\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nGROUP BY table_catalog\nORDER BY table_count DESC\nLIMIT 10",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2353,7 +2265,7 @@
     {
       "name": "ds_untagged_tables",
       "displayName": "Untagged Tables",
-      "query": "-- Tables without governance tags (layer, domain, owner, etc.)\nWITH table_info AS (\n  SELECT DISTINCT\n    catalog_name,\n    schema_name,\n    table_name,\n    table_type\n  FROM ${catalog}.${gold_schema}.dim_table\n  WHERE table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n    AND catalog_name NOT IN ('system', 'information_schema', 'hive_metastore')\n    AND schema_name NOT IN ('information_schema', 'default')\n)\nSELECT \n  catalog_name,\n  schema_name,\n  table_name,\n  table_type\nFROM table_info\nWHERE (:param_catalog = 'all' OR catalog_name = :param_catalog)\nORDER BY catalog_name, schema_name, table_name\nLIMIT 20",
+      "query": "-- Tables without governance tags\nSELECT\n  t.table_catalog AS catalog_name,\n  t.table_schema AS schema_name,\n  t.table_name,\n  t.table_type,\n  'No Tags' AS tag_status\nFROM system.information_schema.tables t\nLEFT JOIN system.information_schema.table_tags tt\n  ON t.table_catalog = tt.catalog_name\n  AND t.table_schema = tt.schema_name\n  AND t.table_name = tt.table_name\nWHERE t.table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n  AND t.table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  AND t.table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n  AND tt.tag_name IS NULL\n  AND (:param_catalog = 'all' OR t.table_catalog = :param_catalog)\nORDER BY t.table_catalog, t.table_schema, t.table_name\nLIMIT 50",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2376,7 +2288,7 @@
     {
       "name": "ds_undocumented_tables",
       "displayName": "Undocumented Tables",
-      "query": "-- Tables without comments/documentation\nSELECT\n  catalog_name,\n  schema_name,\n  table_name\nFROM ${catalog}.${gold_schema}.dim_table\nWHERE (comment IS NULL OR TRIM(comment) = '')\n  AND table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n  AND catalog_name NOT IN ('system', 'information_schema', 'hive_metastore')\n  AND schema_name NOT IN ('information_schema', 'default')\n  AND (:param_catalog = 'all' OR catalog_name = :param_catalog)\nORDER BY catalog_name, schema_name, table_name\nLIMIT 20",
+      "query": "-- Tables without comments/documentation\nSELECT\n  table_catalog AS catalog_name,\n  table_schema AS schema_name,\n  table_name,\n  table_type,\n  'No Comment' AS doc_status\nFROM system.information_schema.tables\nWHERE (comment IS NULL OR TRIM(comment) = '')\n  AND table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n  AND table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n  AND table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nORDER BY table_catalog, table_schema, table_name\nLIMIT 50",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2490,7 +2402,7 @@
     {
       "name": "ds_catalog_summary",
       "displayName": "Catalog Summary",
-      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, COUNT(DISTINCT SPLIT(target_table_full_name, '.')[1]) AS schema_count, COUNT(DISTINCT target_table_full_name) AS table_count, 0 AS view_count FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1 ORDER BY 3 DESC",
+      "query": "-- Catalog summary from system tables\nSELECT \n  table_catalog AS catalog_name,\n  COUNT(*) AS table_count\nFROM system.information_schema.tables\nWHERE table_catalog IS NOT NULL\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nGROUP BY table_catalog\nORDER BY table_count DESC\nLIMIT 15",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2513,7 +2425,7 @@
     {
       "name": "ds_schema_summary",
       "displayName": "Schema Summary",
-      "query": "SELECT SPLIT(target_table_full_name, '.')[0] AS catalog_name, SPLIT(target_table_full_name, '.')[1] AS schema_name, COUNT(DISTINCT target_table_full_name) AS table_count, MAX(event_time) AS last_modified FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE 1=1 GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 20",
+      "query": "-- Schema summary from system tables\nSELECT \n  table_catalog AS catalog_name,\n  table_schema AS schema_name,\n  COUNT(*) AS table_count,\n  MAX(last_altered) AS last_modified\nFROM system.information_schema.tables\nWHERE table_catalog IS NOT NULL\n  AND table_schema IS NOT NULL\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nGROUP BY table_catalog, table_schema\nORDER BY table_count DESC\nLIMIT 20",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2644,7 +2556,7 @@
     },
     {
       "name": "ds_largest_tables",
-      "query": "SELECT CONCAT(catalog_name, '.', schema_name, '.', table_name) AS full_table_name, catalog_name, schema_name, table_name, ROUND(SUM(COALESCE(usage_quantity, 0)), 2) AS total_size_gb, COUNT(*) AS optimization_count, MAX(end_time) AS last_optimized FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_status = 'SUCCESSFUL' GROUP BY 1, 2, 3, 4 ORDER BY total_size_gb DESC LIMIT 20",
+      "query": "-- Largest tables by row count (size not available in info schema)\nSELECT \n  table_name,\n  table_schema AS schema_name,\n  table_catalog AS catalog_name,\n  table_type,\n  created AS created_at,\n  last_altered\nFROM system.information_schema.tables\nWHERE table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND table_type IN ('MANAGED', 'EXTERNAL')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nORDER BY last_altered DESC NULLS LAST\nLIMIT 20",
       "displayName": "Largest Tables",
       "parameters": [
         {
@@ -2667,7 +2579,7 @@
     },
     {
       "name": "ds_needs_compaction",
-      "query": "WITH last_compaction AS (SELECT table_name, MAX(end_time) AS last_compacted FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_type = 'COMPACTION' AND operation_status = 'SUCCESSFUL' GROUP BY table_name) SELECT p.catalog_name, p.schema_name, p.table_name, CONCAT(p.catalog_name, '.', p.schema_name, '.', p.table_name) AS full_table_name, c.last_compacted, DATEDIFF(CURRENT_DATE(), c.last_compacted) AS days_since_compaction FROM ${catalog}.${gold_schema}.fact_predictive_optimization p LEFT JOIN last_compaction c ON p.table_name = c.table_name WHERE c.last_compacted < CURRENT_DATE() - INTERVAL 30 DAYS OR c.last_compacted IS NULL GROUP BY 1, 2, 3, 4, 5, 6 ORDER BY days_since_compaction DESC NULLS FIRST LIMIT 20",
+      "query": "-- Tables needing optimization (based on age and activity)\nSELECT \n  table_name,\n  table_schema AS schema_name,\n  table_catalog AS catalog_name,\n  table_type,\n  created,\n  last_altered,\n  CASE \n    WHEN DATEDIFF(CURRENT_DATE(), last_altered) > 365 THEN 'STALE: Not modified in 1+ years'\n    WHEN DATEDIFF(CURRENT_DATE(), last_altered) > 180 THEN 'WARNING: Not modified in 6+ months'\n    WHEN DATEDIFF(CURRENT_DATE(), last_altered) > 90 THEN 'MONITOR: Not modified in 3+ months'\n    ELSE 'OK: Recently modified'\n  END AS optimization_status\nFROM system.information_schema.tables\nWHERE table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND table_type IN ('MANAGED', 'EXTERNAL')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nORDER BY last_altered ASC NULLS FIRST\nLIMIT 20",
       "displayName": "Needs Compaction",
       "parameters": [
         {
@@ -2690,7 +2602,7 @@
     },
     {
       "name": "ds_empty_tables",
-      "query": "WITH active_tables AS (SELECT DISTINCT COALESCE(source_table_full_name, target_table_full_name) AS table_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE event_date >= CURRENT_DATE() - INTERVAL 90 DAYS), optimized_tables AS (SELECT DISTINCT CONCAT(catalog_name, '.', schema_name, '.', table_name) AS table_name FROM ${catalog}.${gold_schema}.fact_predictive_optimization WHERE operation_status = 'SUCCESSFUL') SELECT a.table_name AS full_table_name, 'No recent optimization' AS status FROM active_tables a LEFT JOIN optimized_tables o ON a.table_name = o.table_name WHERE o.table_name IS NULL LIMIT 20",
+      "query": "-- Recently created tables (potential empty candidates)\nSELECT \n  table_name,\n  table_schema AS schema_name,\n  table_catalog AS catalog_name,\n  table_type,\n  created AS created_at,\n  last_altered\nFROM system.information_schema.tables\nWHERE table_type IN ('MANAGED', 'EXTERNAL')\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\n  AND created >= CURRENT_DATE() - INTERVAL 30 DAYS\nORDER BY created DESC\nLIMIT 20",
       "displayName": "Empty Tables",
       "parameters": [
         {
@@ -2790,7 +2702,7 @@
     {
       "name": "ds_select_catalog",
       "displayName": "ds_select_catalog",
-      "query": "SELECT DISTINCT catalog_name FROM (SELECT source_table_catalog AS catalog_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE source_table_catalog IS NOT NULL UNION SELECT target_table_catalog AS catalog_name FROM ${catalog}.${gold_schema}.fact_table_lineage WHERE target_table_catalog IS NOT NULL) ORDER BY 1",
+      "query": "SELECT 'all' AS catalog_name UNION ALL SELECT DISTINCT table_catalog AS catalog_name FROM system.information_schema.tables WHERE table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples') ORDER BY 1",
       "parameters": []
     }
   ],

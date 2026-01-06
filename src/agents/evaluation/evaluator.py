@@ -23,7 +23,7 @@ from typing import Dict, List, Optional, Any
 import pandas as pd
 import mlflow
 import mlflow.genai
-from mlflow.genai import Relevance, Safety, Correctness, GuidelinesAdherence
+from mlflow.genai.scorers import Relevance, Safety, Correctness, GuidelinesAdherence
 from mlflow.genai import scorer, Score
 
 from .judges import (

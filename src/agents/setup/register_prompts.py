@@ -18,8 +18,11 @@ except Exception as e:
 Register Prompts
 ================
 
-Registers all agent prompts to MLflow Prompt Registry with versioning
-and production aliases.
+Stores all agent prompts in the agent_config table for versioning
+and retrieval at runtime. Also logs to MLflow as artifacts for tracking.
+
+Note: The MLflow Prompt Registry API (mlflow.genai.log_prompt) is not available
+in current MLflow versions. We use a table-based approach instead.
 
 Schema Naming Convention:
     Dev: prashanth_subrahmanyam_catalog.dev_<user>_system_gold_agent
@@ -29,8 +32,9 @@ Schema Naming Convention:
 # COMMAND ----------
 
 import mlflow
-import mlflow.genai
-from mlflow import MlflowClient
+import json
+from datetime import datetime
+from pyspark.sql import SparkSession
 
 
 def get_parameters():
@@ -110,62 +114,116 @@ Synthesized Response:"""
 
 # COMMAND ----------
 
-def register_prompt(catalog: str, schema: str, name: str, template: str):
-    """Register a prompt to MLflow with versioning."""
-    model_name = f"{catalog}.{schema}.prompt_{name}"
+def register_prompts_to_table(spark: SparkSession, catalog: str, schema: str, prompts: dict):
+    """
+    Store prompts in the agent_config table for versioning and runtime retrieval.
+    """
+    table_name = f"{catalog}.{schema}.agent_config"
+    current_time = datetime.now()
     
-    print(f"Registering prompt: {name} -> {model_name}")
+    print(f"Storing {len(prompts)} prompts in {table_name}...")
     
-    try:
-        with mlflow.start_run(run_name=f"prompt_{name}_registration"):
-            # Log the prompt
-            mlflow.genai.log_prompt(
-                prompt=template,
-                artifact_path=f"prompts/{name}",
-                registered_model_name=model_name
+    for name, template in prompts.items():
+        config_key = f"prompt_{name}"
+        
+        # Delete existing entry if exists
+        spark.sql(f"""
+            DELETE FROM {table_name}
+            WHERE config_key = '{config_key}'
+        """)
+        
+        # Insert new entry
+        spark.sql(f"""
+            INSERT INTO {table_name} (config_key, config_value, config_type, description, updated_at, updated_by)
+            VALUES (
+                '{config_key}',
+                '{template.replace("'", "''")}',
+                'string',
+                'Agent prompt template: {name}',
+                CURRENT_TIMESTAMP(),
+                'setup_job'
             )
+        """)
+        print(f"  ✓ Stored prompt: {name}")
+
+
+def log_prompts_to_mlflow(prompts: dict):
+    """
+    Log prompts as MLflow artifacts for tracking and versioning.
+    """
+    experiment_path = "/Shared/health_monitor/prompts"
+    mlflow.set_experiment(experiment_path)
+    
+    print(f"\nLogging prompts to MLflow experiment: {experiment_path}")
+    
+    with mlflow.start_run(run_name="prompt_registration"):
+        # Log each prompt as a text file artifact
+        for name, template in prompts.items():
+            # Write prompt to a temp file and log
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                f.write(template)
+                temp_path = f.name
             
-            # Get the latest version
-            client = MlflowClient()
-            latest_versions = client.get_latest_versions(model_name)
-            
-            if latest_versions:
-                latest_version = latest_versions[0].version
-                
-                # Set production alias
-                client.set_registered_model_alias(
-                    name=model_name,
-                    alias="production",
-                    version=latest_version
-                )
-                print(f"  ✓ Registered {name} v{latest_version}, alias=production")
-            
-    except Exception as e:
-        print(f"  ⚠ Error registering {name}: {e}")
-        raise
+            mlflow.log_artifact(temp_path, artifact_path=f"prompts/{name}")
+            os.remove(temp_path)
+            print(f"  ✓ Logged artifact: prompts/{name}")
+        
+        # Log summary as JSON
+        prompt_summary = {name: {"length": len(template), "variables": _extract_variables(template)} 
+                        for name, template in prompts.items()}
+        mlflow.log_dict(prompt_summary, "prompts/summary.json")
+        
+        # Log params
+        mlflow.log_params({
+            "prompt_count": len(prompts),
+            "prompt_names": ",".join(prompts.keys()),
+            "registration_timestamp": datetime.now().isoformat()
+        })
+        
+        print(f"  ✓ Logged summary and parameters")
+
+
+def _extract_variables(template: str) -> list:
+    """Extract variable placeholders from a template string."""
+    import re
+    # Find all {variable} patterns
+    variables = re.findall(r'\{(\w+)\}', template)
+    return list(set(variables))
 
 
 def main():
     """Main entry point."""
     catalog, agent_schema = get_parameters()
     
-    # Set experiment for prompt tracking
-    experiment_path = f"/Shared/health_monitor/prompts"
-    mlflow.set_experiment(experiment_path)
-    print(f"Using MLflow experiment: {experiment_path}")
+    spark = SparkSession.builder.appName("Register Prompts").getOrCreate()
     
     try:
-        for name, template in PROMPTS.items():
-            register_prompt(catalog, agent_schema, name, template)
+        print("\n" + "=" * 60)
+        print("Registering Agent Prompts")
+        print("=" * 60)
+        
+        # 1. Store prompts in the config table (primary storage)
+        register_prompts_to_table(spark, catalog, agent_schema, PROMPTS)
+        
+        # 2. Log prompts to MLflow for tracking (secondary)
+        log_prompts_to_mlflow(PROMPTS)
         
         print("\n" + "=" * 60)
         print("✓ All prompts registered successfully!")
         print("=" * 60)
+        print(f"\nPrompts stored in: {catalog}.{agent_schema}.agent_config")
+        print(f"MLflow artifacts at: /Shared/health_monitor/prompts")
+        print(f"\nPrompts registered:")
+        for name in PROMPTS:
+            print(f"  - prompt_{name}")
         
         dbutils.notebook.exit("SUCCESS")
         
     except Exception as e:
         print(f"\n❌ Error registering prompts: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise
 
 
@@ -173,4 +231,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

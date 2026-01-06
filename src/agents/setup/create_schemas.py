@@ -83,13 +83,14 @@ def create_config_tables(spark: SparkSession, catalog: str, schema: str):
     print(f"\nCreating config tables...")
     
     # Agent configuration table
+    # Note: No DEFAULT values - not supported without delta.feature.allowColumnDefaults
     spark.sql(f"""
         CREATE TABLE IF NOT EXISTS {catalog}.{schema}.agent_config (
             config_key STRING NOT NULL COMMENT 'Configuration parameter name',
             config_value STRING COMMENT 'Configuration parameter value',
             config_type STRING COMMENT 'Type: string, int, float, json',
             description STRING COMMENT 'Human-readable description',
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP() COMMENT 'Last update time',
+            updated_at TIMESTAMP COMMENT 'Last update time',
             updated_by STRING COMMENT 'User who made the update',
             CONSTRAINT pk_agent_config PRIMARY KEY (config_key)
         )
@@ -108,7 +109,7 @@ def create_config_tables(spark: SparkSession, catalog: str, schema: str):
             user_id STRING NOT NULL COMMENT 'User identifier',
             experiment_name STRING NOT NULL COMMENT 'Name of the A/B test',
             variant STRING NOT NULL COMMENT 'Assigned variant: control, variant_A, etc.',
-            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+            assigned_at TIMESTAMP COMMENT 'Assignment timestamp',
             CONSTRAINT pk_ab_test PRIMARY KEY (user_id, experiment_name)
         )
         COMMENT 'A/B test variant assignments for prompt experiments'
@@ -135,7 +136,7 @@ def create_evaluation_tables(spark: SparkSession, catalog: str, schema: str):
             expected_response_keywords ARRAY<STRING> COMMENT 'Keywords expected in response',
             difficulty STRING COMMENT 'easy, medium, hard',
             domain_focus STRING COMMENT 'Primary domain: cost, security, performance, reliability, quality',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+            created_at TIMESTAMP COMMENT 'Creation timestamp',
             CONSTRAINT pk_eval_datasets PRIMARY KEY (dataset_id)
         )
         COMMENT 'Benchmark datasets for agent evaluation'
@@ -160,7 +161,7 @@ def create_evaluation_tables(spark: SparkSession, catalog: str, schema: str):
             domain_accuracy_score DOUBLE COMMENT 'Custom domain accuracy judge',
             overall_score DOUBLE COMMENT 'Weighted average of all scores',
             num_samples INT COMMENT 'Number of test samples',
-            evaluation_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+            evaluation_timestamp TIMESTAMP COMMENT 'Evaluation timestamp',
             CONSTRAINT pk_eval_results PRIMARY KEY (evaluation_id)
         )
         COMMENT 'Aggregated evaluation results for agent versions'
@@ -240,7 +241,7 @@ def create_memory_tables(spark: SparkSession, catalog: str, schema: str):
             checkpoint_id STRING NOT NULL COMMENT 'LangGraph checkpoint ID',
             thread_id STRING COMMENT 'Conversation thread ID',
             state_data STRING COMMENT 'Serialized state JSON',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+            created_at TIMESTAMP COMMENT 'Creation timestamp',
             expires_at TIMESTAMP COMMENT 'TTL expiration (default: 24h)',
             CONSTRAINT pk_memory_short PRIMARY KEY (session_id, checkpoint_id)
         )
@@ -263,8 +264,8 @@ def create_memory_tables(spark: SparkSession, catalog: str, schema: str):
             value STRING COMMENT 'Memory content',
             embedding ARRAY<FLOAT> COMMENT 'Vector embedding for semantic search',
             metadata MAP<STRING, STRING> COMMENT 'Additional metadata',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+            created_at TIMESTAMP COMMENT 'Creation timestamp',
+            updated_at TIMESTAMP COMMENT 'Last update timestamp',
             expires_at TIMESTAMP COMMENT 'TTL expiration (default: 365 days)',
             CONSTRAINT pk_memory_long PRIMARY KEY (memory_id)
         )
