@@ -1,19 +1,19 @@
 # Agent Framework Setup Job
 # ===========================================================================
-# Complete pipeline to deploy the Health Monitor Agent:
+# Setup pipeline for the Health Monitor Agent:
 #   1. Create infrastructure (schemas, tables, volumes)
-#   2. Register prompts to MLflow
+#   2. Register prompts to MLflow Prompt Registry
+#   2b. Register scorers for production monitoring
+#   2c. Create evaluation datasets (synthetic + manual)
 #   3. Log agent model to Unity Catalog
-#   4. Run evaluation pipeline
-#   5. Create serving endpoint (programmatic, not declarative YAML)
+#   4. Run initial evaluation (sanity check)
 #
-# Why programmatic endpoint creation (Task 5)?
-#   - Declarative YAML requires model to exist at `bundle deploy` time
-#   - Model doesn't exist until Task 3 runs
-#   - Programmatic creation happens AFTER model is registered
-#   - No manual intervention or uncommenting needed
+# NOTE: Serving endpoint is NOT created here!
+# Endpoint creation is handled by agent_deployment_job which implements
+# the proper MLflow 3.0 Deployment Job pattern:
+#   - Evaluate → Check Thresholds → Create Endpoint (gated)
 #
-# Reference: https://docs.databricks.com/aws/en/generative-ai/agent-framework/deploy-agent.html
+# Reference: https://docs.databricks.com/aws/en/mlflow/deployment-job
 #
 # Single Schema (avoids sprawl):
 #   Dev: prashanth_subrahmanyam_catalog.dev_<user>_system_gold_agent
@@ -27,9 +27,9 @@ resources:
     agent_setup_job:
       name: "[${bundle.target}] Health Monitor - Agent Setup"
       description: >
-        Complete agent deployment pipeline:
-        Creates infrastructure, registers prompts, logs model, runs evaluation,
-        and creates serving endpoint. All steps run sequentially in one job.
+        Agent setup pipeline: Creates infrastructure, registers prompts and scorers,
+        logs model to Unity Catalog, runs initial evaluation. Serving endpoint
+        creation is handled by agent_deployment_job (gated by evaluation).
       
       # Different environments for different task requirements
       environments:
@@ -38,30 +38,32 @@ resources:
           spec:
             environment_version: "4"
         
-        # MLflow env for prompt registry and evaluation
+        # MLflow env for prompt registry (no langchain needed)
         - environment_key: mlflow_env
           spec:
             environment_version: "4"
             dependencies:
-              - mlflow>=3.0.0
+              - mlflow
         
         # Full env for agent model logging
+        # Note: langchain-databricks is pre-installed on Databricks runtime
+        # Don't specify version constraints for pre-installed packages
         - environment_key: agent_env
           spec:
             environment_version: "4"
             dependencies:
               - mlflow
               - langchain
+              - langchain-core
               - langgraph
-              - langchain-databricks
               - databricks-sdk
         
-        # SDK env for endpoint creation
-        - environment_key: sdk_env
+        # Databricks Agents env for synthetic dataset generation
+        - environment_key: agents_env
           spec:
             environment_version: "4"
             dependencies:
-              - databricks-sdk
+              - databricks-agents
               - mlflow
       
       tasks:
@@ -90,11 +92,45 @@ resources:
               agent_schema: ${var.agent_schema}
         
         # ==================================================================
+        # Task 2b: Register Scorers for Production Monitoring
+        # Registers built-in (Relevance, Safety) and custom scorers
+        # These run automatically in background on sampled traces
+        # ==================================================================
+        - task_key: register_scorers
+          depends_on:
+            - task_key: create_agent_infrastructure
+          environment_key: mlflow_env
+          notebook_task:
+            notebook_path: ../../src/agents/setup/register_scorers.py
+            base_parameters:
+              catalog: ${var.catalog}
+              agent_schema: ${var.agent_schema}
+        
+        # ==================================================================
+        # Task 2c: Create Evaluation Datasets (Synthetic + Manual)
+        # Uses generate_evals_df from databricks-agents to create datasets
+        # that appear in MLflow UI under Datasets tab
+        # Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-evaluation/synthesize-evaluation-set
+        # ==================================================================
+        - task_key: create_evaluation_datasets
+          depends_on:
+            - task_key: create_agent_infrastructure
+          environment_key: agents_env
+          notebook_task:
+            notebook_path: ../../src/agents/setup/create_evaluation_dataset.py
+            base_parameters:
+              catalog: ${var.catalog}
+              agent_schema: ${var.agent_schema}
+              num_evals: "50"
+        
+        # ==================================================================
         # Task 3: Log Agent Model to Unity Catalog
         # ==================================================================
         - task_key: log_agent_model
           depends_on:
             - task_key: register_prompts
+            - task_key: register_scorers
+            - task_key: create_evaluation_datasets
           environment_key: agent_env
           notebook_task:
             notebook_path: ../../src/agents/setup/log_agent_model.py
@@ -103,7 +139,10 @@ resources:
               agent_schema: ${var.agent_schema}
         
         # ==================================================================
-        # Task 4: Run Evaluation Pipeline
+        # Task 4: Run Initial Evaluation (Pre-deployment validation)
+        # 
+        # This is a quick sanity check. Full evaluation with gated
+        # endpoint creation happens in agent_deployment_job.
         # ==================================================================
         - task_key: run_evaluation
           depends_on:
@@ -116,27 +155,19 @@ resources:
               agent_schema: ${var.agent_schema}
         
         # ==================================================================
-        # Task 5: Create Serving Endpoint (Programmatic)
+        # NOTE: Serving endpoint is NOT created here!
         # 
-        # This task MUST run AFTER log_agent_model because:
-        #   - The model must exist in Unity Catalog before endpoint creation
-        #   - Using SDK allows sequential execution in same job
-        #   - No manual "uncomment YAML" step needed
+        # Endpoint creation is handled by agent_deployment_job which:
+        #   1. Runs comprehensive evaluation
+        #   2. Checks quality thresholds
+        #   3. ONLY creates/updates endpoint IF evaluation passes
+        #
+        # This is the proper MLflow 3.0 Deployment Job pattern.
+        # Reference: https://docs.databricks.com/aws/en/mlflow/deployment-job
         # ==================================================================
-        - task_key: create_serving_endpoint
-          depends_on:
-            - task_key: log_agent_model
-            # Note: Can run in parallel with evaluation
-          environment_key: sdk_env
-          notebook_task:
-            notebook_path: ../../src/agents/setup/create_serving_endpoint.py
-            base_parameters:
-              catalog: ${var.catalog}
-              agent_schema: ${var.agent_schema}
-              endpoint_name: health_monitor_agent_${bundle.target}
       
-      # Timeout - endpoint creation can take 15-20 min
-      timeout_seconds: 3600  # 1 hour
+      # Timeout for model logging and initial evaluation
+      timeout_seconds: 1800  # 30 minutes (no endpoint creation here)
       
       email_notifications:
         on_failure:

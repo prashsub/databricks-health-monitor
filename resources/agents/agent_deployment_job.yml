@@ -1,0 +1,99 @@
+# Agent Deployment Job (MLflow 3 Pattern)
+# ===========================================================================
+# MLflow 3 Deployment Job for Agent evaluation and promotion.
+#
+# This job implements the MLflow 3 deployment job pattern:
+# - Triggered on new model version creation (or manually)
+# - Runs comprehensive evaluation with built-in + custom scorers
+# - Checks quality thresholds
+# - Promotes to staging/production if passed
+#
+# References:
+# - https://docs.databricks.com/aws/en/mlflow/deployment-job
+# - https://docs.databricks.com/aws/en/mlflow/deployment-job#create-a-deployment-job-programmatically-using-a-notebook-recommended
+# ===========================================================================
+
+resources:
+  jobs:
+    agent_deployment_job:
+      name: "[${bundle.target}] Health Monitor - Agent Deployment"
+      description: >
+        MLflow 3 Deployment Job: Evaluates agent model and promotes 
+        to staging/production if evaluation passes quality thresholds.
+        Can be triggered manually or on new model version creation.
+      
+      # Environments
+      environments:
+        - environment_key: evaluation_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              # Note: langchain-databricks is pre-installed on Databricks runtime
+              # Don't specify version constraints for pre-installed packages
+              - mlflow
+              - langchain
+              - langchain-core
+              - langgraph
+              - databricks-sdk
+              - databricks-agents
+      
+      # Job parameters - REQUIRED for deployment job integration
+      # Per: https://docs.databricks.com/aws/en/mlflow/deployment-job
+      # Must have 'model_name' and 'model_version' parameters
+      parameters:
+        - name: model_name
+          default: ${var.catalog}.${var.agent_schema}.health_monitor_agent
+        - name: model_version
+          default: ""  # Empty = latest version
+        - name: promotion_target
+          default: staging  # staging or production
+        - name: endpoint_name
+          default: health_monitor_agent_${bundle.target}  # Serving endpoint name
+      
+      tasks:
+        # ==================================================================
+        # Task 1: Run Deployment Job (Evaluate + Promote + Create Endpoint)
+        # 
+        # This implements the proper MLflow 3.0 Deployment Job pattern:
+        #   1. Run comprehensive evaluation
+        #   2. Check quality thresholds
+        #   3. IF PASSED: Promote model AND Create/Update serving endpoint
+        #   4. IF FAILED: No promotion, no endpoint creation
+        # ==================================================================
+        - task_key: run_deployment_job
+          environment_key: evaluation_env
+          notebook_task:
+            notebook_path: ../../src/agents/setup/deployment_job.py
+            base_parameters:
+              # REQUIRED parameters for MLflow Deployment Job integration
+              model_name: "{{job.parameters.model_name}}"
+              model_version: "{{job.parameters.model_version}}"
+              promotion_target: "{{job.parameters.promotion_target}}"
+              endpoint_name: "{{job.parameters.endpoint_name}}"
+              # Legacy params for backward compatibility
+              catalog: ${var.catalog}
+              agent_schema: ${var.agent_schema}
+      
+      # Timeout
+      timeout_seconds: 1800  # 30 minutes
+      
+      # Can be scheduled or triggered by model events
+      # schedule:
+      #   quartz_cron_expression: "0 0 2 * * ?"  # Daily at 2 AM
+      #   timezone_id: "America/Los_Angeles"
+      #   pause_status: PAUSED
+      
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+        on_success:
+          - data-engineering@company.com  # Notify on promotion
+      
+      tags:
+        environment: ${bundle.target}
+        project: databricks_health_monitor
+        layer: agent
+        job_level: atomic
+        job_type: deployment
+        mlflow_deployment_job: "true"
+

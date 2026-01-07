@@ -12,8 +12,8 @@
 
 **Powered by:**
 - 2 Metric Views (data_quality, ml_intelligence)
-- 7 Table-Valued Functions (freshness, quality, lineage queries)
-- 3 ML Prediction Tables (drift detection, schema prediction, freshness alerts)
+- 5 Table-Valued Functions (freshness, quality, lineage queries)
+- 2 ML Prediction Tables (quality anomalies, freshness alerts)
 - 3 Lakehouse Monitoring Tables (quality drift and profile metrics)
 - 4 Dimension Tables (experiment, served_entities, workspace, date)
 - 12 Fact Tables (lineage, classification, DQ monitoring, optimization)
@@ -56,25 +56,22 @@
 | `data_quality` | Quality monitoring | total_tables, quality_score, completeness_rate, validity_rate |
 | `ml_intelligence` | ML model inference | prediction_count, accuracy, drift_score |
 
-### Table-Valued Functions (7 TVFs)
+### Table-Valued Functions (5 TVFs)
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_stale_tables` | Table freshness metrics | "stale tables" |
-| `get_table_activity_summary` | Job quality status | "job quality" |
-| `get_table_activity_summary` | Freshness by domain | "freshness by domain" |
-| `get_table_activity_summary` | Quality summary | "quality score" |
-| `get_stale_tables` | Failed quality checks | "failing quality" |
-| `get_table_activity_summary` | Activity status | "inactive tables" |
-| `get_data_lineage_summary` | Pipeline lineage | "pipeline dependencies" |
+| `get_stale_tables` | Table freshness metrics | "stale tables", "freshness issues" |
+| `get_table_lineage` | Table-level lineage tracking | "table dependencies", "table lineage" |
+| `get_table_activity_summary` | Quality summary and activity status | "quality score", "inactive tables", "activity status" |
+| `get_data_lineage_summary` | Data lineage summary by catalog/schema | "lineage summary", "lineage coverage" |
+| `get_pipeline_lineage_impact` | Pipeline lineage impact analysis | "pipeline dependencies", "pipeline impact" |
 
-### ML Prediction Tables 🤖 (3 Models)
+### ML Prediction Tables 🤖 (2 Models)
 
-| Table Name | Purpose | Model | Key Columns |
-|---|---|---|---|
-| `quality_anomaly_predictions` | Data drift and quality anomaly detection | Data Drift Detector | `drift_score`, `is_drifted`, `drift_columns`, `table_name` |
-| `quality_trend_predictions` | Schema change probability and quality forecasts | Schema Change Predictor | `change_probability`, `predicted_change_type`, `risk_factors` |
-| `freshness_alert_predictions` | Staleness probability predictions | Schema Evolution Predictor | `staleness_probability`, `predicted_delay_hours`, `expected_stale_date` |
+| Table Name | Purpose | Model | Key Columns | Schema |
+|---|---|---|---|---|
+| `quality_anomaly_predictions` | Data drift and quality anomaly detection | Data Drift Detector | `table_name`, `prediction`, `evaluation_date` | `${catalog}.${feature_schema}` |
+| `freshness_alert_predictions` | Staleness probability predictions | Freshness Predictor | `table_name`, `prediction`, `evaluation_date` | `${catalog}.${feature_schema}` |
 
 **Training Source:** `src/ml/quality/` | **Inference:** `src/ml/inference/batch_inference_all_models.py`
 
@@ -263,43 +260,54 @@ You are a data quality and governance analyst. Follow these rules:
 
 | Function Name | Signature | Purpose | When to Use |
 |---------------|-----------|---------|-------------|
-| `get_stale_tables` | `(start_date STRING, end_date STRING, stale_threshold_hours INT)` | Freshness | "stale tables" |
-| `get_table_activity_summary` | `(start_date STRING, end_date STRING)` | Quality summary | "quality score" |
-| `get_stale_tables` | `(start_date STRING, end_date STRING)` | Failed checks | "failing quality" |
-| `get_table_activity_summary` | `(start_date STRING, end_date STRING, activity_days INT)` | Activity status | "inactive tables" |
-| `get_data_lineage_summary` | `(pipeline_name STRING, start_date STRING, end_date STRING)` | Lineage | "dependencies" |
+| `get_stale_tables` | `(days_back INT, staleness_threshold_days INT DEFAULT 7)` | Freshness | "stale tables" |
+| `get_table_lineage` | `(catalog_filter STRING, schema_filter STRING DEFAULT '%')` | Table lineage | "table dependencies" |
+| `get_table_activity_summary` | `(days_back INT)` | Quality summary | "quality score", "activity status" |
+| `get_data_lineage_summary` | `(catalog_filter STRING, schema_filter STRING DEFAULT '%')` | Data lineage | "lineage summary" |
+| `get_pipeline_lineage_impact` | `(catalog_filter STRING)` | Pipeline impact | "pipeline dependencies" |
 
 ### TVF Details
 
 #### get_stale_tables
-- **Signature:** `get_stale_tables(start_date STRING, end_date STRING, stale_threshold_hours INT)`
+- **Signature:** `get_stale_tables(days_back INT, staleness_threshold_days INT DEFAULT 7)`
 - **Returns:** table_name, last_update, hours_since_update, freshness_status
 - **Use When:** User asks for "stale tables" or "data freshness"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables('2024-12-01', '2024-12-31', 24)`
+- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(30, 7))`
+
+#### get_table_lineage
+- **Signature:** `get_table_lineage(catalog_filter STRING, schema_filter STRING DEFAULT '%')`
+- **Returns:** source_table, target_table, lineage_type
+- **Use When:** User asks for "table lineage" or "table dependencies"
+- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_lineage('main', 'gold_%'))`
 
 #### get_table_activity_summary
-- **Signature:** `get_table_activity_summary(start_date STRING, end_date STRING)`
-- **Returns:** domain, table_count, avg_quality_score, completeness_rate, validity_rate
-- **Use When:** User asks for "quality score" or "data quality summary"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary('2024-12-01', '2024-12-31')`
+- **Signature:** `get_table_activity_summary(days_back INT)`
+- **Returns:** table_name, quality_score, failed_checks, activity_status, days_since_last_access
+- **Use When:** User asks for "quality score", "inactive tables", or "activity status"
+- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(30))`
 
-#### get_table_activity_summary
-- **Signature:** `get_table_activity_summary(start_date STRING, end_date STRING, activity_days INT)`
-- **Returns:** table_name, last_access, activity_status, days_inactive
-- **Use When:** User asks for "inactive tables" or "orphaned tables"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary('2024-12-01', '2024-12-31', 14)`
+#### get_data_lineage_summary
+- **Signature:** `get_data_lineage_summary(catalog_filter STRING, schema_filter STRING DEFAULT '%')`
+- **Returns:** catalog, schema, table_count, lineage_coverage
+- **Use When:** User asks for "lineage summary" or "lineage coverage"
+- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_data_lineage_summary('main', '%'))`
+
+#### get_pipeline_lineage_impact
+- **Signature:** `get_pipeline_lineage_impact(catalog_filter STRING)`
+- **Returns:** pipeline_name, source_table, target_table, dependency_depth
+- **Use When:** User asks for "pipeline dependencies" or "pipeline impact"
+- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_pipeline_lineage_impact('main'))`
 
 ---
 
-## ████ SECTION G: ML MODEL INTEGRATION (3 Models) ████
+## ████ SECTION G: ML MODEL INTEGRATION (2 Models) ████
 
 ### Quality ML Models Quick Reference
 
-| ML Model | Prediction Table | Key Columns | Use When |
-|----------|-----------------|-------------|----------|
-| `data_drift_detector` | `quality_anomaly_predictions` | `drift_score`, `is_drifted` | "Data drift?" |
-| `schema_change_predictor` | `quality_trend_predictions` | `change_probability` | "Schema risk?" |
-| `schema_evolution_predictor` | `freshness_alert_predictions` | `evolution_type` | "Evolution patterns" |
+| ML Model | Prediction Table | Key Columns | Schema | Use When |
+|----------|-----------------|-------------|--------|----------|
+| `data_drift_detector` | `quality_anomaly_predictions` | `prediction`, `table_name`, `evaluation_date` | `${catalog}.${feature_schema}` | "Data drift?", "quality anomalies" |
+| `freshness_predictor` | `freshness_alert_predictions` | `prediction`, `table_name`, `evaluation_date` | `${catalog}.${feature_schema}` | "staleness risk", "freshness alerts" |
 
 ### ML Model Usage Patterns
 
@@ -307,42 +315,34 @@ You are a data quality and governance analyst. Follow these rules:
 - **Question Triggers:** "data drift", "distribution change", "quality anomaly", "data changed"
 - **Query Pattern:**
 ```sql
-SELECT table_name, check_date, drift_score, is_drifted, drift_columns
-FROM ${catalog}.${gold_schema}.quality_anomaly_predictions
-WHERE prediction_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  AND is_drifted = TRUE
-ORDER BY drift_score ASC;
+SELECT table_name, prediction as drift_score, evaluation_date
+FROM ${catalog}.${feature_schema}.quality_anomaly_predictions
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  AND prediction > 0.5
+ORDER BY prediction DESC;
 ```
-- **Interpretation:** `is_drifted = TRUE` = Data distribution has significantly changed
+- **Interpretation:** `prediction > 0.5` = High probability of data drift/quality anomaly
 
-#### schema_change_predictor (Schema Risk)
-- **Question Triggers:** "schema change", "schema risk", "will schema change", "breaking change"
+#### freshness_predictor (Freshness Alerts)
+- **Question Triggers:** "freshness alert", "stale prediction", "staleness risk", "will data be late"
 - **Query Pattern:**
 ```sql
-SELECT table_name, change_probability, predicted_change_type, risk_factors
-FROM ${catalog}.${gold_schema}.quality_trend_predictions
-WHERE change_probability > 0.5
-ORDER BY change_probability DESC;
+SELECT table_name, prediction as staleness_probability, evaluation_date
+FROM ${catalog}.${feature_schema}.freshness_alert_predictions
+WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+  AND prediction > 0.7
+ORDER BY prediction DESC;
 ```
-
-#### freshness_alert_predictions (Freshness Alerts)
-- **Question Triggers:** "freshness alert", "stale prediction", "will data be late"
-- **Query Pattern:**
-```sql
-SELECT table_name, predicted_delay_hours, alert_probability, last_update
-FROM ${catalog}.${gold_schema}.freshness_alert_predictions
-WHERE alert_probability > 0.7
-ORDER BY predicted_delay_hours DESC;
-```
+- **Interpretation:** `prediction > 0.7` = High probability of staleness/freshness issues
 
 ### ML vs Other Methods Decision Tree
 
 ```
 USER QUESTION                           → USE THIS
 ────────────────────────────────────────────────────
-"Is there data drift?"                  → ML: quality_anomaly_predictions
-"Schema change risk?"                   → ML: quality_trend_predictions
-"Will data be late?"                    → ML: freshness_alert_predictions
+"Is there data drift?"                  → ML: ${catalog}.${feature_schema}.quality_anomaly_predictions
+"Quality anomalies?"                    → ML: ${catalog}.${feature_schema}.quality_anomaly_predictions
+"Will data be late?"                    → ML: ${catalog}.${feature_schema}.freshness_alert_predictions
 ────────────────────────────────────────────────────
 "What is the freshness rate?"           → Metric View: data_quality
 "Is quality trending down?"             → Custom Metrics: _drift_metrics
@@ -903,16 +903,13 @@ LIMIT 25;
 **Expected SQL:**
 ```sql
 WITH current_quality AS (
-  SELECT 
-    table_full_name as table_name,
+  SELECT
+    table_name,
     quality_score,
     failed_checks,
     completeness_rate,
     validity_rate
-  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(
-    (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
-    CURRENT_DATE()::STRING
-  )
+  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(7))
 ),
 ml_drift_predictions AS (
   SELECT 
@@ -922,15 +919,6 @@ ml_drift_predictions AS (
   FROM ${catalog}.${feature_schema}.quality_anomaly_predictions
   WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
     AND prediction > 0.3
-  GROUP BY table_name
-),
-ml_schema_change_risk AS (
-  SELECT 
-    table_name,
-    AVG(prediction) as change_probability
-  FROM ${catalog}.${feature_schema}.quality_trend_predictions
-  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-    AND prediction > 0.4
   GROUP BY table_name
 ),
 freshness_risk AS (
@@ -953,47 +941,43 @@ quality_drift AS (
     AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS
   GROUP BY table_name
 )
-SELECT 
+SELECT
   cq.table_name,
   cq.quality_score as current_quality_score,
   cq.failed_checks,
   COALESCE(dp.avg_drift_score, 0) as ml_drift_score,
-  COALESCE(sc.change_probability, 0) as schema_change_risk,
   COALESCE(fr.staleness_probability, 0) as freshness_risk,
   COALESCE(qd.avg_quality_drift, 0) as recent_quality_drift,
   COALESCE(qd.max_quality_drift, 0) as max_quality_drift,
-  CASE 
+  CASE
     WHEN COALESCE(dp.max_drift_score, 0) > 0.8 AND cq.quality_score < 70 THEN 'Critical - Imminent Failure'
-    WHEN COALESCE(sc.change_probability, 0) > 0.7 AND COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'High - Multiple Risk Factors'
+    WHEN COALESCE(fr.staleness_probability, 0) > 0.7 AND COALESCE(dp.avg_drift_score, 0) > 0.5 THEN 'High - Multiple Risk Factors'
     WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'High - Rapid Quality Degradation'
-    WHEN COALESCE(dp.avg_drift_score, 0) > 0.5 OR COALESCE(sc.change_probability, 0) > 0.6 THEN 'Medium - Elevated Risk'
+    WHEN COALESCE(dp.avg_drift_score, 0) > 0.5 THEN 'Medium - Elevated Risk'
     WHEN cq.quality_score >= 90 THEN 'Low Risk - Healthy'
     ELSE 'Monitor'
   END as risk_status,
-  CASE 
+  CASE
     WHEN COALESCE(dp.max_drift_score, 0) > 0.8 THEN 'Immediate investigation - data drift detected'
-    WHEN COALESCE(sc.change_probability, 0) > 0.7 THEN 'Review for schema evolution or changes'
     WHEN COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'Check pipeline schedule and dependencies'
     WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Analyze recent data source changes'
     WHEN cq.failed_checks > 3 THEN 'Review and update validation rules'
     ELSE 'Continue monitoring'
   END as recommended_action,
-  CASE 
+  CASE
     WHEN COALESCE(dp.max_drift_score, 0) > 0.8 OR COALESCE(qd.max_quality_drift, 0) > 50 THEN 'Today'
-    WHEN COALESCE(sc.change_probability, 0) > 0.7 OR COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'This Week'
+    WHEN COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'This Week'
     WHEN COALESCE(dp.avg_drift_score, 0) > 0.5 THEN 'Next 2 Weeks'
     ELSE 'Monitor'
   END as time_to_failure_estimate
 FROM current_quality cq
 LEFT JOIN ml_drift_predictions dp ON cq.table_name = dp.table_name
-LEFT JOIN ml_schema_change_risk sc ON cq.table_name = sc.table_name
 LEFT JOIN freshness_risk fr ON cq.table_name = fr.table_name
 LEFT JOIN quality_drift qd ON cq.table_name = qd.table_name
-WHERE COALESCE(dp.avg_drift_score, 0) > 0.3 
-   OR COALESCE(sc.change_probability, 0) > 0.4 
+WHERE COALESCE(dp.avg_drift_score, 0) > 0.3
    OR COALESCE(fr.staleness_probability, 0) > 0.5
    OR COALESCE(qd.max_quality_drift, 0) > 20
-ORDER BY 
+ORDER BY
   CASE risk_status
     WHEN 'Critical - Imminent Failure' THEN 1
     WHEN 'High - Multiple Risk Factors' THEN 2
@@ -1023,20 +1007,17 @@ WITH quality_summary AS (
   WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
 ),
 failing_tables AS (
-  SELECT 
+  SELECT
     COUNT(*) as tables_failing_quality,
     SUM(failed_checks) as total_failed_checks
-  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(
-    (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
-    CURRENT_DATE()::STRING
-  )
+  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(7))
   WHERE quality_score < 70
 ),
 stale_tables AS (
-  SELECT 
+  SELECT
     COUNT(*) as stale_count,
     AVG(hours_since_update) as avg_hours_stale
-  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(7)
+  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(7, 24))
   WHERE freshness_status IN ('STALE', 'CRITICAL')
 ),
 ml_intelligence AS (
@@ -1056,18 +1037,11 @@ ml_anomaly_predictions AS (
     AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
 ),
 ml_risk_predictions AS (
-  SELECT 
+  SELECT
     COUNT(DISTINCT table_name) as tables_at_risk,
     AVG(prediction) as avg_risk_score
-  FROM (
-    SELECT table_name, prediction 
-    FROM ${catalog}.${feature_schema}.quality_trend_predictions
-    WHERE prediction > 0.6 AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-    UNION ALL
-    SELECT table_name, prediction 
-    FROM ${catalog}.${feature_schema}.freshness_alert_predictions
-    WHERE prediction > 0.7 AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  )
+  FROM ${catalog}.${feature_schema}.freshness_alert_predictions
+  WHERE prediction > 0.7 AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
 ),
 governance_status AS (
   SELECT 
@@ -1145,7 +1119,7 @@ CROSS JOIN quality_drift qd;
 | **C. Sample Questions** | 15 questions | ✅ |
 | **D. Data Assets** | All tables, views, TVFs, ML tables | ✅ |
 | **E. General Instructions** | 18 lines (≤20) | ✅ |
-| **F. TVFs** | 7 functions with signatures | ✅ |
+| **F. TVFs** | 5 functions with signatures | ✅ |
 | **H. Benchmark Questions** | 25 with SQL answers (incl. 5 Deep Research) | ✅ |
 
 ---

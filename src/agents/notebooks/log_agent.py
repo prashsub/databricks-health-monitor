@@ -38,8 +38,8 @@ os.environ["LAKEBASE_INSTANCE_NAME"] = lakebase_instance
 import mlflow
 from databricks_langchain import DatabricksServingEndpoint, DatabricksLakebase
 
-# Set experiment
-experiment_name = f"/Shared/health_monitor/agent_models"
+# Use consolidated experiment (single experiment for all agent runs)
+experiment_name = "/Shared/health_monitor/agent"
 mlflow.set_experiment(experiment_name)
 
 # COMMAND ----------
@@ -90,6 +90,9 @@ mlflow.models.set_model(agent)
 registered_model_name = f"{catalog}.{schema}.{model_name}"
 
 with mlflow.start_run(run_name=f"agent_registration_v1") as run:
+    # Tag this run as model_logging type for filtering in consolidated experiment
+    mlflow.set_tag("run_type", "model_logging")
+    
     # Log parameters
     mlflow.log_params({
         "agent_type": "multi_agent_orchestrator",
@@ -109,11 +112,10 @@ with mlflow.start_run(run_name=f"agent_registration_v1") as run:
         pip_requirements=[
             "mlflow>=3.0.0",
             "langchain>=0.3.0",
+            "langchain-core>=0.3.0",
             "langgraph>=0.2.0",
-            "langchain-databricks>=0.1.0",
             "databricks-sdk>=0.30.0",
-            "databricks-langchain>=0.1.0",
-            "pydantic>=2.0.0",
+            "databricks-agents>=0.16.0",  # Agent framework with GenieAgent support
         ],
     )
 

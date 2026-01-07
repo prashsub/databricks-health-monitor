@@ -528,12 +528,12 @@ def log_agent_to_mlflow(
             resources=get_mlflow_resources(),
             registered_model_name=model_name,
             pip_requirements=[
-                "mlflow>=3.3.2",  # Required for Lakebase auth passthrough
+                "mlflow>=3.0.0",
                 "langchain>=0.3.0",
+                "langchain-core>=0.3.0",
                 "langgraph>=0.2.0",
-                "langchain-databricks>=0.1.0",
                 "databricks-sdk>=0.30.0",
-                "databricks-langchain>=0.1.0",
+                "databricks-agents>=0.16.0",  # Agent framework with GenieAgent support
             ],
         )
 

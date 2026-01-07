@@ -904,6 +904,18 @@
                       "expression": "`table_name`"
                     },
                     {
+                      "name": "table_owner",
+                      "expression": "`table_owner`"
+                    },
+                    {
+                      "name": "query_count",
+                      "expression": "`query_count`"
+                    },
+                    {
+                      "name": "days_accessed",
+                      "expression": "`days_accessed`"
+                    },
+                    {
                       "name": "table_type",
                       "expression": "`table_type`"
                     }
@@ -932,6 +944,23 @@
                     "type": "string"
                   },
                   {
+                    "fieldName": "table_owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "query_count",
+                    "title": "Queries (90d)",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
+                    "fieldName": "days_accessed",
+                    "title": "Days Used",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
                     "fieldName": "table_type",
                     "title": "Type",
                     "type": "string"
@@ -940,7 +969,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83c\udff7\ufe0f Tables Missing Tags"
+                "title": "\ud83c\udff7\ufe0f Tables Missing Tags (Prioritized by Usage)"
               }
             }
           },
@@ -972,6 +1001,22 @@
                     {
                       "name": "table_name",
                       "expression": "`table_name`"
+                    },
+                    {
+                      "name": "table_owner",
+                      "expression": "`table_owner`"
+                    },
+                    {
+                      "name": "query_count",
+                      "expression": "`query_count`"
+                    },
+                    {
+                      "name": "days_accessed",
+                      "expression": "`days_accessed`"
+                    },
+                    {
+                      "name": "doc_status",
+                      "expression": "`doc_status`"
                     }
                   ]
                 }
@@ -996,19 +1041,41 @@
                     "fieldName": "table_name",
                     "title": "Table",
                     "type": "string"
+                  },
+                  {
+                    "fieldName": "table_owner",
+                    "title": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "query_count",
+                    "title": "Queries (90d)",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
+                    "fieldName": "days_accessed",
+                    "title": "Days Used",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
+                    "fieldName": "doc_status",
+                    "title": "Missing Documentation",
+                    "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcdd Tables Missing Documentation"
+                "title": "\ud83d\udcdd Tables Missing Documentation (Prioritized by Usage)"
               }
             }
           },
           "position": {
             "x": 0,
             "y": 6,
-            "width": 3,
+            "width": 6,
             "height": 6
           }
         },
@@ -2202,7 +2269,7 @@
     {
       "name": "ds_tables_by_catalog",
       "displayName": "Tables by Catalog",
-      "query": "-- Tables by catalog from system tables\nSELECT \n  table_catalog AS catalog_name,\n  COUNT(*) AS table_count\nFROM system.information_schema.tables\nWHERE table_catalog IS NOT NULL\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nGROUP BY table_catalog\nORDER BY table_count DESC\nLIMIT 10",
+      "query": "-- Tables by catalog from system tables\nSELECT \n  table_catalog AS catalog_name,\n  COUNT(*) AS table_count\nFROM system.information_schema.tables\nWHERE table_catalog IS NOT NULL\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, table_catalog))\nGROUP BY table_catalog\nORDER BY table_count DESC\nLIMIT 10",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2265,7 +2332,7 @@
     {
       "name": "ds_untagged_tables",
       "displayName": "Untagged Tables",
-      "query": "-- Tables without governance tags\nSELECT\n  t.table_catalog AS catalog_name,\n  t.table_schema AS schema_name,\n  t.table_name,\n  t.table_type,\n  'No Tags' AS tag_status\nFROM system.information_schema.tables t\nLEFT JOIN system.information_schema.table_tags tt\n  ON t.table_catalog = tt.catalog_name\n  AND t.table_schema = tt.schema_name\n  AND t.table_name = tt.table_name\nWHERE t.table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n  AND t.table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  AND t.table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n  AND tt.tag_name IS NULL\n  AND (:param_catalog = 'all' OR t.table_catalog = :param_catalog)\nORDER BY t.table_catalog, t.table_schema, t.table_name\nLIMIT 50",
+      "query": "-- Tables without governance tags (prioritized by usage)\nWITH untagged AS (\n  SELECT\n    t.table_catalog AS catalog_name,\n    t.table_schema AS schema_name,\n    t.table_name,\n    t.table_type,\n    t.table_owner,\n    'No Tags' AS tag_status\n  FROM system.information_schema.tables t\n  LEFT JOIN system.information_schema.table_tags tt\n    ON t.table_catalog = tt.catalog_name\n    AND t.table_schema = tt.schema_name\n    AND t.table_name = tt.table_name\n  WHERE t.table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n    AND t.table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n    AND t.table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n    AND tt.tag_name IS NULL\n    AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, t.table_catalog))\n),\nusage_stats AS (\n  SELECT\n    CONCAT(catalog, '.', schema, '.', table_name) AS full_table_name,\n    COUNT(*) AS query_count,\n    COUNT(DISTINCT DATE(start_time)) AS days_accessed\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 90 DAYS\n    AND catalog IS NOT NULL\n    AND schema IS NOT NULL\n    AND table_name IS NOT NULL\n  GROUP BY 1\n)\nSELECT\n  u.catalog_name,\n  u.schema_name,\n  u.table_name,\n  u.table_type,\n  u.table_owner,\n  COALESCE(s.query_count, 0) AS query_count,\n  COALESCE(s.days_accessed, 0) AS days_accessed,\n  u.tag_status\nFROM untagged u\nLEFT JOIN usage_stats s ON CONCAT(u.catalog_name, '.', u.schema_name, '.', u.table_name) = s.full_table_name\nORDER BY query_count DESC NULLS LAST, days_accessed DESC NULLS LAST\nLIMIT 50",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2282,13 +2349,43 @@
               ]
             }
           }
+        },
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "prashanth_subrahmanyam_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "gold_schema",
+          "keyword": "gold_schema",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "system_gold"
+                }
+              ]
+            }
+          }
         }
       ]
     },
     {
       "name": "ds_undocumented_tables",
       "displayName": "Undocumented Tables",
-      "query": "-- Tables without comments/documentation\nSELECT\n  table_catalog AS catalog_name,\n  table_schema AS schema_name,\n  table_name,\n  table_type,\n  'No Comment' AS doc_status\nFROM system.information_schema.tables\nWHERE (comment IS NULL OR TRIM(comment) = '')\n  AND table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n  AND table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n  AND table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nORDER BY table_catalog, table_schema, table_name\nLIMIT 50",
+      "query": "-- Tables with missing documentation (table or column descriptions) prioritized by usage\nWITH table_docs AS (\n  SELECT\n    t.table_catalog,\n    t.table_schema,\n    t.table_name,\n    t.table_type,\n    t.table_owner,\n    CASE\n      WHEN t.comment IS NULL OR TRIM(t.comment) = '' THEN 1\n      ELSE 0\n    END AS missing_table_comment\n  FROM system.information_schema.tables t\n  WHERE t.table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n    AND t.table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n    AND t.table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n    AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, t.table_catalog))\n),\ncolumn_docs AS (\n  SELECT\n    table_catalog,\n    table_schema,\n    table_name,\n    COUNT(*) AS total_columns,\n    SUM(CASE WHEN comment IS NULL OR TRIM(comment) = '' THEN 1 ELSE 0 END) AS missing_column_comments\n  FROM system.information_schema.columns\n  WHERE table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n    AND table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  GROUP BY 1, 2, 3\n),\nusage_stats AS (\n  SELECT\n    CONCAT(catalog, '.', schema, '.', table_name) AS full_table_name,\n    COUNT(*) AS query_count,\n    COUNT(DISTINCT DATE(start_time)) AS days_accessed\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 90 DAYS\n    AND catalog IS NOT NULL\n    AND schema IS NOT NULL\n    AND table_name IS NOT NULL\n  GROUP BY 1\n)\nSELECT\n  td.table_catalog AS catalog_name,\n  td.table_schema AS schema_name,\n  td.table_name,\n  td.table_type,\n  td.table_owner,\n  COALESCE(s.query_count, 0) AS query_count,\n  COALESCE(s.days_accessed, 0) AS days_accessed,\n  CASE\n    WHEN td.missing_table_comment = 1 AND COALESCE(cd.missing_column_comments, 0) > 0 THEN 'Missing Table & Column Descriptions'\n    WHEN td.missing_table_comment = 1 THEN 'Missing Table Description'\n    WHEN COALESCE(cd.missing_column_comments, 0) > 0 THEN CONCAT('Missing ', cd.missing_column_comments, ' of ', cd.total_columns, ' Column Descriptions')\n    ELSE 'OK'\n  END AS doc_status\nFROM table_docs td\nLEFT JOIN column_docs cd\n  ON td.table_catalog = cd.table_catalog\n  AND td.table_schema = cd.table_schema\n  AND td.table_name = cd.table_name\nLEFT JOIN usage_stats s\n  ON CONCAT(td.table_catalog, '.', td.table_schema, '.', td.table_name) = s.full_table_name\nWHERE td.missing_table_comment = 1 OR COALESCE(cd.missing_column_comments, 0) > 0\nORDER BY query_count DESC NULLS LAST, days_accessed DESC NULLS LAST\nLIMIT 50",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2301,6 +2398,36 @@
               "values": [
                 {
                   "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "prashanth_subrahmanyam_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "gold_schema",
+          "keyword": "gold_schema",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "system_gold"
                 }
               ]
             }
@@ -2402,7 +2529,7 @@
     {
       "name": "ds_catalog_summary",
       "displayName": "Catalog Summary",
-      "query": "-- Catalog summary from system tables\nSELECT \n  table_catalog AS catalog_name,\n  COUNT(*) AS table_count\nFROM system.information_schema.tables\nWHERE table_catalog IS NOT NULL\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nGROUP BY table_catalog\nORDER BY table_count DESC\nLIMIT 15",
+      "query": "-- Catalog summary from system tables\nSELECT \n  table_catalog AS catalog_name,\n  COUNT(*) AS table_count\nFROM system.information_schema.tables\nWHERE table_catalog IS NOT NULL\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, table_catalog))\nGROUP BY table_catalog\nORDER BY table_count DESC\nLIMIT 15",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2425,7 +2552,7 @@
     {
       "name": "ds_schema_summary",
       "displayName": "Schema Summary",
-      "query": "-- Schema summary from system tables\nSELECT \n  table_catalog AS catalog_name,\n  table_schema AS schema_name,\n  COUNT(*) AS table_count,\n  MAX(last_altered) AS last_modified\nFROM system.information_schema.tables\nWHERE table_catalog IS NOT NULL\n  AND table_schema IS NOT NULL\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nGROUP BY table_catalog, table_schema\nORDER BY table_count DESC\nLIMIT 20",
+      "query": "-- Schema summary from system tables\nSELECT \n  table_catalog AS catalog_name,\n  table_schema AS schema_name,\n  COUNT(*) AS table_count,\n  MAX(last_altered) AS last_modified\nFROM system.information_schema.tables\nWHERE table_catalog IS NOT NULL\n  AND table_schema IS NOT NULL\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, table_catalog))\nGROUP BY table_catalog, table_schema\nORDER BY table_count DESC\nLIMIT 20",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2556,7 +2683,7 @@
     },
     {
       "name": "ds_largest_tables",
-      "query": "-- Largest tables by row count (size not available in info schema)\nSELECT \n  table_name,\n  table_schema AS schema_name,\n  table_catalog AS catalog_name,\n  table_type,\n  created AS created_at,\n  last_altered\nFROM system.information_schema.tables\nWHERE table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND table_type IN ('MANAGED', 'EXTERNAL')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nORDER BY last_altered DESC NULLS LAST\nLIMIT 20",
+      "query": "-- Largest tables by row count (size not available in info schema)\nSELECT \n  table_name,\n  table_schema AS schema_name,\n  table_catalog AS catalog_name,\n  table_type,\n  created AS created_at,\n  last_altered\nFROM system.information_schema.tables\nWHERE table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND table_type IN ('MANAGED', 'EXTERNAL')\n  AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, table_catalog))\nORDER BY last_altered DESC NULLS LAST\nLIMIT 20",
       "displayName": "Largest Tables",
       "parameters": [
         {
@@ -2579,7 +2706,7 @@
     },
     {
       "name": "ds_needs_compaction",
-      "query": "-- Tables needing optimization (based on age and activity)\nSELECT \n  table_name,\n  table_schema AS schema_name,\n  table_catalog AS catalog_name,\n  table_type,\n  created,\n  last_altered,\n  CASE \n    WHEN DATEDIFF(CURRENT_DATE(), last_altered) > 365 THEN 'STALE: Not modified in 1+ years'\n    WHEN DATEDIFF(CURRENT_DATE(), last_altered) > 180 THEN 'WARNING: Not modified in 6+ months'\n    WHEN DATEDIFF(CURRENT_DATE(), last_altered) > 90 THEN 'MONITOR: Not modified in 3+ months'\n    ELSE 'OK: Recently modified'\n  END AS optimization_status\nFROM system.information_schema.tables\nWHERE table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND table_type IN ('MANAGED', 'EXTERNAL')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\nORDER BY last_altered ASC NULLS FIRST\nLIMIT 20",
+      "query": "-- Tables needing optimization (based on age and activity)\nSELECT \n  table_name,\n  table_schema AS schema_name,\n  table_catalog AS catalog_name,\n  table_type,\n  created,\n  last_altered,\n  CASE \n    WHEN DATEDIFF(CURRENT_DATE(), last_altered) > 365 THEN 'STALE: Not modified in 1+ years'\n    WHEN DATEDIFF(CURRENT_DATE(), last_altered) > 180 THEN 'WARNING: Not modified in 6+ months'\n    WHEN DATEDIFF(CURRENT_DATE(), last_altered) > 90 THEN 'MONITOR: Not modified in 3+ months'\n    ELSE 'OK: Recently modified'\n  END AS optimization_status\nFROM system.information_schema.tables\nWHERE table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND table_type IN ('MANAGED', 'EXTERNAL')\n  AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, table_catalog))\nORDER BY last_altered ASC NULLS FIRST\nLIMIT 20",
       "displayName": "Needs Compaction",
       "parameters": [
         {
@@ -2602,7 +2729,7 @@
     },
     {
       "name": "ds_empty_tables",
-      "query": "-- Recently created tables (potential empty candidates)\nSELECT \n  table_name,\n  table_schema AS schema_name,\n  table_catalog AS catalog_name,\n  table_type,\n  created AS created_at,\n  last_altered\nFROM system.information_schema.tables\nWHERE table_type IN ('MANAGED', 'EXTERNAL')\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND (:param_catalog = 'all' OR table_catalog = :param_catalog)\n  AND created >= CURRENT_DATE() - INTERVAL 30 DAYS\nORDER BY created DESC\nLIMIT 20",
+      "query": "-- Recently created tables (potential empty candidates)\nSELECT \n  table_name,\n  table_schema AS schema_name,\n  table_catalog AS catalog_name,\n  table_type,\n  created AS created_at,\n  last_altered\nFROM system.information_schema.tables\nWHERE table_type IN ('MANAGED', 'EXTERNAL')\n  AND table_catalog NOT IN ('system', 'information_schema', 'hive_metastore', '__databricks_internal', 'samples')\n  AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, table_catalog))\n  AND created >= CURRENT_DATE() - INTERVAL 30 DAYS\nORDER BY created DESC\nLIMIT 20",
       "displayName": "Empty Tables",
       "parameters": [
         {

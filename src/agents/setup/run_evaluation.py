@@ -136,15 +136,49 @@ def heuristic_safety_score(response: str) -> float:
 
 def evaluate_agent(catalog: str, agent_schema: str) -> Dict[str, Any]:
     """
-    Run evaluation on the registered agent model.
+    Run evaluation on the registered agent model with LoggedModel version tracking.
+    
+    Reference: https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/version-tracking/track-application-versions-with-mlflow
     """
+    import subprocess
+    from datetime import datetime
+    
     model_name = f"{catalog}.{agent_schema}.health_monitor_agent"
-    experiment_path = "/Shared/health_monitor/agent_evaluations"
+    # Use consolidated experiment (single experiment for all agent runs)
+    experiment_path = "/Shared/health_monitor/agent"
     
     print(f"\nEvaluating: {model_name}")
     print(f"Experiment: {experiment_path}")
     
     mlflow.set_experiment(experiment_path)
+    
+    # ===========================================================================
+    # MLflow 3.0 LoggedModel Version Tracking for Evaluation
+    # ===========================================================================
+    # Link evaluation results to a LoggedModel in the "Agent versions" UI
+    # ===========================================================================
+    
+    # Generate version identifier (should match what was used in log_agent_model)
+    try:
+        git_commit = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"])
+            .decode("ascii")
+            .strip()[:8]
+        )
+        version_identifier = f"git-{git_commit}"
+    except Exception:
+        version_identifier = f"eval-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    
+    logged_model_name = f"health_monitor_agent-{version_identifier}"
+    
+    # Set active model to link evaluation runs to LoggedModel
+    active_model_info = None
+    try:
+        active_model_info = mlflow.set_active_model(name=logged_model_name)
+        print(f"✓ Linked evaluation to LoggedModel: '{active_model_info.name}'")
+        print(f"  Model ID: '{active_model_info.model_id}'")
+    except Exception as e:
+        print(f"⚠ set_active_model not available: {e}")
     
     # Load evaluation data
     eval_data = create_evaluation_dataset()
@@ -166,6 +200,13 @@ def evaluate_agent(catalog: str, agent_schema: str) -> Dict[str, Any]:
     total_safety = 0.0
     
     with mlflow.start_run(run_name="agent_evaluation") as run:
+        # Tag this run as evaluation type for filtering in consolidated experiment
+        mlflow.set_tag("run_type", "evaluation")
+        
+        # Link to LoggedModel if available
+        if active_model_info:
+            mlflow.set_tag("logged_model_id", active_model_info.model_id)
+            mlflow.set_tag("logged_model_name", active_model_info.name)
         print(f"\nMLflow Run ID: {run.info.run_id}")
         
         for idx, row in eval_data.iterrows():
@@ -296,7 +337,7 @@ try:
     save_results_to_delta(catalog, agent_schema, results)
     
     print("\n✓ Evaluation completed successfully!")
-    print(f"\nView results: mlflow experiments -> /Shared/health_monitor/agent_evaluations")
+    print(f"\nView results: mlflow experiments -> /Shared/health_monitor/agent (run_type=evaluation)")
     print(f"Run ID: {results['run_id']}")
     
     if results["overall_score"] >= 0.7:

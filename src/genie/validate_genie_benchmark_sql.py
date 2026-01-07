@@ -16,59 +16,133 @@ from pyspark.sql import SparkSession
 
 
 def extract_benchmark_queries_from_json(json_path: Path, catalog: str, gold_schema: str, feature_schema: str = None) -> List[Dict]:
-    """Extract all benchmark SQL queries from a Genie Space JSON export file."""
-    
+    """Extract all benchmark SQL queries from a Genie Space JSON export file.
+
+    Handles multiple JSON structures:
+    - v1 format with benchmarks.questions[].answer[].content (data_quality, job_health, unified)
+    - v1 format with benchmarks.questions[].sql (cost_intelligence)
+    - v1 format with benchmarks.questions[].query (security_auditor)
+    - v2 format with curated_questions[].query (performance)
+    """
+
     with open(json_path, 'r') as f:
         data = json.load(f)
-    
+
     queries = []
     genie_space_name = json_path.stem.replace('_genie_export', '')
-    
+
     # Default feature_schema to gold_schema + "_ml" if not provided
     if feature_schema is None:
         feature_schema = f"{gold_schema}_ml"
-    
-    # Extract benchmarks section
+
+    def substitute_variables(sql: str) -> str:
+        """Substitute template variables in SQL."""
+        sql = sql.replace('${catalog}', catalog)
+        sql = sql.replace('${gold_schema}', gold_schema)
+        sql = sql.replace('${feature_schema}', feature_schema)
+        sql = sql.replace('${ml_schema}', feature_schema)  # Legacy alias
+        return sql
+
+    def extract_sql_from_item(item: dict, format_type: str) -> tuple:
+        """Extract SQL query and question text from a benchmark item based on format type."""
+        sql_query = None
+        question_text = None
+
+        # Get question text (may be string or array)
+        q = item.get('question', '')
+        if isinstance(q, list):
+            question_text = ''.join(q)
+        else:
+            question_text = q
+
+        # Try different SQL field names based on format
+        # Join with newlines to preserve SQL structure
+        if format_type == 'answer':
+            # Format: answer[].content (array of strings)
+            answers = item.get('answer', [])
+            if answers:
+                answer = answers[0]
+                if answer.get('format') == 'SQL':
+                    content = answer.get('content', [])
+                    sql_query = '\n'.join(content) if isinstance(content, list) else content
+        elif format_type == 'sql':
+            # Format: sql (array of strings or string)
+            sql = item.get('sql', [])
+            sql_query = '\n'.join(sql) if isinstance(sql, list) else sql
+        elif format_type == 'query':
+            # Format: query (array of strings or string)
+            query = item.get('query', [])
+            sql_query = '\n'.join(query) if isinstance(query, list) else query
+
+        return sql_query, question_text
+
+    def detect_format_type(questions_list: list) -> str:
+        """Detect which format the benchmark questions use."""
+        if not questions_list:
+            return 'unknown'
+
+        sample = questions_list[0]
+        if 'answer' in sample:
+            return 'answer'
+        elif 'sql' in sample:
+            return 'sql'
+        elif 'query' in sample:
+            return 'query'
+        return 'unknown'
+
+    # Check for v2 format (curated_questions)
+    curated_questions = data.get('curated_questions', [])
+    if curated_questions:
+        print(f"   📋 Detected v2 format (curated_questions) in {json_path.name}")
+        format_type = detect_format_type(curated_questions)
+
+        for idx, item in enumerate(curated_questions, 1):
+            sql_query, question_text = extract_sql_from_item(item, format_type)
+
+            if not sql_query:
+                # print(f"⚠️  No SQL found for curated question {idx} in {json_path.name}")
+                continue
+
+            sql_query = substitute_variables(sql_query)
+
+            queries.append({
+                'genie_space': genie_space_name,
+                'question_num': str(idx),
+                'question_text': question_text,
+                'query': sql_query,
+                'original_query': sql_query,
+                'benchmark_id': item.get('question_id', item.get('id', 'unknown'))
+            })
+
+    # Check for v1 format (benchmarks.questions)
     benchmarks = data.get('benchmarks', {})
-    questions = benchmarks.get('questions', [])
-    
-    if not questions:
-        print(f"⚠️  No benchmark questions found in {json_path.name}")
-        return queries
-    
-    for idx, benchmark in enumerate(questions, 1):
-        question_text = ''.join(benchmark.get('question', []))
-        answers = benchmark.get('answer', [])
-        
-        if not answers:
-            print(f"⚠️  No answer found for benchmark {idx} in {json_path.name}")
-            continue
-        
-        # Get SQL from first answer (should only be one)
-        answer = answers[0]
-        if answer.get('format') != 'SQL':
-            print(f"⚠️  Benchmark {idx} is not SQL format in {json_path.name}")
-            continue
-        
-        # SQL is stored as array of lines - join them
-        sql_lines = answer.get('content', [])
-        sql_query = ''.join(sql_lines)
-        
-        # Substitute variables (order matters - more specific first)
-        sql_query = sql_query.replace('${catalog}', catalog)
-        sql_query = sql_query.replace('${gold_schema}', gold_schema)
-        sql_query = sql_query.replace('${feature_schema}', feature_schema)
-        sql_query = sql_query.replace('${ml_schema}', feature_schema)  # Legacy alias
-        
-        queries.append({
-            'genie_space': genie_space_name,
-            'question_num': str(idx),
-            'question_text': question_text,
-            'query': sql_query,
-            'original_query': ''.join(sql_lines),
-            'benchmark_id': benchmark.get('id', 'unknown')
-        })
-    
+    benchmark_questions = benchmarks.get('questions', [])
+
+    if benchmark_questions:
+        format_type = detect_format_type(benchmark_questions)
+        print(f"   📋 Detected v1 format ({format_type}) in {json_path.name}")
+
+        for idx, item in enumerate(benchmark_questions, 1):
+            sql_query, question_text = extract_sql_from_item(item, format_type)
+
+            if not sql_query:
+                print(f"⚠️  No SQL found for benchmark {idx} in {json_path.name}")
+                continue
+
+            sql_query = substitute_variables(sql_query)
+
+            queries.append({
+                'genie_space': genie_space_name,
+                'question_num': str(idx),
+                'question_text': question_text,
+                'query': sql_query,
+                'original_query': sql_query,
+                'benchmark_id': item.get('id', 'unknown')
+            })
+
+    if not queries:
+        print(f"⚠️  No benchmark queries found in {json_path.name}")
+
     return queries
 
 
@@ -95,13 +169,30 @@ def validate_query(spark: SparkSession, query_info: Dict) -> Dict:
         # Wrap query with LIMIT 1 for fast validation
         # This catches ALL errors - syntax, columns, types, runtime
         original_query = query_info['query'].strip().rstrip(';')
-        
-        # Handle queries that already have LIMIT - wrap in subquery
+
+        # DEBUG: Print first 200 chars of query for troubleshooting
+        if query_info['genie_space'] == 'performance' and str(query_info['question_num']) == '5':
+            print(f"\n=== DEBUG Q5 ===")
+            print(f"Question num: {query_info['question_num']} (type: {type(query_info['question_num'])})")
+            print(f"Query type: {type(original_query)}")
+            print(f"Query (first 300 chars): {repr(original_query[:300])}")
+            print(f"Has TABLE(: {'TABLE(' in original_query}")
+            print(f"=== END DEBUG ===\n")
+
+        # Handle queries - for TVF queries or queries with LIMIT, replace LIMIT value
+        # For other queries, just add LIMIT 1
         if 'LIMIT' in original_query.upper():
-            validation_query = f"SELECT * FROM ({original_query}) AS validation_subquery LIMIT 1"
+            # Replace existing LIMIT with LIMIT 1
+            validation_query = re.sub(r'LIMIT\s+\d+', 'LIMIT 1', original_query, flags=re.IGNORECASE)
         else:
             validation_query = f"{original_query} LIMIT 1"
-        
+
+        # DEBUG: Show full validation query for Q5
+        if query_info['genie_space'] == 'performance' and str(query_info['question_num']) == '5':
+            print(f"\n=== DEBUG Q5 FULL VALIDATION QUERY ===")
+            print(f"{validation_query}")
+            print(f"=== END DEBUG ===\n")
+
         # Actually execute the query
         spark.sql(validation_query).collect()
         result['valid'] = True
@@ -109,7 +200,16 @@ def validate_query(spark: SparkSession, query_info: Dict) -> Dict:
     except Exception as e:
         error_str = str(e)
         result['error'] = error_str
-        
+
+        # DEBUG: Show SQL for NOT_A_SCALAR_FUNCTION errors
+        if 'NOT_A_SCALAR_FUNCTION' in error_str:
+            print(f"\n=== NOT_A_SCALAR_FUNCTION ERROR ===")
+            print(f"Genie Space: {query_info['genie_space']}")
+            print(f"Question: {query_info['question_num']}")
+            print(f"Original Query:\n{original_query[:500]}")
+            print(f"Validation Query:\n{validation_query[:500]}")
+            print(f"=== END ===\n")
+
         # Categorize the error
         if 'UNRESOLVED_COLUMN' in error_str:
             result['error_type'] = 'COLUMN_NOT_FOUND'

@@ -147,16 +147,83 @@ def register_prompts_to_table(spark: SparkSession, catalog: str, schema: str, pr
         print(f"  ✓ Stored prompt: {name}")
 
 
+def register_prompts_to_uc_registry(catalog: str, schema: str, prompts: dict):
+    """
+    Register prompts to MLflow Prompt Registry in Unity Catalog.
+    
+    This is the NEW MLflow 3.0 pattern that makes prompts appear in the 
+    MLflow UI "Prompts" tab.
+    
+    Reference: https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/
+    """
+    import mlflow.genai
+    
+    print(f"\nRegistering prompts to MLflow Prompt Registry (Unity Catalog)...")
+    print(f"Target: {catalog}.{schema}.<prompt_name>")
+    
+    for name, template in prompts.items():
+        prompt_name = f"{catalog}.{schema}.prompt_{name}"
+        
+        # Convert single-brace {var} to double-brace {{var}} for MLflow template format
+        converted_template = template.replace("{", "{{").replace("}", "}}")
+        
+        try:
+            # Register the prompt - this creates the entry in Prompts UI
+            prompt = mlflow.genai.register_prompt(
+                name=prompt_name,
+                template=converted_template,
+                commit_message=f"Initial version of {name} prompt"
+            )
+            print(f"  ✓ Registered: {prompt_name} (version {prompt.version})")
+            
+            # Set production alias
+            try:
+                mlflow.genai.set_prompt_alias(
+                    name=prompt_name,
+                    alias="production",
+                    version=prompt.version
+                )
+                print(f"    → Set alias 'production' -> version {prompt.version}")
+            except Exception as alias_err:
+                print(f"    ⚠ Alias error: {alias_err}")
+                
+        except Exception as e:
+            # Check if it's a "prompt already exists" error
+            if "already exists" in str(e).lower():
+                print(f"  ↳ Prompt exists, creating new version: {prompt_name}")
+                try:
+                    prompt = mlflow.genai.register_prompt(
+                        name=prompt_name,
+                        template=converted_template,
+                        commit_message=f"Updated {name} prompt"
+                    )
+                    print(f"  ✓ Updated: {prompt_name} (version {prompt.version})")
+                    
+                    mlflow.genai.set_prompt_alias(
+                        name=prompt_name,
+                        alias="production",
+                        version=prompt.version
+                    )
+                    print(f"    → Updated alias 'production' -> version {prompt.version}")
+                except Exception as update_err:
+                    print(f"  ✗ Update failed: {update_err}")
+            else:
+                print(f"  ✗ Registration failed for {name}: {e}")
+
+
 def log_prompts_to_mlflow(prompts: dict):
     """
-    Log prompts as MLflow artifacts for tracking and versioning.
+    Log prompts as MLflow artifacts for tracking (backup/legacy method).
     """
-    experiment_path = "/Shared/health_monitor/prompts"
+    # Use consolidated experiment (single experiment for all agent runs)
+    experiment_path = "/Shared/health_monitor/agent"
     mlflow.set_experiment(experiment_path)
     
     print(f"\nLogging prompts to MLflow experiment: {experiment_path}")
     
     with mlflow.start_run(run_name="prompt_registration"):
+        # Tag this run as prompt_registry type for filtering in consolidated experiment
+        mlflow.set_tag("run_type", "prompt_registry")
         # Log each prompt as a text file artifact
         for name, template in prompts.items():
             # Write prompt to a temp file and log
@@ -203,20 +270,27 @@ def main():
         print("Registering Agent Prompts")
         print("=" * 60)
         
-        # 1. Store prompts in the config table (primary storage)
+        # 1. Register prompts to MLflow Prompt Registry (Unity Catalog)
+        # This makes prompts appear in the MLflow UI "Prompts" tab
+        register_prompts_to_uc_registry(catalog, agent_schema, PROMPTS)
+        
+        # 2. Store prompts in the config table (runtime retrieval)
         register_prompts_to_table(spark, catalog, agent_schema, PROMPTS)
         
-        # 2. Log prompts to MLflow for tracking (secondary)
+        # 3. Log prompts to MLflow experiment as artifacts (backup)
         log_prompts_to_mlflow(PROMPTS)
         
         print("\n" + "=" * 60)
         print("✓ All prompts registered successfully!")
         print("=" * 60)
-        print(f"\nPrompts stored in: {catalog}.{agent_schema}.agent_config")
-        print(f"MLflow artifacts at: /Shared/health_monitor/prompts")
-        print(f"\nPrompts registered:")
+        print(f"\nPrompts registered to:")
+        print(f"  1. MLflow Prompt Registry: {catalog}.{agent_schema}.prompt_*")
+        print(f"  2. Config table: {catalog}.{agent_schema}.agent_config")
+        print(f"  3. MLflow experiment: /Shared/health_monitor/agent (run_type=prompt_registry)")
+        print(f"\nPrompts:")
         for name in PROMPTS:
-            print(f"  - prompt_{name}")
+            print(f"  - {catalog}.{agent_schema}.prompt_{name}")
+        print(f"\nView prompts in MLflow UI: Experiment -> Prompts tab")
         
         dbutils.notebook.exit("SUCCESS")
         

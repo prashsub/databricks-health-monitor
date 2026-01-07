@@ -4,19 +4,15 @@ Base Worker Agent
 
 Abstract base class for domain worker agents.
 All workers query Genie Spaces as their sole data interface.
+
+Aligned with official Databricks LangGraph Multi-Agent Genie pattern:
+https://docs.databricks.com/aws/en/generative-ai/agent-framework/multi-agent-genie
+https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/multi-agent-genie
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, List
-import time
+from typing import Dict, Optional, Any
 import mlflow
-
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.dashboards import (
-    GenieAPI,
-    GenieStartConversationMessageRequest,
-    GenieMessage,
-)
 
 from ..config import settings
 
@@ -80,9 +76,15 @@ class BaseWorkerAgent(ABC):
 
 class GenieWorkerAgent(BaseWorkerAgent):
     """
-    Worker agent that queries a Genie Space.
+    Worker agent that queries a Genie Space using GenieAgent.
 
-    This is the standard implementation for domain workers.
+    This implementation follows the official Databricks LangGraph Multi-Agent
+    Genie pattern using `databricks_langchain.genie.GenieAgent`.
+
+    Reference:
+    - https://docs.databricks.com/aws/en/generative-ai/agent-framework/multi-agent-genie
+    - https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/multi-agent-genie
+
     Each domain has its own Genie Space configured with relevant
     TVFs, Metric Views, and instructions.
     """
@@ -97,22 +99,32 @@ class GenieWorkerAgent(BaseWorkerAgent):
         """
         super().__init__(domain)
         self._genie_space_id = genie_space_id
-        self._client: Optional[WorkspaceClient] = None
-        self._genie: Optional[GenieAPI] = None
+        self._genie_agent: Optional[Any] = None
 
     @property
-    def client(self) -> WorkspaceClient:
-        """Lazily create WorkspaceClient."""
-        if self._client is None:
-            self._client = WorkspaceClient()
-        return self._client
-
-    @property
-    def genie(self) -> GenieAPI:
-        """Lazily create GenieAPI."""
-        if self._genie is None:
-            self._genie = self.client.genie
-        return self._genie
+    def genie_agent(self):
+        """
+        Lazily create GenieAgent.
+        
+        Uses databricks_langchain.genie.GenieAgent which is the official
+        LangGraph-compatible wrapper for Genie Spaces.
+        """
+        if self._genie_agent is None:
+            space_id = self.get_genie_space_id()
+            if space_id:
+                try:
+                    from databricks_langchain.genie import GenieAgent
+                    self._genie_agent = GenieAgent(
+                        genie_space_id=space_id,
+                        genie_agent_name=f"{self.domain}_genie",
+                    )
+                except ImportError as e:
+                    mlflow.log_metric("genie_agent_import_error", 1)
+                    print(f"Warning: Could not import GenieAgent: {e}")
+                except Exception as e:
+                    mlflow.log_metric("genie_agent_init_error", 1)
+                    print(f"Warning: Could not initialize GenieAgent for {self.domain}: {e}")
+        return self._genie_agent
 
     def get_genie_space_id(self) -> str:
         """Get the Genie Space ID for this domain."""
@@ -135,10 +147,15 @@ class GenieWorkerAgent(BaseWorkerAgent):
 
         return enhanced
 
-    @mlflow.trace(name="genie_query", span_type="TOOL")
+    @mlflow.trace(name="genie_worker_query", span_type="TOOL")
     def query(self, question: str, context: Dict = None) -> Dict:
         """
-        Query the Genie Space.
+        Query the Genie Space using GenieAgent.
+
+        This method follows the official LangGraph Multi-Agent Genie pattern:
+        - Uses GenieAgent.invoke() for LangGraph compatibility
+        - Proper MLflow tracing on all operations
+        - Standardized response format
 
         Args:
             question: User question
@@ -169,23 +186,28 @@ class GenieWorkerAgent(BaseWorkerAgent):
                 span.set_outputs(result)
                 return result
 
-            # Enhance the query
+            # Enhance the query with domain context
             enhanced_query = self.enhance_query(question, context)
 
+            # Check if GenieAgent is available
+            genie = self.genie_agent
+            if genie is None:
+                result = {
+                    "response": f"GenieAgent for {self.domain} is not available.",
+                    "sources": [],
+                    "confidence": 0.0,
+                    "domain": self.domain,
+                    "error": "GENIE_AGENT_NOT_AVAILABLE",
+                }
+                span.set_outputs(result)
+                return result
+
             try:
-                # Start conversation with Genie
-                response = self.genie.start_conversation(
-                    space_id=genie_space_id,
-                    content=enhanced_query,
-                )
+                # Use GenieAgent.invoke() - the official LangGraph pattern
+                genie_result = genie.invoke({"input": enhanced_query})
 
-                # Wait for response completion
-                result = self._wait_for_completion(
-                    space_id=genie_space_id,
-                    conversation_id=response.conversation_id,
-                    message_id=response.message_id,
-                )
-
+                # Parse GenieAgent response
+                result = self._parse_genie_agent_response(genie_result)
                 span.set_outputs(result)
                 return result
 
@@ -200,103 +222,38 @@ class GenieWorkerAgent(BaseWorkerAgent):
                 span.set_outputs(result)
                 return result
 
-    def _wait_for_completion(
-        self,
-        space_id: str,
-        conversation_id: str,
-        message_id: str,
-        timeout_seconds: int = None,
-    ) -> Dict:
+    def _parse_genie_agent_response(self, genie_result: Any) -> Dict:
         """
-        Wait for Genie response to complete.
+        Parse GenieAgent response into standard format.
+
+        GenieAgent.invoke() returns a dict with 'output' key containing
+        the natural language response.
 
         Args:
-            space_id: Genie Space ID
-            conversation_id: Conversation ID
-            message_id: Message ID
-            timeout_seconds: Max wait time
-
-        Returns:
-            Response dict.
-        """
-        timeout = timeout_seconds or settings.genie_timeout_seconds
-        start_time = time.time()
-
-        while True:
-            elapsed = time.time() - start_time
-            if elapsed > timeout:
-                return {
-                    "response": f"Genie query timed out after {timeout}s",
-                    "sources": [],
-                    "confidence": 0.0,
-                    "domain": self.domain,
-                    "error": "TIMEOUT",
-                }
-
-            try:
-                # Get message status
-                message = self.genie.get_message(
-                    space_id=space_id,
-                    conversation_id=conversation_id,
-                    message_id=message_id,
-                )
-
-                # Check completion status
-                if message.status == "COMPLETED":
-                    return self._parse_genie_response(message)
-
-                if message.status in ("FAILED", "CANCELLED"):
-                    return {
-                        "response": f"Genie query {message.status.lower()}",
-                        "sources": [],
-                        "confidence": 0.0,
-                        "domain": self.domain,
-                        "error": message.status,
-                    }
-
-                # Still processing - wait and retry
-                time.sleep(1)
-
-            except Exception as e:
-                return {
-                    "response": f"Error checking Genie status: {str(e)}",
-                    "sources": [],
-                    "confidence": 0.0,
-                    "domain": self.domain,
-                    "error": str(e),
-                }
-
-    def _parse_genie_response(self, message: GenieMessage) -> Dict:
-        """
-        Parse Genie response into standard format.
-
-        Args:
-            message: Genie message object
+            genie_result: Result from GenieAgent.invoke()
 
         Returns:
             Parsed response dict.
         """
-        # Extract content from Genie response
-        content = ""
-        sources = []
-
-        if message.attachments:
-            for attachment in message.attachments:
-                if hasattr(attachment, "text") and attachment.text:
-                    if hasattr(attachment.text, "content"):
-                        content += attachment.text.content + "\n"
-
-        # Extract query info as sources
-        if message.query_result:
-            sources.append(f"SQL Query: {message.query_result.statement_id}")
+        # Extract output from GenieAgent result
+        if isinstance(genie_result, dict):
+            content = genie_result.get("output", "")
+            if not content:
+                # Try other possible keys
+                content = genie_result.get("response", "")
+                if not content:
+                    content = str(genie_result)
+        else:
+            content = str(genie_result)
 
         return {
-            "response": content.strip() or "No response from Genie",
-            "sources": sources or [f"{self.domain.title()} Genie Space"],
+            "response": content.strip() if content else "No response from Genie",
+            "sources": [f"{self.domain.title()} Genie Space"],
             "confidence": 0.9 if content else 0.5,
             "domain": self.domain,
         }
 
+    @mlflow.trace(name="genie_worker_follow_up", span_type="TOOL")
     def follow_up(
         self,
         conversation_id: str,
@@ -304,45 +261,19 @@ class GenieWorkerAgent(BaseWorkerAgent):
         context: Dict = None,
     ) -> Dict:
         """
-        Send a follow-up question in an existing conversation.
+        Send a follow-up question using GenieAgent.
+
+        Note: GenieAgent handles conversation state internally,
+        so conversation_id is used for tracking purposes.
 
         Args:
-            conversation_id: Existing conversation ID
+            conversation_id: Conversation identifier for tracking
             question: Follow-up question
             context: Optional user context
 
         Returns:
             Response dict.
         """
-        genie_space_id = self.get_genie_space_id()
-
-        if not genie_space_id:
-            return {
-                "response": f"Genie Space for {self.domain} is not configured.",
-                "sources": [],
-                "confidence": 0.0,
-                "domain": self.domain,
-                "error": "GENIE_SPACE_NOT_CONFIGURED",
-            }
-
-        try:
-            response = self.genie.create_message(
-                space_id=genie_space_id,
-                conversation_id=conversation_id,
-                content=question,
-            )
-
-            return self._wait_for_completion(
-                space_id=genie_space_id,
-                conversation_id=conversation_id,
-                message_id=response.message_id,
-            )
-
-        except Exception as e:
-            return {
-                "response": f"Error in follow-up: {str(e)}",
-                "sources": [],
-                "confidence": 0.0,
-                "domain": self.domain,
-                "error": str(e),
-            }
+        # GenieAgent manages conversation state internally
+        # Just invoke with the follow-up question
+        return self.query(question, context)

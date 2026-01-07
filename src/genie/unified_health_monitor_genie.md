@@ -66,7 +66,7 @@
 
 **📌 Additional metric views available in domain-specific spaces:** `commit_tracking`, `cluster_utilization`, `cluster_efficiency`, `governance_analytics`, `ml_intelligence`
 
-### Table-Valued Functions (60 Total)
+### Table-Valued Functions (60 Total: 15 Cost + 12 Reliability + 21 Performance + 7 Security + 5 Quality)
 
 #### Cost TVFs (15)
 | Function | Purpose |
@@ -76,77 +76,79 @@
 | `get_cost_by_owner` | Chargeback |
 | `get_spend_by_custom_tags` | Tag allocation |
 | `get_tag_coverage` | Tag gaps |
-| `get_tag_coverage` | Tag hygiene |
 | `get_cost_week_over_week` | WoW comparison |
 | `get_cost_anomaly_analysis` | Anomaly detection |
-| `get_cost_forecast_summary_summary` | Forecasting |
+| `get_cost_forecast_summary` | Forecasting |
 | `get_cost_mtd_summary` | MTD summary |
 | `get_commit_vs_actual` | Commit tracking |
-| `get_spend_by_custom_tags` | Multi-tag analysis |
 | `get_cost_growth_analysis` | Growth drivers |
 | `get_cost_growth_by_period` | Period comparison |
-| `get_cluster_cost_by_type` | AP cluster costs |
+| `get_cost_efficiency_metrics` | Cost efficiency |
+| `get_cluster_cost_efficiency` | Cluster cost efficiency |
+| `get_storage_cost_analysis` | Storage costs |
 
 #### Reliability TVFs (12)
 | Function | Purpose |
 |----------|---------|
 | `get_failed_jobs_summary` | Failed jobs |
 | `get_job_success_rates` | Success rates |
-| `get_job_duration_percentiles` | Duration stats |
-| `get_job_failure_patterns` | Failure trends |
+| `get_job_duration_trends` | Duration trends |
 | `get_job_sla_compliance` | SLA tracking |
-| `get_job_run_details` | Run history |
-| `get_most_expensive_jobs` | Costly jobs |
+| `get_job_failure_patterns` | Failure patterns |
+| `get_long_running_jobs` | Long running jobs |
 | `get_job_retry_analysis` | Retry patterns |
-| `get_job_repair_costs` | Repair costs |
-| `get_job_spend_trend_analysis` | Cost trends |
-| `get_job_failure_costs` | Failure impact |
-| `get_job_run_duration_analysis` | Duration analysis |
+| `get_job_duration_percentiles` | Duration percentiles |
+| `get_job_failure_cost` | Failure costs |
+| `get_pipeline_health` | Pipeline health |
+| `get_job_schedule_drift` | Schedule drift |
+| `get_repair_cost_analysis` | Repair costs |
 
-#### Performance TVFs (16)
+#### Performance TVFs (21 - Query: 10, Cluster: 11)
 | Function | Purpose |
 |----------|---------|
+| **Query TVFs (10)** | |
 | `get_slowest_queries` | Slow queries |
-| `get_warehouse_performance` | Warehouse metrics |
-| `get_query_efficiency` | Efficiency |
-| `get_high_spill_queries` | Memory issues |
-| `get_query_volume_trends` | Volume trends |
-| `get_user_query_summary` | User summary |
 | `get_query_latency_percentiles` | Latency stats |
-| `get_failed_queries` | Failed queries |
-| `get_query_efficiency_analysis` | Full analysis |
-| `get_job_outlier_runs` | Outliers |
+| `get_warehouse_performance` | Warehouse metrics |
+| `get_query_volume_trends` | Volume trends |
+| `get_top_users_by_query_count` | User activity |
+| `get_query_efficiency_by_user` | User efficiency |
+| `get_query_queue_analysis` | Queue analysis |
+| `get_failed_queries_summary` | Failed queries |
+| `get_cache_hit_analysis` | Cache hits |
+| `get_spill_analysis` | Spill analysis |
+| **Cluster TVFs (11)** | |
 | `get_cluster_utilization` | Cluster metrics |
 | `get_cluster_resource_metrics` | Resource details |
 | `get_underutilized_clusters` | Underutilized |
+| `get_cluster_rightsizing_recommendations` | Right-sizing |
 | `get_autoscaling_disabled_jobs` | No autoscale |
 | `get_legacy_dbr_jobs` | Legacy DBR |
-| `get_cluster_right_sizing_recommendations` | Right-sizing |
+| `get_cluster_cost_by_type` | Cluster costs |
+| `get_cluster_uptime_analysis` | Uptime |
+| `get_cluster_scaling_events` | Scaling events |
+| `get_cluster_efficiency_metrics` | Efficiency |
+| `get_node_utilization_by_cluster` | Node utilization |
 
-#### Security TVFs (10)
+#### Security TVFs (7)
 | Function | Purpose |
 |----------|---------|
 | `get_user_activity` | User activity |
 | `get_sensitive_data_access` | Sensitive access |
-| `get_failed_access_attempts` | Failed ops |
+| `get_failed_access_attempts` | Failed access |
 | `get_permission_change_history` | Perm changes |
 | `get_off_hours_access` | Off-hours |
-| `get_user_activity` | Timeline |
 | `get_ip_location_analysis` | IP analysis |
-| `get_table_access_audit` | Access audit |
-| `get_user_activity_patterns` | Patterns |
 | `get_service_account_activity` | Service accounts |
 
-#### Quality TVFs (7)
+#### Quality TVFs (5)
 | Function | Purpose |
 |----------|---------|
-| `get_stale_tables` | Freshness |
-| `get_table_activity_summary` | Job quality |
-| `get_table_activity_summary` | Domain freshness |
-| `get_table_activity_summary` | Quality summary |
-| `get_stale_tables` | Failing tables |
-| `get_table_activity_summary` | Activity status |
-| `get_data_lineage_summary` | Lineage |
+| `get_stale_tables` | Stale tables |
+| `get_table_lineage` | Table lineage |
+| `get_table_activity_summary` | Activity summary |
+| `get_data_lineage_summary` | Data lineage |
+| `get_pipeline_lineage_impact` | Pipeline impact |
 
 ### ML Prediction Tables (5 - Key Anomaly & Health Tables)
 
@@ -158,12 +160,12 @@
 | `access_anomaly_predictions` | 🔒 Security | Detect unusual access patterns | `threat_score`, `is_threat`, `user_identity` |
 | `quality_anomaly_predictions` | ✅ Quality | Detect data drift/quality issues | `drift_score`, `is_drifted`, `table_name` |
 
-**📌 Full ML model catalog (25 models) available in domain-specific spaces:**
-- **Cost:** budget_forecast, tag_recommendations, job_cost_optimizer, chargeback, commitment
-- **Performance:** job_duration, query_optimization, cache_hit, cluster_capacity, rightsizing, dbr_migration
-- **Reliability:** retry_success, incident_impact, self_healing
-- **Security:** user_risk_scores, access_classifications, off_hours_baseline
-- **Quality:** quality_trend, freshness_alert
+**📌 Full ML model catalog (24 models) available in domain-specific spaces:**
+- **Cost (6):** cost_anomaly, budget_forecast, job_cost_optimizer, chargeback, commitment, tag_recommendations
+- **Reliability (5):** job_failure, duration, sla_breach, retry_success, pipeline_health
+- **Performance (7):** query_optimization (2 tables), cache_hit, job_duration, cluster_capacity, cluster_rightsizing, dbr_migration
+- **Security (4):** access_anomaly, user_risk_scores, access_classifications, off_hours_baseline
+- **Quality (2):** quality_anomaly, freshness_alert
 
 ### Lakehouse Monitoring Tables (5 - Profile Metrics Only)
 
@@ -443,7 +445,7 @@ You are a comprehensive Databricks platform health analyst. Follow these rules:
 
 ---
 
-## ████ SECTION G: ML MODEL INTEGRATION (25 Models) ████
+## ████ SECTION G: ML MODEL INTEGRATION (24 Models) ████
 
 ### All ML Models by Domain
 
@@ -461,36 +463,35 @@ You are a comprehensive Databricks platform health analyst. Follow these rules:
 | Model | Prediction Table | Question Trigger |
 |-------|-----------------|------------------|
 | `job_failure_predictor` | `job_failure_predictions` | "will fail" |
-| `job_duration_forecaster` | `job_duration_predictions` | "how long" |
-| `sla_breach_predictor` | `incident_impact_predictions` | "SLA breach" |
+| `duration_forecaster` | `duration_predictions` | "how long" |
+| `sla_breach_predictor` | `sla_breach_predictions` | "SLA breach" |
 | `pipeline_health_scorer` | `pipeline_health_predictions` | "health score" |
 | `retry_success_predictor` | `retry_success_predictions` | "retry succeed" |
 
 #### ⚡ Performance Domain (7 Models)
 | Model | Prediction Table | Question Trigger |
 |-------|-----------------|------------------|
-| `query_performance_forecaster` | `query_optimization_recommendations` | "predict latency" |
-| `warehouse_optimizer` | `cluster_capacity_recommendations` | "warehouse size" |
+| `query_optimization_classifier` | `query_optimization_classifications` | "optimize query" |
+| `query_optimization_recommender` | `query_optimization_recommendations` | "query recommendations" |
 | `cache_hit_predictor` | `cache_hit_predictions` | "cache hit" |
-| `query_optimization_recommender` | `query_optimization_classifications` | "optimize query" |
-| `cluster_sizing_recommender` | `cluster_rightsizing_recommendations` | "right-size" |
+| `job_duration_predictor` | `job_duration_predictions` | "job duration" |
 | `cluster_capacity_planner` | `cluster_capacity_recommendations` | "capacity" |
-| `regression_detector` | — | "regression" |
+| `cluster_sizing_recommender` | `cluster_rightsizing_recommendations` | "right-size" |
+| `dbr_migration_assessor` | `dbr_migration_risk_scores` | "migration risk" |
 
 #### 🔒 Security Domain (4 Models)
 | Model | Prediction Table | Question Trigger |
 |-------|-----------------|------------------|
 | `security_threat_detector` | `access_anomaly_predictions` | "threat" |
-| `access_pattern_analyzer` | `access_classifications` | "access pattern" |
-| `compliance_risk_classifier` | `user_risk_scores` | "risk score" |
-| `permission_recommender` | — | "permission" |
+| `user_risk_classifier` | `user_risk_scores` | "risk score" |
+| `access_pattern_classifier` | `access_classifications` | "access pattern" |
+| `off_hours_analyzer` | `off_hours_baseline_predictions` | "off hours baseline" |
 
-#### 📋 Quality Domain (3 Models)
+#### 📋 Quality Domain (2 Models)
 | Model | Prediction Table | Question Trigger |
 |-------|-----------------|------------------|
 | `data_drift_detector` | `quality_anomaly_predictions` | "data drift" |
-| `schema_change_predictor` | `quality_trend_predictions` | "schema change" |
-| `schema_evolution_predictor` | `freshness_alert_predictions` | "freshness alert" |
+| `freshness_monitor` | `freshness_alert_predictions` | "freshness alert" |
 
 ### Cross-Domain ML Query Patterns
 

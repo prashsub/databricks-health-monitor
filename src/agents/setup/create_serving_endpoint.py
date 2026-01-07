@@ -28,17 +28,26 @@ Reference:
 
 # COMMAND ----------
 
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.serving import (
-    EndpointCoreConfigInput,
-    ServedEntityInput,
-    AiGatewayConfig,
-    AiGatewayRateLimit,
-    AiGatewayRateLimitKey,
-    AiGatewayRateLimitRenewalPeriod,
-    AiGatewayUsageTrackingConfig,
-    AiGatewayInferenceTableConfig,
-)
+print("Starting create_serving_endpoint.py...")
+print("=" * 60)
+
+try:
+    from databricks.sdk import WorkspaceClient
+    from databricks.sdk.service.serving import (
+        EndpointCoreConfigInput,
+        ServedEntityInput,
+        AiGatewayConfig,
+        AiGatewayRateLimit,
+        AiGatewayRateLimitKey,
+        AiGatewayRateLimitRenewalPeriod,
+        AiGatewayUsageTrackingConfig,
+        AiGatewayInferenceTableConfig,
+    )
+    print("✓ Databricks SDK imports successful")
+except ImportError as e:
+    print(f"✗ Databricks SDK import failed: {e}")
+    dbutils.notebook.exit(f"FAILED: SDK import error - {e}")
+
 import os
 import time
 
@@ -57,9 +66,15 @@ print(f"Endpoint Name: {endpoint_name}")
 
 # COMMAND ----------
 
-# Configuration - Genie Space IDs and other settings
+# ===========================================================================
+# Genie Space Environment Variables
+# ===========================================================================
+# These should match src/agents/config/genie_spaces.py
+# Using direct dictionary for simplicity and reliability in deployment
+# ===========================================================================
+
 ENVIRONMENT_VARS = {
-    # Genie Space IDs (from Phase 3.6 deployment)
+    # Genie Space IDs (from genie_spaces.py)
     "COST_GENIE_SPACE_ID": "01f0ea871ffe176fa6aee6f895f83d3b",
     "SECURITY_GENIE_SPACE_ID": "01f0ea9367f214d6a4821605432234c4",
     "PERFORMANCE_GENIE_SPACE_ID": "01f0ea93671e12d490224183f349dba0",
@@ -124,7 +139,7 @@ def get_model_version_by_alias(model_name: str, alias: str = "production") -> st
 
 # COMMAND ----------
 
-def build_ai_gateway_config(catalog: str, schema: str) -> AiGatewayConfig:
+def build_ai_gateway_config(catalog: str, schema: str, endpoint_name: str) -> AiGatewayConfig:
     """
     Build AI Gateway configuration.
     
@@ -136,6 +151,9 @@ def build_ai_gateway_config(catalog: str, schema: str) -> AiGatewayConfig:
     
     Reference: https://docs.databricks.com/aws/en/generative-ai/ai-gateway/
     """
+    # Use endpoint name as prefix to avoid conflicts
+    table_prefix = endpoint_name.replace("-", "_")
+    
     return AiGatewayConfig(
         # =========================================================
         # Inference Logging - writes to Unity Catalog tables
@@ -143,7 +161,7 @@ def build_ai_gateway_config(catalog: str, schema: str) -> AiGatewayConfig:
         inference_table_config=AiGatewayInferenceTableConfig(
             catalog_name=catalog,
             schema_name=schema,
-            table_name_prefix="agent_logs",  # Agent inference logs
+            table_name_prefix=table_prefix,  # Use endpoint name as prefix
             enabled=True,
         ),
         
@@ -213,7 +231,7 @@ def create_or_update_endpoint(
     )
     
     # Build AI Gateway configuration
-    ai_gateway = build_ai_gateway_config(catalog, schema)
+    ai_gateway = build_ai_gateway_config(catalog, schema, endpoint_name)
     
     if existing_endpoint:
         # Update existing endpoint
@@ -318,7 +336,7 @@ def main():
         print(f"\nEndpoint: {endpoint_name}")
         print(f"Model: {model_name}@{model_version}")
         print(f"\nAI Gateway Features:")
-        print(f"  ✓ Inference Logging: {catalog}.{agent_schema}.agent_logs_*")
+        print(f"  ✓ Inference Logging: {catalog}.{agent_schema}.{endpoint_name.replace('-', '_')}_*")
         print(f"  ✓ Rate Limiting: 100 calls/min per user, 1000/min total")
         print(f"  ✓ Usage Tracking: Enabled")
         
@@ -338,4 +356,10 @@ def main():
 # COMMAND ----------
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print(f"\n❌ FATAL ERROR: {str(e)}")
+        traceback.print_exc()
+        dbutils.notebook.exit(f"FAILED: {str(e)}")

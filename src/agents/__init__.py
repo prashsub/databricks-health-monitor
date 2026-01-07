@@ -21,6 +21,9 @@ Best Practices Implemented:
 
 import mlflow
 
+# Import settings first to get consolidated experiment path
+from .config.settings import settings
+
 # CRITICAL: Enable autolog at module level per MLflow GenAI patterns
 # This must be at the TOP of the module before any LangChain imports
 # Note: Using minimal parameters for compatibility with current MLflow version
@@ -29,15 +32,14 @@ try:
 except Exception as e:
     print(f"⚠ MLflow autolog not available: {e}")
 
-# Set default experiment for agent traces
-EXPERIMENT_NAME = "/Shared/health_monitor/agent_traces"
+# Set SINGLE consolidated experiment for ALL agent-related runs
+# Different run types are differentiated using mlflow.set_tag("run_type", ...)
+EXPERIMENT_NAME = settings.mlflow_experiment_path
 try:
     mlflow.set_experiment(EXPERIMENT_NAME)
 except Exception:
     # Experiment creation may fail in some contexts; proceed anyway
     pass
-
-from .config.settings import settings
 
 # Lazy imports to avoid cascading dependency issues
 # Import HealthMonitorAgent only when needed

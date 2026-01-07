@@ -3,91 +3,91 @@
   "config": {
     "sample_questions": [
       {
-        "id": "c1d2e3f4a5b6789012345678901234ca",
+        "id": "dq1c2d3e4f5a6789012345678901234a",
         "question": [
           "Which tables are stale?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234cb",
+        "id": "dq1c2d3e4f5a6789012345678901234b",
         "question": [
           "What is our data freshness by domain?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234cc",
+        "id": "dq1c2d3e4f5a6789012345678901234c",
         "question": [
           "Show me tables not updated in 24 hours"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234cd",
+        "id": "dq1c2d3e4f5a6789012345678901234d",
         "question": [
           "What tables have freshness issues?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234ce",
+        "id": "dq1c2d3e4f5a6789012345678901234e",
         "question": [
           "What is our overall data quality score?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234cf",
+        "id": "dq1c2d3e4f5a6789012345678901234f",
         "question": [
           "Which tables are failing quality checks?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234d0",
+        "id": "dq1c2d3e4f5a678901234567890123410",
         "question": [
           "Show me data quality summary"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234d1",
+        "id": "dq1c2d3e4f5a678901234567890123411",
         "question": [
           "What is the quality trend this week?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234d2",
+        "id": "dq1c2d3e4f5a678901234567890123412",
         "question": [
           "Show me inactive tables"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234d3",
+        "id": "dq1c2d3e4f5a678901234567890123413",
         "question": [
           "What tables are orphaned?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234d4",
+        "id": "dq1c2d3e4f5a678901234567890123414",
         "question": [
           "Which pipelines have the most dependencies?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234d5",
+        "id": "dq1c2d3e4f5a678901234567890123415",
         "question": [
           "Show me table activity status"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234d6",
+        "id": "dq1c2d3e4f5a678901234567890123416",
         "question": [
           "Are there any quality anomalies?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234d7",
+        "id": "dq1c2d3e4f5a678901234567890123417",
         "question": [
           "Which tables have degrading quality?"
         ]
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234d8",
+        "id": "dq1c2d3e4f5a678901234567890123418",
         "question": [
           "Predict data freshness issues"
         ]
@@ -97,396 +97,33 @@
   "data_sources": {
     "tables": [
       {
-        "identifier": "${catalog}.${gold_schema}.dim_experiment",
+        "identifier": "${catalog}.${feature_schema}.quality_anomaly_predictions",
         "description": [
-          "Dimension table for MLflow experiments"
-        ],
-        "column_configs": [
-          {
-            "column_name": "experiment_id",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "experiment_name",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "workspace_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.dim_served_entities",
-        "description": [
-          "Dimension table for model serving endpoints"
-        ],
-        "column_configs": [
-          {
-            "column_name": "entity_id",
-            "get_example_values": true
-          },
-          {
-            "column_name": "entity_name",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "endpoint_name",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.dim_workspace",
-        "description": [
-          "Dimension table for workspace reference"
-        ],
-        "column_configs": [
-          {
-            "column_name": "workspace_id",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "workspace_name",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_column_lineage",
-        "description": [
-          "Fact table for column-level lineage"
-        ],
-        "column_configs": [
-          {
-            "column_name": "workspace_id",
-            "get_example_values": true
-          },
-          {
-            "column_name": "source_column",
-            "get_example_values": true
-          },
-          {
-            "column_name": "target_column",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_data_classification",
-        "description": [
-          "Fact table for data classification tags"
-        ],
-        "column_configs": [
-          {
-            "column_name": "workspace_id",
-            "get_example_values": true
-          },
-          {
-            "column_name": "table_name",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "classification",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_data_classification_results",
-        "description": [
-          "Fact table for classification scan results"
-        ],
-        "column_configs": [
-          {
-            "column_name": "scan_id",
-            "get_example_values": true
-          },
-          {
-            "column_name": "table_name",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results",
-        "description": [
-          "Fact table for table-level DQ results"
+          "ML predictions: Data drift and quality anomaly detection.\n",
+          "Model: Data Drift Detector"
         ],
         "column_configs": [
           {
             "column_name": "table_name",
-            "get_example_values": true,
-            "build_value_dictionary": true
+            "description": [
+              "Table being monitored"
+            ]
           },
           {
-            "column_name": "workspace_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_dq_monitoring",
-        "description": [
-          "Fact table for DQ monitoring results"
-        ],
-        "column_configs": [
-          {
-            "column_name": "check_name",
-            "get_example_values": true,
-            "build_value_dictionary": true
+            "column_name": "prediction",
+            "description": [
+              "Drift score (0-1, higher = more drift)"
+            ],
+            "synonyms": [
+              "drift score",
+              "anomaly score"
+            ]
           },
           {
-            "column_name": "check_result",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "table_name",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_endpoint_usage",
-        "description": [
-          "Fact table for model serving usage"
-        ],
-        "column_configs": [
-          {
-            "column_name": "workspace_id",
-            "get_example_values": true
-          },
-          {
-            "column_name": "endpoint_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics",
-        "description": [
-          "Lakehouse monitoring: Governance metrics (tag_coverage, lineage_coverage)"
-        ],
-        "column_configs": [
-          {
-            "column_name": "column_name"
-          },
-          {
-            "column_name": "lineage_coverage"
-          },
-          {
-            "column_name": "log_type"
-          },
-          {
-            "column_name": "slice_key"
-          },
-          {
-            "column_name": "tag_coverage"
-          },
-          {
-            "column_name": "window"
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_listing_access",
-        "description": [
-          "Fact table for marketplace listing access"
-        ],
-        "column_configs": [
-          {
-            "column_name": "listing_id",
-            "get_example_values": true
-          },
-          {
-            "column_name": "user_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_listing_funnel",
-        "description": [
-          "Fact table for marketplace funnel events"
-        ],
-        "column_configs": [
-          {
-            "column_name": "event_type",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "listing_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_mlflow_run_metrics_history",
-        "description": [
-          "Fact table for MLflow metrics over time"
-        ],
-        "column_configs": [
-          {
-            "column_name": "metric_key",
-            "get_example_values": true
-          },
-          {
-            "column_name": "metric_value",
-            "get_example_values": true
-          },
-          {
-            "column_name": "run_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_mlflow_runs",
-        "description": [
-          "Fact table for MLflow run history"
-        ],
-        "column_configs": [
-          {
-            "column_name": "experiment_id",
-            "get_example_values": true
-          },
-          {
-            "column_name": "run_id",
-            "get_example_values": true
-          },
-          {
-            "column_name": "run_name",
-            "get_example_values": true
-          },
-          {
-            "column_name": "status",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "workspace_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_payload_logs",
-        "description": [
-          "Fact table for model serving payloads"
-        ],
-        "column_configs": [
-          {
-            "column_name": "endpoint_id",
-            "get_example_values": true
-          },
-          {
-            "column_name": "workspace_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_predictive_optimization",
-        "description": [
-          "Fact table for predictive optimization events"
-        ],
-        "column_configs": [
-          {
-            "column_name": "operation_type",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "table_name",
-            "get_example_values": true
-          },
-          {
-            "column_name": "workspace_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_table_lineage",
-        "description": [
-          "Fact table for lineage events"
-        ],
-        "column_configs": [
-          {
-            "column_name": "event_type",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "source_table",
-            "get_example_values": true
-          },
-          {
-            "column_name": "target_table",
-            "get_example_values": true
-          },
-          {
-            "column_name": "workspace_id",
-            "get_example_values": true
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_table_quality_drift_metrics",
-        "description": [
-          "Lakehouse monitoring: Quality drift metrics"
-        ],
-        "column_configs": [
-          {
-            "column_name": "column_name"
-          },
-          {
-            "column_name": "drift_type"
-          },
-          {
-            "column_name": "quality_score_drift"
-          },
-          {
-            "column_name": "window"
-          }
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_table_quality_profile_metrics",
-        "description": [
-          "Lakehouse monitoring: Table quality metrics (quality_score, completeness_rate, validity_rate)"
-        ],
-        "column_configs": [
-          {
-            "column_name": "column_name"
-          },
-          {
-            "column_name": "completeness_rate"
-          },
-          {
-            "column_name": "log_type"
-          },
-          {
-            "column_name": "quality_score"
-          },
-          {
-            "column_name": "slice_key"
-          },
-          {
-            "column_name": "validity_rate"
-          },
-          {
-            "column_name": "window"
+            "column_name": "evaluation_date",
+            "description": [
+              "Date of prediction"
+            ]
           }
         ]
       },
@@ -494,229 +131,674 @@
         "identifier": "${catalog}.${feature_schema}.freshness_alert_predictions",
         "description": [
           "ML predictions: Staleness probability predictions.\n",
-          "Model: Schema Evolution Predictor (Random Forest)"
+          "Model: Freshness Predictor"
         ],
         "column_configs": [
           {
-            "column_name": "expected_stale_date",
+            "column_name": "table_name",
             "description": [
-              "Expected date when table will become stale"
-            ]
-          },
-          {
-            "column_name": "last_update",
-            "description": [
-              "Last update timestamp"
-            ]
-          },
-          {
-            "column_name": "predicted_delay_hours",
-            "description": [
-              "Predicted delay in hours"
+              "Table being monitored"
             ]
           },
           {
             "column_name": "prediction",
             "description": [
-              "Staleness probability (0-1)"
+              "Staleness probability (0-1, higher = more risk)"
+            ],
+            "synonyms": [
+              "staleness probability",
+              "freshness risk"
             ]
           },
           {
-            "column_name": "table_name",
+            "column_name": "evaluation_date",
             "description": [
-              "Table name"
-            ],
-            "build_value_dictionary": true
+              "Date of prediction"
+            ]
           }
         ]
       },
       {
-        "identifier": "${catalog}.${feature_schema}.quality_anomaly_predictions",
+        "identifier": "${catalog}.${gold_schema}.fact_table_quality_profile_metrics",
         "description": [
-          "ML predictions: Data drift and quality anomaly detection.\n",
-          "Model: Data Drift Detector (Isolation Forest)"
+          "Lakehouse Monitoring profile metrics for table quality.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
         ],
         "column_configs": [
           {
-            "column_name": "check_date",
+            "column_name": "column_name",
             "description": [
-              "Date of quality check"
+              "Column name - use ':table' for table-level metrics"
             ]
           },
           {
-            "column_name": "drift_columns",
+            "column_name": "log_type",
             "description": [
-              "Columns with detected drift"
+              "Log type - use 'INPUT' for monitoring queries"
             ]
           },
           {
-            "column_name": "drift_score",
+            "column_name": "quality_score",
             "description": [
-              "Drift score (lower is more drift)"
-            ]
-          },
-          {
-            "column_name": "is_drifted",
-            "description": [
-              "Boolean flag for drift detection"
+              "Custom metric: Overall quality score (0-100)"
             ],
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "prediction",
-            "description": [
-              "Predicted value"
+            "synonyms": [
+              "quality",
+              "health score"
             ]
           },
           {
-            "column_name": "table_name",
+            "column_name": "completeness_rate",
             "description": [
-              "Table name"
+              "Custom metric: Data completeness percentage"
             ],
-            "build_value_dictionary": true
+            "synonyms": [
+              "completeness"
+            ]
+          },
+          {
+            "column_name": "validity_rate",
+            "description": [
+              "Custom metric: Data validity percentage"
+            ],
+            "synonyms": [
+              "validity"
+            ]
+          },
+          {
+            "column_name": "slice_key",
+            "description": [
+              "Slicing dimension: catalog_name, schema_name, table_name"
+            ]
+          },
+          {
+            "column_name": "slice_value",
+            "description": [
+              "Value of the slicing dimension"
+            ]
+          },
+          {
+            "column_name": "window",
+            "description": [
+              "Time window for aggregation"
+            ]
           }
         ]
       },
       {
-        "identifier": "${catalog}.${feature_schema}.quality_trend_predictions",
+        "identifier": "${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics",
         "description": [
-          "ML predictions: Schema change probability and quality forecasts.\n",
-          "Model: Schema Change Predictor (XGBoost)"
+          "Lakehouse Monitoring profile metrics for governance.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
         ],
         "column_configs": [
           {
-            "column_name": "change_probability",
+            "column_name": "column_name",
             "description": [
-              "Schema change probability (0-1)"
+              "Column name - use ':table' for table-level metrics"
             ]
           },
           {
-            "column_name": "forecast_date",
+            "column_name": "log_type",
             "description": [
-              "Forecast date"
+              "Log type - use 'INPUT' for monitoring queries"
             ]
           },
           {
-            "column_name": "predicted_change_type",
+            "column_name": "tag_coverage_rate",
             "description": [
-              "Type of predicted change"
+              "Custom metric: Percentage of tables with tags"
             ],
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "predicted_quality_score",
-            "description": [
-              "Predicted quality score"
+            "synonyms": [
+              "tag coverage"
             ]
           },
           {
-            "column_name": "prediction",
+            "column_name": "lineage_coverage_rate",
             "description": [
-              "Predicted value"
-            ]
-          },
-          {
-            "column_name": "risk_factors",
-            "description": [
-              "Risk factors for schema change"
-            ]
-          },
-          {
-            "column_name": "table_name",
-            "description": [
-              "Table name"
+              "Custom metric: Percentage of tables with lineage"
             ],
-            "build_value_dictionary": true
+            "synonyms": [
+              "lineage coverage"
+            ]
+          },
+          {
+            "column_name": "slice_key",
+            "description": [
+              "Slicing dimension: domain, catalog_name"
+            ]
+          },
+          {
+            "column_name": "slice_value",
+            "description": [
+              "Value of the slicing dimension"
+            ]
+          },
+          {
+            "column_name": "window",
+            "description": [
+              "Time window for aggregation"
+            ]
           }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_table_quality_drift_metrics",
+        "description": [
+          "Lakehouse Monitoring drift metrics for quality trend detection.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filter: drift_type='CONSECUTIVE', column_name=':table'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for drift metrics"
+            ]
+          },
+          {
+            "column_name": "quality_score_drift_pct",
+            "description": [
+              "Period-over-period change in quality score"
+            ],
+            "synonyms": [
+              "quality drift",
+              "quality trend"
+            ]
+          },
+          {
+            "column_name": "drift_type",
+            "description": [
+              "Drift type - use 'CONSECUTIVE' for period comparison"
+            ]
+          },
+          {
+            "column_name": "window",
+            "description": [
+              "Time window for drift calculation"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_experiment",
+        "description": [
+          "Dimension table for MLflow experiments.\n",
+          "Business: Tracks ML experiments for data quality models."
+        ],
+        "column_configs": [
+          {
+            "column_name": "experiment_id",
+            "description": [
+              "Unique experiment identifier"
+            ]
+          },
+          {
+            "column_name": "experiment_name",
+            "description": [
+              "Human-readable experiment name"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "artifact_location",
+            "description": [
+              "Location of experiment artifacts"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_served_entities",
+        "description": [
+          "Dimension table for model serving endpoints.\n",
+          "Business: Model serving endpoint metadata."
+        ],
+        "column_configs": [
+          {
+            "column_name": "entity_id",
+            "description": [
+              "Unique entity identifier"
+            ]
+          },
+          {
+            "column_name": "entity_name",
+            "description": [
+              "Entity name"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "endpoint_name",
+            "description": [
+              "Serving endpoint name"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_workspace",
+        "description": [
+          "Dimension table for workspace details.\n",
+          "Business: Links data quality metrics to specific Databricks workspaces."
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Unique workspace identifier"
+            ]
+          },
+          {
+            "column_name": "workspace_name",
+            "description": [
+              "Human-readable workspace name"
+            ],
+            "synonyms": [
+              "workspace",
+              "environment"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "region",
+            "description": [
+              "Cloud region"
+            ]
+          },
+          {
+            "column_name": "cloud_provider",
+            "description": [
+              "Cloud provider (AWS, Azure, GCP)"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_date",
+        "description": [
+          "Dimension table for date dimension.\n",
+          "Business: Date dimension for time-based quality analysis."
+        ],
+        "column_configs": [
+          {
+            "column_name": "date_key",
+            "description": [
+              "Date key (YYYYMMDD)"
+            ]
+          },
+          {
+            "column_name": "day_of_week",
+            "description": [
+              "Day of week name"
+            ]
+          },
+          {
+            "column_name": "month",
+            "description": [
+              "Month number"
+            ]
+          },
+          {
+            "column_name": "quarter",
+            "description": [
+              "Quarter number"
+            ]
+          },
+          {
+            "column_name": "is_weekend",
+            "description": [
+              "Weekend flag"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_table_lineage",
+        "description": [
+          "Fact table for table lineage events.\n",
+          "Business: Table-level lineage tracking."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_column_lineage",
+        "description": [
+          "Fact table for column-level lineage.\n",
+          "Business: Column-level lineage tracking."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_data_classification",
+        "description": [
+          "Fact table for data classification tags.\n",
+          "Business: Data classification and sensitivity tagging."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_data_classification_results",
+        "description": [
+          "Fact table for classification scan results.\n",
+          "Business: Classification scan execution results."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_dq_monitoring",
+        "description": [
+          "Fact table for DQ monitoring results.\n",
+          "Business: Data quality check execution results."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results",
+        "description": [
+          "Fact table for table-level DQ results.\n",
+          "Business: Aggregated table-level data quality results."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_predictive_optimization",
+        "description": [
+          "Fact table for predictive optimization events.\n",
+          "Business: Predictive optimization execution tracking."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_mlflow_runs",
+        "description": [
+          "Fact table for MLflow run history.\n",
+          "Business: ML experiment run tracking."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_mlflow_run_metrics_history",
+        "description": [
+          "Fact table for MLflow metrics over time.\n",
+          "Business: ML model training metrics history."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_endpoint_usage",
+        "description": [
+          "Fact table for model serving usage.\n",
+          "Business: Model serving endpoint usage tracking."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_payload_logs",
+        "description": [
+          "Fact table for model serving payloads.\n",
+          "Business: Model inference payload logging."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_listing_access",
+        "description": [
+          "Fact table for marketplace listing access.\n",
+          "Business: Marketplace listing access tracking."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_listing_funnel",
+        "description": [
+          "Fact table for marketplace funnel events.\n",
+          "Business: Marketplace conversion funnel tracking."
         ]
       }
     ],
     "metric_views": [
       {
-        "identifier": "${catalog}.${gold_schema}.data_quality",
+        "identifier": "${catalog}.${gold_schema}.mv_data_quality",
+        "description": [
+          "Comprehensive data quality monitoring.\n",
+          "PURPOSE: Track quality scores, completeness, validity, and freshness.\n",
+          "BEST FOR: Overall quality score | Completeness rate | Validity rate | Freshness rate | Staleness rate\n",
+          "KEY MEASURES: quality_score, completeness_rate, validity_rate, freshness_rate, total_tables"
+        ],
         "column_configs": [
           {
-            "column_name": "completeness_rate"
+            "column_name": "domain",
+            "get_example_values": true,
+            "build_value_dictionary": true
           },
           {
-            "column_name": "quality_score"
+            "column_name": "quality_score",
+            "synonyms": [
+              "quality",
+              "health score",
+              "data quality"
+            ]
           },
           {
-            "column_name": "total_tables"
+            "column_name": "completeness_rate",
+            "synonyms": [
+              "completeness",
+              "completeness percentage"
+            ]
           },
           {
-            "column_name": "validity_rate"
+            "column_name": "validity_rate",
+            "synonyms": [
+              "validity",
+              "validity percentage"
+            ]
+          },
+          {
+            "column_name": "freshness_rate",
+            "synonyms": [
+              "freshness",
+              "fresh percentage"
+            ]
+          },
+          {
+            "column_name": "staleness_rate",
+            "synonyms": [
+              "staleness",
+              "stale percentage"
+            ]
+          },
+          {
+            "column_name": "total_tables",
+            "synonyms": [
+              "table count",
+              "tables"
+            ]
           }
         ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.ml_intelligence",
+        "identifier": "${catalog}.${gold_schema}.mv_ml_intelligence",
+        "description": [
+          "ML model inference intelligence.\n",
+          "PURPOSE: Track ML model performance and drift detection.\n",
+          "BEST FOR: ML accuracy | Drift score | Prediction count\n",
+          "KEY MEASURES: prediction_count, accuracy, drift_score"
+        ],
         "column_configs": [
           {
-            "column_name": "accuracy"
+            "column_name": "prediction_count",
+            "synonyms": [
+              "predictions",
+              "inference count"
+            ]
           },
           {
-            "column_name": "drift_score"
+            "column_name": "accuracy",
+            "synonyms": [
+              "model accuracy",
+              "ml accuracy"
+            ]
           },
           {
-            "column_name": "prediction_count"
+            "column_name": "drift_score",
+            "synonyms": [
+              "model drift",
+              "ml drift"
+            ]
           }
         ]
       }
     ]
   },
   "instructions": {
+    "text_instructions": [
+      {
+        "id": "dq2d3e4f5a6b7789012345678901234cd",
+        "content": [
+          "ROLE: You are a data quality and governance analyst.\n",
+          "\n",
+          "ASSET SELECTION RULES:\n",
+          "1. Current state aggregates (overall quality score, freshness rate) \u2192 Use data_quality METRIC VIEW\n",
+          "2. Trend/drift queries (is quality degrading?) \u2192 Use _drift_metrics TABLE\n",
+          "3. List queries (stale tables, failing tables) \u2192 Use TVF functions\n",
+          "4. Predictions (quality anomalies, freshness alerts) \u2192 Use ML prediction tables\n",
+          "\n",
+          "PRIORITY ORDER:\n",
+          "- If user asks for a LIST \u2192 TVF (get_table_freshness, get_table_activity_status)\n",
+          "- If user asks about TREND \u2192 Custom Metrics (_drift_metrics)\n",
+          "- If user asks for CURRENT VALUE \u2192 Metric View (data_quality)\n",
+          "- If user asks for PREDICTION \u2192 ML tables\n",
+          "\n",
+          "\u26a0\ufe0f CUSTOM METRICS QUERY RULES:\n",
+          "- _profile_metrics: ALWAYS include column_name=':table' AND log_type='INPUT'\n",
+          "- _drift_metrics: ALWAYS include drift_type='CONSECUTIVE' AND column_name=':table'\n",
+          "\n",
+          "FORMATTING:\n",
+          "- Quality scores as 0-100 scale\n",
+          "- Percentages with 1 decimal (85.3%)\n",
+          "- Sort by quality_score ASC for problem tables\n",
+          "- Default to last 7 days if no date specified\n",
+          "\n",
+          "FRESHNESS RULES:\n",
+          "- Fresh: <24 hours\n",
+          "- Stale: >24 hours\n",
+          "- Critical: >72 hours\n",
+          "\n",
+          "ACTIVITY RULES:\n",
+          "- Active: accessed in last 14 days\n",
+          "- Inactive: no access in 14+ days\n",
+          "- Orphaned: no access in 30+ days\n",
+          "\n",
+          "SYNONYMS:\n",
+          "- quality = health = status\n",
+          "- stale = outdated = old\n",
+          "- fresh = current = updated\n"
+        ]
+      }
+    ],
+    "example_question_sqls": [
+      {
+        "id": "dq2e3f4a5b6c7789012345678901234d9",
+        "question": [
+          "What is our overall data quality score?"
+        ],
+        "sql": [
+          "SELECT MEASURE(freshness_rate) as overall_quality",
+          "",
+          "FROM ${catalog}.${gold_schema}.mv_data_quality",
+          "",
+          ""
+        ],
+        "usage_guidance": [
+          "Use for current state overall quality queries"
+        ]
+      },
+      {
+        "id": "dq2e3f4a5b6c7789012345678901234da",
+        "question": [
+          "Show me tables with freshness issues"
+        ],
+        "sql": [
+          "SELECT * FROM ${catalog}.${gold_schema}.get_table_freshness(24)",
+          "",
+          "WHERE is_stale = TRUE",
+          "",
+          "ORDER BY hours_since_update DESC",
+          "",
+          "LIMIT 20;"
+        ],
+        "usage_guidance": [
+          "Use for listing stale tables"
+        ]
+      },
+      {
+        "id": "dq2e3f4a5b6c7789012345678901234db",
+        "question": [
+          "Are there any quality anomalies?"
+        ],
+        "sql": [
+          "SELECT \n",
+          "  table_name,\n",
+          "  prediction as drift_score,\n",
+          "  evaluation_date\n",
+          "FROM ${catalog}.${feature_schema}.quality_anomaly_predictions\n",
+          "WHERE prediction > 0.5\n",
+          "ORDER BY prediction DESC\n",
+          "LIMIT 20;"
+        ],
+        "usage_guidance": [
+          "Use for ML-detected quality anomalies"
+        ]
+      }
+    ],
     "sql_functions": [
       {
-        "id": "c1d2e3f4a5b6789012345678901234e0",
-        "identifier": "${catalog}.${gold_schema}.get_data_freshness_by_domain"
-      },
-      {
-        "id": "c1d2e3f4a5b6789012345678901234e1",
-        "identifier": "${catalog}.${gold_schema}.get_data_quality_summary"
-      },
-      {
-        "id": "c1d2e3f4a5b6789012345678901234e2",
-        "identifier": "${catalog}.${gold_schema}.get_job_data_quality_status"
-      },
-      {
-        "id": "c1d2e3f4a5b6789012345678901234e3",
-        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
-      },
-      {
-        "id": "c1d2e3f4a5b6789012345678901234e4",
-        "identifier": "${catalog}.${gold_schema}.get_table_activity_status"
-      },
-      {
-        "id": "c1d2e3f4a5b6789012345678901234e5",
+        "id": "dq2f3a4b5c6d7789012345678901234e9",
         "identifier": "${catalog}.${gold_schema}.get_table_freshness"
       },
       {
-        "id": "c1d2e3f4a5b6789012345678901234e6",
-        "identifier": "${catalog}.${gold_schema}.get_tables_failing_quality"
+        "id": "dq2f3a4b5c6d7789012345678901234ea",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
+      },
+      {
+        "id": "dq2f3a4b5c6d7789012345678901234eb",
+        "identifier": "${catalog}.${gold_schema}.get_table_activity_status"
+      },
+      {
+        "id": "dq2f3a4b5c6d7789012345678901234ec",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
+      },
+      {
+        "id": "dq2f3a4b5c6d7789012345678901234ed",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
       }
     ],
-    "text_instructions": [
+    "join_specs": [
       {
-        "id": "c1d2e3f4a5b6789012345678901234e7",
-        "content": [
-          "You are a data quality and governance analyst. Follow these rules:\n\n",
-          "1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends\n",
-          "2. **Primary Source:** Use data_quality metric view for dashboard KPIs\n",
-          "3. **TVFs for Lists:** Use TVFs for \"which tables\", \"stale\", \"failing\" queries\n",
-          "4. **Trends:** For \"is quality degrading?\" check _drift_metrics tables\n",
-          "5. **Date Default:** If no date specified, default to last 7 days\n",
-          "6. **Freshness:** Fresh=<24h, Stale=>24h, Critical=>72h\n",
-          "7. **Quality Score:** 0-100 scale (higher is better)\n",
-          "8. **Activity:** Active=accessed in 14 days, Inactive=no recent access\n",
-          "9. **Sorting:** Sort by quality_score ASC for problem tables\n",
-          "10. **Limits:** Top 20 for table lists\n",
-          "11. **Synonyms:** stale=outdated=old, quality=health=status\n",
-          "12. **ML Anomaly:** For \"quality anomalies\" \u2192 query quality_anomaly_predictions\n",
-          "13. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')\n",
-          "14. **Lineage:** For \"dependencies\" \u2192 use get_pipeline_data_lineage TVF\n",
-          "15. **Context:** Explain ACTIVE vs INACTIVE vs ORPHANED status\n",
-          "16. **Performance:** Never scan Bronze/Silver tables\n"
+        "id": "dq2a3b4c5d6e7789012345678901234f8",
+        "left": {
+          "identifier": "${catalog}.${gold_schema}.fact_table_lineage",
+          "alias": "fact_table_lineage"
+        },
+        "right": {
+          "identifier": "${catalog}.${gold_schema}.dim_workspace",
+          "alias": "dim_workspace"
+        },
+        "sql": [
+          "`fact_table_lineage`.`workspace_id` = `dim_workspace`.`workspace_id`\n",
+          "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+        ],
+        "comment": [
+          "Join lineage to workspace for workspace context"
+        ]
+      },
+      {
+        "id": "dq2a3b4c5d6e7789012345678901234f9",
+        "left": {
+          "identifier": "${catalog}.${gold_schema}.fact_mlflow_runs",
+          "alias": "fact_mlflow_runs"
+        },
+        "right": {
+          "identifier": "${catalog}.${gold_schema}.dim_experiment",
+          "alias": "dim_experiment"
+        },
+        "sql": [
+          "`fact_mlflow_runs`.`workspace_id` = `dim_experiment`.`workspace_id` AND `fact_mlflow_runs`.`experiment_id` = `dim_experiment`.`experiment_id`\n",
+          "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+        ],
+        "comment": [
+          "Join MLflow runs to experiments"
         ]
       }
     ]
@@ -724,42 +806,63 @@
   "benchmarks": {
     "questions": [
       {
-        "id": "0f1498ba30e645f391960fd28061b30a",
+        "id": "dq085f21252a86494a9d6f8ae027e1acd4",
         "question": [
-          "What is the staleness rate?"
+          "What is our overall data quality score?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(staleness_rate) as stale_pct\n",
-              "FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT MEASURE(freshness_rate) as overall_quality",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              ""
             ]
           }
         ]
       },
       {
-        "id": "16b8ae308e50440094050674531fcd27",
+        "id": "dq0aeb950d4b04436caaf2054a592a22ff",
         "question": [
-          "Show me the data quality summary"
+          "Show me tables with freshness issues"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(\n",
-              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "  CURRENT_DATE()::STRING\n",
-              ")\n",
-              "ORDER BY quality_score ASC\n",
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_freshness(24)",
+              "",
+              "WHERE is_stale = TRUE",
+              "",
+              "ORDER BY hours_since_update DESC",
+              "",
               "LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "18ab4e5ed43b407ba944ef663569fe32",
+        "id": "dq228eaafb02ac438b90da824357c77aa7",
+        "question": [
+          "What is the completeness rate?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(total_tables) as completeness_pct",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dq2b4b0615153143868b28b88a0678b210",
         "question": [
           "Show me tables failing quality checks"
         ],
@@ -767,157 +870,55 @@
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(\n",
-              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "  CURRENT_DATE()::STRING\n",
-              ")\n",
-              "ORDER BY failed_checks DESC, quality_score ASC\n",
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_activity_status(7, 14)",
+              "",
+              "WHERE activity_status = 'INACTIVE'",
+              "",
+              "ORDER BY days_since_last_access DESC",
+              "",
               "LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "1ef0dcb9e5564a7e86cc946f5e7aee17",
+        "id": "dq2fd48e2de11646d99bcbc6a446a1f726",
         "question": [
-          "What is the freshness rate?"
+          "What is our data freshness by domain?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(freshness_rate) as fresh_pct\n",
-              "FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT domain, table_count as total_tables, freshness_threshold, avg_hours_since_update, max_hours_since_update FROM ${catalog}.${gold_schema}.get_data_freshness_by_domain(24)",
+              "",
+              "ORDER BY max_hours_since_update DESC",
+              "",
+              "LIMIT 15;"
             ]
           }
         ]
       },
       {
-        "id": "2687666dee4349f29057778450b1df30",
+        "id": "dq42f506c9118e411abc65b32d06793912",
         "question": [
-          "What is the governance coverage?"
+          "Show me the data quality summary"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT \n",
-              "  window.start AS window_start,\n",
-              "  tag_coverage_rate,\n",
-              "  lineage_coverage_rate\n",
-              "FROM ${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics\n",
-              "WHERE column_name = ':table'\n",
-              "  AND log_type = 'INPUT'\n",
-              "  AND slice_key IS NULL\n",
-              "ORDER BY window.start DESC\n",
-              "LIMIT 10;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_activity_status(7, 14)",
+              "",
+              "ORDER BY days_since_last_access DESC",
+              "",
+              "LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "2d0d5497a68b419f8357d67a1525facc",
-        "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Comprehensive table health assessment - combine freshness, quality, activity, and ML predictions"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "WITH freshness AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    hours_since_update,\n",
-              "    freshness_status,\n",
-              "    expected_update_frequency_hours\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(30)\n",
-              "),\n",
-              "quality AS (\n",
-              "  SELECT \n",
-              "    table_full_name as table_name,\n",
-              "    quality_score,\n",
-              "    failed_checks,\n",
-              "    completeness_rate,\n",
-              "    validity_rate\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(\n",
-              "    (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,\n",
-              "    CURRENT_DATE()::STRING\n",
-              "  )\n",
-              "),\n",
-              "activity AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    activity_status,\n",
-              "    days_since_last_access,\n",
-              "    daily_read_count,\n",
-              "    daily_write_count\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(30)\n",
-              "),\n",
-              "ml_predictions AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    AVG(CASE WHEN evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN prediction ELSE NULL END) as avg_drift_score\n",
-              "  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions\n",
-              "  WHERE prediction > 0.3\n",
-              "  GROUP BY table_name\n",
-              "),\n",
-              "freshness_predictions AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    AVG(prediction) as staleness_probability\n",
-              "  FROM ${catalog}.${feature_schema}.freshness_alert_predictions\n",
-              "  WHERE prediction > 0.5\n",
-              "    AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  GROUP BY table_name\n",
-              ")\n",
-              "SELECT \n",
-              "  f.table_name,\n",
-              "  f.hours_since_update,\n",
-              "  f.freshness_status,\n",
-              "  COALESCE(q.quality_score, 0) as quality_score,\n",
-              "  COALESCE(q.failed_checks, 0) as failed_checks,\n",
-              "  COALESCE(q.completeness_rate, 0) as completeness_pct,\n",
-              "  COALESCE(q.validity_rate, 0) as validity_pct,\n",
-              "  COALESCE(a.activity_status, 'UNKNOWN') as activity_status,\n",
-              "  COALESCE(a.daily_read_count, 0) as daily_reads,\n",
-              "  COALESCE(a.daily_write_count, 0) as daily_writes,\n",
-              "  COALESCE(ml.avg_drift_score, 0) as ml_drift_score,\n",
-              "  COALESCE(fp.staleness_probability, 0) as predicted_staleness,\n",
-              "  CASE \n",
-              "    WHEN f.freshness_status = 'CRITICAL' AND q.quality_score < 50 THEN 'Critical - Data Integrity Risk'\n",
-              "    WHEN ml.avg_drift_score > 0.7 AND fp.staleness_probability > 0.7 THEN 'High Risk - Immediate Attention'\n",
-              "    WHEN f.freshness_status = 'STALE' OR q.quality_score < 70 THEN 'Medium Risk - Monitor'\n",
-              "    WHEN a.activity_status = 'INACTIVE' THEN 'Low Priority - Consider Archive'\n",
-              "    ELSE 'Healthy'\n",
-              "  END as health_status,\n",
-              "  CASE \n",
-              "    WHEN f.freshness_status = 'CRITICAL' THEN 'Investigate data pipeline immediately'\n",
-              "    WHEN q.quality_score < 50 THEN 'Review and fix data quality rules'\n",
-              "    WHEN ml.avg_drift_score > 0.7 THEN 'Analyze schema or data changes'\n",
-              "    WHEN a.activity_status = 'INACTIVE' THEN 'Archive or decommission table'\n",
-              "    ELSE 'Continue monitoring'\n",
-              "  END as recommended_action\n",
-              "FROM freshness f\n",
-              "LEFT JOIN quality q ON f.table_name = q.table_name\n",
-              "LEFT JOIN activity a ON f.table_name = a.table_name\n",
-              "LEFT JOIN ml_predictions ml ON f.table_name = ml.table_name\n",
-              "LEFT JOIN freshness_predictions fp ON f.table_name = fp.table_name\n",
-              "ORDER BY \n",
-              "  CASE \n",
-              "    WHEN f.freshness_status = 'CRITICAL' AND COALESCE(q.quality_score, 0) < 50 THEN 1\n",
-              "    WHEN COALESCE(ml.avg_drift_score, 0) > 0.7 THEN 2\n",
-              "    WHEN f.freshness_status = 'STALE' THEN 3\n",
-              "    ELSE 4\n",
-              "  END,\n",
-              "  hours_since_update DESC\n",
-              "LIMIT 25;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "462b9ee90f3b45f08dc11fd8ad081481",
+        "id": "dq563563002c3c486f88c3a2dd5b95edb2",
         "question": [
           "What is the validity rate?"
         ],
@@ -925,15 +926,139 @@
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(validity_rate) as validity_pct\n",
-              "FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT MEASURE(staleness_rate) as validity_pct",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              ""
             ]
           }
         ]
       },
       {
-        "id": "58f97cb9c0564ddcb4d30e128273f5c3",
+        "id": "dq62a74853d2ca4ebeb47b8ffed30d025d",
+        "question": [
+          "Show me inactive tables"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_activity_status(30, 14)",
+              "",
+              "WHERE activity_status IN ('INACTIVE', 'ORPHANED')",
+              "",
+              "ORDER BY days_since_last_access DESC",
+              "",
+              "LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dq7669715797a84276abd47b5fec4e887c",
+        "question": [
+          "What is the freshness rate?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(freshness_rate) as fresh_pct",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dq7a376d031e9e428c80f6f70e1b88d12d",
+        "question": [
+          "Show me pipeline data lineage"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_pipeline_data_lineage(7, 'ALL')",
+              "",
+              "ORDER BY complexity_score DESC",
+              "",
+              "LIMIT 50;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dq7b428ce940184c468f0b6418cb406c50",
+        "question": [
+          "What is the job quality status?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_activity_status(7, 14)",
+              "",
+              "ORDER BY days_since_last_access DESC",
+              "",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dq7b905de1ee344c40b55ff4ffa566adca",
+        "question": [
+          "What is the staleness rate?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(staleness_rate) as stale_pct",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dq9234072c1ff440c6bfe65d61b9a9f4cc",
+        "question": [
+          "Show me quality score by domain"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT ",
+              "",
+              "  domain,",
+              "",
+              "  MEASURE(freshness_rate) as avg_quality,",
+              "",
+              "  MEASURE(total_tables) as table_count",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              "",
+              "",
+              "GROUP BY domain",
+              "",
+              "ORDER BY avg_quality ASC",
+              "",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dq93bb8c22691a48bbbdc04b19e89cd368",
         "question": [
           "Are there any quality anomalies?"
         ],
@@ -954,26 +1079,74 @@
         ]
       },
       {
-        "id": "64b557e05c084739adc159d938062f39",
+        "id": "dq9d03071d71304a8f9638a77f7efcf523",
         "question": [
-          "Show me inactive tables"
+          "What is our ML model performance?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(\n",
-              "  30\n",
-              ")\n",
-              "WHERE activity_status IN ('INACTIVE', 'ORPHANED')\n",
-              "ORDER BY days_since_last_access DESC\n",
+              "SELECT ",
+              "",
+              "  MEASURE(accuracy) as ml_accuracy,",
+              "",
+              "  MEASURE(drift_score) as ml_drift,",
+              "",
+              "  MEASURE(prediction_count) as total_predictions",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_ml_intelligence",
+              "",
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dqaf0a7b5c51b946fa95b7884087c1f8fb",
+        "question": [
+          "Show me tables at risk of staleness"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  table_name,\n",
+              "  prediction as staleness_probability,\n",
+              "  evaluation_date\n",
+              "FROM ${catalog}.${feature_schema}.freshness_alert_predictions\n",
+              "WHERE prediction > 0.7\n",
+              "ORDER BY prediction DESC\n",
               "LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "67c4e2f29f1a477b8952da5c55b46647",
+        "id": "dqb0279b1e18e14601beca59a656f89fdc",
+        "question": [
+          "What is our ML prediction accuracy?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT ",
+              "",
+              "  MEASURE(accuracy) as model_accuracy,",
+              "",
+              "  MEASURE(prediction_count) as predictions",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_ml_intelligence",
+              "",
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dqb9cdbba9a2cf4d7d8685c6d22144c9b0",
         "question": [
           "Show me quality drift metrics"
         ],
@@ -996,328 +1169,30 @@
         ]
       },
       {
-        "id": "6de43e75f7f64ad2a05d3a93a6de7aa5",
+        "id": "dqc5e2901bcaef49a7b9f0677cff63864d",
         "question": [
-          "What is our overall data quality score?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT MEASURE(quality_score) as overall_quality\n",
-              "FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "7b6030626f9847a69df9071ada13c490",
-        "question": [
-          "What is our data freshness by domain?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(\n",
-              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "  CURRENT_DATE()::STRING\n",
-              ")\n",
-              "ORDER BY stale_table_count DESC\n",
-              "LIMIT 15;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "7d95e127e2224cb4baaa96280157a61e",
-        "question": [
-          "What is our ML prediction accuracy?"
+          "What is the governance coverage?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
               "SELECT \n",
-              "  MEASURE(accuracy) as model_accuracy,\n",
-              "  MEASURE(prediction_count) as predictions\n",
-              "FROM ${catalog}.${gold_schema}.mv_ml_intelligence\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "7ec8fa2ff4e84c968e47a814e12eff8c",
-        "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Pipeline data quality impact analysis - trace quality issues through lineage"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "WITH pipeline_lineage AS (\n",
-              "  SELECT \n",
-              "    source_table,\n",
-              "    target_table,\n",
-              "    dependency_depth,\n",
-              "    pipeline_name\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_data_lineage_summary(\n",
-              "    'silver_dlt_pipeline',\n",
-              "    (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,\n",
-              "    CURRENT_DATE()::STRING\n",
-              "  )\n",
-              "),\n",
-              "table_quality AS (\n",
-              "  SELECT \n",
-              "    table_full_name as table_name,\n",
-              "    quality_score,\n",
-              "    failed_checks,\n",
-              "    completeness_rate,\n",
-              "    validity_rate\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(\n",
-              "    (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,\n",
-              "    CURRENT_DATE()::STRING\n",
-              "  )\n",
-              "),\n",
-              "freshness AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    hours_since_update,\n",
-              "    freshness_status\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(30)\n",
-              "),\n",
-              "ml_drift AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    AVG(prediction) as avg_drift_score\n",
-              "  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions\n",
-              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "    AND prediction > 0.3\n",
-              "  GROUP BY table_name\n",
-              ")\n",
-              "SELECT \n",
-              "  pl.source_table,\n",
-              "  pl.target_table,\n",
-              "  pl.dependency_depth,\n",
-              "  pl.pipeline_name,\n",
-              "  COALESCE(sq.quality_score, 100) as source_quality_score,\n",
-              "  COALESCE(sq.failed_checks, 0) as source_failed_checks,\n",
-              "  COALESCE(tq.quality_score, 100) as target_quality_score,\n",
-              "  COALESCE(tq.failed_checks, 0) as target_failed_checks,\n",
-              "  COALESCE(sf.freshness_status, 'UNKNOWN') as source_freshness,\n",
-              "  COALESCE(tf.freshness_status, 'UNKNOWN') as target_freshness,\n",
-              "  COALESCE(sml.avg_drift_score, 0) as source_drift,\n",
-              "  COALESCE(tml.avg_drift_score, 0) as target_drift,\n",
-              "  CASE \n",
-              "    WHEN COALESCE(sq.quality_score, 100) < 50 AND COALESCE(tq.quality_score, 100) < 50 THEN 'Critical - Cascading Failure'\n",
-              "    WHEN COALESCE(sq.quality_score, 100) < 70 AND COALESCE(tq.quality_score, 100) < 80 THEN 'High - Quality Degradation Propagating'\n",
-              "    WHEN COALESCE(sf.freshness_status, 'FRESH') IN ('STALE', 'CRITICAL') AND COALESCE(tf.freshness_status, 'FRESH') IN ('STALE', 'CRITICAL') THEN 'High - Freshness Cascade'\n",
-              "    WHEN COALESCE(sml.avg_drift_score, 0) > 0.6 THEN 'Medium - Upstream Drift Detected'\n",
-              "    ELSE 'Normal'\n",
-              "  END as impact_status,\n",
-              "  CASE \n",
-              "    WHEN COALESCE(sq.quality_score, 100) < 50 THEN 'Fix source data quality immediately'\n",
-              "    WHEN COALESCE(sf.freshness_status, 'FRESH') = 'CRITICAL' THEN 'Investigate source pipeline failure'\n",
-              "    WHEN COALESCE(sml.avg_drift_score, 0) > 0.6 THEN 'Review schema changes in source'\n",
-              "    WHEN COALESCE(tq.failed_checks, 0) > 5 THEN 'Review downstream validation rules'\n",
-              "    ELSE 'Monitor pipeline health'\n",
-              "  END as recommended_action\n",
-              "FROM pipeline_lineage pl\n",
-              "LEFT JOIN table_quality sq ON pl.source_table = sq.table_name\n",
-              "LEFT JOIN table_quality tq ON pl.target_table = tq.table_name\n",
-              "LEFT JOIN freshness sf ON pl.source_table = sf.table_name\n",
-              "LEFT JOIN freshness tf ON pl.target_table = tf.table_name\n",
-              "LEFT JOIN ml_drift sml ON pl.source_table = sml.table_name\n",
-              "LEFT JOIN ml_drift tml ON pl.target_table = tml.table_name\n",
-              "WHERE COALESCE(sq.quality_score, 100) < 80 \n",
-              "   OR COALESCE(tq.quality_score, 100) < 80\n",
-              "   OR COALESCE(sf.freshness_status, 'FRESH') IN ('STALE', 'CRITICAL')\n",
-              "ORDER BY \n",
-              "  CASE impact_status\n",
-              "    WHEN 'Critical - Cascading Failure' THEN 1\n",
-              "    WHEN 'High - Quality Degradation Propagating' THEN 2\n",
-              "    WHEN 'High - Freshness Cascade' THEN 3\n",
-              "    ELSE 4\n",
-              "  END,\n",
-              "  pl.dependency_depth ASC\n",
-              "LIMIT 25;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "8b0c997c42844965bb1a70e330b006fb",
-        "question": [
-          "What is the completeness rate?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT MEASURE(completeness_rate) as completeness_pct\n",
-              "FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "9691e5866fe941ef8d15ad3b216d55fe",
-        "question": [
-          "Show me quality score by domain"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT \n",
-              "  domain,\n",
-              "  MEASURE(quality_score) as avg_quality,\n",
-              "  MEASURE(total_tables) as table_count\n",
-              "FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "GROUP BY domain\n",
-              "ORDER BY avg_quality ASC\n",
+              "  window.start AS window_start,\n",
+              "  tag_coverage_rate,\n",
+              "  lineage_coverage_rate\n",
+              "FROM ${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics\n",
+              "WHERE column_name = ':table'\n",
+              "  AND log_type = 'INPUT'\n",
+              "  AND slice_key IS NULL\n",
+              "ORDER BY window.start DESC\n",
               "LIMIT 10;"
             ]
           }
         ]
       },
       {
-        "id": "9a7c044b26414a06bc38a80fe8dd3cf4",
-        "question": [
-          "Show me pipeline data lineage"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_data_lineage_summary(\n",
-              "  'silver_dlt_pipeline',\n",
-              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "  CURRENT_DATE()::STRING\n",
-              ")\n",
-              "ORDER BY dependency_depth ASC\n",
-              "LIMIT 50;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "a2ca335c24e2417d9299c18c39e72c1b",
-        "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Domain-level data quality scorecard - aggregate quality metrics with freshness and governance"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "WITH domain_quality AS (\n",
-              "  SELECT \n",
-              "    domain,\n",
-              "    MEASURE(quality_score) as avg_quality,\n",
-              "    MEASURE(completeness_rate) as avg_completeness,\n",
-              "    MEASURE(validity_rate) as avg_validity,\n",
-              "    MEASURE(total_tables) as table_count\n",
-              "  FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
-              "  GROUP BY domain\n",
-              "),\n",
-              "domain_freshness AS (\n",
-              "  SELECT \n",
-              "    domain,\n",
-              "    AVG(hours_since_update) as avg_hours_stale,\n",
-              "    SUM(CASE WHEN freshness_status = 'FRESH' THEN 1 ELSE 0 END) as fresh_count,\n",
-              "    SUM(CASE WHEN freshness_status IN ('STALE', 'CRITICAL') THEN 1 ELSE 0 END) as stale_count\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(30) tf\n",
-              "  JOIN ${catalog}.${gold_schema}.mv_data_quality dq \n",
-              "    ON tf.table_name = dq.table_full_name\n",
-              "  GROUP BY domain\n",
-              "),\n",
-              "domain_activity AS (\n",
-              "  SELECT \n",
-              "    domain,\n",
-              "    SUM(daily_read_count) as total_daily_reads,\n",
-              "    SUM(daily_write_count) as total_daily_writes,\n",
-              "    SUM(CASE WHEN activity_status = 'ACTIVE' THEN 1 ELSE 0 END) as active_tables,\n",
-              "    SUM(CASE WHEN activity_status IN ('INACTIVE', 'ORPHANED') THEN 1 ELSE 0 END) as inactive_tables\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(30) ta\n",
-              "  JOIN ${catalog}.${gold_schema}.mv_data_quality dq \n",
-              "    ON ta.table_name = dq.table_full_name\n",
-              "  GROUP BY domain\n",
-              "),\n",
-              "domain_governance AS (\n",
-              "  SELECT \n",
-              "    slice_value AS domain,\n",
-              "    AVG(tag_coverage_rate) as avg_tag_coverage,\n",
-              "    AVG(lineage_coverage_rate) as avg_lineage_coverage\n",
-              "  FROM ${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics\n",
-              "  WHERE column_name = ':table'\n",
-              "    AND log_type = 'INPUT'\n",
-              "    AND slice_key = 'domain'\n",
-              "  GROUP BY slice_value\n",
-              ")\n",
-              "SELECT \n",
-              "  dq.domain,\n",
-              "  dq.table_count,\n",
-              "  dq.avg_quality,\n",
-              "  dq.avg_completeness,\n",
-              "  dq.avg_validity,\n",
-              "  df.fresh_count,\n",
-              "  df.stale_count,\n",
-              "  df.stale_count * 100.0 / NULLIF(dq.table_count, 0) as staleness_pct,\n",
-              "  da.active_tables,\n",
-              "  da.inactive_tables,\n",
-              "  da.total_daily_reads,\n",
-              "  da.total_daily_writes,\n",
-              "  COALESCE(dg.avg_tag_coverage, 0) as tag_coverage_pct,\n",
-              "  COALESCE(dg.avg_lineage_coverage, 0) as lineage_coverage_pct,\n",
-              "  CASE \n",
-              "    WHEN dq.avg_quality < 70 OR df.stale_count * 100.0 / NULLIF(dq.table_count, 0) > 20 THEN 'Critical Domain'\n",
-              "    WHEN dq.avg_quality < 80 OR da.inactive_tables * 100.0 / NULLIF(dq.table_count, 0) > 30 THEN 'Needs Improvement'\n",
-              "    WHEN dq.avg_quality >= 90 AND dg.avg_tag_coverage >= 80 THEN 'Excellent'\n",
-              "    ELSE 'Good'\n",
-              "  END as domain_health_status,\n",
-              "  CASE \n",
-              "    WHEN dq.avg_quality < 70 THEN 'Implement stricter quality rules'\n",
-              "    WHEN df.stale_count * 100.0 / NULLIF(dq.table_count, 0) > 20 THEN 'Review pipeline schedules'\n",
-              "    WHEN dg.avg_tag_coverage < 50 THEN 'Improve metadata tagging'\n",
-              "    WHEN da.inactive_tables > 10 THEN 'Archive unused tables'\n",
-              "    ELSE 'Maintain current standards'\n",
-              "  END as recommended_action\n",
-              "FROM domain_quality dq\n",
-              "LEFT JOIN domain_freshness df ON dq.domain = df.domain\n",
-              "LEFT JOIN domain_activity da ON dq.domain = da.domain\n",
-              "LEFT JOIN domain_governance dg ON dq.domain = dg.domain\n",
-              "ORDER BY dq.avg_quality ASC, staleness_pct DESC\n",
-              "LIMIT 15;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "a80eefb514dc41dfa904fb8db9deefd5",
-        "question": [
-          "What is our ML model performance?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT \n",
-              "  MEASURE(accuracy) as ml_accuracy,\n",
-              "  MEASURE(drift_score) as ml_drift,\n",
-              "  MEASURE(prediction_count) as total_predictions\n",
-              "FROM ${catalog}.${gold_schema}.mv_ml_intelligence\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "b43cd6dba6ac492dad43fc4bb6c40ad3",
+        "id": "dqc6d0c5a96b50417b97809cf19aac02dd",
         "question": [
           "Show me quality score distribution"
         ],
@@ -1325,198 +1200,555 @@
           {
             "format": "SQL",
             "content": [
-              "SELECT \n",
-              "  CASE \n",
-              "    WHEN MEASURE(quality_score) >= 90 THEN 'Excellent (90-100)'\n",
-              "    WHEN MEASURE(quality_score) >= 70 THEN 'Good (70-89)'\n",
-              "    WHEN MEASURE(quality_score) >= 50 THEN 'Fair (50-69)'\n",
-              "    ELSE 'Poor (<50)'\n",
-              "  END as quality_tier,\n",
-              "  COUNT(*) as table_count\n",
-              "FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "GROUP BY quality_tier\n",
-              "ORDER BY MIN(MEASURE(quality_score)) DESC;"
+              "SELECT ",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN MEASURE(freshness_rate) >= 90 THEN 'Excellent (90-100)'",
+              "",
+              "    WHEN MEASURE(freshness_rate) >= 70 THEN 'Good (70-89)'",
+              "",
+              "    WHEN MEASURE(freshness_rate) >= 50 THEN 'Fair (50-69)'",
+              "",
+              "    ELSE 'Poor (<50)'",
+              "",
+              "  END as quality_tier,",
+              "",
+              "  COUNT(*) as table_count",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              "",
+              "",
+              "GROUP BY quality_tier",
+              "",
+              "ORDER BY MIN(MEASURE(freshness_rate)) DESC;"
             ]
           }
         ]
       },
       {
-        "id": "c5589dffcf1e4c74ab50caf22c9b2d0f",
+        "id": "dqc8e998b15fe040cea4d3c6ce2020e41d",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Executive data quality dashboard - comprehensive quality, freshness, governance, and ML intelligence"
+          "\ud83d\udd2c DEEP RESEARCH: Comprehensive table health assessment - combine freshness, quality, activity, and ML predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH quality_summary AS (\n",
-              "  SELECT \n",
-              "    MEASURE(quality_score) as avg_quality,\n",
-              "    MEASURE(completeness_rate) as avg_completeness,\n",
-              "    MEASURE(validity_rate) as avg_validity,\n",
-              "    MEASURE(freshness_rate) as freshness_pct,\n",
-              "    MEASURE(staleness_rate) as staleness_pct,\n",
-              "    MEASURE(total_tables) as table_count\n",
-              "  FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "failing_tables AS (\n",
-              "  SELECT \n",
-              "    COUNT(*) as tables_failing_quality,\n",
-              "    SUM(failed_checks) as total_failed_checks\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(\n",
-              "    (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "    CURRENT_DATE()::STRING\n",
-              "  )\n",
-              "  WHERE quality_score < 70\n",
-              "),\n",
-              "stale_tables AS (\n",
-              "  SELECT \n",
-              "    COUNT(*) as stale_count,\n",
-              "    AVG(hours_since_update) as avg_hours_stale\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(7)\n",
-              "  WHERE freshness_status IN ('STALE', 'CRITICAL')\n",
-              "),\n",
-              "ml_intelligence AS (\n",
-              "  SELECT \n",
-              "    MEASURE(accuracy) as ml_accuracy,\n",
-              "    MEASURE(drift_score) as avg_drift,\n",
-              "    MEASURE(prediction_count) as predictions\n",
-              "  FROM ${catalog}.${gold_schema}.mv_ml_intelligence\n",
-              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "ml_anomaly_predictions AS (\n",
-              "  SELECT \n",
-              "    COUNT(*) as tables_with_drift,\n",
-              "    AVG(prediction) as avg_drift_score\n",
-              "  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions\n",
-              "  WHERE prediction > 0.5\n",
-              "    AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "ml_risk_predictions AS (\n",
-              "  SELECT \n",
-              "    COUNT(DISTINCT table_name) as tables_at_risk,\n",
-              "    AVG(prediction) as avg_risk_score\n",
-              "  FROM (\n",
-              "    SELECT table_name, prediction \n",
-              "    FROM ${catalog}.${feature_schema}.quality_trend_predictions\n",
-              "    WHERE prediction > 0.6 AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "    UNION ALL\n",
-              "    SELECT table_name, prediction \n",
-              "    FROM ${catalog}.${feature_schema}.freshness_alert_predictions\n",
-              "    WHERE prediction > 0.7 AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  )\n",
-              "),\n",
-              "governance_status AS (\n",
-              "  SELECT \n",
-              "    AVG(tag_coverage_rate) as avg_tag_coverage,\n",
-              "    AVG(lineage_coverage_rate) as avg_lineage_coverage\n",
-              "  FROM ${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics\n",
-              "  WHERE column_name = ':table'\n",
-              "    AND log_type = 'INPUT'\n",
-              "    AND slice_key IS NULL\n",
-              "    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "quality_drift AS (\n",
-              "  SELECT \n",
-              "    AVG(quality_score_drift_pct) as avg_quality_drift,\n",
-              "    MAX(quality_score_drift_pct) as max_quality_drift\n",
-              "  FROM ${catalog}.${gold_schema}.fact_table_quality_drift_metrics\n",
-              "  WHERE drift_type = 'CONSECUTIVE'\n",
-              "    AND column_name = ':table'\n",
-              "    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              ")\n",
-              "SELECT \n",
-              "  qs.table_count as total_tables,\n",
-              "  qs.avg_quality as overall_quality_score,\n",
-              "  qs.avg_completeness as completeness_pct,\n",
-              "  qs.avg_validity as validity_pct,\n",
-              "  qs.freshness_pct,\n",
-              "  qs.staleness_pct,\n",
-              "  COALESCE(ft.tables_failing_quality, 0) as failing_tables,\n",
-              "  COALESCE(ft.total_failed_checks, 0) as total_failed_checks,\n",
-              "  COALESCE(st.stale_count, 0) as stale_tables,\n",
-              "  COALESCE(st.avg_hours_stale, 0) as avg_hours_stale,\n",
-              "  COALESCE(ml.ml_accuracy, 0) as ml_model_accuracy,\n",
-              "  COALESCE(ml.avg_drift, 0) as ml_detected_drift,\n",
-              "  COALESCE(ap.tables_with_drift, 0) as tables_with_anomalies,\n",
-              "  COALESCE(rp.tables_at_risk, 0) as tables_at_risk,\n",
-              "  COALESCE(gs.avg_tag_coverage, 0) as tag_coverage_pct,\n",
-              "  COALESCE(gs.avg_lineage_coverage, 0) as lineage_coverage_pct,\n",
-              "  COALESCE(qd.avg_quality_drift, 0) as recent_quality_drift,\n",
-              "  COALESCE(qd.max_quality_drift, 0) as max_quality_drift,\n",
-              "  CASE \n",
-              "    WHEN qs.avg_quality < 70 OR COALESCE(ft.tables_failing_quality, 0) > 10 THEN 'Critical Data Quality Crisis'\n",
-              "    WHEN qs.staleness_pct > 20 OR COALESCE(st.stale_count, 0) > 20 THEN 'Critical Freshness Issues'\n",
-              "    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Quality Degradation Detected'\n",
-              "    WHEN COALESCE(rp.tables_at_risk, 0) > 15 THEN 'High Risk - Predictive Alerts'\n",
-              "    WHEN qs.avg_quality >= 90 AND qs.freshness_pct >= 95 THEN 'Excellent Data Health'\n",
-              "    ELSE 'Normal'\n",
-              "  END as overall_data_health_status,\n",
-              "  CASE \n",
-              "    WHEN qs.avg_quality < 70 THEN 'Audit and strengthen quality rules across all domains'\n",
-              "    WHEN COALESCE(ft.tables_failing_quality, 0) > 10 THEN 'Investigate top failing tables immediately'\n",
-              "    WHEN qs.staleness_pct > 20 THEN 'Review pipeline schedules and dependencies'\n",
-              "    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Analyze recent changes causing quality degradation'\n",
-              "    WHEN COALESCE(rp.tables_at_risk, 0) > 15 THEN 'Proactive monitoring of at-risk tables'\n",
-              "    WHEN COALESCE(gs.avg_tag_coverage, 0) < 70 THEN 'Improve metadata tagging and governance'\n",
-              "    ELSE 'Continue monitoring and maintain standards'\n",
-              "  END as top_priority_action\n",
-              "FROM quality_summary qs\n",
-              "CROSS JOIN failing_tables ft\n",
-              "CROSS JOIN stale_tables st\n",
-              "CROSS JOIN ml_intelligence ml\n",
-              "CROSS JOIN ml_anomaly_predictions ap\n",
-              "CROSS JOIN ml_risk_predictions rp\n",
-              "CROSS JOIN governance_status gs\n",
-              "CROSS JOIN quality_drift qd;"
+              "WITH freshness AS (",
+              "",
+              "  SELECT",
+              "",
+              "    table_name,",
+              "",
+              "    hours_since_update,",
+              "",
+              "    is_stale,",
+              "",
+              "    freshness_threshold_hours",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_freshness(24)",
+              "",
+              "),",
+              "",
+              "quality AS (",
+              "",
+              "  SELECT",
+              "",
+              "    table_name,",
+              "",
+              "    quality_score,",
+              "",
+              "    failed_check_count,",
+              "",
+              "    completeness_rate,",
+              "",
+              "    validity_rate",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_activity_status(30, 14)",
+              "",
+              "),",
+              "",
+              "activity AS (",
+              "",
+              "  SELECT",
+              "",
+              "    table_name,",
+              "",
+              "    activity_status,",
+              "",
+              "    days_since_last_access,",
+              "",
+              "    read_count,",
+              "",
+              "    write_count",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_activity_status(30, 14)",
+              "",
+              "),",
+              "",
+              "ml_predictions AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    table_name,",
+              "",
+              "    AVG(CASE WHEN evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN prediction ELSE NULL END) as avg_drift_score",
+              "",
+              "  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions",
+              "",
+              "  WHERE prediction > 0.3",
+              "",
+              "  GROUP BY table_name",
+              "",
+              "),",
+              "",
+              "freshness_predictions AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    table_name,",
+              "",
+              "    AVG(prediction) as staleness_probability",
+              "",
+              "  FROM ${catalog}.${feature_schema}.freshness_alert_predictions",
+              "",
+              "  WHERE prediction > 0.5",
+              "",
+              "    AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "  GROUP BY table_name",
+              "",
+              ")",
+              "",
+              "SELECT",
+              "",
+              "  f.table_name,",
+              "",
+              "  f.hours_since_update,",
+              "",
+              "  f.is_stale,",
+              "",
+              "  COALESCE(q.quality_score, 0) as quality_score,",
+              "",
+              "  COALESCE(q.failed_check_count, 0) as failed_check_count,",
+              "",
+              "  COALESCE(q.completeness_rate, 0) as completeness_pct,",
+              "",
+              "  COALESCE(q.validity_rate, 0) as validity_pct,",
+              "",
+              "  COALESCE(a.activity_status, 'UNKNOWN') as activity_status,",
+              "",
+              "  COALESCE(a.read_count, 0) as daily_reads,",
+              "",
+              "  COALESCE(a.write_count, 0) as daily_writes,",
+              "",
+              "  COALESCE(ml.avg_drift_score, 0) as ml_drift_score,",
+              "",
+              "  COALESCE(fp.staleness_probability, 0) as predicted_staleness,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN f.is_stale = 'CRITICAL' AND q.quality_score < 50 THEN 'Critical - Data Integrity Risk'",
+              "",
+              "    WHEN ml.avg_drift_score > 0.7 AND fp.staleness_probability > 0.7 THEN 'High Risk - Immediate Attention'",
+              "",
+              "    WHEN f.is_stale = 'STALE' OR q.quality_score < 70 THEN 'Medium Risk - Monitor'",
+              "",
+              "    WHEN a.activity_status = 'INACTIVE' THEN 'Low Priority - Consider Archive'",
+              "",
+              "    ELSE 'Healthy'",
+              "",
+              "  END as health_status,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN f.is_stale = 'CRITICAL' THEN 'Investigate data pipeline immediately'",
+              "",
+              "    WHEN q.quality_score < 50 THEN 'Review and fix data quality rules'",
+              "",
+              "    WHEN ml.avg_drift_score > 0.7 THEN 'Analyze schema or data changes'",
+              "",
+              "    WHEN a.activity_status = 'INACTIVE' THEN 'Archive or decommission table'",
+              "",
+              "    ELSE 'Continue monitoring'",
+              "",
+              "  END as recommended_action",
+              "",
+              "FROM freshness f",
+              "",
+              "LEFT JOIN quality q ON f.table_name = q.table_name",
+              "",
+              "LEFT JOIN activity a ON f.table_name = a.table_name",
+              "",
+              "LEFT JOIN ml_predictions ml ON f.table_name = ml.table_name",
+              "",
+              "LEFT JOIN freshness_predictions fp ON f.table_name = fp.table_name",
+              "",
+              "ORDER BY ",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN f.is_stale = 'CRITICAL' AND COALESCE(q.quality_score, 0) < 50 THEN 1",
+              "",
+              "    WHEN COALESCE(ml.avg_drift_score, 0) > 0.7 THEN 2",
+              "",
+              "    WHEN f.is_stale = 'STALE' THEN 3",
+              "",
+              "    ELSE 4",
+              "",
+              "  END,",
+              "",
+              "  hours_since_update DESC",
+              "",
+              "LIMIT 25;"
             ]
           }
         ]
       },
       {
-        "id": "d2ae4ad0807f4d74b531cb3caeb6a939",
+        "id": "dqcdf5e849b6a44a44b29a26937f8325a5",
         "question": [
-          "Show me tables at risk of staleness"
+          "\ud83d\udd2c DEEP RESEARCH: Domain-level data quality scorecard - aggregate quality metrics with freshness and governance"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT \n",
-              "  table_name,\n",
-              "  prediction as staleness_probability,\n",
-              "  evaluation_date\n",
-              "FROM ${catalog}.${feature_schema}.freshness_alert_predictions\n",
-              "WHERE prediction > 0.7\n",
-              "ORDER BY prediction DESC\n",
-              "LIMIT 20;"
+              "WITH domain_quality AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    domain,",
+              "",
+              "    MEASURE(freshness_rate) as avg_quality,",
+              "",
+              "    MEASURE(total_tables) as avg_completeness,",
+              "",
+              "    MEASURE(staleness_rate) as avg_validity,",
+              "",
+              "    MEASURE(total_tables) as table_count",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              "  ",
+              "",
+              "  GROUP BY domain",
+              "",
+              "),",
+              "",
+              "domain_freshness AS (",
+              "",
+              "  SELECT",
+              "",
+              "    domain,",
+              "",
+              "    AVG(hours_since_update) as avg_hours_stale,",
+              "",
+              "    SUM(CASE WHEN is_stale = 'FRESH' THEN 1 ELSE 0 END) as fresh_count,",
+              "",
+              "    SUM(CASE WHEN is_stale = TRUE THEN 1 ELSE 0 END) as stale_count",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_freshness(24) tf",
+              "",
+              "  JOIN ${catalog}.${gold_schema}.mv_data_quality dq",
+              "",
+              "    ON tf.table_name = dq.table_full_name",
+              "",
+              "  GROUP BY domain",
+              "",
+              "),",
+              "",
+              "domain_activity AS (",
+              "",
+              "  SELECT",
+              "",
+              "    domain,",
+              "",
+              "    SUM(read_count) as total_daily_reads,",
+              "",
+              "    SUM(write_count) as total_daily_writes,",
+              "",
+              "    SUM(CASE WHEN activity_status = 'ACTIVE' THEN 1 ELSE 0 END) as active_tables,",
+              "",
+              "    SUM(CASE WHEN activity_status IN ('INACTIVE', 'ORPHANED') THEN 1 ELSE 0 END) as inactive_tables",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_activity_status(30, 14) ta",
+              "",
+              "  JOIN ${catalog}.${gold_schema}.mv_data_quality dq",
+              "",
+              "    ON ta.table_name = dq.table_full_name",
+              "",
+              "  GROUP BY domain",
+              "",
+              "),",
+              "",
+              "domain_governance AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    slice_value AS domain,",
+              "",
+              "    AVG(tag_coverage_rate) as avg_tag_coverage,",
+              "",
+              "    AVG(lineage_coverage_rate) as avg_lineage_coverage",
+              "",
+              "  FROM ${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics",
+              "",
+              "  WHERE column_name = ':table'",
+              "",
+              "    AND log_type = 'INPUT'",
+              "",
+              "    AND slice_key = 'domain'",
+              "",
+              "  GROUP BY slice_value",
+              "",
+              ")",
+              "",
+              "SELECT ",
+              "",
+              "  dq.domain,",
+              "",
+              "  dq.table_count,",
+              "",
+              "  dq.avg_quality,",
+              "",
+              "  dq.avg_completeness,",
+              "",
+              "  dq.avg_validity,",
+              "",
+              "  df.fresh_count,",
+              "",
+              "  df.stale_count,",
+              "",
+              "  df.stale_count * 100.0 / NULLIF(dq.table_count, 0) as staleness_pct,",
+              "",
+              "  da.active_tables,",
+              "",
+              "  da.inactive_tables,",
+              "",
+              "  da.total_daily_reads,",
+              "",
+              "  da.total_daily_writes,",
+              "",
+              "  COALESCE(dg.avg_tag_coverage, 0) as tag_coverage_pct,",
+              "",
+              "  COALESCE(dg.avg_lineage_coverage, 0) as lineage_coverage_pct,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN dq.avg_quality < 70 OR df.stale_count * 100.0 / NULLIF(dq.table_count, 0) > 20 THEN 'Critical Domain'",
+              "",
+              "    WHEN dq.avg_quality < 80 OR da.inactive_tables * 100.0 / NULLIF(dq.table_count, 0) > 30 THEN 'Needs Improvement'",
+              "",
+              "    WHEN dq.avg_quality >= 90 AND dg.avg_tag_coverage >= 80 THEN 'Excellent'",
+              "",
+              "    ELSE 'Good'",
+              "",
+              "  END as domain_health_status,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN dq.avg_quality < 70 THEN 'Implement stricter quality rules'",
+              "",
+              "    WHEN df.stale_count * 100.0 / NULLIF(dq.table_count, 0) > 20 THEN 'Review pipeline schedules'",
+              "",
+              "    WHEN dg.avg_tag_coverage < 50 THEN 'Improve metadata tagging'",
+              "",
+              "    WHEN da.inactive_tables > 10 THEN 'Archive unused tables'",
+              "",
+              "    ELSE 'Maintain current standards'",
+              "",
+              "  END as recommended_action",
+              "",
+              "FROM domain_quality dq",
+              "",
+              "LEFT JOIN domain_freshness df ON dq.domain = df.domain",
+              "",
+              "LEFT JOIN domain_activity da ON dq.domain = da.domain",
+              "",
+              "LEFT JOIN domain_governance dg ON dq.domain = dg.domain",
+              "",
+              "ORDER BY dq.avg_quality ASC, staleness_pct DESC",
+              "",
+              "LIMIT 15;"
             ]
           }
         ]
       },
       {
-        "id": "e28ccd1e2a674cd5af54d0200e97787a",
+        "id": "dqdd331eb1d4734eb09232c767d36f9a7a",
         "question": [
-          "Show me tables with freshness issues"
+          "\ud83d\udd2c DEEP RESEARCH: Pipeline data quality impact analysis - trace quality issues through lineage"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(\n",
-              "  7\n",
-              ")\n",
-              "WHERE freshness_status IN ('STALE', 'CRITICAL')\n",
-              "ORDER BY hours_since_update DESC\n",
-              "LIMIT 20;"
+              "WITH pipeline_lineage AS (",
+              "",
+              "  SELECT",
+              "",
+              "    upstream_table,",
+              "",
+              "    downstream_table,",
+              "",
+              "    depth,",
+              "",
+              "    pipeline_name",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_pipeline_data_lineage(7, 'ALL')",
+              "",
+              "),",
+              "",
+              "table_quality AS (",
+              "",
+              "  SELECT",
+              "",
+              "    table_name,",
+              "",
+              "    quality_score,",
+              "",
+              "    failed_check_count,",
+              "",
+              "    completeness_rate,",
+              "",
+              "    validity_rate",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_activity_status(30, 14)",
+              "",
+              "),",
+              "",
+              "freshness AS (",
+              "",
+              "  SELECT",
+              "",
+              "    table_name,",
+              "",
+              "    hours_since_update,",
+              "",
+              "    is_stale",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_freshness(24)",
+              "",
+              "),",
+              "",
+              "ml_drift AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    table_name,",
+              "",
+              "    AVG(prediction) as avg_drift_score",
+              "",
+              "  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions",
+              "",
+              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "    AND prediction > 0.3",
+              "",
+              "  GROUP BY table_name",
+              "",
+              ")",
+              "",
+              "SELECT ",
+              "",
+              "  pl.upstream_table,",
+              "",
+              "  pl.downstream_table,",
+              "",
+              "  pl.depth,",
+              "",
+              "  pl.pipeline_name,",
+              "",
+              "  COALESCE(sq.quality_score, 100) as source_quality_score,",
+              "",
+              "  COALESCE(sq.failed_check_count, 0) as source_failed_checks,",
+              "",
+              "  COALESCE(tq.quality_score, 100) as target_quality_score,",
+              "",
+              "  COALESCE(tq.failed_check_count, 0) as target_failed_checks,",
+              "",
+              "  COALESCE(sf.is_stale, 'UNKNOWN') as source_freshness,",
+              "",
+              "  COALESCE(tf.is_stale, 'UNKNOWN') as target_freshness,",
+              "",
+              "  COALESCE(sml.avg_drift_score, 0) as source_drift,",
+              "",
+              "  COALESCE(tml.avg_drift_score, 0) as target_drift,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN COALESCE(sq.quality_score, 100) < 50 AND COALESCE(tq.quality_score, 100) < 50 THEN 'Critical - Cascading Failure'",
+              "",
+              "    WHEN COALESCE(sq.quality_score, 100) < 70 AND COALESCE(tq.quality_score, 100) < 80 THEN 'High - Quality Degradation Propagating'",
+              "",
+              "    WHEN COALESCE(sf.is_stale, 'FRESH') IN ('STALE', 'CRITICAL') AND COALESCE(tf.is_stale, 'FRESH') IN ('STALE', 'CRITICAL') THEN 'High - Freshness Cascade'",
+              "",
+              "    WHEN COALESCE(sml.avg_drift_score, 0) > 0.6 THEN 'Medium - Upstream Drift Detected'",
+              "",
+              "    ELSE 'Normal'",
+              "",
+              "  END as impact_status,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN COALESCE(sq.quality_score, 100) < 50 THEN 'Fix source data quality immediately'",
+              "",
+              "    WHEN COALESCE(sf.is_stale, 'FRESH') = 'CRITICAL' THEN 'Investigate source pipeline failure'",
+              "",
+              "    WHEN COALESCE(sml.avg_drift_score, 0) > 0.6 THEN 'Review schema changes in source'",
+              "",
+              "    WHEN COALESCE(tq.failed_check_count, 0) > 5 THEN 'Review downstream validation rules'",
+              "",
+              "    ELSE 'Monitor pipeline health'",
+              "",
+              "  END as recommended_action",
+              "",
+              "FROM pipeline_lineage pl",
+              "",
+              "LEFT JOIN table_quality sq ON pl.upstream_table = sq.table_name",
+              "",
+              "LEFT JOIN table_quality tq ON pl.downstream_table = tq.table_name",
+              "",
+              "LEFT JOIN freshness sf ON pl.upstream_table = sf.table_name",
+              "",
+              "LEFT JOIN freshness tf ON pl.downstream_table = tf.table_name",
+              "",
+              "LEFT JOIN ml_drift sml ON pl.upstream_table = sml.table_name",
+              "",
+              "LEFT JOIN ml_drift tml ON pl.downstream_table = tml.table_name",
+              "",
+              "WHERE COALESCE(sq.quality_score, 100) < 80 ",
+              "",
+              "   OR COALESCE(tq.quality_score, 100) < 80",
+              "",
+              "   OR COALESCE(sf.is_stale, 'FRESH') IN ('STALE', 'CRITICAL')",
+              "",
+              "ORDER BY ",
+              "",
+              "  CASE impact_status",
+              "",
+              "    WHEN 'Critical - Cascading Failure' THEN 1",
+              "",
+              "    WHEN 'High - Quality Degradation Propagating' THEN 2",
+              "",
+              "    WHEN 'High - Freshness Cascade' THEN 3",
+              "",
+              "    ELSE 4",
+              "",
+              "  END,",
+              "",
+              "  pl.depth ASC",
+              "",
+              "LIMIT 25;"
             ]
           }
         ]
       },
       {
-        "id": "fc4e09a3509e4361bd169c43cbf946e5",
+        "id": "dqe18dd20778724a4b807c9ff35f90b9e0",
         "question": [
           "\ud83d\udd2c DEEP RESEARCH: ML-powered predictive quality monitoring - identify tables at risk before failures occur"
         ],
@@ -1524,126 +1756,409 @@
           {
             "format": "SQL",
             "content": [
-              "WITH current_quality AS (\n",
-              "  SELECT \n",
-              "    table_full_name as table_name,\n",
-              "    quality_score,\n",
-              "    failed_checks,\n",
-              "    completeness_rate,\n",
-              "    validity_rate\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(\n",
-              "    (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "    CURRENT_DATE()::STRING\n",
-              "  )\n",
-              "),\n",
-              "ml_drift_predictions AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    AVG(prediction) as avg_drift_score,\n",
-              "    MAX(prediction) as max_drift_score\n",
-              "  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions\n",
-              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "    AND prediction > 0.3\n",
-              "  GROUP BY table_name\n",
-              "),\n",
-              "ml_schema_change_risk AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    AVG(prediction) as change_probability\n",
-              "  FROM ${catalog}.${feature_schema}.quality_trend_predictions\n",
-              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "    AND prediction > 0.4\n",
-              "  GROUP BY table_name\n",
-              "),\n",
-              "freshness_risk AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    AVG(prediction) as staleness_probability\n",
-              "  FROM ${catalog}.${feature_schema}.freshness_alert_predictions\n",
-              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "    AND prediction > 0.5\n",
-              "  GROUP BY table_name\n",
-              "),\n",
-              "quality_drift AS (\n",
-              "  SELECT \n",
-              "    table_name,\n",
-              "    AVG(quality_score_drift_pct) as avg_quality_drift,\n",
-              "    MAX(quality_score_drift_pct) as max_quality_drift\n",
-              "  FROM ${catalog}.${gold_schema}.fact_table_quality_drift_metrics\n",
-              "  WHERE drift_type = 'CONSECUTIVE'\n",
-              "    AND column_name = ':table'\n",
-              "    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  GROUP BY table_name\n",
-              ")\n",
-              "SELECT \n",
-              "  cq.table_name,\n",
-              "  cq.quality_score as current_quality_score,\n",
-              "  cq.failed_checks,\n",
-              "  COALESCE(dp.avg_drift_score, 0) as ml_drift_score,\n",
-              "  COALESCE(sc.change_probability, 0) as schema_change_risk,\n",
-              "  COALESCE(fr.staleness_probability, 0) as freshness_risk,\n",
-              "  COALESCE(qd.avg_quality_drift, 0) as recent_quality_drift,\n",
-              "  COALESCE(qd.max_quality_drift, 0) as max_quality_drift,\n",
-              "  CASE \n",
-              "    WHEN COALESCE(dp.max_drift_score, 0) > 0.8 AND cq.quality_score < 70 THEN 'Critical - Imminent Failure'\n",
-              "    WHEN COALESCE(sc.change_probability, 0) > 0.7 AND COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'High - Multiple Risk Factors'\n",
-              "    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'High - Rapid Quality Degradation'\n",
-              "    WHEN COALESCE(dp.avg_drift_score, 0) > 0.5 OR COALESCE(sc.change_probability, 0) > 0.6 THEN 'Medium - Elevated Risk'\n",
-              "    WHEN cq.quality_score >= 90 THEN 'Low Risk - Healthy'\n",
-              "    ELSE 'Monitor'\n",
-              "  END as risk_status,\n",
-              "  CASE \n",
-              "    WHEN COALESCE(dp.max_drift_score, 0) > 0.8 THEN 'Immediate investigation - data drift detected'\n",
-              "    WHEN COALESCE(sc.change_probability, 0) > 0.7 THEN 'Review for schema evolution or changes'\n",
-              "    WHEN COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'Check pipeline schedule and dependencies'\n",
-              "    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Analyze recent data source changes'\n",
-              "    WHEN cq.failed_checks > 3 THEN 'Review and update validation rules'\n",
-              "    ELSE 'Continue monitoring'\n",
-              "  END as recommended_action,\n",
-              "  CASE \n",
-              "    WHEN COALESCE(dp.max_drift_score, 0) > 0.8 OR COALESCE(qd.max_quality_drift, 0) > 50 THEN 'Today'\n",
-              "    WHEN COALESCE(sc.change_probability, 0) > 0.7 OR COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'This Week'\n",
-              "    WHEN COALESCE(dp.avg_drift_score, 0) > 0.5 THEN 'Next 2 Weeks'\n",
-              "    ELSE 'Monitor'\n",
-              "  END as time_to_failure_estimate\n",
-              "FROM current_quality cq\n",
-              "LEFT JOIN ml_drift_predictions dp ON cq.table_name = dp.table_name\n",
-              "LEFT JOIN ml_schema_change_risk sc ON cq.table_name = sc.table_name\n",
-              "LEFT JOIN freshness_risk fr ON cq.table_name = fr.table_name\n",
-              "LEFT JOIN quality_drift qd ON cq.table_name = qd.table_name\n",
-              "WHERE COALESCE(dp.avg_drift_score, 0) > 0.3 \n",
-              "   OR COALESCE(sc.change_probability, 0) > 0.4 \n",
-              "   OR COALESCE(fr.staleness_probability, 0) > 0.5\n",
-              "   OR COALESCE(qd.max_quality_drift, 0) > 20\n",
-              "ORDER BY \n",
-              "  CASE risk_status\n",
-              "    WHEN 'Critical - Imminent Failure' THEN 1\n",
-              "    WHEN 'High - Multiple Risk Factors' THEN 2\n",
-              "    WHEN 'High - Rapid Quality Degradation' THEN 3\n",
-              "    ELSE 4\n",
-              "  END,\n",
-              "  COALESCE(dp.max_drift_score, 0) DESC,\n",
-              "  COALESCE(qd.max_quality_drift, 0) DESC\n",
+              "WITH current_quality AS (",
+              "",
+              "  SELECT",
+              "",
+              "    table_name,",
+              "",
+              "    quality_score,",
+              "",
+              "    failed_check_count,",
+              "",
+              "    completeness_rate,",
+              "",
+              "    validity_rate",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_activity_status(7, 14)",
+              "",
+              "),",
+              "",
+              "ml_drift_predictions AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    table_name,",
+              "",
+              "    AVG(prediction) as avg_drift_score,",
+              "",
+              "    MAX(prediction) as max_drift_score",
+              "",
+              "  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions",
+              "",
+              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "    AND prediction > 0.3",
+              "",
+              "  GROUP BY table_name",
+              "",
+              "),",
+              "",
+              "freshness_risk AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    table_name,",
+              "",
+              "    AVG(prediction) as staleness_probability",
+              "",
+              "  FROM ${catalog}.${feature_schema}.freshness_alert_predictions",
+              "",
+              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "    AND prediction > 0.5",
+              "",
+              "  GROUP BY table_name",
+              "",
+              "),",
+              "",
+              "quality_drift AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    table_name,",
+              "",
+              "    AVG(quality_score_drift_pct) as avg_quality_drift,",
+              "",
+              "    MAX(quality_score_drift_pct) as max_quality_drift",
+              "",
+              "  FROM ${catalog}.${gold_schema}.fact_table_quality_drift_metrics",
+              "",
+              "  WHERE drift_type = 'CONSECUTIVE'",
+              "",
+              "    AND column_name = ':table'",
+              "",
+              "    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "  GROUP BY table_name",
+              "",
+              ")",
+              "",
+              "SELECT",
+              "",
+              "  cq.table_name,",
+              "",
+              "  cq.quality_score as current_quality_score,",
+              "",
+              "  cq.failed_check_count,",
+              "",
+              "  COALESCE(dp.avg_drift_score, 0) as ml_drift_score,",
+              "",
+              "  COALESCE(fr.staleness_probability, 0) as freshness_risk,",
+              "",
+              "  COALESCE(qd.avg_quality_drift, 0) as recent_quality_drift,",
+              "",
+              "  COALESCE(qd.max_quality_drift, 0) as max_quality_drift,",
+              "",
+              "  CASE",
+              "",
+              "    WHEN COALESCE(dp.max_drift_score, 0) > 0.8 AND cq.quality_score < 70 THEN 'Critical - Imminent Failure'",
+              "",
+              "    WHEN COALESCE(fr.staleness_probability, 0) > 0.7 AND COALESCE(dp.avg_drift_score, 0) > 0.5 THEN 'High - Multiple Risk Factors'",
+              "",
+              "    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'High - Rapid Quality Degradation'",
+              "",
+              "    WHEN COALESCE(dp.avg_drift_score, 0) > 0.5 THEN 'Medium - Elevated Risk'",
+              "",
+              "    WHEN cq.quality_score >= 90 THEN 'Low Risk - Healthy'",
+              "",
+              "    ELSE 'Monitor'",
+              "",
+              "  END as risk_status,",
+              "",
+              "  CASE",
+              "",
+              "    WHEN COALESCE(dp.max_drift_score, 0) > 0.8 THEN 'Immediate investigation - data drift detected'",
+              "",
+              "    WHEN COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'Check pipeline schedule and dependencies'",
+              "",
+              "    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Analyze recent data source changes'",
+              "",
+              "    WHEN cq.failed_check_count > 3 THEN 'Review and update validation rules'",
+              "",
+              "    ELSE 'Continue monitoring'",
+              "",
+              "  END as recommended_action,",
+              "",
+              "  CASE",
+              "",
+              "    WHEN COALESCE(dp.max_drift_score, 0) > 0.8 OR COALESCE(qd.max_quality_drift, 0) > 50 THEN 'Today'",
+              "",
+              "    WHEN COALESCE(fr.staleness_probability, 0) > 0.7 THEN 'This Week'",
+              "",
+              "    WHEN COALESCE(dp.avg_drift_score, 0) > 0.5 THEN 'Next 2 Weeks'",
+              "",
+              "    ELSE 'Monitor'",
+              "",
+              "  END as time_to_failure_estimate",
+              "",
+              "FROM current_quality cq",
+              "",
+              "LEFT JOIN ml_drift_predictions dp ON cq.table_name = dp.table_name",
+              "",
+              "LEFT JOIN freshness_risk fr ON cq.table_name = fr.table_name",
+              "",
+              "LEFT JOIN quality_drift qd ON cq.table_name = qd.table_name",
+              "",
+              "WHERE COALESCE(dp.avg_drift_score, 0) > 0.3",
+              "",
+              "   OR COALESCE(fr.staleness_probability, 0) > 0.5",
+              "",
+              "   OR COALESCE(qd.max_quality_drift, 0) > 20",
+              "",
+              "ORDER BY",
+              "",
+              "  CASE risk_status",
+              "",
+              "    WHEN 'Critical - Imminent Failure' THEN 1",
+              "",
+              "    WHEN 'High - Multiple Risk Factors' THEN 2",
+              "",
+              "    WHEN 'High - Rapid Quality Degradation' THEN 3",
+              "",
+              "    ELSE 4",
+              "",
+              "  END,",
+              "",
+              "  COALESCE(dp.max_drift_score, 0) DESC,",
+              "",
+              "  COALESCE(qd.max_quality_drift, 0) DESC",
+              "",
               "LIMIT 25;"
             ]
           }
         ]
       },
       {
-        "id": "fe9db00644d14cb8a693acc5ecbdb503",
+        "id": "dqfc870b15b1e44d96986ece987726d7ea",
         "question": [
-          "What is the job quality status?"
+          "\ud83d\udd2c DEEP RESEARCH: Executive data quality dashboard - comprehensive quality, freshness, governance, and ML intelligence"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_activity_summary(\n",
-              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "  CURRENT_DATE()::STRING\n",
-              ")\n",
-              "ORDER BY quality_score ASC\n",
-              "LIMIT 15;"
+              "WITH quality_summary AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    MEASURE(freshness_rate) as avg_quality,",
+              "",
+              "    MEASURE(total_tables) as avg_completeness,",
+              "",
+              "    MEASURE(staleness_rate) as avg_validity,",
+              "",
+              "    MEASURE(freshness_rate) as freshness_pct,",
+              "",
+              "    MEASURE(staleness_rate) as staleness_pct,",
+              "",
+              "    MEASURE(total_tables) as table_count",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              "  ",
+              "",
+              "),",
+              "",
+              "failing_tables AS (",
+              "",
+              "  SELECT",
+              "",
+              "    COUNT(*) as tables_failing_quality,",
+              "",
+              "    SUM(failed_check_count) as total_failed_checks",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_activity_status(7, 14)",
+              "",
+              "  WHERE quality_score < 70",
+              "",
+              "),",
+              "",
+              "stale_tables AS (",
+              "",
+              "  SELECT",
+              "",
+              "    COUNT(*) as stale_count,",
+              "",
+              "    AVG(hours_since_update) as avg_hours_stale",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_table_freshness(24)",
+              "",
+              "  WHERE is_stale = TRUE",
+              "",
+              "),",
+              "",
+              "ml_intelligence AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    MEASURE(accuracy) as ml_accuracy,",
+              "",
+              "    MEASURE(drift_score) as avg_drift,",
+              "",
+              "    MEASURE(prediction_count) as predictions",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_ml_intelligence",
+              "",
+              "  ",
+              "",
+              "),",
+              "",
+              "ml_anomaly_predictions AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    COUNT(*) as tables_with_drift,",
+              "",
+              "    AVG(prediction) as avg_drift_score",
+              "",
+              "  FROM ${catalog}.${feature_schema}.quality_anomaly_predictions",
+              "",
+              "  WHERE prediction > 0.5",
+              "",
+              "    ",
+              "",
+              "),",
+              "",
+              "ml_risk_predictions AS (",
+              "",
+              "  SELECT",
+              "",
+              "    COUNT(DISTINCT table_name) as tables_at_risk,",
+              "",
+              "    AVG(prediction) as avg_risk_score",
+              "",
+              "  FROM ${catalog}.${feature_schema}.freshness_alert_predictions",
+              "",
+              "  WHERE prediction > 0.7 ",
+              "",
+              "),",
+              "",
+              "governance_status AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    AVG(tag_coverage_rate) as avg_tag_coverage,",
+              "",
+              "    AVG(lineage_coverage_rate) as avg_lineage_coverage",
+              "",
+              "  FROM ${catalog}.${gold_schema}.fact_governance_metrics_profile_metrics",
+              "",
+              "  WHERE column_name = ':table'",
+              "",
+              "    AND log_type = 'INPUT'",
+              "",
+              "    AND slice_key IS NULL",
+              "",
+              "    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "),",
+              "",
+              "quality_drift AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    AVG(quality_score_drift_pct) as avg_quality_drift,",
+              "",
+              "    MAX(quality_score_drift_pct) as max_quality_drift",
+              "",
+              "  FROM ${catalog}.${gold_schema}.fact_table_quality_drift_metrics",
+              "",
+              "  WHERE drift_type = 'CONSECUTIVE'",
+              "",
+              "    AND column_name = ':table'",
+              "",
+              "    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              ")",
+              "",
+              "SELECT ",
+              "",
+              "  qs.table_count as total_tables,",
+              "",
+              "  qs.avg_quality as overall_quality_score,",
+              "",
+              "  qs.avg_completeness as completeness_pct,",
+              "",
+              "  qs.avg_validity as validity_pct,",
+              "",
+              "  qs.freshness_pct,",
+              "",
+              "  qs.staleness_pct,",
+              "",
+              "  COALESCE(ft.tables_failing_quality, 0) as failing_tables,",
+              "",
+              "  COALESCE(ft.total_failed_checks, 0) as total_failed_checks,",
+              "",
+              "  COALESCE(st.stale_count, 0) as stale_tables,",
+              "",
+              "  COALESCE(st.avg_hours_stale, 0) as avg_hours_stale,",
+              "",
+              "  COALESCE(ml.ml_accuracy, 0) as ml_model_accuracy,",
+              "",
+              "  COALESCE(ml.avg_drift, 0) as ml_detected_drift,",
+              "",
+              "  COALESCE(ap.tables_with_drift, 0) as tables_with_anomalies,",
+              "",
+              "  COALESCE(rp.tables_at_risk, 0) as tables_at_risk,",
+              "",
+              "  COALESCE(gs.avg_tag_coverage, 0) as tag_coverage_pct,",
+              "",
+              "  COALESCE(gs.avg_lineage_coverage, 0) as lineage_coverage_pct,",
+              "",
+              "  COALESCE(qd.avg_quality_drift, 0) as recent_quality_drift,",
+              "",
+              "  COALESCE(qd.max_quality_drift, 0) as max_quality_drift,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN qs.avg_quality < 70 OR COALESCE(ft.tables_failing_quality, 0) > 10 THEN 'Critical Data Quality Crisis'",
+              "",
+              "    WHEN qs.staleness_pct > 20 OR COALESCE(st.stale_count, 0) > 20 THEN 'Critical Freshness Issues'",
+              "",
+              "    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Quality Degradation Detected'",
+              "",
+              "    WHEN COALESCE(rp.tables_at_risk, 0) > 15 THEN 'High Risk - Predictive Alerts'",
+              "",
+              "    WHEN qs.avg_quality >= 90 AND qs.freshness_pct >= 95 THEN 'Excellent Data Health'",
+              "",
+              "    ELSE 'Normal'",
+              "",
+              "  END as overall_data_health_status,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN qs.avg_quality < 70 THEN 'Audit and strengthen quality rules across all domains'",
+              "",
+              "    WHEN COALESCE(ft.tables_failing_quality, 0) > 10 THEN 'Investigate top failing tables immediately'",
+              "",
+              "    WHEN qs.staleness_pct > 20 THEN 'Review pipeline schedules and dependencies'",
+              "",
+              "    WHEN COALESCE(qd.max_quality_drift, 0) > 30 THEN 'Analyze recent changes causing quality degradation'",
+              "",
+              "    WHEN COALESCE(rp.tables_at_risk, 0) > 15 THEN 'Proactive monitoring of at-risk tables'",
+              "",
+              "    WHEN COALESCE(gs.avg_tag_coverage, 0) < 70 THEN 'Improve metadata tagging and governance'",
+              "",
+              "    ELSE 'Continue monitoring and maintain standards'",
+              "",
+              "  END as top_priority_action",
+              "",
+              "FROM quality_summary qs",
+              "",
+              "CROSS JOIN failing_tables ft",
+              "",
+              "CROSS JOIN stale_tables st",
+              "",
+              "CROSS JOIN ml_intelligence ml",
+              "",
+              "CROSS JOIN ml_anomaly_predictions ap",
+              "",
+              "CROSS JOIN ml_risk_predictions rp",
+              "",
+              "CROSS JOIN governance_status gs",
+              "",
+              "CROSS JOIN quality_drift qd;"
             ]
           }
         ]

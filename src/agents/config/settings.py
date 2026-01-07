@@ -5,16 +5,27 @@ Agent Configuration Settings
 Centralized configuration for the Health Monitor Agent Framework.
 All settings can be overridden via environment variables.
 
+IMPORTANT: Genie Space configuration is defined in genie_spaces.py (single source of truth).
+This file imports from there to avoid duplication.
+
 Usage:
     from agents.config import settings
 
     llm_endpoint = settings.llm_endpoint
-    cost_genie_id = settings.cost_genie_space_id
+    cost_genie_id = settings.cost_genie_space_id  # Delegates to genie_spaces.py
 """
 
 import os
 from dataclasses import dataclass, field
 from typing import Optional
+
+# Import Genie Space configuration from single source of truth
+from .genie_spaces import (
+    GENIE_SPACE_REGISTRY,
+    DOMAINS,
+    get_genie_space_id as _get_genie_space_id,
+    get_genie_space_config as _get_genie_space_config,
+)
 
 
 @dataclass
@@ -47,48 +58,41 @@ class AgentSettings:
     )
 
     # =========================================================================
-    # Genie Space IDs (from Phase 3.6 deployment)
+    # Genie Space IDs (DELEGATED to genie_spaces.py - Single Source of Truth)
     # =========================================================================
-    # These IDs are configurable via environment variables for flexibility.
-    # Default values are the deployed Genie Space IDs from the project.
-    # To override: export COST_GENIE_SPACE_ID="your-space-id"
+    # DO NOT hardcode IDs here! They are managed in genie_spaces.py
+    # These properties delegate to the central registry for consistency.
+    # Environment variable overrides still work via genie_spaces.py
     # =========================================================================
-    cost_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get(
-            "COST_GENIE_SPACE_ID", 
-            "01f0ea871ffe176fa6aee6f895f83d3b"  # Cost Intelligence Space
-        )
-    )
-    security_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get(
-            "SECURITY_GENIE_SPACE_ID", 
-            "01f0ea9367f214d6a4821605432234c4"  # Security Auditor Space
-        )
-    )
-    performance_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get(
-            "PERFORMANCE_GENIE_SPACE_ID", 
-            "01f0ea93671e12d490224183f349dba0"  # Performance Space
-        )
-    )
-    reliability_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get(
-            "RELIABILITY_GENIE_SPACE_ID", 
-            "01f0ea8724fd160e8e959b8a5af1a8c5"  # Job Reliability Space
-        )
-    )
-    quality_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get(
-            "QUALITY_GENIE_SPACE_ID", 
-            "01f0ea93616c1978a99a59d3f2e805bd"  # Data Quality Space
-        )
-    )
-    unified_genie_space_id: str = field(
-        default_factory=lambda: os.environ.get(
-            "UNIFIED_GENIE_SPACE_ID", 
-            "01f0ea9368801e019e681aa3abaa0089"  # Overall Health Monitor Space
-        )
-    )
+    @property
+    def cost_genie_space_id(self) -> str:
+        """Cost Intelligence Space ID (from genie_spaces.py)."""
+        return _get_genie_space_id(DOMAINS.COST) or ""
+    
+    @property
+    def security_genie_space_id(self) -> str:
+        """Security Auditor Space ID (from genie_spaces.py)."""
+        return _get_genie_space_id(DOMAINS.SECURITY) or ""
+    
+    @property
+    def performance_genie_space_id(self) -> str:
+        """Performance Space ID (from genie_spaces.py)."""
+        return _get_genie_space_id(DOMAINS.PERFORMANCE) or ""
+    
+    @property
+    def reliability_genie_space_id(self) -> str:
+        """Job Reliability Space ID (from genie_spaces.py)."""
+        return _get_genie_space_id(DOMAINS.RELIABILITY) or ""
+    
+    @property
+    def quality_genie_space_id(self) -> str:
+        """Data Quality Space ID (from genie_spaces.py)."""
+        return _get_genie_space_id(DOMAINS.QUALITY) or ""
+    
+    @property
+    def unified_genie_space_id(self) -> str:
+        """Overall Health Monitor Space ID (from genie_spaces.py)."""
+        return _get_genie_space_id(DOMAINS.UNIFIED) or ""
 
     # =========================================================================
     # Lakebase Memory Configuration
@@ -194,6 +198,29 @@ class AgentSettings:
         return f"{self.catalog}.{self.agent_schema}.memory_long_term"
 
     # =========================================================================
+    # MLflow Experiment Configuration (CONSOLIDATED)
+    # =========================================================================
+    # All agent-related MLflow runs go to a SINGLE experiment.
+    # Use run tags to differentiate purpose (model_logging, evaluation, etc.)
+    # This simplifies tracking and provides a single location for all agent runs.
+    # =========================================================================
+    mlflow_experiment_path: str = field(
+        default_factory=lambda: os.environ.get(
+            "MLFLOW_EXPERIMENT_PATH", 
+            "/Shared/health_monitor/agent"
+        )
+    )
+
+    # Run type tags for differentiation within the unified experiment
+    # These are used as mlflow.set_tag("run_type", <value>)
+    RUN_TYPE_MODEL_LOGGING: str = "model_logging"
+    RUN_TYPE_EVALUATION: str = "evaluation"
+    RUN_TYPE_DEPLOYMENT: str = "deployment"
+    RUN_TYPE_PROMPTS: str = "prompt_registry"
+    RUN_TYPE_TRACES: str = "traces"
+    RUN_TYPE_MONITORING: str = "production_monitoring"
+
+    # =========================================================================
     # SQL Warehouse Configuration
     # =========================================================================
     warehouse_id: str = field(
@@ -244,16 +271,23 @@ class AgentSettings:
     )
 
     def get_genie_space_id(self, domain: str) -> Optional[str]:
-        """Get Genie Space ID for a domain."""
-        mapping = {
-            "cost": self.cost_genie_space_id,
-            "security": self.security_genie_space_id,
-            "performance": self.performance_genie_space_id,
-            "reliability": self.reliability_genie_space_id,
-            "quality": self.quality_genie_space_id,
-            "unified": self.unified_genie_space_id,
-        }
-        return mapping.get(domain.lower())
+        """
+        Get Genie Space ID for a domain.
+        
+        Delegates to genie_spaces.py (single source of truth).
+        """
+        return _get_genie_space_id(domain)
+    
+    def get_genie_space_config(self, domain: str):
+        """
+        Get full Genie Space configuration including agent instructions.
+        
+        Delegates to genie_spaces.py (single source of truth).
+        
+        Returns:
+            GenieSpaceConfig with name, description, agent_instructions, etc.
+        """
+        return _get_genie_space_config(domain)
 
     def validate(self) -> list[str]:
         """Validate required settings are configured."""

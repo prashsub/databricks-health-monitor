@@ -1,56 +1,95 @@
 {
   "version": 1,
   "config": {
-    "title": "Health Monitor Unified Space",
-    "description": "Comprehensive Databricks platform health monitoring across cost, reliability, security, performance, and quality. Unified natural language interface for enterprise-wide observability.",
-    "warehouse_id": "${warehouse_id}",
     "sample_questions": [
       {
-        "id": "44ec00bbef24417e82548c52af782789",
+        "id": "u1a2b3c4d5e6789012345678901234a1",
+        "question": [
+          "What is the overall platform health score?"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234a2",
+        "question": [
+          "Show me key metrics across all domains"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234a3",
+        "question": [
+          "Are there any critical alerts today?"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234a4",
+        "question": [
+          "What anomalies were detected across the platform?"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234a5",
         "question": [
           "What is our total spend this month?"
         ]
       },
       {
-        "id": "e0588f902616487c9aa36667d4422bb1",
+        "id": "u1a2b3c4d5e6789012345678901234a6",
         "question": [
-          "Which jobs failed today?"
+          "Which workspaces cost the most?"
         ]
       },
       {
-        "id": "a276966a51f948fdbd96a6872ec6d058",
-        "question": [
-          "Show me slow queries"
-        ]
-      },
-      {
-        "id": "1013fc19813545d48d005df1f8d29172",
-        "question": [
-          "What is the job success rate?"
-        ]
-      },
-      {
-        "id": "1297823cd0f34ca4a91e6cd7714ed0cc",
-        "question": [
-          "Which resources are underutilized?"
-        ]
-      },
-      {
-        "id": "05761dea9d0a4dce936cc9618f760321",
+        "id": "u1a2b3c4d5e6789012345678901234a7",
         "question": [
           "Show me cost anomalies"
         ]
       },
       {
-        "id": "9234f58b8ec341b2988be1e5022790da",
+        "id": "u1a2b3c4d5e6789012345678901234a8",
         "question": [
-          "What is our SLA breach rate?"
+          "What is our job success rate?"
         ]
       },
       {
-        "id": "e82b15bb636d4a78aa9c7a90c7a6689f",
+        "id": "u1a2b3c4d5e6789012345678901234a9",
         "question": [
-          "Which workspaces have the highest cost?"
+          "Show me failed jobs today"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234aa",
+        "question": [
+          "Which jobs are likely to fail?"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234ab",
+        "question": [
+          "What is our P95 query duration?"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234ac",
+        "question": [
+          "Show me slow queries"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234ad",
+        "question": [
+          "Which clusters are underutilized?"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234ae",
+        "question": [
+          "Who accessed sensitive data?"
+        ]
+      },
+      {
+        "id": "u1a2b3c4d5e6789012345678901234af",
+        "question": [
+          "Are there any security anomalies?"
         ]
       }
     ]
@@ -59,217 +98,1083 @@
     "tables": [
       {
         "identifier": "${catalog}.${feature_schema}.cost_anomaly_predictions",
-        "column_configs": []
+        "description": [
+          "ML predictions: Detect unusual spending patterns.\n",
+          "Model: Cost Anomaly Detector (Isolation Forest)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "anomaly_score",
+            "description": [
+              "Anomaly score (-1 to 1, more negative = more anomalous)"
+            ]
+          },
+          {
+            "column_name": "is_anomaly",
+            "description": [
+              "Boolean flag for anomaly"
+            ]
+          },
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Workspace with anomaly"
+            ]
+          }
+        ]
       },
       {
         "identifier": "${catalog}.${feature_schema}.job_failure_predictions",
-        "column_configs": []
+        "description": [
+          "ML predictions: Predict job failure probability.\n",
+          "Model: Job Failure Predictor (XGBoost)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "failure_probability",
+            "description": [
+              "Probability of failure (0-1)"
+            ]
+          },
+          {
+            "column_name": "will_fail",
+            "description": [
+              "Boolean: will this job fail?"
+            ]
+          },
+          {
+            "column_name": "risk_factors",
+            "description": [
+              "Contributing risk factors"
+            ]
+          }
+        ]
       },
       {
-        "identifier": "${catalog}.${feature_schema}.query_optimization_recommendations",
-        "column_configs": []
+        "identifier": "${catalog}.${feature_schema}.pipeline_health_predictions",
+        "description": [
+          "ML predictions: Overall pipeline health (0-100).\n",
+          "Model: Pipeline Health Scorer (Gradient Boosting)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "prediction",
+            "description": [
+              "Health score (0-100)"
+            ]
+          },
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier"
+            ]
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Evaluation date"
+            ]
+          }
+        ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.cost_analytics",
-        "column_configs": []
+        "identifier": "${catalog}.${feature_schema}.access_anomaly_predictions",
+        "description": [
+          "ML predictions: Detect unusual access patterns.\n",
+          "Model: Security Threat Detector (Isolation Forest)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "threat_score",
+            "description": [
+              "Threat score (negative = anomalous)"
+            ]
+          },
+          {
+            "column_name": "is_threat",
+            "description": [
+              "Boolean: is this a threat?"
+            ]
+          },
+          {
+            "column_name": "user_identity",
+            "description": [
+              "User with anomalous behavior"
+            ]
+          }
+        ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.dim_job",
-        "column_configs": []
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.dim_sku",
-        "column_configs": []
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.dim_warehouse",
-        "column_configs": []
+        "identifier": "${catalog}.${feature_schema}.quality_anomaly_predictions",
+        "description": [
+          "ML predictions: Detect data drift/quality issues.\n",
+          "Model: Data Drift Detector (Isolation Forest)"
+        ],
+        "column_configs": [
+          {
+            "column_name": "drift_score",
+            "description": [
+              "Drift score (0-1, higher = more drift)"
+            ]
+          },
+          {
+            "column_name": "is_drifted",
+            "description": [
+              "Boolean: has data drifted?"
+            ]
+          },
+          {
+            "column_name": "table_name",
+            "description": [
+              "Table with drift"
+            ]
+          }
+        ]
       },
       {
         "identifier": "${catalog}.${gold_schema}.dim_workspace",
-        "column_configs": []
+        "description": [
+          "Dimension table for workspace details.\n",
+          "Business: Links all domains to specific Databricks workspaces."
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Unique workspace identifier"
+            ]
+          },
+          {
+            "column_name": "workspace_name",
+            "description": [
+              "Human-readable workspace name"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
-        "column_configs": []
+        "identifier": "${catalog}.${gold_schema}.dim_sku",
+        "description": [
+          "Dimension table containing all unique Databricks SKU identifiers.\n",
+          "Business: Master reference for product/service pricing categories."
+        ],
+        "column_configs": [
+          {
+            "column_name": "sku_name",
+            "description": [
+              "SKU identifier determining pricing rate"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "cloud",
+            "description": [
+              "Cloud provider for this SKU"
+            ]
+          }
+        ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline_profile_metrics",
-        "column_configs": []
+        "identifier": "${catalog}.${gold_schema}.dim_job",
+        "description": [
+          "Dimension table for job definitions.\n",
+          "Business: Job metadata for reliability tracking."
+        ],
+        "column_configs": [
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier"
+            ]
+          },
+          {
+            "column_name": "name",
+            "description": [
+              "Job name"
+            ],
+            "synonyms": [
+              "job_name",
+              "workflow"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_query_history",
-        "column_configs": []
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_query_history_profile_metrics",
-        "column_configs": []
+        "identifier": "${catalog}.${gold_schema}.dim_user",
+        "description": [
+          "Dimension table for user information.\n",
+          "Business: User context for security and audit tracking."
+        ],
+        "column_configs": [
+          {
+            "column_name": "email",
+            "description": [
+              "User email address"
+            ],
+            "synonyms": [
+              "user_email",
+              "user_identity"
+            ]
+          },
+          {
+            "column_name": "user_name",
+            "description": [
+              "User display name"
+            ]
+          }
+        ]
       },
       {
         "identifier": "${catalog}.${gold_schema}.fact_usage",
-        "column_configs": []
+        "description": [
+          "Fact table tracking all billable Databricks usage.\n",
+          "Business: Primary source for cost monitoring."
+        ],
+        "column_configs": [
+          {
+            "column_name": "list_cost",
+            "description": [
+              "Calculated cost"
+            ],
+            "synonyms": [
+              "cost",
+              "spend"
+            ]
+          },
+          {
+            "column_name": "usage_date",
+            "description": [
+              "Calendar date of usage"
+            ],
+            "get_example_values": true
+          },
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Workspace identifier"
+            ]
+          }
+        ]
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_usage_profile_metrics",
-        "column_configs": []
+        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
+        "description": [
+          "Job execution timeline.\n",
+          "Business: Job-level reliability tracking."
+        ],
+        "column_configs": [
+          {
+            "column_name": "result_state",
+            "description": [
+              "Job result: SUCCESS, FAILED, etc."
+            ],
+            "get_example_values": true
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Date of job run"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_query_history",
+        "description": [
+          "Query execution history.\n",
+          "Business: Query-level performance tracking."
+        ],
+        "column_configs": [
+          {
+            "column_name": "execution_status",
+            "description": [
+              "Query status: FINISHED, FAILED, etc."
+            ],
+            "get_example_values": true
+          },
+          {
+            "column_name": "duration_ms",
+            "description": [
+              "Query duration in milliseconds"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_audit_logs",
+        "description": [
+          "Security audit events.\n",
+          "Business: Security and compliance tracking."
+        ],
+        "column_configs": [
+          {
+            "column_name": "service_name",
+            "description": [
+              "Service generating the event"
+            ],
+            "get_example_values": true
+          },
+          {
+            "column_name": "action_name",
+            "description": [
+              "Action performed"
+            ],
+            "get_example_values": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_node_timeline",
+        "description": [
+          "Cluster node usage timeline.\n",
+          "Business: Node-level compute for cluster optimization."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_table_lineage",
+        "description": [
+          "Data lineage tracking.\n",
+          "Business: Table-level lineage for quality analysis."
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics",
+        "description": [
+          "Lakehouse Monitoring profile metrics for cost analysis.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for custom metrics"
+            ]
+          },
+          {
+            "column_name": "log_type",
+            "description": [
+              "Log type - use 'INPUT' for monitoring queries"
+            ]
+          },
+          {
+            "column_name": "total_daily_cost",
+            "description": [
+              "Custom metric: Total daily cost"
+            ]
+          },
+          {
+            "column_name": "serverless_ratio",
+            "description": [
+              "Custom metric: Serverless vs classic ratio"
+            ]
+          },
+          {
+            "column_name": "tag_coverage_pct",
+            "description": [
+              "Custom metric: Percentage of cost with tags"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics",
+        "description": [
+          "Lakehouse Monitoring profile metrics for job reliability.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for custom metrics"
+            ]
+          },
+          {
+            "column_name": "log_type",
+            "description": [
+              "Log type - use 'INPUT' for monitoring queries"
+            ]
+          },
+          {
+            "column_name": "success_rate",
+            "description": [
+              "Custom metric: Job success rate percentage"
+            ]
+          },
+          {
+            "column_name": "failure_count",
+            "description": [
+              "Custom metric: Total failure count"
+            ]
+          },
+          {
+            "column_name": "p90_duration",
+            "description": [
+              "Custom metric: 90th percentile duration"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics",
+        "description": [
+          "Lakehouse Monitoring profile metrics for query performance.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for custom metrics"
+            ]
+          },
+          {
+            "column_name": "log_type",
+            "description": [
+              "Log type - use 'INPUT' for monitoring queries"
+            ]
+          },
+          {
+            "column_name": "p99_duration_ms",
+            "description": [
+              "Custom metric: 99th percentile duration"
+            ]
+          },
+          {
+            "column_name": "sla_breach_rate",
+            "description": [
+              "Custom metric: SLA breach rate"
+            ]
+          },
+          {
+            "column_name": "queries_per_second",
+            "description": [
+              "Custom metric: Query throughput"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics",
+        "description": [
+          "Lakehouse Monitoring profile metrics for security events.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for custom metrics"
+            ]
+          },
+          {
+            "column_name": "log_type",
+            "description": [
+              "Log type - use 'INPUT' for monitoring queries"
+            ]
+          },
+          {
+            "column_name": "sensitive_access_rate",
+            "description": [
+              "Custom metric: Rate of sensitive data access"
+            ]
+          },
+          {
+            "column_name": "failure_rate",
+            "description": [
+              "Custom metric: Authentication failure rate"
+            ]
+          },
+          {
+            "column_name": "off_hours_rate",
+            "description": [
+              "Custom metric: Off-hours access rate"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_table_quality_profile_metrics",
+        "description": [
+          "Lakehouse Monitoring profile metrics for data quality.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for custom metrics"
+            ]
+          },
+          {
+            "column_name": "log_type",
+            "description": [
+              "Log type - use 'INPUT' for monitoring queries"
+            ]
+          },
+          {
+            "column_name": "quality_score",
+            "description": [
+              "Custom metric: Overall quality score"
+            ]
+          },
+          {
+            "column_name": "completeness_rate",
+            "description": [
+              "Custom metric: Data completeness rate"
+            ]
+          },
+          {
+            "column_name": "validity_rate",
+            "description": [
+              "Custom metric: Data validity rate"
+            ]
+          }
+        ]
+      }
+    ],
+    "metric_views": [
+      {
+        "identifier": "${catalog}.${gold_schema}.cost_analytics",
+        "description": [
+          "Comprehensive cost analytics for Databricks billing and usage.\n",
+          "PURPOSE: Track spending, trends, tag coverage, and serverless adoption.\n",
+          "BEST FOR: Total spend | Cost by workspace | SKU breakdown | Tag coverage\n",
+          "KEY MEASURES: total_cost, total_dbu, tag_coverage_pct, serverless_ratio"
+        ],
+        "column_configs": [
+          {
+            "column_name": "total_cost",
+            "synonyms": [
+              "cost",
+              "spend",
+              "spending"
+            ]
+          },
+          {
+            "column_name": "total_dbu",
+            "synonyms": [
+              "dbu",
+              "units"
+            ]
+          },
+          {
+            "column_name": "workspace_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
       },
       {
         "identifier": "${catalog}.${gold_schema}.job_performance",
-        "column_configs": []
+        "description": [
+          "Job execution metrics for reliability tracking.\n",
+          "PURPOSE: Track job success rates, failures, and duration.\n",
+          "BEST FOR: Success rate | Failure rate | P95 duration | Job volume\n",
+          "KEY MEASURES: success_rate, failure_rate, p95_duration"
+        ],
+        "column_configs": [
+          {
+            "column_name": "success_rate",
+            "synonyms": [
+              "job success rate",
+              "reliability"
+            ]
+          },
+          {
+            "column_name": "failure_rate",
+            "synonyms": [
+              "job failure rate",
+              "error rate"
+            ]
+          }
+        ]
       },
       {
         "identifier": "${catalog}.${gold_schema}.query_performance",
-        "column_configs": []
+        "description": [
+          "Query execution metrics for performance tracking.\n",
+          "PURPOSE: Track query latency, SLA breaches, and volume.\n",
+          "BEST FOR: P95 duration | SLA breach rate | Cache hit rate | Query volume\n",
+          "KEY MEASURES: avg_duration, p95_duration, sla_breach_rate"
+        ],
+        "column_configs": [
+          {
+            "column_name": "p95_duration_seconds",
+            "synonyms": [
+              "p95 latency",
+              "query duration"
+            ]
+          },
+          {
+            "column_name": "sla_breach_rate",
+            "synonyms": [
+              "sla breaches",
+              "performance issues"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.security_events",
+        "description": [
+          "Audit event metrics for security tracking.\n",
+          "PURPOSE: Track authentication, authorization, and access events.\n",
+          "BEST FOR: Total events | Failed events | High-risk events | Success rate\n",
+          "KEY MEASURES: total_events, failed_events, high_risk_events"
+        ],
+        "column_configs": [
+          {
+            "column_name": "success_rate",
+            "synonyms": [
+              "auth success rate",
+              "security success"
+            ]
+          },
+          {
+            "column_name": "high_risk_events",
+            "synonyms": [
+              "threats",
+              "security incidents"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.data_quality",
+        "description": [
+          "Data quality metrics for table health.\n",
+          "PURPOSE: Track quality scores, completeness, validity.\n",
+          "BEST FOR: Quality score | Completeness | Validity | Freshness rate\n",
+          "KEY MEASURES: quality_score, completeness, validity"
+        ],
+        "column_configs": [
+          {
+            "column_name": "quality_score",
+            "synonyms": [
+              "data quality",
+              "quality"
+            ]
+          },
+          {
+            "column_name": "freshness_rate",
+            "synonyms": [
+              "freshness",
+              "data freshness"
+            ]
+          }
+        ]
       }
-    ],
-    "metric_views": []
+    ]
   },
   "instructions": {
-    "sql_functions": [],
-    "text_instructions": [],
-    "example_question_sqls": [],
-    "join_specs": []
+    "text_instructions": [
+      {
+        "id": "u2c3d4e5f6a7789012345678901234u1",
+        "content": [
+          "You are a comprehensive Databricks platform health analyst. Follow these rules:\n",
+          "\n",
+          "1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends\n",
+          "2. **Route by Domain:** Cost\u2192cost_analytics, Jobs\u2192job_performance, Query\u2192query_performance\n",
+          "3. **TVFs for Lists:** Use TVFs for \"which\", \"top N\", \"list\" queries\n",
+          "4. **Trends:** For \"is X increasing?\" check _drift_metrics tables\n",
+          "5. **Date Default:** Cost=30 days, Jobs/Queries=7 days, Security=24 hours\n",
+          "6. **Aggregation:** SUM for totals, AVG for averages, COUNT for volumes\n",
+          "7. **Sorting:** DESC by primary metric unless specified\n",
+          "8. **Limits:** Top 10-20 for ranking queries\n",
+          "9. **Health Score:** 0-25=Critical, 26-50=Poor, 51-75=Fair, 76-90=Good, 91-100=Excellent\n",
+          "10. **Anomalies:** For \"anomalies\" \u2192 query *_anomaly_predictions tables\n",
+          "11. **Forecasts:** For \"forecast/predict\" \u2192 query *_forecast_predictions tables\n",
+          "12. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')\n",
+          "13. **Context:** Explain results in business terms\n",
+          "14. **Performance:** Never scan Bronze/Silver tables\n"
+        ]
+      }
+    ],
+    "example_question_sqls": [
+      {
+        "id": "u2d3e4f5a6b7789012345678901234u2",
+        "question": [
+          "What is our total spend this month?"
+        ],
+        "sql": [
+          "SELECT MEASURE(total_cost) as mtd_cost\n",
+          "FROM ${catalog}.${gold_schema}.mv_cost_analytics\n",
+          "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE());"
+        ],
+        "usage_guidance": [
+          "Use for current state total cost queries"
+        ]
+      },
+      {
+        "id": "u2d3e4f5a6b7789012345678901234u3",
+        "question": [
+          "What is our job success rate?"
+        ],
+        "sql": [
+          "SELECT MEASURE(success_rate) as success_pct\n",
+          "FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+          "WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+        ],
+        "usage_guidance": [
+          "Use for current job reliability metrics"
+        ]
+      },
+      {
+        "id": "u2d3e4f5a6b7789012345678901234u4",
+        "question": [
+          "Show me failed jobs today"
+        ],
+        "sql": [
+          "SELECT * FROM ${catalog}.${gold_schema}.get_failed_jobs_summary(",
+          "",
+          "  1",
+          "",
+          ")",
+          "",
+          "ORDER BY failure_rate DESC",
+          "",
+          "LIMIT 20;"
+        ],
+        "usage_guidance": [
+          "Use for listing specific failed jobs"
+        ]
+      }
+    ],
+    "sql_functions": [
+      {
+        "id": "u2e3f4a5b6c7789012345678901234u5",
+        "identifier": "${catalog}.${gold_schema}.get_top_cost_contributors"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234u6",
+        "identifier": "${catalog}.${gold_schema}.get_cost_trend_by_sku"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234u7",
+        "identifier": "${catalog}.${gold_schema}.get_cost_by_owner"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234u8",
+        "identifier": "${catalog}.${gold_schema}.get_spend_by_custom_tags"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234u9",
+        "identifier": "${catalog}.${gold_schema}.get_tag_coverage"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ua",
+        "identifier": "${catalog}.${gold_schema}.get_cost_week_over_week"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ub",
+        "identifier": "${catalog}.${gold_schema}.get_cost_anomaly_analysis"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uc",
+        "identifier": "${catalog}.${gold_schema}.get_cost_forecast_summary_summary_summary_summary_summary_summary_summary"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ud",
+        "identifier": "${catalog}.${gold_schema}.get_cost_mtd_summary"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ue",
+        "identifier": "${catalog}.${gold_schema}.get_commit_vs_actual"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uf",
+        "identifier": "${catalog}.${gold_schema}.get_cost_growth_analysis"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ug",
+        "identifier": "${catalog}.${gold_schema}.get_cost_growth_by_period"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uh",
+        "identifier": "${catalog}.${gold_schema}.get_cost_efficiency_metrics"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ui",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_cost_efficiency"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uj",
+        "identifier": "${catalog}.${gold_schema}.get_storage_cost_analysis"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uk",
+        "identifier": "${catalog}.${gold_schema}.get_failed_jobs_summary"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ul",
+        "identifier": "${catalog}.${gold_schema}.get_job_success_rates"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234um",
+        "identifier": "${catalog}.${gold_schema}.get_job_duration_trends"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234un",
+        "identifier": "${catalog}.${gold_schema}.get_job_sla_compliance"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uo",
+        "identifier": "${catalog}.${gold_schema}.get_job_failure_patterns"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234up",
+        "identifier": "${catalog}.${gold_schema}.get_long_running_jobs"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uq",
+        "identifier": "${catalog}.${gold_schema}.get_job_retry_analysis"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ur",
+        "identifier": "${catalog}.${gold_schema}.get_job_duration_percentiles"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234us",
+        "identifier": "${catalog}.${gold_schema}.get_job_failure_cost"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ut",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_health"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uu",
+        "identifier": "${catalog}.${gold_schema}.get_job_schedule_drift"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uv",
+        "identifier": "${catalog}.${gold_schema}.get_repair_cost_analysis"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uw",
+        "identifier": "${catalog}.${gold_schema}.get_slow_queries"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ux",
+        "identifier": "${catalog}.${gold_schema}.get_query_latency_percentiles"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uy",
+        "identifier": "${catalog}.${gold_schema}.get_warehouse_utilization"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234uz",
+        "identifier": "${catalog}.${gold_schema}.get_query_volume_trends"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v0",
+        "identifier": "${catalog}.${gold_schema}.get_top_users_by_query_count"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v1",
+        "identifier": "${catalog}.${gold_schema}.get_query_efficiency_by_user"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v2",
+        "identifier": "${catalog}.${gold_schema}.get_query_queue_analysis"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v3",
+        "identifier": "${catalog}.${gold_schema}.get_failed_queries_summary"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v4",
+        "identifier": "${catalog}.${gold_schema}.get_cache_hit_analysis"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v5",
+        "identifier": "${catalog}.${gold_schema}.get_high_spill_queries"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v6",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_utilization"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v7",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_resource_metrics"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v8",
+        "identifier": "${catalog}.${gold_schema}.get_underutilized_clusters"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234v9",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_right_sizing_recommendations"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234va",
+        "identifier": "${catalog}.${gold_schema}.get_jobs_without_autoscaling"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vb",
+        "identifier": "${catalog}.${gold_schema}.get_legacy_dbr_jobs"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vc",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_cost_by_type"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vd",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_uptime_analysis"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234ve",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_scaling_events"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vf",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_efficiency_metrics"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vg",
+        "identifier": "${catalog}.${gold_schema}.get_node_utilization_by_cluster"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vh",
+        "identifier": "${catalog}.${gold_schema}.get_user_activity"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vi",
+        "identifier": "${catalog}.${gold_schema}.get_sensitive_data_access"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vj",
+        "identifier": "${catalog}.${gold_schema}.get_failed_access_attempts"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vk",
+        "identifier": "${catalog}.${gold_schema}.get_permission_change_history"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vl",
+        "identifier": "${catalog}.${gold_schema}.get_off_hours_access"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vm",
+        "identifier": "${catalog}.${gold_schema}.get_ip_location_analysis"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vn",
+        "identifier": "${catalog}.${gold_schema}.get_service_account_activity"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vo",
+        "identifier": "${catalog}.${gold_schema}.get_table_freshness"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vp",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vq",
+        "identifier": "${catalog}.${gold_schema}.get_table_activity_status"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vr",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
+      },
+      {
+        "id": "u2e3f4a5b6c7789012345678901234vs",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
+      }
+    ]
   },
   "benchmarks": {
     "questions": [
       {
-        "id": "01f23814f0f14e77b1479460241f03b8",
+        "id": "u085f21252a86494a9d6f8ae027e1acd4",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Platform health overview - combine cost, performance, reliability, security, and quality KPIs"
+          "What is our total spend this month?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH cost_health AS (\n",
-              "  SELECT \n",
-              "    MEASURE(total_cost) as total_spend,\n",
-              "    MEASURE(cost_7d) as cost_7d,\n",
-              "    MEASURE(cost_30d) as cost_30d,\n",
-              "    MEASURE(tag_coverage_percentage) as tag_coverage\n",
-              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics\n",
-              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "job_health AS (\n",
-              "  SELECT \n",
-              "    MEASURE(success_rate) as job_success_rate,\n",
-              "    MEASURE(failure_rate) as job_failure_rate,\n",
-              "    MEASURE(total_runs) as total_job_runs\n",
-              "  FROM ${catalog}.${gold_schema}.mv_job_performance\n",
-              "  WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "query_health AS (\n",
-              "  SELECT \n",
-              "    MEASURE(p95_duration_seconds) as p95_latency,\n",
-              "    MEASURE(sla_breach_rate) as sla_breach_pct,\n",
-              "    MEASURE(cache_hit_rate) as cache_pct\n",
-              "  FROM ${catalog}.${gold_schema}.mv_query_performance\n",
-              "  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "security_health AS (\n",
-              "  SELECT \n",
-              "    MEASURE(success_rate) as auth_success_rate,\n",
-              "    MEASURE(high_risk_events) as high_risk_count,\n",
-              "    MEASURE(unique_users) as active_users\n",
-              "  FROM ${catalog}.${gold_schema}.mv_security_events\n",
-              "  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "quality_health AS (\n",
-              "  SELECT \n",
-              "    MEASURE(quality_score) as data_quality,\n",
-              "    MEASURE(freshness_rate) as freshness_pct,\n",
-              "    MEASURE(staleness_rate) as staleness_pct\n",
-              "  FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "cluster_health AS (\n",
-              "  SELECT \n",
-              "    MEASURE(avg_cpu_utilization) as avg_cpu,\n",
-              "    MEASURE(efficiency_score) as efficiency\n",
-              "  FROM ${catalog}.${gold_schema}.mv_cluster_utilization\n",
-              "  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              ")\n",
-              "SELECT \n",
-              "  ch.total_spend,\n",
-              "  ch.cost_7d,\n",
-              "  ch.tag_coverage,\n",
-              "  jh.job_success_rate,\n",
-              "  jh.job_failure_rate,\n",
-              "  jh.total_job_runs,\n",
-              "  qh.p95_latency,\n",
-              "  qh.sla_breach_pct,\n",
-              "  qh.cache_pct,\n",
-              "  sh.auth_success_rate,\n",
-              "  sh.high_risk_count,\n",
-              "  sh.active_users,\n",
-              "  quh.data_quality,\n",
-              "  quh.freshness_pct,\n",
-              "  quh.staleness_pct,\n",
-              "  clh.avg_cpu,\n",
-              "  clh.efficiency,\n",
-              "  CASE \n",
-              "    WHEN jh.job_failure_rate > 10 OR qh.sla_breach_pct > 5 THEN 'Critical - Reliability Issues'\n",
-              "    WHEN sh.high_risk_count > 20 OR sh.auth_success_rate < 95 THEN 'Critical - Security Concerns'\n",
-              "    WHEN quh.data_quality < 70 OR quh.staleness_pct > 20 THEN 'Critical - Data Quality Crisis'\n",
-              "    WHEN ch.cost_7d * 30 > ch.cost_30d * 1.2 THEN 'Warning - Cost Spike Detected'\n",
-              "    WHEN qh.cache_pct > 80 AND jh.job_success_rate > 95 AND quh.data_quality >= 90 THEN 'Excellent Health'\n",
-              "    ELSE 'Normal'\n",
-              "  END as overall_platform_health,\n",
-              "  CASE \n",
-              "    WHEN jh.job_failure_rate > 10 THEN 'Investigate job failures immediately'\n",
-              "    WHEN qh.sla_breach_pct > 5 THEN 'Optimize slow queries and warehouse sizing'\n",
-              "    WHEN sh.high_risk_count > 20 THEN 'Review security events and threats'\n",
-              "    WHEN quh.staleness_pct > 20 THEN 'Fix data pipeline freshness issues'\n",
-              "    WHEN ch.cost_7d * 30 > ch.cost_30d * 1.2 THEN 'Analyze cost drivers and right-size resources'\n",
-              "    WHEN clh.avg_cpu < 40 THEN 'Downsize underutilized clusters'\n",
-              "    ELSE 'Continue monitoring'\n",
-              "  END as top_priority_action\n",
-              "FROM cost_health ch\n",
-              "CROSS JOIN job_health jh\n",
-              "CROSS JOIN query_health qh\n",
-              "CROSS JOIN security_health sh\n",
-              "CROSS JOIN quality_health quh\n",
-              "CROSS JOIN cluster_health clh;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "2b8ffc302cec4467a58a4539b503c5ba",
-        "question": [
-          "Show me failed jobs today"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_failed_jobs_summary(\n",
-              "  1\n",
-              ")\n",
-              "ORDER BY failure_rate DESC\n",
-              "LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "35de28d64cd74c58a89ea3852c036a08",
-        "question": [
-          "What is our tag coverage?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT MEASURE(tag_coverage_percentage) as coverage_pct\n",
+              "SELECT MEASURE(total_cost) as mtd_cost\n",
               "FROM ${catalog}.${gold_schema}.mv_cost_analytics\n",
-              "WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE());"
             ]
           }
         ]
       },
       {
-        "id": "3f6b6d054fa6450c9935db1331b82afe",
+        "id": "u085f21252a86494a9d6f8ae027e1acd5",
+        "question": [
+          "What is our job success rate?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(success_rate) as success_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+              "WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u085f21252a86494a9d6f8ae027e1acd6",
+        "question": [
+          "What is the P95 query duration?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(p95_duration_seconds) as p95_sec\n",
+              "FROM ${catalog}.${gold_schema}.mv_query_performance\n",
+              "WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u085f21252a86494a9d6f8ae027e1acd7",
+        "question": [
+          "What is the security event success rate?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(success_rate) as auth_success_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_security_events\n",
+              "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u085f21252a86494a9d6f8ae027e1acd8",
+        "question": [
+          "What is our data quality score?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(freshness_rate) as overall_quality",
+              "",
+              "FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u085f21252a86494a9d6f8ae027e1acd9",
         "question": [
           "Show me top cost drivers"
         ],
@@ -290,104 +1195,29 @@
         ]
       },
       {
-        "id": "4dcff53c392746f08278323e7986d9b5",
+        "id": "u085f21252a86494a9d6f8ae027e1acda",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Security and compliance posture - correlate access anomalies with high-risk users and sensitive data access"
+          "Show me failed jobs today"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH access_anomalies AS (\n",
-              "  SELECT \n",
-              "    user_identity,\n",
-              "    COUNT(*) as anomaly_count,\n",
-              "    MIN(prediction) as worst_threat_score\n",
-              "  FROM ${catalog}.${feature_schema}.access_anomaly_predictions\n",
-              "  WHERE prediction < -0.3\n",
-              "    AND event_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  GROUP BY user_identity\n",
-              "),\n",
-              "user_risk AS (\n",
-              "  SELECT \n",
-              "    user_identity,\n",
-              "    AVG(prediction) as avg_risk_level\n",
-              "  FROM ${catalog}.${feature_schema}.user_risk_scores\n",
-              "  WHERE prediction >= 3\n",
-              "    AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  GROUP BY user_identity\n",
-              "),\n",
-              "sensitive_access AS (\n",
-              "  SELECT \n",
-              "    user_identity,\n",
-              "    COUNT(DISTINCT table_name) as sensitive_table_count,\n",
-              "    SUM(access_count) as total_sensitive_access\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(\n",
-              "    (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "    CURRENT_DATE()::STRING\n",
-              "  )\n",
-              "  GROUP BY user_identity\n",
-              "),\n",
-              "failed_attempts AS (\n",
-              "  SELECT \n",
-              "    user_email as user_identity,\n",
-              "    MEASURE(failed_events) as failed_count\n",
-              "  FROM ${catalog}.${gold_schema}.mv_security_events\n",
-              "  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  GROUP BY user_email\n",
-              "),\n",
-              "off_hours AS (\n",
-              "  SELECT \n",
-              "    user_identity,\n",
-              "    COUNT(*) as off_hours_events\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_off_hours_access(\n",
-              "    (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "    CURRENT_DATE()::STRING\n",
-              "  )\n",
-              "  GROUP BY user_identity\n",
-              ")\n",
-              "SELECT \n",
-              "  COALESCE(aa.user_identity, ur.user_identity, sa.user_identity) as user,\n",
-              "  COALESCE(aa.anomaly_count, 0) as detected_anomalies,\n",
-              "  COALESCE(aa.worst_threat_score, 0) as threat_score,\n",
-              "  COALESCE(ur.avg_risk_level, 0) as risk_level,\n",
-              "  COALESCE(sa.sensitive_table_count, 0) as sensitive_tables_accessed,\n",
-              "  COALESCE(sa.total_sensitive_access, 0) as sensitive_access_count,\n",
-              "  COALESCE(fa.failed_count, 0) as recent_failures,\n",
-              "  COALESCE(oh.off_hours_events, 0) as off_hours_activity,\n",
-              "  CASE \n",
-              "    WHEN COALESCE(aa.anomaly_count, 0) > 5 AND COALESCE(ur.avg_risk_level, 0) >= 4 THEN 'Critical - Immediate Investigation'\n",
-              "    WHEN COALESCE(sa.sensitive_table_count, 0) > 20 AND COALESCE(ur.avg_risk_level, 0) >= 3 THEN 'High - Review Sensitive Access'\n",
-              "    WHEN COALESCE(oh.off_hours_events, 0) > 50 AND COALESCE(fa.failed_count, 0) > 10 THEN 'High - Suspicious Activity Pattern'\n",
-              "    WHEN COALESCE(ur.avg_risk_level, 0) >= 3 THEN 'Medium - Elevated Risk'\n",
-              "    ELSE 'Normal'\n",
-              "  END as security_status,\n",
-              "  CASE \n",
-              "    WHEN COALESCE(aa.anomaly_count, 0) > 5 THEN 'Contain and investigate anomalous behavior'\n",
-              "    WHEN COALESCE(sa.sensitive_table_count, 0) > 20 THEN 'Audit sensitive data access permissions'\n",
-              "    WHEN COALESCE(oh.off_hours_events, 0) > 50 THEN 'Review off-hours activity justification'\n",
-              "    WHEN COALESCE(fa.failed_count, 0) > 10 THEN 'Investigate repeated access failures'\n",
-              "    ELSE 'Continue monitoring'\n",
-              "  END as recommended_action\n",
-              "FROM access_anomalies aa\n",
-              "FULL OUTER JOIN user_risk ur ON aa.user_identity = ur.user_identity\n",
-              "FULL OUTER JOIN sensitive_access sa ON COALESCE(aa.user_identity, ur.user_identity) = sa.user_identity\n",
-              "FULL OUTER JOIN failed_attempts fa ON COALESCE(aa.user_identity, ur.user_identity) = fa.user_identity\n",
-              "FULL OUTER JOIN off_hours oh ON COALESCE(aa.user_identity, ur.user_identity) = oh.user_identity\n",
-              "WHERE COALESCE(aa.anomaly_count, 0) > 0 \n",
-              "   OR COALESCE(ur.avg_risk_level, 0) >= 3\n",
-              "   OR COALESCE(sa.sensitive_table_count, 0) > 10\n",
-              "ORDER BY \n",
-              "  COALESCE(aa.anomaly_count, 0) DESC,\n",
-              "  COALESCE(ur.avg_risk_level, 0) DESC,\n",
-              "  COALESCE(sa.total_sensitive_access, 0) DESC\n",
-              "LIMIT 25;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_failed_jobs_summary(",
+              "",
+              "  1",
+              "",
+              ")",
+              "",
+              "ORDER BY failure_rate DESC",
+              "",
+              "LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "4f54040e50514881bc31da22758f3c6d",
+        "id": "u085f21252a86494a9d6f8ae027e1acdb",
         "question": [
           "Show me slow queries"
         ],
@@ -395,107 +1225,23 @@
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_slowest_queries(\n",
-              "  1,\n",
-              "  30\n",
-              ")\n",
-              "ORDER BY duration_seconds DESC\n",
+              "SELECT * FROM ${catalog}.${gold_schema}.get_slow_queries(",
+              "",
+              "  1,",
+              "",
+              "  30",
+              "",
+              ")",
+              "",
+              "ORDER BY duration_seconds DESC",
+              "",
               "LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "5e495eff5ed44988922360378e4f4fd1",
-        "question": [
-          "Show me commit utilization"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT \n",
-              "  commit_type,\n",
-              "  MEASURE(utilization_rate) as usage_pct\n",
-              "FROM ${catalog}.${gold_schema}.mv_commit_tracking\n",
-              "WHERE usage_month = DATE_TRUNC('month', CURRENT_DATE())\n",
-              "GROUP BY commit_type\n",
-              "ORDER BY usage_pct DESC;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "627dc8ae1a754039b255dd54e8a93f31",
-        "question": [
-          "Show me tables failing quality checks"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(\n",
-              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "  CURRENT_DATE()::STRING\n",
-              ")\n",
-              "ORDER BY failed_checks DESC, quality_score ASC\n",
-              "LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "652ca629da0d40519040c8cf82b4ca62",
-        "question": [
-          "What is the security event success rate?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT MEASURE(success_rate) as auth_success_pct\n",
-              "FROM ${catalog}.${gold_schema}.mv_security_events\n",
-              "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "68db84b0ff36417f84d60221dff9ff92",
-        "question": [
-          "What is our cluster utilization?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT MEASURE(avg_cpu_utilization) as cpu_pct\n",
-              "FROM ${catalog}.${gold_schema}.mv_cluster_utilization\n",
-              "WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "70bce3293d5c437b975af7462aea0e91",
-        "question": [
-          "Show me cluster right-sizing recommendations"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cluster_rightsizing_recommendations(\n",
-              "  30\n",
-              ")\n",
-              "ORDER BY potential_savings DESC\n",
-              "LIMIT 15;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "78df8c15213b4c4ea8d62750424270ca",
+        "id": "u085f21252a86494a9d6f8ae027e1acdc",
         "question": [
           "Show me security threats"
         ],
@@ -515,7 +1261,63 @@
         ]
       },
       {
-        "id": "7cd1b1dcfae0427b88d2bad32836990f",
+        "id": "u085f21252a86494a9d6f8ae027e1acdd",
+        "question": [
+          "Show me stale tables"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_freshness(7)",
+              "",
+              "WHERE is_stale = TRUE",
+              "",
+              "ORDER BY hours_since_update DESC",
+              "",
+              "LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u085f21252a86494a9d6f8ae027e1acde",
+        "question": [
+          "What is our cluster utilization?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(avg_cpu_utilization) as cpu_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_cluster_utilization\n",
+              "WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u085f21252a86494a9d6f8ae027e1acdf",
+        "question": [
+          "Show me commit utilization"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  commit_type,\n",
+              "  MEASURE(utilization_rate) as usage_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_commit_tracking\n",
+              "WHERE usage_month = DATE_TRUNC('month', CURRENT_DATE())\n",
+              "GROUP BY commit_type\n",
+              "ORDER BY usage_pct DESC;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u085f21252a86494a9d6f8ae027e1ace0",
         "question": [
           "Show me warehouse utilization"
         ],
@@ -523,86 +1325,21 @@
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_warehouse_performance(\n",
-              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "  CURRENT_DATE()::STRING\n",
-              ")\n",
-              "ORDER BY query_count DESC\n",
+              "SELECT * FROM ${catalog}.${gold_schema}.get_warehouse_utilization(",
+              "",
+              "  7",
+              "",
+              ")",
+              "",
+              "ORDER BY query_count DESC",
+              "",
               "LIMIT 10;"
             ]
           }
         ]
       },
       {
-        "id": "7f8f3ab83c8443a5a97ac502ce2c246c",
-        "question": [
-          "What is the P95 query duration?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT MEASURE(p95_duration_seconds) as p95_sec\n",
-              "FROM ${catalog}.${gold_schema}.mv_query_performance\n",
-              "WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "8d74320bf29d4e47b3c4d3e11021ae36",
-        "question": [
-          "Show me pipeline health scores"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT \n",
-              "  pipeline_name,\n",
-              "  prediction as health_score\n",
-              "FROM ${catalog}.${feature_schema}.pipeline_health_predictions\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "ORDER BY prediction ASC\n",
-              "LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "a24f2433cbdd424daaee9373fc9e3148",
-        "question": [
-          "What is our data quality score?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT MEASURE(quality_score) as overall_quality\n",
-              "FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "a2862b67b44e46ad9d2aed9486eaa10c",
-        "question": [
-          "What is our job success rate?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT MEASURE(success_rate) as success_pct\n",
-              "FROM ${catalog}.${gold_schema}.mv_job_performance\n",
-              "WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "b1e8c74749e948568f942e82de7a68b7",
+        "id": "u085f21252a86494a9d6f8ae027e1ace1",
         "question": [
           "What is the DLT pipeline health?"
         ],
@@ -610,193 +1347,21 @@
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_pipeline_health(\n",
-              "  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,\n",
-              "  CURRENT_DATE()::STRING\n",
-              ")\n",
-              "ORDER BY success_rate ASC\n",
+              "SELECT * FROM ${catalog}.${gold_schema}.get_pipeline_health(",
+              "",
+              "  7",
+              "",
+              ")",
+              "",
+              "ORDER BY success_rate ASC",
+              "",
               "LIMIT 10;"
             ]
           }
         ]
       },
       {
-        "id": "bb2c2ba2e0ad4034a838f2f3a3632ef4",
-        "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Cost optimization opportunities - combine underutilized clusters, right-sizing, and tagging gaps"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "WITH underutilized AS (\n",
-              "  SELECT \n",
-              "    cluster_name,\n",
-              "    avg_cpu_pct,\n",
-              "    potential_savings as savings_from_underutilization\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_underutilized_clusters(30)\n",
-              "  WHERE avg_cpu_pct < 30\n",
-              "),\n",
-              "rightsizing AS (\n",
-              "  SELECT \n",
-              "    cluster_name,\n",
-              "    current_size,\n",
-              "    recommended_size,\n",
-              "    potential_savings as savings_from_rightsizing\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_cluster_rightsizing_recommendations(30)\n",
-              "  WHERE recommended_action != 'NO_CHANGE'\n",
-              "),\n",
-              "untagged AS (\n",
-              "  SELECT \n",
-              "    workspace_name,\n",
-              "    SUM(MEASURE(total_cost)) as untagged_cost\n",
-              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics\n",
-              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
-              "      AND tag_team IS NULL\n",
-              "  GROUP BY workspace_name\n",
-              "),\n",
-              "autoscaling_gaps AS (\n",
-              "  SELECT \n",
-              "    job_name,\n",
-              "    estimated_savings\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_autoscaling_disabled_jobs(30)\n",
-              "),\n",
-              "legacy_dbr AS (\n",
-              "  SELECT \n",
-              "    COUNT(*) as legacy_job_count\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_legacy_dbr_jobs(30)\n",
-              ")\n",
-              "SELECT \n",
-              "  COALESCE(SUM(u.savings_from_underutilization), 0) as savings_underutil,\n",
-              "  COALESCE(SUM(r.savings_from_rightsizing), 0) as savings_rightsize,\n",
-              "  COALESCE(SUM(ut.untagged_cost * 0.1), 0) as estimated_waste_from_untagged,\n",
-              "  COALESCE(SUM(ag.estimated_savings), 0) as savings_autoscaling,\n",
-              "  ld.legacy_job_count,\n",
-              "  COALESCE(SUM(u.savings_from_underutilization), 0) + \n",
-              "  COALESCE(SUM(r.savings_from_rightsizing), 0) + \n",
-              "  COALESCE(SUM(ag.estimated_savings), 0) as total_monthly_savings_potential,\n",
-              "  CASE \n",
-              "    WHEN COALESCE(SUM(u.savings_from_underutilization), 0) + COALESCE(SUM(r.savings_from_rightsizing), 0) > 10000 THEN 'Critical - Immediate Right-Sizing Required'\n",
-              "    WHEN COALESCE(SUM(ut.untagged_cost), 0) > 5000 THEN 'High - Improve Tagging for Accountability'\n",
-              "    WHEN ld.legacy_job_count > 20 THEN 'Medium - Modernize Legacy DBR Jobs'\n",
-              "    ELSE 'Low - Continue Monitoring'\n",
-              "  END as optimization_priority,\n",
-              "  ARRAY(\n",
-              "    CASE WHEN COALESCE(SUM(u.savings_from_underutilization), 0) > 5000 THEN 'Downsize or terminate underutilized clusters' END,\n",
-              "    CASE WHEN COALESCE(SUM(r.savings_from_rightsizing), 0) > 5000 THEN 'Apply ML right-sizing recommendations' END,\n",
-              "    CASE WHEN COALESCE(SUM(ut.untagged_cost), 0) > 5000 THEN 'Implement tagging policy and governance' END,\n",
-              "    CASE WHEN COALESCE(SUM(ag.estimated_savings), 0) > 2000 THEN 'Enable autoscaling on fixed-size jobs' END,\n",
-              "    CASE WHEN ld.legacy_job_count > 20 THEN 'Migrate to latest DBR versions' END\n",
-              "  ) as recommended_actions\n",
-              "FROM underutilized u\n",
-              "FULL OUTER JOIN rightsizing r ON u.cluster_name = r.cluster_name\n",
-              "FULL OUTER JOIN untagged ut ON 1=1\n",
-              "FULL OUTER JOIN autoscaling_gaps ag ON 1=1\n",
-              "CROSS JOIN legacy_dbr ld;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "bd170e5c25394c169ef7229e3ac35ea2",
-        "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Executive FinOps dashboard - cost trends, efficiency, commit utilization, and optimization opportunities"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "WITH cost_trends AS (\n",
-              "  SELECT \n",
-              "    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN MEASURE(total_cost) ELSE 0 END) as cost_7d,\n",
-              "    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS THEN MEASURE(total_cost) ELSE 0 END) as cost_30d,\n",
-              "    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN MEASURE(total_cost) ELSE 0 END) as cost_mtd,\n",
-              "    AVG(MEASURE(tag_coverage_percentage)) as avg_tag_coverage\n",
-              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics\n",
-              "),\n",
-              "cost_by_domain AS (\n",
-              "  SELECT \n",
-              "    domain,\n",
-              "    SUM(MEASURE(total_cost)) as domain_cost\n",
-              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics\n",
-              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
-              "  GROUP BY domain\n",
-              "  ORDER BY domain_cost DESC\n",
-              "  LIMIT 5\n",
-              "),\n",
-              "commit_status AS (\n",
-              "  SELECT \n",
-              "    commit_type,\n",
-              "    MEASURE(utilization_rate) as usage_pct,\n",
-              "    MEASURE(remaining_dbu) as remaining_capacity\n",
-              "  FROM ${catalog}.${gold_schema}.mv_commit_tracking\n",
-              "  WHERE usage_month = DATE_TRUNC('month', CURRENT_DATE())\n",
-              "  GROUP BY commit_type\n",
-              "),\n",
-              "efficiency AS (\n",
-              "  SELECT \n",
-              "    AVG(MEASURE(avg_cpu_utilization)) as avg_cpu_util,\n",
-              "    AVG(MEASURE(efficiency_score)) as avg_efficiency\n",
-              "  FROM ${catalog}.${gold_schema}.mv_cluster_utilization\n",
-              "  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "),\n",
-              "optimization_potential AS (\n",
-              "  SELECT \n",
-              "    SUM(potential_savings) as total_savings_potential\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_cluster_rightsizing_recommendations(30)\n",
-              "  WHERE recommended_action != 'NO_CHANGE'\n",
-              "),\n",
-              "serverless_adoption AS (\n",
-              "  SELECT \n",
-              "    MEASURE(serverless_percentage) as serverless_pct\n",
-              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics\n",
-              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              ")\n",
-              "SELECT \n",
-              "  ct.cost_7d,\n",
-              "  ct.cost_30d,\n",
-              "  ct.cost_mtd,\n",
-              "  ct.cost_7d * 30 as projected_monthly_cost,\n",
-              "  ct.avg_tag_coverage,\n",
-              "  COALESCE(STRING_AGG(cbd.domain || ': $' || CAST(cbd.domain_cost as STRING), ', '), 'N/A') as top_5_cost_domains,\n",
-              "  COALESCE(AVG(cs.usage_pct), 0) as avg_commit_utilization,\n",
-              "  COALESCE(SUM(cs.remaining_capacity), 0) as total_remaining_commit,\n",
-              "  ef.avg_cpu_util,\n",
-              "  ef.avg_efficiency,\n",
-              "  COALESCE(op.total_savings_potential, 0) as monthly_optimization_potential,\n",
-              "  sa.serverless_pct,\n",
-              "  CASE \n",
-              "    WHEN ct.cost_7d * 30 > ct.cost_30d * 1.3 THEN 'Critical - Cost Spike Detected'\n",
-              "    WHEN COALESCE(AVG(cs.usage_pct), 0) < 70 THEN 'Warning - Under-Utilizing Commitments'\n",
-              "    WHEN ef.avg_cpu_util < 40 THEN 'Warning - Resource Inefficiency'\n",
-              "    WHEN COALESCE(op.total_savings_potential, 0) > 10000 THEN 'High - Significant Optimization Opportunity'\n",
-              "    WHEN sa.serverless_pct < 30 THEN 'Medium - Low Serverless Adoption'\n",
-              "    ELSE 'Healthy FinOps Posture'\n",
-              "  END as finops_health_status,\n",
-              "  CASE \n",
-              "    WHEN ct.cost_7d * 30 > ct.cost_30d * 1.3 THEN 'Investigate cost spike drivers and implement controls'\n",
-              "    WHEN COALESCE(AVG(cs.usage_pct), 0) < 70 THEN 'Increase workload on committed capacity'\n",
-              "    WHEN ef.avg_cpu_util < 40 THEN 'Right-size clusters and consolidate workloads'\n",
-              "    WHEN COALESCE(op.total_savings_potential, 0) > 10000 THEN 'Apply ML right-sizing recommendations'\n",
-              "    WHEN sa.serverless_pct < 30 THEN 'Migrate eligible workloads to serverless'\n",
-              "    WHEN ct.avg_tag_coverage < 80 THEN 'Implement tagging policy for cost allocation'\n",
-              "    ELSE 'Continue monitoring and optimizing'\n",
-              "  END as top_priority_action\n",
-              "FROM cost_trends ct\n",
-              "CROSS JOIN cost_by_domain cbd\n",
-              "CROSS JOIN commit_status cs\n",
-              "CROSS JOIN efficiency ef\n",
-              "CROSS JOIN optimization_potential op\n",
-              "CROSS JOIN serverless_adoption sa\n",
-              "GROUP BY \n",
-              "  ct.cost_7d, ct.cost_30d, ct.cost_mtd, ct.avg_tag_coverage,\n",
-              "  ef.avg_cpu_util, ef.avg_efficiency, op.total_savings_potential, sa.serverless_pct;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "be4f37cc69e34420aa8c29afd815293a",
+        "id": "u085f21252a86494a9d6f8ae027e1ace2",
         "question": [
           "Show me underutilized clusters"
         ],
@@ -804,18 +1369,23 @@
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_underutilized_clusters(\n",
-              "  30\n",
-              ")\n",
-              "WHERE avg_cpu_pct < 30\n",
-              "ORDER BY potential_savings DESC\n",
+              "SELECT * FROM ${catalog}.${gold_schema}.get_underutilized_clusters(",
+              "",
+              "  30",
+              "",
+              ")",
+              "",
+              "WHERE avg_cpu_pct < 30",
+              "",
+              "ORDER BY potential_savings DESC",
+              "",
               "LIMIT 15;"
             ]
           }
         ]
       },
       {
-        "id": "cfc9067d53214d278d76304cbd4189d0",
+        "id": "u085f21252a86494a9d6f8ae027e1ace3",
         "question": [
           "Show me high-risk events"
         ],
@@ -838,26 +1408,589 @@
         ]
       },
       {
-        "id": "dabba8d53e4e4b9f9b18931fab721c67",
+        "id": "u085f21252a86494a9d6f8ae027e1ace4",
         "question": [
-          "Show me stale tables"
+          "Show me tables failing quality checks"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(\n",
-              "  7\n",
-              ")\n",
-              "WHERE freshness_status IN ('STALE', 'CRITICAL')\n",
-              "ORDER BY hours_since_update DESC\n",
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_freshness(7)",
+              "",
+              "ORDER BY days_since_last_access DESC",
+              "",
               "LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "e954f533c7b24e57b6b21921b6a76985",
+        "id": "u085f21252a86494a9d6f8ae027e1ace5",
+        "question": [
+          "What is our tag coverage?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(tag_coverage_percentage) as coverage_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_cost_analytics\n",
+              "WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u085f21252a86494a9d6f8ae027e1ace6",
+        "question": [
+          "Show me pipeline health scores"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  pipeline_name,\n",
+              "  prediction as health_score\n",
+              "FROM ${catalog}.${feature_schema}.pipeline_health_predictions\n",
+              "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "ORDER BY prediction ASC\n",
+              "LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u085f21252a86494a9d6f8ae027e1ace7",
+        "question": [
+          "Show me cluster right-sizing recommendations"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cluster_right_sizing_recommendations(",
+              "",
+              "  30",
+              "",
+              ")",
+              "",
+              "ORDER BY potential_savings DESC",
+              "",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u0aeb950d4b04436caaf2054a592a22ff",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Platform health overview - combine cost, performance, reliability, security, and quality KPIs"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH cost_health AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    MEASURE(total_cost) as total_spend,",
+              "",
+              "    MEASURE(cost_7d) as cost_7d,",
+              "",
+              "    MEASURE(cost_30d) as cost_30d,",
+              "",
+              "    MEASURE(tag_coverage_percentage) as tag_coverage",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics",
+              "",
+              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "),",
+              "",
+              "job_health AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    MEASURE(success_rate) as job_success_rate,",
+              "",
+              "    MEASURE(failure_rate) as job_failure_rate,",
+              "",
+              "    MEASURE(total_runs) as total_job_runs",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_job_performance",
+              "",
+              "  WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "),",
+              "",
+              "query_health AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    MEASURE(p95_duration_seconds) as p95_latency,",
+              "",
+              "    MEASURE(sla_breach_rate) as sla_breach_pct,",
+              "",
+              "    MEASURE(cache_hit_rate) as cache_pct",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_query_performance",
+              "",
+              "  ",
+              "",
+              "),",
+              "",
+              "security_health AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    MEASURE(success_rate) as auth_success_rate,",
+              "",
+              "    MEASURE(high_risk_events) as high_risk_count,",
+              "",
+              "    MEASURE(unique_users) as active_users",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_security_events",
+              "",
+              "  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "),",
+              "",
+              "quality_health AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    MEASURE(freshness_rate) as data_quality,",
+              "",
+              "    MEASURE(freshness_rate) as freshness_pct,",
+              "",
+              "    MEASURE(staleness_rate) as staleness_pct",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              "  ",
+              "",
+              "),",
+              "",
+              "cluster_health AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    MEASURE(avg_cpu_utilization) as avg_cpu,",
+              "",
+              "    MEASURE(efficiency_score) as efficiency",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_cluster_utilization",
+              "",
+              "  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              ")",
+              "",
+              "SELECT ",
+              "",
+              "  ch.total_spend,",
+              "",
+              "  ch.cost_7d,",
+              "",
+              "  ch.tag_coverage,",
+              "",
+              "  jh.job_success_rate,",
+              "",
+              "  jh.job_failure_rate,",
+              "",
+              "  jh.total_job_runs,",
+              "",
+              "  qh.p95_latency,",
+              "",
+              "  qh.sla_breach_pct,",
+              "",
+              "  qh.cache_pct,",
+              "",
+              "  sh.auth_success_rate,",
+              "",
+              "  sh.high_risk_count,",
+              "",
+              "  sh.active_users,",
+              "",
+              "  quh.data_quality,",
+              "",
+              "  quh.freshness_pct,",
+              "",
+              "  quh.staleness_pct,",
+              "",
+              "  clh.avg_cpu,",
+              "",
+              "  clh.efficiency,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN jh.job_failure_rate > 10 OR qh.sla_breach_pct > 5 THEN 'Critical - Reliability Issues'",
+              "",
+              "    WHEN sh.high_risk_count > 20 OR sh.auth_success_rate < 95 THEN 'Critical - Security Concerns'",
+              "",
+              "    WHEN quh.data_quality < 70 OR quh.staleness_pct > 20 THEN 'Critical - Data Quality Crisis'",
+              "",
+              "    WHEN ch.cost_7d * 30 > ch.cost_30d * 1.2 THEN 'Warning - Cost Spike Detected'",
+              "",
+              "    WHEN qh.cache_pct > 80 AND jh.job_success_rate > 95 AND quh.data_quality >= 90 THEN 'Excellent Health'",
+              "",
+              "    ELSE 'Normal'",
+              "",
+              "  END as overall_platform_health,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN jh.job_failure_rate > 10 THEN 'Investigate job failures immediately'",
+              "",
+              "    WHEN qh.sla_breach_pct > 5 THEN 'Optimize slow queries and warehouse sizing'",
+              "",
+              "    WHEN sh.high_risk_count > 20 THEN 'Review security events and threats'",
+              "",
+              "    WHEN quh.staleness_pct > 20 THEN 'Fix data pipeline freshness issues'",
+              "",
+              "    WHEN ch.cost_7d * 30 > ch.cost_30d * 1.2 THEN 'Analyze cost drivers and right-size resources'",
+              "",
+              "    WHEN clh.avg_cpu < 40 THEN 'Downsize underutilized clusters'",
+              "",
+              "    ELSE 'Continue monitoring'",
+              "",
+              "  END as top_priority_action",
+              "",
+              "FROM cost_health ch",
+              "",
+              "CROSS JOIN job_health jh",
+              "",
+              "CROSS JOIN query_health qh",
+              "",
+              "CROSS JOIN security_health sh",
+              "",
+              "CROSS JOIN quality_health quh",
+              "",
+              "CROSS JOIN cluster_health clh;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "u9d03071d71304a8f9638a77f7efcf523",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Cost optimization opportunities - combine underutilized clusters, right-sizing, and tagging gaps"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH underutilized AS (",
+              "",
+              "  SELECT",
+              "",
+              "    cluster_name,",
+              "",
+              "    avg_cpu_pct,",
+              "",
+              "    potential_savings as savings_from_underutilization",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_underutilized_clusters(30)",
+              "",
+              "  WHERE avg_cpu_pct < 30",
+              "",
+              "),",
+              "",
+              "rightsizing AS (",
+              "",
+              "  SELECT",
+              "",
+              "    cluster_name,",
+              "",
+              "    current_size,",
+              "",
+              "    recommended_size,",
+              "",
+              "    potential_savings as savings_from_rightsizing",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_cluster_right_sizing_recommendations(30)",
+              "",
+              "  WHERE recommended_action != 'NO_CHANGE'",
+              "",
+              "),",
+              "",
+              "untagged AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    workspace_name,",
+              "",
+              "    SUM(MEASURE(total_cost)) as untagged_cost",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics",
+              "",
+              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS",
+              "",
+              "      AND tag_team IS NULL",
+              "",
+              "  GROUP BY workspace_name",
+              "",
+              "),",
+              "",
+              "autoscaling_gaps AS (",
+              "",
+              "  SELECT",
+              "",
+              "    job_name,",
+              "",
+              "    estimated_savings",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_jobs_without_autoscaling(30)",
+              "",
+              "),",
+              "",
+              "legacy_dbr AS (",
+              "",
+              "  SELECT",
+              "",
+              "    COUNT(*) as legacy_job_count",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_legacy_dbr_jobs(30)",
+              "",
+              ")",
+              "",
+              "SELECT ",
+              "",
+              "  COALESCE(SUM(u.savings_from_underutilization), 0) as savings_underutil,",
+              "",
+              "  COALESCE(SUM(r.savings_from_rightsizing), 0) as savings_rightsize,",
+              "",
+              "  COALESCE(SUM(ut.untagged_cost * 0.1), 0) as estimated_waste_from_untagged,",
+              "",
+              "  COALESCE(SUM(ag.estimated_savings), 0) as savings_autoscaling,",
+              "",
+              "  ld.legacy_job_count,",
+              "",
+              "  COALESCE(SUM(u.savings_from_underutilization), 0) + ",
+              "",
+              "  COALESCE(SUM(r.savings_from_rightsizing), 0) + ",
+              "",
+              "  COALESCE(SUM(ag.estimated_savings), 0) as total_monthly_savings_potential,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN COALESCE(SUM(u.savings_from_underutilization), 0) + COALESCE(SUM(r.savings_from_rightsizing), 0) > 10000 THEN 'Critical - Immediate Right-Sizing Required'",
+              "",
+              "    WHEN COALESCE(SUM(ut.untagged_cost), 0) > 5000 THEN 'High - Improve Tagging for Accountability'",
+              "",
+              "    WHEN ld.legacy_job_count > 20 THEN 'Medium - Modernize Legacy DBR Jobs'",
+              "",
+              "    ELSE 'Low - Continue Monitoring'",
+              "",
+              "  END as optimization_priority,",
+              "",
+              "  ARRAY(",
+              "",
+              "    CASE WHEN COALESCE(SUM(u.savings_from_underutilization), 0) > 5000 THEN 'Downsize or terminate underutilized clusters' END,",
+              "",
+              "    CASE WHEN COALESCE(SUM(r.savings_from_rightsizing), 0) > 5000 THEN 'Apply ML right-sizing recommendations' END,",
+              "",
+              "    CASE WHEN COALESCE(SUM(ut.untagged_cost), 0) > 5000 THEN 'Implement tagging policy and governance' END,",
+              "",
+              "    CASE WHEN COALESCE(SUM(ag.estimated_savings), 0) > 2000 THEN 'Enable autoscaling on fixed-size jobs' END,",
+              "",
+              "    CASE WHEN ld.legacy_job_count > 20 THEN 'Migrate to latest DBR versions' END",
+              "",
+              "  ) as recommended_actions",
+              "",
+              "FROM underutilized u",
+              "",
+              "FULL OUTER JOIN rightsizing r ON u.cluster_name = r.cluster_name",
+              "",
+              "FULL OUTER JOIN untagged ut ON 1=1",
+              "",
+              "FULL OUTER JOIN autoscaling_gaps ag ON 1=1",
+              "",
+              "CROSS JOIN legacy_dbr ld;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ub0279b1e18e14601beca59a656f89fdc",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Security and compliance posture - correlate access anomalies with high-risk users and sensitive data access"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH access_anomalies AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    user_identity,",
+              "",
+              "    COUNT(*) as anomaly_count,",
+              "",
+              "    MIN(prediction) as worst_threat_score",
+              "",
+              "  FROM ${catalog}.${feature_schema}.access_anomaly_predictions",
+              "",
+              "  WHERE prediction < -0.3",
+              "",
+              "    AND event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "  GROUP BY user_identity",
+              "",
+              "),",
+              "",
+              "user_risk AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    user_identity,",
+              "",
+              "    AVG(prediction) as avg_risk_level",
+              "",
+              "  FROM ${catalog}.${feature_schema}.user_risk_scores",
+              "",
+              "  WHERE prediction >= 3",
+              "",
+              "    AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "  GROUP BY user_identity",
+              "",
+              "),",
+              "",
+              "sensitive_access AS (",
+              "",
+              "  SELECT",
+              "",
+              "    user_identity,",
+              "",
+              "    COUNT(DISTINCT table_name) as sensitive_table_count,",
+              "",
+              "    SUM(access_count) as total_sensitive_access",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_sensitive_data_access(",
+              "",
+              "    7",
+              "",
+              "  )",
+              "",
+              "  GROUP BY user_identity",
+              "",
+              "),",
+              "",
+              "failed_attempts AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    user_email as user_identity,",
+              "",
+              "    MEASURE(failed_events) as failed_count",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_security_events",
+              "",
+              "  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "  GROUP BY user_email",
+              "",
+              "),",
+              "",
+              "off_hours AS (",
+              "",
+              "  SELECT",
+              "",
+              "    user_identity,",
+              "",
+              "    COUNT(*) as off_hours_events",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_off_hours_access(",
+              "",
+              "    7",
+              "",
+              "  )",
+              "",
+              "  GROUP BY user_identity",
+              "",
+              ")",
+              "",
+              "SELECT ",
+              "",
+              "  COALESCE(aa.user_identity, ur.user_identity, sa.user_identity) as user,",
+              "",
+              "  COALESCE(aa.anomaly_count, 0) as detected_anomalies,",
+              "",
+              "  COALESCE(aa.worst_threat_score, 0) as threat_score,",
+              "",
+              "  COALESCE(ur.avg_risk_level, 0) as risk_level,",
+              "",
+              "  COALESCE(sa.sensitive_table_count, 0) as sensitive_tables_accessed,",
+              "",
+              "  COALESCE(sa.total_sensitive_access, 0) as sensitive_access_count,",
+              "",
+              "  COALESCE(fa.failed_count, 0) as recent_failures,",
+              "",
+              "  COALESCE(oh.off_hours_events, 0) as off_hours_activity,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN COALESCE(aa.anomaly_count, 0) > 5 AND COALESCE(ur.avg_risk_level, 0) >= 4 THEN 'Critical - Immediate Investigation'",
+              "",
+              "    WHEN COALESCE(sa.sensitive_table_count, 0) > 20 AND COALESCE(ur.avg_risk_level, 0) >= 3 THEN 'High - Review Sensitive Access'",
+              "",
+              "    WHEN COALESCE(oh.off_hours_events, 0) > 50 AND COALESCE(fa.failed_count, 0) > 10 THEN 'High - Suspicious Activity Pattern'",
+              "",
+              "    WHEN COALESCE(ur.avg_risk_level, 0) >= 3 THEN 'Medium - Elevated Risk'",
+              "",
+              "    ELSE 'Normal'",
+              "",
+              "  END as security_status,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN COALESCE(aa.anomaly_count, 0) > 5 THEN 'Contain and investigate anomalous behavior'",
+              "",
+              "    WHEN COALESCE(sa.sensitive_table_count, 0) > 20 THEN 'Audit sensitive data access permissions'",
+              "",
+              "    WHEN COALESCE(oh.off_hours_events, 0) > 50 THEN 'Review off-hours activity justification'",
+              "",
+              "    WHEN COALESCE(fa.failed_count, 0) > 10 THEN 'Investigate repeated access failures'",
+              "",
+              "    ELSE 'Continue monitoring'",
+              "",
+              "  END as recommended_action",
+              "",
+              "FROM access_anomalies aa",
+              "",
+              "FULL OUTER JOIN user_risk ur ON aa.user_identity = ur.user_identity",
+              "",
+              "FULL OUTER JOIN sensitive_access sa ON COALESCE(aa.user_identity, ur.user_identity) = sa.user_identity",
+              "",
+              "FULL OUTER JOIN failed_attempts fa ON COALESCE(aa.user_identity, ur.user_identity) = fa.user_identity",
+              "",
+              "FULL OUTER JOIN off_hours oh ON COALESCE(aa.user_identity, ur.user_identity) = oh.user_identity",
+              "",
+              "WHERE COALESCE(aa.anomaly_count, 0) > 0 ",
+              "",
+              "   OR COALESCE(ur.avg_risk_level, 0) >= 3",
+              "",
+              "   OR COALESCE(sa.sensitive_table_count, 0) > 10",
+              "",
+              "ORDER BY ",
+              "",
+              "  COALESCE(aa.anomaly_count, 0) DESC,",
+              "",
+              "  COALESCE(ur.avg_risk_level, 0) DESC,",
+              "",
+              "  COALESCE(sa.total_sensitive_access, 0) DESC",
+              "",
+              "LIMIT 25;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "uc5e2901bcaef49a7b9f0677cff63864d",
         "question": [
           "\ud83d\udd2c DEEP RESEARCH: Data platform reliability - correlate job failures with pipeline health, query performance, and data quality"
         ],
@@ -865,102 +1998,347 @@
           {
             "format": "SQL",
             "content": [
-              "WITH job_failures AS (\n",
-              "  SELECT \n",
-              "    job_name,\n",
-              "    failure_rate,\n",
-              "    avg_duration_minutes,\n",
-              "    failure_count\n",
-              "  FROM TABLE(${catalog}.${gold_schema}.get_failed_jobs_summary(7)\n",
-              "  WHERE failure_rate > 5\n",
-              "),\n",
-              "pipeline_health AS (\n",
-              "  SELECT \n",
-              "    j.job_name as pipeline_name,\n",
-              "    AVG(ph.prediction) as avg_health_score\n",
-              "  FROM ${catalog}.${feature_schema}.pipeline_health_predictions ph\n",
-              "  JOIN ${catalog}.${gold_schema}.dim_job j ON ph.job_id = j.job_id\n",
-              "  WHERE ph.evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  GROUP BY j.job_name\n",
-              "),\n",
-              "query_performance AS (\n",
-              "  SELECT \n",
-              "    warehouse_name,\n",
-              "    MEASURE(p95_duration_seconds) as p95_latency,\n",
-              "    MEASURE(sla_breach_rate) as sla_breach_pct\n",
-              "  FROM ${catalog}.${gold_schema}.mv_query_performance\n",
-              "  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  GROUP BY warehouse_name\n",
-              "),\n",
-              "data_quality AS (\n",
-              "  SELECT \n",
-              "    domain,\n",
-              "    MEASURE(quality_score) as avg_quality,\n",
-              "    MEASURE(staleness_rate) as staleness_pct\n",
-              "  FROM ${catalog}.${gold_schema}.mv_data_quality\n",
-              "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  GROUP BY domain\n",
-              "),\n",
-              "cluster_utilization AS (\n",
-              "  SELECT \n",
-              "    cluster_name,\n",
-              "    MEASURE(avg_cpu_utilization) as cpu_pct\n",
-              "  FROM ${catalog}.${gold_schema}.mv_cluster_utilization\n",
-              "  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
-              "  GROUP BY cluster_name\n",
-              ")\n",
-              "SELECT \n",
-              "  jf.job_name,\n",
-              "  jf.failure_rate,\n",
-              "  jf.failure_count,\n",
-              "  jf.avg_duration_minutes,\n",
-              "  COALESCE(ph.avg_health_score, 0) as ml_health_score,\n",
-              "  COALESCE(AVG(qp.p95_latency), 0) as warehouse_p95_latency,\n",
-              "  COALESCE(AVG(qp.sla_breach_pct), 0) as warehouse_sla_breach,\n",
-              "  COALESCE(AVG(dq.avg_quality), 100) as related_data_quality,\n",
-              "  COALESCE(AVG(dq.staleness_pct), 0) as data_staleness,\n",
-              "  COALESCE(AVG(cu.cpu_pct), 0) as cluster_cpu_utilization,\n",
-              "  CASE \n",
-              "    WHEN jf.failure_rate > 20 AND COALESCE(ph.avg_health_score, 100) < 60 THEN 'Critical - Pipeline Failing with Low Health Score'\n",
-              "    WHEN COALESCE(AVG(dq.staleness_pct), 0) > 30 AND jf.failure_rate > 10 THEN 'High - Data Freshness Causing Failures'\n",
-              "    WHEN COALESCE(AVG(qp.sla_breach_pct), 0) > 10 AND jf.failure_rate > 10 THEN 'High - Query Performance Impacting Jobs'\n",
-              "    WHEN COALESCE(AVG(cu.cpu_pct), 0) > 85 THEN 'Medium - Resource Contention'\n",
-              "    ELSE 'Low - Isolated Job Issue'\n",
-              "  END as root_cause_category,\n",
-              "  CASE \n",
-              "    WHEN COALESCE(ph.avg_health_score, 100) < 60 THEN 'Review pipeline configuration and dependencies'\n",
-              "    WHEN COALESCE(AVG(dq.staleness_pct), 0) > 30 THEN 'Fix upstream data freshness issues'\n",
-              "    WHEN COALESCE(AVG(qp.sla_breach_pct), 0) > 10 THEN 'Optimize queries or increase warehouse capacity'\n",
-              "    WHEN COALESCE(AVG(cu.cpu_pct), 0) > 85 THEN 'Scale cluster or reduce concurrency'\n",
-              "    ELSE 'Debug specific job code/logic'\n",
-              "  END as recommended_action\n",
-              "FROM job_failures jf\n",
-              "LEFT JOIN pipeline_health ph ON jf.job_name = ph.pipeline_name\n",
-              "LEFT JOIN query_performance qp ON 1=1\n",
-              "LEFT JOIN data_quality dq ON 1=1\n",
-              "LEFT JOIN cluster_utilization cu ON 1=1\n",
-              "GROUP BY \n",
-              "  jf.job_name, jf.failure_rate, jf.failure_count, jf.avg_duration_minutes, ph.avg_health_score\n",
-              "ORDER BY \n",
-              "  jf.failure_rate DESC,\n",
-              "  COALESCE(ph.avg_health_score, 100) ASC\n",
+              "WITH job_failures AS (",
+              "",
+              "  SELECT",
+              "",
+              "    job_name,",
+              "",
+              "    failure_rate,",
+              "",
+              "    avg_duration_minutes,",
+              "",
+              "    failure_count",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_failed_jobs_summary(7)",
+              "",
+              "  WHERE failure_rate > 5",
+              "",
+              "),",
+              "",
+              "pipeline_health AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    j.job_name as pipeline_name,",
+              "",
+              "    AVG(ph.prediction) as avg_health_score",
+              "",
+              "  FROM ${catalog}.${feature_schema}.pipeline_health_predictions ph",
+              "",
+              "  JOIN ${catalog}.${gold_schema}.dim_job j ON ph.job_id = j.job_id",
+              "",
+              "  WHERE ph.query_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "  GROUP BY j.job_name",
+              "",
+              "),",
+              "",
+              "query_performance AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    warehouse_name,",
+              "",
+              "    MEASURE(p95_duration_seconds) as p95_latency,",
+              "",
+              "    MEASURE(sla_breach_rate) as sla_breach_pct",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_query_performance",
+              "",
+              "  ",
+              "",
+              "  GROUP BY warehouse_name",
+              "",
+              "),",
+              "",
+              "data_quality AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    domain,",
+              "",
+              "    MEASURE(freshness_rate) as avg_quality,",
+              "",
+              "    MEASURE(staleness_rate) as staleness_pct",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_data_quality",
+              "",
+              "  ",
+              "",
+              "  GROUP BY domain",
+              "",
+              "),",
+              "",
+              "cluster_utilization AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    cluster_name,",
+              "",
+              "    MEASURE(avg_cpu_utilization) as cpu_pct",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_cluster_utilization",
+              "",
+              "  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "  GROUP BY cluster_name",
+              "",
+              ")",
+              "",
+              "SELECT ",
+              "",
+              "  jf.job_name,",
+              "",
+              "  jf.failure_rate,",
+              "",
+              "  jf.failure_count,",
+              "",
+              "  jf.avg_duration_minutes,",
+              "",
+              "  COALESCE(ph.avg_health_score, 0) as ml_health_score,",
+              "",
+              "  COALESCE(AVG(qp.p95_latency), 0) as warehouse_p95_latency,",
+              "",
+              "  COALESCE(AVG(qp.sla_breach_pct), 0) as warehouse_sla_breach,",
+              "",
+              "  COALESCE(AVG(dq.avg_quality), 100) as related_data_quality,",
+              "",
+              "  COALESCE(AVG(dq.staleness_pct), 0) as data_staleness,",
+              "",
+              "  COALESCE(AVG(cu.cpu_pct), 0) as cluster_cpu_utilization,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN jf.failure_rate > 20 AND COALESCE(ph.avg_health_score, 100) < 60 THEN 'Critical - Pipeline Failing with Low Health Score'",
+              "",
+              "    WHEN COALESCE(AVG(dq.staleness_pct), 0) > 30 AND jf.failure_rate > 10 THEN 'High - Data Freshness Causing Failures'",
+              "",
+              "    WHEN COALESCE(AVG(qp.sla_breach_pct), 0) > 10 AND jf.failure_rate > 10 THEN 'High - Query Performance Impacting Jobs'",
+              "",
+              "    WHEN COALESCE(AVG(cu.cpu_pct), 0) > 85 THEN 'Medium - Resource Contention'",
+              "",
+              "    ELSE 'Low - Isolated Job Issue'",
+              "",
+              "  END as root_cause_category,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN COALESCE(ph.avg_health_score, 100) < 60 THEN 'Review pipeline configuration and dependencies'",
+              "",
+              "    WHEN COALESCE(AVG(dq.staleness_pct), 0) > 30 THEN 'Fix upstream data freshness issues'",
+              "",
+              "    WHEN COALESCE(AVG(qp.sla_breach_pct), 0) > 10 THEN 'Optimize queries or increase warehouse capacity'",
+              "",
+              "    WHEN COALESCE(AVG(cu.cpu_pct), 0) > 85 THEN 'Scale cluster or reduce concurrency'",
+              "",
+              "    ELSE 'Debug specific job code/logic'",
+              "",
+              "  END as recommended_action",
+              "",
+              "FROM job_failures jf",
+              "",
+              "LEFT JOIN pipeline_health ph ON jf.job_name = ph.pipeline_name",
+              "",
+              "LEFT JOIN query_performance qp ON 1=1",
+              "",
+              "LEFT JOIN data_quality dq ON 1=1",
+              "",
+              "LEFT JOIN cluster_utilization cu ON 1=1",
+              "",
+              "GROUP BY ",
+              "",
+              "  jf.job_name, jf.failure_rate, jf.failure_count, jf.avg_duration_minutes, ph.avg_health_score",
+              "",
+              "ORDER BY ",
+              "",
+              "  jf.failure_rate DESC,",
+              "",
+              "  COALESCE(ph.avg_health_score, 100) ASC",
+              "",
               "LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "fb10cc67bd1e446bb9970d78f3f4e256",
+        "id": "uc8e998b15fe040cea4d3c6ce2020e41d",
         "question": [
-          "What is our total spend this month?"
+          "\ud83d\udd2c DEEP RESEARCH: Executive FinOps dashboard - cost trends, efficiency, commit utilization, and optimization opportunities"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(total_cost) as mtd_cost\n",
-              "FROM ${catalog}.${gold_schema}.mv_cost_analytics\n",
-              "WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE());"
+              "WITH cost_trends AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN MEASURE(total_cost) ELSE 0 END) as cost_7d,",
+              "",
+              "    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS THEN MEASURE(total_cost) ELSE 0 END) as cost_30d,",
+              "",
+              "    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN MEASURE(total_cost) ELSE 0 END) as cost_mtd,",
+              "",
+              "    AVG(MEASURE(tag_coverage_percentage)) as avg_tag_coverage",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics",
+              "",
+              "),",
+              "",
+              "cost_by_domain AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    domain,",
+              "",
+              "    SUM(MEASURE(total_cost)) as domain_cost",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics",
+              "",
+              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS",
+              "",
+              "  GROUP BY domain",
+              "",
+              "  ORDER BY domain_cost DESC",
+              "",
+              "  LIMIT 5",
+              "",
+              "),",
+              "",
+              "commit_status AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    commit_type,",
+              "",
+              "    MEASURE(utilization_rate) as usage_pct,",
+              "",
+              "    MEASURE(remaining_dbu) as remaining_capacity",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_commit_tracking",
+              "",
+              "  WHERE usage_month = DATE_TRUNC('month', CURRENT_DATE())",
+              "",
+              "  GROUP BY commit_type",
+              "",
+              "),",
+              "",
+              "efficiency AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    AVG(MEASURE(avg_cpu_utilization)) as avg_cpu_util,",
+              "",
+              "    AVG(MEASURE(efficiency_score)) as avg_efficiency",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_cluster_utilization",
+              "",
+              "  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              "),",
+              "",
+              "optimization_potential AS (",
+              "",
+              "  SELECT",
+              "",
+              "    SUM(potential_savings) as total_savings_potential",
+              "",
+              "  FROM ${catalog}.${gold_schema}.get_cluster_right_sizing_recommendations(30)",
+              "",
+              "  WHERE recommended_action != 'NO_CHANGE'",
+              "",
+              "),",
+              "",
+              "serverless_adoption AS (",
+              "",
+              "  SELECT ",
+              "",
+              "    MEASURE(serverless_percentage) as serverless_pct",
+              "",
+              "  FROM ${catalog}.${gold_schema}.mv_cost_analytics",
+              "",
+              "  WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
+              "",
+              ")",
+              "",
+              "SELECT ",
+              "",
+              "  ct.cost_7d,",
+              "",
+              "  ct.cost_30d,",
+              "",
+              "  ct.cost_mtd,",
+              "",
+              "  ct.cost_7d * 30 as projected_monthly_cost,",
+              "",
+              "  ct.avg_tag_coverage,",
+              "",
+              "  COALESCE(STRING_AGG(cbd.domain || ': $' || CAST(cbd.domain_cost as STRING), ', '), 'N/A') as top_5_cost_domains,",
+              "",
+              "  COALESCE(AVG(cs.usage_pct), 0) as avg_commit_utilization,",
+              "",
+              "  COALESCE(SUM(cs.remaining_capacity), 0) as total_remaining_commit,",
+              "",
+              "  ef.avg_cpu_util,",
+              "",
+              "  ef.avg_efficiency,",
+              "",
+              "  COALESCE(op.total_savings_potential, 0) as monthly_optimization_potential,",
+              "",
+              "  sa.serverless_pct,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN ct.cost_7d * 30 > ct.cost_30d * 1.3 THEN 'Critical - Cost Spike Detected'",
+              "",
+              "    WHEN COALESCE(AVG(cs.usage_pct), 0) < 70 THEN 'Warning - Under-Utilizing Commitments'",
+              "",
+              "    WHEN ef.avg_cpu_util < 40 THEN 'Warning - Resource Inefficiency'",
+              "",
+              "    WHEN COALESCE(op.total_savings_potential, 0) > 10000 THEN 'High - Significant Optimization Opportunity'",
+              "",
+              "    WHEN sa.serverless_pct < 30 THEN 'Medium - Low Serverless Adoption'",
+              "",
+              "    ELSE 'Healthy FinOps Posture'",
+              "",
+              "  END as finops_health_status,",
+              "",
+              "  CASE ",
+              "",
+              "    WHEN ct.cost_7d * 30 > ct.cost_30d * 1.3 THEN 'Investigate cost spike drivers and implement controls'",
+              "",
+              "    WHEN COALESCE(AVG(cs.usage_pct), 0) < 70 THEN 'Increase workload on committed capacity'",
+              "",
+              "    WHEN ef.avg_cpu_util < 40 THEN 'Right-size clusters and consolidate workloads'",
+              "",
+              "    WHEN COALESCE(op.total_savings_potential, 0) > 10000 THEN 'Apply ML right-sizing recommendations'",
+              "",
+              "    WHEN sa.serverless_pct < 30 THEN 'Migrate eligible workloads to serverless'",
+              "",
+              "    WHEN ct.avg_tag_coverage < 80 THEN 'Implement tagging policy for cost allocation'",
+              "",
+              "    ELSE 'Continue monitoring and optimizing'",
+              "",
+              "  END as top_priority_action",
+              "",
+              "FROM cost_trends ct",
+              "",
+              "CROSS JOIN cost_by_domain cbd",
+              "",
+              "CROSS JOIN commit_status cs",
+              "",
+              "CROSS JOIN efficiency ef",
+              "",
+              "CROSS JOIN optimization_potential op",
+              "",
+              "CROSS JOIN serverless_adoption sa",
+              "",
+              "GROUP BY ",
+              "",
+              "  ct.cost_7d, ct.cost_30d, ct.cost_mtd, ct.avg_tag_coverage,",
+              "",
+              "  ef.avg_cpu_util, ef.avg_efficiency, op.total_savings_potential, sa.serverless_pct;"
             ]
           }
         ]

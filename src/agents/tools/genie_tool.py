@@ -2,22 +2,23 @@
 Genie Tool for LangGraph
 ========================
 
-LangChain tool wrapper for Genie Space interactions.
+LangChain tool wrapper for Genie Space interactions using GenieAgent.
 
-Based on the official LangGraph multi-agent Genie pattern:
-https://docs.databricks.com/aws/en/notebooks/source/generative-ai/langgraph-multiagent-genie.html
+Aligned with the official LangGraph Multi-Agent Genie pattern:
+- https://docs.databricks.com/aws/en/generative-ai/agent-framework/multi-agent-genie
+- https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/multi-agent-genie
+- https://docs.databricks.com/notebooks/source/generative-ai/langgraph-multiagent-genie.html
 
 The GenieTool allows agents to query structured data through
 natural language, with Genie handling the SQL generation.
+Uses GenieAgent for proper LangGraph integration.
 """
 
 from typing import Dict, List, Optional, Any
-import time
 import mlflow
 
-from langchain_core.tools import tool, BaseTool
+from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
-from databricks.sdk import WorkspaceClient
 
 from ..config import settings
 
@@ -34,10 +35,13 @@ class GenieQueryInput(BaseModel):
 
 class GenieTool(BaseTool):
     """
-    LangChain tool for querying Genie Spaces.
+    LangChain tool for querying Genie Spaces using GenieAgent.
 
-    This tool wraps a Genie Space and provides a clean interface
-    for LangGraph agents to query structured data.
+    This tool wraps a Genie Space using the official GenieAgent from
+    databricks_langchain, providing proper LangGraph integration.
+
+    Following the official pattern from:
+    https://docs.databricks.com/aws/en/generative-ai/agent-framework/multi-agent-genie
 
     Attributes:
         name: Tool name (e.g., "cost_genie")
@@ -50,24 +54,40 @@ class GenieTool(BaseTool):
     description: str
     genie_space_id: str
     domain: str
-    timeout_seconds: int = 45
 
     # Private attributes
-    _client: Optional[WorkspaceClient] = None
+    _genie_agent: Optional[Any] = None
 
     class Config:
         arbitrary_types_allowed = True
 
     @property
-    def client(self) -> WorkspaceClient:
-        """Lazily create WorkspaceClient."""
-        if self._client is None:
-            self._client = WorkspaceClient()
-        return self._client
+    def genie_agent(self):
+        """
+        Lazily create GenieAgent.
+
+        Uses databricks_langchain.genie.GenieAgent which is the official
+        LangGraph-compatible wrapper for Genie Spaces.
+
+        Reference:
+        https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/multi-agent-genie
+        """
+        if self._genie_agent is None and self.genie_space_id:
+            try:
+                from databricks_langchain.genie import GenieAgent
+                self._genie_agent = GenieAgent(
+                    genie_space_id=self.genie_space_id,
+                    genie_agent_name=f"{self.name}",
+                )
+            except ImportError as e:
+                print(f"Warning: Could not import GenieAgent: {e}")
+            except Exception as e:
+                print(f"Warning: Could not initialize GenieAgent for {self.domain}: {e}")
+        return self._genie_agent
 
     def _run(self, query: str, workspace_filter: str = None) -> str:
         """
-        Execute Genie query synchronously.
+        Execute Genie query synchronously using GenieAgent.
 
         Args:
             query: Natural language question
@@ -83,14 +103,19 @@ class GenieTool(BaseTool):
         Execute Genie query asynchronously.
 
         For now, delegates to sync implementation.
-        TODO: Implement true async with aiohttp.
+        TODO: Implement true async when GenieAgent supports it.
         """
         return self._run(query, workspace_filter)
 
     @mlflow.trace(name="genie_tool_query", span_type="TOOL")
     def _query_genie(self, query: str, workspace_filter: str = None) -> str:
         """
-        Query the Genie Space.
+        Query the Genie Space using GenieAgent.
+
+        This method follows the official LangGraph Multi-Agent Genie pattern:
+        - Uses GenieAgent.invoke() for LangGraph compatibility
+        - Proper MLflow tracing on all operations
+        - Returns string response for tool interface
 
         Args:
             query: Natural language question
@@ -117,22 +142,23 @@ class GenieTool(BaseTool):
             if workspace_filter:
                 enhanced_query += f" Filter by workspace: {workspace_filter}"
 
-            try:
-                # Start Genie conversation
-                response = self.client.genie.start_conversation(
-                    space_id=self.genie_space_id,
-                    content=enhanced_query,
-                )
+            # Check if GenieAgent is available
+            genie = self.genie_agent
+            if genie is None:
+                result = f"Error: GenieAgent for {self.domain} is not available."
+                span.set_outputs({"error": "AGENT_NOT_AVAILABLE"})
+                return result
 
-                # Wait for completion and parse response
-                result = self._wait_and_parse(
-                    conversation_id=response.conversation_id,
-                    message_id=response.message_id,
-                )
+            try:
+                # Use GenieAgent.invoke() - the official LangGraph pattern
+                genie_result = genie.invoke({"input": enhanced_query})
+
+                # Parse GenieAgent response
+                result = self._format_response(genie_result)
 
                 span.set_outputs({
                     "response_length": len(result),
-                    "conversation_id": response.conversation_id,
+                    "domain": self.domain,
                 })
 
                 return result
@@ -142,88 +168,44 @@ class GenieTool(BaseTool):
                 span.set_outputs({"error": str(e)})
                 return error_msg
 
-    def _wait_and_parse(
-        self,
-        conversation_id: str,
-        message_id: str,
-    ) -> str:
+    def _format_response(self, genie_result: Any) -> str:
         """
-        Wait for Genie response and parse it.
+        Format GenieAgent response for tool return.
+
+        GenieAgent.invoke() returns a dict with 'output' key containing
+        the natural language response.
 
         Args:
-            conversation_id: Genie conversation ID
-            message_id: Message ID to poll
-
-        Returns:
-            Parsed response string.
-        """
-        start_time = time.time()
-
-        while True:
-            elapsed = time.time() - start_time
-            if elapsed > self.timeout_seconds:
-                return f"Genie query timed out after {self.timeout_seconds}s"
-
-            try:
-                message = self.client.genie.get_message(
-                    space_id=self.genie_space_id,
-                    conversation_id=conversation_id,
-                    message_id=message_id,
-                )
-
-                # Check status
-                status = getattr(message, "status", None)
-
-                if status == "COMPLETED":
-                    return self._format_response(message)
-
-                if status in ("FAILED", "CANCELLED", "ERROR"):
-                    return f"Genie query {status.lower()}"
-
-                # Still processing
-                time.sleep(1)
-
-            except Exception as e:
-                return f"Error checking Genie status: {str(e)}"
-
-    def _format_response(self, message: Any) -> str:
-        """
-        Format Genie response for return.
-
-        Args:
-            message: Genie message object
+            genie_result: Result from GenieAgent.invoke()
 
         Returns:
             Formatted response string.
         """
-        content_parts = []
+        # Extract output from GenieAgent result
+        if isinstance(genie_result, dict):
+            content = genie_result.get("output", "")
+            if not content:
+                # Try other possible keys
+                content = genie_result.get("response", "")
+                if not content:
+                    content = str(genie_result)
+        else:
+            content = str(genie_result)
 
-        # Extract text attachments
-        if hasattr(message, "attachments") and message.attachments:
-            for attachment in message.attachments:
-                if hasattr(attachment, "text"):
-                    text = attachment.text
-                    if hasattr(text, "content"):
-                        content_parts.append(text.content)
-
-        # Extract query result info
-        if hasattr(message, "query_result") and message.query_result:
-            result = message.query_result
-            if hasattr(result, "description"):
-                content_parts.append(f"\nQuery: {result.description}")
-
-        if content_parts:
-            return "\n".join(content_parts)
+        if content:
+            return content.strip()
 
         return "Genie returned no content"
 
 
 def create_genie_tools() -> List[GenieTool]:
     """
-    Create Genie tools for all domains.
+    Create Genie tools for all domains using GenieAgent.
+
+    Each tool wraps a GenieAgent instance for proper LangGraph integration.
 
     Returns:
-        List of GenieTool instances for each domain.
+        List of GenieTool instances for each configured domain.
     """
     tools = []
 

@@ -1644,7 +1644,7 @@
         },
         {
           "widget": {
-            "name": "table_spend_by_tag",
+            "name": "chart_spend_by_tag",
             "queries": [
               {
                 "name": "main_query",
@@ -1675,7 +1675,7 @@
                     "type": "categorical"
                   }
                 },
-                "theta": {
+                "angle": {
                   "fieldName": "total_cost",
                   "displayName": "Cost ($)",
                   "scale": {
@@ -5321,7 +5321,41 @@
                 "name": "main_query",
                 "query": {
                   "datasetName": "ds_monitor_cost_aggregate",
-                  "disaggregated": true
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "window_end",
+                      "expression": "`window_end`"
+                    },
+                    {
+                      "name": "total_daily_cost",
+                      "expression": "`total_daily_cost`"
+                    },
+                    {
+                      "name": "total_daily_dbu",
+                      "expression": "`total_daily_dbu`"
+                    },
+                    {
+                      "name": "tagged_cost_total",
+                      "expression": "`tagged_cost_total`"
+                    },
+                    {
+                      "name": "untagged_cost_total",
+                      "expression": "`untagged_cost_total`"
+                    },
+                    {
+                      "name": "serverless_cost",
+                      "expression": "`serverless_cost`"
+                    },
+                    {
+                      "name": "dlt_cost",
+                      "expression": "`dlt_cost`"
+                    }
+                  ]
                 }
               }
             ],
@@ -5332,43 +5366,35 @@
                 "columns": [
                   {
                     "fieldName": "window_start",
-                    "title": "Window Start",
-                    "type": "datetime"
+                    "title": "Window Start"
                   },
                   {
                     "fieldName": "window_end",
-                    "title": "Window End",
-                    "type": "datetime"
+                    "title": "Window End"
                   },
                   {
                     "fieldName": "total_daily_cost",
-                    "title": "Total Daily Cost",
-                    "type": "number"
+                    "title": "Total Daily Cost"
                   },
                   {
                     "fieldName": "total_daily_dbu",
-                    "title": "Total Daily DBU",
-                    "type": "number"
+                    "title": "Total Daily DBU"
                   },
                   {
                     "fieldName": "tagged_cost_total",
-                    "title": "Tagged Cost Total",
-                    "type": "number"
+                    "title": "Tagged Cost Total"
                   },
                   {
                     "fieldName": "untagged_cost_total",
-                    "title": "Untagged Cost Total",
-                    "type": "number"
+                    "title": "Untagged Cost Total"
                   },
                   {
                     "fieldName": "serverless_cost",
-                    "title": "Serverless Cost",
-                    "type": "number"
+                    "title": "Serverless Cost"
                   },
                   {
                     "fieldName": "dlt_cost",
-                    "title": "DLT Cost",
-                    "type": "number"
+                    "title": "DLT Cost"
                   }
                 ]
               },
@@ -5489,7 +5515,7 @@
     {
       "name": "ds_serverless_adoption",
       "displayName": "Serverless Adoption",
-      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN product_features_is_serverless THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1), '%') AS serverless_pct FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max",
+      "query": "SELECT CONCAT(ROUND(SUM(CASE WHEN (sku_name LIKE '%SERVERLESS%' OR billing_origin_product LIKE '%Serverless%') THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1), '%') AS serverless_pct FROM ${catalog}.${gold_schema}.fact_usage WHERE usage_date BETWEEN :time_range.min AND :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5577,7 +5603,7 @@
     {
       "name": "ds_daily_cost",
       "displayName": "Daily Cost",
-      "query": "SELECT DATE(usage_date) AS usage_date, SUM(list_cost) AS daily_cost, SUM(CASE WHEN product_features_is_serverless THEN list_cost ELSE 0 END) AS serverless_cost, SUM(CASE WHEN NOT product_features_is_serverless THEN list_cost ELSE 0 END) AS classic_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE usage_date BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
+      "query": "SELECT DATE(usage_date) AS usage_date, SUM(list_cost) AS daily_cost, SUM(CASE WHEN (sku_name LIKE '%SERVERLESS%' OR billing_origin_product LIKE '%Serverless%') THEN list_cost ELSE 0 END) AS serverless_cost, SUM(CASE WHEN NOT (sku_name LIKE '%SERVERLESS%' OR billing_origin_product LIKE '%Serverless%') THEN list_cost ELSE 0 END) AS classic_cost FROM ${catalog}.${gold_schema}.fact_usage f LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id WHERE usage_date BETWEEN :time_range.min AND :time_range.max GROUP BY 1 ORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5774,7 +5800,7 @@
     {
       "name": "ds_spend_by_tag_values",
       "displayName": "Spend by Tag Values",
-      "query": "-- Spend breakdown by actual tag key/value pairs\nWITH exploded_tags AS (\n  SELECT\n    list_cost,\n    EXPLODE(MAP_FROM_JSON(custom_tags)) AS (tag_key, tag_value)\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE is_tagged = TRUE\n    AND custom_tags IS NOT NULL\n    AND custom_tags != '{}'\n    AND usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS\n)\nSELECT\n  tag_key,\n  tag_value,\n  ROUND(SUM(list_cost), 2) AS total_cost,\n  COUNT(*) AS usage_count\nFROM exploded_tags\nWHERE tag_key IS NOT NULL\nGROUP BY 1, 2\nHAVING SUM(list_cost) > 100\nORDER BY total_cost DESC\nLIMIT 25"
+      "query": "-- Spend breakdown by actual tag key/value pairs\nSELECT\n  tag_key,\n  tag_value,\n  ROUND(SUM(list_cost), 2) AS total_cost,\n  COUNT(*) AS usage_count\nFROM (\n  SELECT\n    list_cost,\n    EXPLODE(custom_tags) AS (tag_key, tag_value)\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE is_tagged = TRUE\n    AND custom_tags IS NOT NULL\n    AND usage_date >= CURRENT_DATE() - INTERVAL 90 DAYS\n)\nWHERE tag_key IS NOT NULL AND tag_value IS NOT NULL\nGROUP BY 1, 2\nHAVING SUM(list_cost) > 100\nORDER BY total_cost DESC\nLIMIT 25"
     },
     {
       "name": "ds_highest_change_users",
@@ -6350,7 +6376,7 @@
     {
       "name": "ds_monitor_serverless",
       "displayName": "Monitor: Serverless",
-      "query": "-- Serverless adoption metrics from fact_usage\nSELECT \n  DATE(usage_date) AS window_start, \n  ROUND(SUM(usage_quantity), 0) AS total_dbu,\n  ROUND(SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS serverless_pct, \n  ROUND(SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS tag_coverage_pct,\n  COUNT(DISTINCT workspace_id) AS unique_users\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE DATE(usage_date) >= :time_range.min\n  AND DATE(usage_date) <= :time_range.max\nGROUP BY DATE(usage_date)\nORDER BY 1",
+      "query": "-- Serverless adoption metrics from fact_usage\nSELECT \n  DATE(usage_date) AS window_start, \n  ROUND(SUM(usage_quantity), 0) AS total_dbu,\n  ROUND(SUM(CASE WHEN sku_name LIKE '%SERVERLESS%' OR billing_origin_product LIKE '%Serverless%' THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS serverless_pct, \n  ROUND(SUM(CASE WHEN is_tagged = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS tag_coverage_pct,\n  COUNT(DISTINCT workspace_id) AS unique_users\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE DATE(usage_date) >= :time_range.min\n  AND DATE(usage_date) <= :time_range.max\nGROUP BY DATE(usage_date)\nORDER BY 1",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6374,7 +6400,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "-- Week-over-week cost drift from fact_usage\nWITH daily_cost AS (\n  SELECT DATE(usage_date) AS day, SUM(list_cost) AS daily_cost,\n    SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0) AS serverless_pct\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE DATE(usage_date) >= :time_range.min AND DATE(usage_date) <= :time_range.max\n  GROUP BY DATE(usage_date)\n),\nweekly_avg AS (\n  SELECT day, daily_cost, serverless_pct,\n    AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_avg,\n    LAG(AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_avg,\n    AVG(serverless_pct) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_serverless,\n    LAG(AVG(serverless_pct) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_serverless\n  FROM daily_cost\n)\nSELECT day AS window_start,\n  ROUND((seven_day_avg - prev_seven_day_avg) * 100.0 / NULLIF(prev_seven_day_avg, 0), 1) AS cost_drift_pct,\n  ROUND(seven_day_serverless - prev_seven_day_serverless, 1) AS serverless_drift\nFROM weekly_avg WHERE prev_seven_day_avg IS NOT NULL ORDER BY day",
+      "query": "-- Week-over-week cost drift from fact_usage\nWITH daily_cost AS (\n  SELECT DATE(usage_date) AS day, SUM(list_cost) AS daily_cost,\n    SUM(CASE WHEN sku_name LIKE '%SERVERLESS%' OR billing_origin_product LIKE '%Serverless%' THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0) AS serverless_pct\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE DATE(usage_date) >= :time_range.min AND DATE(usage_date) <= :time_range.max\n  GROUP BY DATE(usage_date)\n),\nweekly_avg AS (\n  SELECT day, daily_cost, serverless_pct,\n    AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_avg,\n    LAG(AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_avg,\n    AVG(serverless_pct) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_serverless,\n    LAG(AVG(serverless_pct) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_serverless\n  FROM daily_cost\n)\nSELECT day AS window_start,\n  ROUND((seven_day_avg - prev_seven_day_avg) * 100.0 / NULLIF(prev_seven_day_avg, 0), 1) AS cost_drift_pct,\n  ROUND(seven_day_serverless - prev_seven_day_serverless, 1) AS serverless_drift\nFROM weekly_avg WHERE prev_seven_day_avg IS NOT NULL ORDER BY day",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6398,7 +6424,7 @@
     {
       "name": "ds_monitor_summary",
       "displayName": "Monitor: Summary",
-      "query": "-- Last 10 days cost summary from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  ROUND(SUM(list_cost), 2) AS total_cost,\n  ROUND(SUM(usage_quantity), 0) AS total_dbu,\n  ROUND(SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS serverless_pct,\n  ROUND(SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS tag_coverage_pct,\n  COUNT(DISTINCT workspace_id) AS unique_users\nFROM ${catalog}.${gold_schema}.fact_usage\nGROUP BY DATE(usage_date)\nORDER BY 1 DESC\nLIMIT 10",
+      "query": "-- Last 10 days cost summary from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  ROUND(SUM(list_cost), 2) AS total_cost,\n  ROUND(SUM(usage_quantity), 0) AS total_dbu,\n  ROUND(SUM(CASE WHEN (sku_name LIKE '%SERVERLESS%' OR billing_origin_product LIKE '%Serverless%') THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS serverless_pct,\n  ROUND(SUM(CASE WHEN is_tagged = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 1) AS tag_coverage_pct,\n  COUNT(DISTINCT workspace_id) AS unique_users\nFROM ${catalog}.${gold_schema}.fact_usage\nGROUP BY DATE(usage_date)\nORDER BY 1 DESC\nLIMIT 10",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6802,7 +6828,7 @@
     {
       "name": "ds_monitor_cost_aggregate",
       "displayName": "Cost Aggregate Metrics",
-      "query": "-- Daily cost aggregates from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  DATE(usage_date) AS window_end,\n  ROUND(SUM(list_cost), 2) AS total_daily_cost,\n  ROUND(SUM(usage_quantity), 0) AS total_daily_dbu,\n  ROUND(SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END), 2) AS tagged_cost_total,\n  ROUND(SUM(CASE WHEN has_tags = false OR has_tags IS NULL THEN list_cost ELSE 0 END), 2) AS untagged_cost_total,\n  ROUND(SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END), 2) AS serverless_cost,\n  ROUND(SUM(CASE WHEN billing_origin_product = 'DLT' OR sku_name LIKE '%DLT%' THEN list_cost ELSE 0 END), 2) AS dlt_cost\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date >= :monitor_time_start\n  AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(usage_date)\nORDER BY window_start DESC",
+      "query": "-- Daily cost aggregates from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  DATE(usage_date) AS window_end,\n  ROUND(SUM(list_cost), 2) AS total_daily_cost,\n  ROUND(SUM(usage_quantity), 0) AS total_daily_dbu,\n  ROUND(SUM(CASE WHEN is_tagged = true THEN list_cost ELSE 0 END), 2) AS tagged_cost_total,\n  ROUND(SUM(CASE WHEN is_tagged = false OR is_tagged IS NULL THEN list_cost ELSE 0 END), 2) AS untagged_cost_total,\n  ROUND(SUM(CASE WHEN sku_name LIKE '%SERVERLESS%' OR billing_origin_product LIKE '%Serverless%' THEN list_cost ELSE 0 END), 2) AS serverless_cost,\n  ROUND(SUM(CASE WHEN billing_origin_product = 'DLT' OR sku_name LIKE '%DLT%' THEN list_cost ELSE 0 END), 2) AS dlt_cost\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date >= :monitor_time_start\n  AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(usage_date)\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6869,7 +6895,7 @@
     {
       "name": "ds_monitor_cost_derived",
       "displayName": "Cost Derived KPIs",
-      "query": "-- Derived cost KPIs from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  DATE(usage_date) AS window_end,\n  ROUND(SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 2) AS tag_coverage_pct,\n  ROUND(SUM(CASE WHEN is_serverless = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 2) AS serverless_ratio\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date >= :monitor_time_start\n  AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(usage_date)\nORDER BY window_start DESC",
+      "query": "-- Derived cost KPIs from fact_usage\nSELECT \n  DATE(usage_date) AS window_start,\n  DATE(usage_date) AS window_end,\n  ROUND(SUM(CASE WHEN is_tagged = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 2) AS tag_coverage_pct,\n  ROUND(SUM(CASE WHEN (sku_name LIKE '%SERVERLESS%' OR billing_origin_product LIKE '%Serverless%') THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0), 2) AS serverless_ratio\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date >= :monitor_time_start\n  AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(usage_date)\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6936,7 +6962,7 @@
     {
       "name": "ds_monitor_cost_drift",
       "displayName": "Cost Drift Metrics",
-      "query": "-- Week-over-week cost drift calculation\nWITH daily_cost AS (\n  SELECT DATE(usage_date) AS day, SUM(list_cost) AS daily_cost,\n    SUM(CASE WHEN has_tags = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0) AS tag_coverage\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= :monitor_time_start AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\n  GROUP BY DATE(usage_date)\n),\nweekly_avg AS (\n  SELECT day, daily_cost, tag_coverage,\n    AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_avg,\n    LAG(AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_avg,\n    AVG(tag_coverage) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_tag,\n    LAG(AVG(tag_coverage) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_tag\n  FROM daily_cost\n)\nSELECT day AS window_start, 'CONSECUTIVE' AS drift_type,\n  ROUND((seven_day_avg - prev_seven_day_avg) * 100.0 / NULLIF(prev_seven_day_avg, 0), 2) AS cost_drift_pct,\n  ROUND(seven_day_tag - prev_seven_day_tag, 2) AS tag_coverage_drift\nFROM weekly_avg WHERE prev_seven_day_avg IS NOT NULL ORDER BY day",
+      "query": "-- Week-over-week cost drift calculation\nWITH daily_cost AS (\n  SELECT DATE(usage_date) AS day, SUM(list_cost) AS daily_cost,\n    SUM(CASE WHEN is_tagged = true THEN list_cost ELSE 0 END) * 100.0 / NULLIF(SUM(list_cost), 0) AS tag_coverage\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= :monitor_time_start AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\n  GROUP BY DATE(usage_date)\n),\nweekly_avg AS (\n  SELECT day, daily_cost, tag_coverage,\n    AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_avg,\n    LAG(AVG(daily_cost) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_avg,\n    AVG(tag_coverage) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS seven_day_tag,\n    LAG(AVG(tag_coverage) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 7) OVER (ORDER BY day) AS prev_seven_day_tag\n  FROM daily_cost\n)\nSELECT day AS window_start, 'CONSECUTIVE' AS drift_type,\n  ROUND((seven_day_avg - prev_seven_day_avg) * 100.0 / NULLIF(prev_seven_day_avg, 0), 2) AS cost_drift_pct,\n  ROUND(seven_day_tag - prev_seven_day_tag, 2) AS tag_coverage_drift\nFROM weekly_avg WHERE prev_seven_day_avg IS NOT NULL ORDER BY day",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -7082,6 +7108,21 @@
               "values": [
                 {
                   "value": "No Slice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "monitor_slice_value",
+          "keyword": "monitor_slice_value",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "All"
                 }
               ]
             }

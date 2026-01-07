@@ -1,35 +1,42 @@
 # Genie Spaces Deployment Job
-# Deploys Genie Spaces programmatically via REST API
+# Validates and deploys Genie Spaces programmatically via REST API
 #
-# Uses Export/Import API format to deploy 2 Genie Spaces:
-#   - 💰 Cost: Cost Intelligence Space (cost_intelligence_genie_export.json)
-#   - 🔄 Reliability: Job Health Monitor Space (job_health_monitor_genie_export.json)
+# Pre-Deployment Validation:
+#   - Executes all 150 benchmark SQL queries with LIMIT 1
+#   - Catches column resolution, table reference, and runtime errors
+#   - Fails fast if any SQL errors are found
+#
+# Deploys 6 Genie Spaces:
+#   - 💰 Cost Intelligence (cost_intelligence_genie_export.json)
+#   - 📊 Data Quality Monitor (data_quality_monitor_genie_export.json)
+#   - 🔄 Job Health Monitor (job_health_monitor_genie_export.json)
+#   - ⚡ Performance (performance_genie_export.json)
+#   - 🔐 Security Auditor (security_auditor_genie_export.json)
+#   - 🏥 Unified Health Monitor (unified_health_monitor_genie_export.json)
 #
 # API Endpoints:
 #   - POST /api/2.0/genie/spaces - Create new Genie Space
 #   - PATCH /api/2.0/genie/spaces/{space_id} - Update existing Space
-#   - GET /api/2.0/genie/spaces - List existing Spaces
 #
 # Reference:
-#   - .cursor/rules/semantic-layer/29-genie-space-export-import-api.mdc
-#   - Phase 3 Addendum 3.6 - Genie Spaces
 #   - https://docs.databricks.com/api/workspace/genie/createspace
 
 resources:
   jobs:
     genie_spaces_deployment_job:
       name: "[${bundle.target}] Health Monitor - Genie Spaces Deployment"
-      description: "Deploys Genie Spaces programmatically using REST API from JSON export files"
-      
+      description: "Validates benchmark SQL and deploys Genie Spaces from JSON export files"
+
       # Serverless environment
       environments:
         - environment_key: default
           spec:
             environment_version: "4"
-      
+
       tasks:
-        # Task 1: Validate all benchmark SQL queries (catches ALL issues at once)
-        - task_key: validate_genie_spaces
+        # Task 1: Validate all 150 benchmark SQL queries (catches ALL errors)
+        - task_key: validate_benchmark_sql
+          description: "Execute all benchmark SQL with LIMIT 1 to catch column/table/runtime errors"
           environment_key: default
           notebook_task:
             notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
@@ -37,11 +44,12 @@ resources:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
               feature_schema: ${var.feature_schema}
-        
-        # Task 2: Deploy all Genie Spaces from JSON exports (only if validation passes)
+
+        # Task 2: Deploy all Genie Spaces (only runs if validation passes)
         - task_key: deploy_genie_spaces
+          description: "Deploy all 6 Genie Spaces from JSON export files"
           depends_on:
-            - task_key: validate_genie_spaces
+            - task_key: validate_benchmark_sql
           environment_key: default
           notebook_task:
             notebook_path: ../../src/genie/deploy_genie_space.py
@@ -51,16 +59,16 @@ resources:
               feature_schema: ${var.feature_schema}
               warehouse_id: ${var.warehouse_id}
               genie_space_json: ""  # Empty = deploy all *_export.json files
-      
+
       # No schedule - run on demand after semantic layer deployment
-      
+
       # Email notifications
       email_notifications:
         on_failure:
           - data-engineering@company.com
         on_success:
           - data-engineering@company.com
-      
+
       # Tags
       tags:
         environment: ${bundle.target}
@@ -69,6 +77,7 @@ resources:
         artifact_type: genie_space
         job_type: deployment
         api_driven: "true"
+        benchmark_validation: "true"
 
 
 

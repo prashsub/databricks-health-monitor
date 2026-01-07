@@ -20,8 +20,8 @@ catalog = dbutils.widgets.get("catalog")
 import mlflow
 import mlflow.genai
 
-# Set experiment
-experiment_name = "/Shared/health_monitor/prompt_registry"
+# Use consolidated experiment (single experiment for all agent runs)
+experiment_name = "/Shared/health_monitor/agent"
 mlflow.set_experiment(experiment_name)
 
 # COMMAND ----------

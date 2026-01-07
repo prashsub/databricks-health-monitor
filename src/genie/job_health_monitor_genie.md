@@ -11,8 +11,8 @@
 **Description:** Natural language interface for Databricks job reliability and execution analytics. Enables DevOps, data engineers, and SREs to query job success rates, failure patterns, and performance metrics without SQL.
 
 **Powered by:**
-- 1 Metric View (job_performance)
-- 12 Table-Valued Functions (job status, failure analysis, cost queries)
+- 1 Metric View (mv_job_performance)
+- 12 Table-Valued Functions (job status, failure analysis, duration/SLA queries)
 - 5 ML Prediction Tables (failure prediction, retry success, health scoring)
 - 2 Lakehouse Monitoring Tables (reliability drift and profile metrics)
 - 5 Dimension Tables (job, job_task, pipeline, workspace, date)
@@ -53,7 +53,7 @@
 
 | Metric View Name | Purpose | Key Measures |
 |------------------|---------|--------------|
-| `job_performance` | Job execution metrics | total_runs, success_rate, failure_rate, avg_duration_seconds, p95_duration_seconds, p99_duration_seconds |
+| `mv_job_performance` | Job execution metrics | total_runs, success_rate, failure_rate, avg_duration_seconds, p95_duration_seconds, p99_duration_seconds |
 
 ### Table-Valued Functions (12 TVFs)
 
@@ -193,15 +193,15 @@ ORDER BY window.start DESC;
 │                                                                 │
 │  USER QUERY PATTERN                → USE THIS ASSET             │
 │  ─────────────────────────────────────────────────────────────  │
-│  "What's the current success rate?"→ Metric View (job_performance)│
-│  "Show me job success by X"        → Metric View (job_performance)│
+│  "What's the current success rate?"→ Metric View (mv_job_performance)│
+│  "Show me job success by X"        → Metric View (mv_job_performance)│
 │  ─────────────────────────────────────────────────────────────  │
 │  "Is success rate degrading?"      → Custom Metrics (_drift_metrics)│
 │  "Failure trend since last week"   → Custom Metrics (_profile_metrics)│
 │  ─────────────────────────────────────────────────────────────  │
 │  "Which jobs failed today?"        → TVF (get_failed_jobs_summary)       │
 │  "Top 10 failing jobs"             → TVF (get_job_success_rates) │
-│  "Jobs slower than threshold"      → TVF (get_job_duration_percentiles)│
+│  "Jobs slower than threshold"      → TVF (get_long_running_jobs)│
 │  ─────────────────────────────────────────────────────────────  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -211,7 +211,7 @@ ORDER BY window.start DESC;
 
 | Query Intent | Asset Type | Example |
 |--------------|-----------|---------|
-| **Current success rate** | Metric View | "Job success rate" → `job_performance` |
+| **Current success rate** | Metric View | "Job success rate" → `mv_job_performance` |
 | **Trend over time** | Custom Metrics | "Is reliability degrading?" → `_drift_metrics` |
 | **List of failed jobs** | TVF | "Failed jobs today" → `get_failed_jobs_summary` |
 | **SLA compliance** | TVF | "SLA breaches" → `get_job_sla_compliance` |
@@ -232,8 +232,8 @@ ORDER BY window.start DESC;
 You are a Databricks job reliability analyst. Follow these rules:
 
 1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends
-2. **Primary Source:** Use job_performance metric view for dashboard KPIs
-3. **TVFs for Lists:** Use TVFs for "which jobs", "top N", "list" queries
+2. **Primary Source:** Use mv_job_performance metric view for dashboard KPIs
+3. **TVFs for Lists:** Use TVFs for "which jobs", "top N", "list" queries - always wrap in TABLE()
 4. **Trends:** For "is success rate degrading?" check _drift_metrics tables
 5. **Date Default:** If no date specified, default to last 7 days
 6. **Aggregation:** Use COUNT for volumes, AVG for averages
@@ -242,8 +242,8 @@ You are a Databricks job reliability analyst. Follow these rules:
 9. **Percentages:** Success/failure rates as % with 1 decimal
 10. **Duration:** Show in minutes for readability
 11. **Synonyms:** job=workflow=pipeline, failure=error=crash
-12. **ML Predictions:** For "likely to fail" → query job_failure_predictions
-13. **Failed Jobs:** For "failed jobs today" → use get_failed_jobs_summary TVF
+12. **ML Predictions:** For "likely to fail" → query job_failure_predictions with ${feature_schema}
+13. **Failed Jobs:** For "failed jobs today" → use get_failed_jobs_summary(1, 1) with TABLE()
 14. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
 15. **Context:** Explain FAILED vs ERROR vs TIMED_OUT
 16. **Performance:** Never scan Bronze/Silver tables
@@ -352,11 +352,11 @@ You are a Databricks job reliability analyst. Follow these rules:
 
 | ML Model | Prediction Table | Key Columns | Use When |
 |----------|-----------------|-------------|----------|
-| `job_failure_predictor` | `job_failure_predictions` | `failure_probability`, `will_fail` | "Will this job fail?" |
-| `job_duration_forecaster` | `job_duration_predictions` | `predicted_duration_sec` | "How long will it take?" |
-| `sla_breach_predictor` | `incident_impact_predictions` | `breach_probability` | "Will SLA breach?" |
+| `job_failure_predictor` | `job_failure_predictions` | `prediction` (failure probability) | "Will this job fail?" |
+| `job_duration_forecaster` | `duration_predictions` | `prediction` (duration in minutes) | "How long will it take?" |
+| `sla_breach_predictor` | `sla_breach_predictions` | `prediction` (breach probability) | "Will SLA breach?" |
 | `pipeline_health_scorer` | `pipeline_health_predictions` | `prediction` (0-100) | "Pipeline health score" |
-| `retry_success_predictor` | `retry_success_predictions` | `retry_success_prob` | "Will retry succeed?" |
+| `retry_success_predictor` | `retry_success_predictions` | `prediction` (retry success probability) | "Will retry succeed?" |
 
 ### ML Model Usage Patterns
 
@@ -364,38 +364,42 @@ You are a Databricks job reliability analyst. Follow these rules:
 - **Question Triggers:** "will fail", "likely to fail", "at risk", "failure prediction"
 - **Query Pattern:**
 ```sql
-SELECT job_name, failure_probability, will_fail, risk_factors
-FROM ${catalog}.${gold_schema}.job_failure_predictions
-WHERE prediction_date = CURRENT_DATE()
-  AND failure_probability > 0.5
-ORDER BY failure_probability DESC;
+SELECT j.name as job_name, jfp.prediction as failure_probability, jfp.run_date
+FROM ${catalog}.${feature_schema}.job_failure_predictions jfp
+JOIN ${catalog}.${gold_schema}.dim_job j ON jfp.job_id = j.job_id
+WHERE jfp.run_date = CURRENT_DATE()
+  AND jfp.prediction > 0.5
+ORDER BY jfp.prediction DESC;
 ```
-- **Interpretation:** `failure_probability > 0.5` = High risk of failure
+- **Interpretation:** `prediction > 0.5` = High risk of failure
 
 #### job_duration_forecaster (Duration Prediction)
 - **Question Triggers:** "how long", "duration estimate", "expected time", "forecast duration"
 - **Query Pattern:**
 ```sql
-SELECT job_name, predicted_duration_sec / 60.0 as predicted_minutes, 
-       confidence_interval_lower, confidence_interval_upper
-FROM ${catalog}.${gold_schema}.job_duration_predictions
-WHERE job_name = '{job_name}'
-ORDER BY prediction_date DESC LIMIT 1;
+SELECT j.name as job_name, dp.prediction as predicted_duration_minutes, dp.run_date
+FROM ${catalog}.${feature_schema}.duration_predictions dp
+JOIN ${catalog}.${gold_schema}.dim_job j ON dp.job_id = j.job_id
+WHERE j.name = '{job_name}'
+  AND dp.run_date >= CURRENT_DATE()
+ORDER BY dp.run_date DESC LIMIT 1;
 ```
 
 #### pipeline_health_scorer (Health Score)
 - **Question Triggers:** "pipeline health", "health score", "pipeline status", "healthy pipelines"
 - **Query Pattern:**
 ```sql
-SELECT pipeline_name, health_score, 
-       CASE WHEN health_score >= 90 THEN 'Excellent'
-            WHEN health_score >= 70 THEN 'Good'
-            WHEN health_score >= 50 THEN 'Warning'
+SELECT j.name as job_name, php.prediction as health_score, php.run_date,
+       CASE WHEN php.prediction >= 90 THEN 'Excellent'
+            WHEN php.prediction >= 70 THEN 'Good'
+            WHEN php.prediction >= 50 THEN 'Warning'
             ELSE 'Critical' END as health_status
-FROM ${catalog}.${feature_schema}.pipeline_health_predictions
-ORDER BY health_score ASC;
+FROM ${catalog}.${feature_schema}.pipeline_health_predictions php
+JOIN ${catalog}.${gold_schema}.dim_job j ON php.job_id = j.job_id
+WHERE php.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
+ORDER BY php.prediction ASC;
 ```
-- **Interpretation:** `health_score < 70` = Needs attention
+- **Interpretation:** `prediction < 70` = Needs attention
 
 ### ML vs Other Methods Decision Tree
 
@@ -403,11 +407,11 @@ ORDER BY health_score ASC;
 USER QUESTION                           → USE THIS
 ────────────────────────────────────────────────────
 "Will job X fail?"                      → ML: job_failure_predictions
-"How long will job X take?"             → ML: job_duration_predictions
+"How long will job X take?"             → ML: duration_predictions
 "Pipeline health score"                 → ML: pipeline_health_predictions
-"Will SLA be breached?"                 → ML: incident_impact_predictions
+"Will SLA be breached?"                 → ML: sla_breach_predictions
 ────────────────────────────────────────────────────
-"What is the success rate?"             → Metric View: job_performance
+"What is the success rate?"             → Metric View: mv_job_performance
 "Is reliability trending down?"         → Custom Metrics: _drift_metrics
 "Show failed jobs today"                → TVF: get_failed_jobs_summary
 ```
