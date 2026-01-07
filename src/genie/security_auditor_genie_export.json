@@ -114,22 +114,22 @@
         "identifier": "${catalog}.${gold_schema}.get_permission_changes"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_service_account_activity"
+        "identifier": "${catalog}.${gold_schema}.get_service_account_audit"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_failed_access_attempts"
+        "identifier": "${catalog}.${gold_schema}.get_failed_actions"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_sensitive_data_access"
+        "identifier": "${catalog}.${gold_schema}.get_sensitive_table_access"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_unusual_access_patterns"
+        "identifier": "${catalog}.${gold_schema}.get_off_hours_activity"
       },
       {
         "identifier": "${catalog}.${gold_schema}.get_user_activity_patterns"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_data_export_events"
+        "identifier": "${catalog}.${gold_schema}.get_table_access_audit"
       },
       {
         "identifier": "${catalog}.${gold_schema}.get_user_risk_scores"
@@ -211,7 +211,7 @@
         ],
         "query": [
           "SELECT *",
-          "FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(",
+          "FROM TABLE(${catalog}.${gold_schema}.get_sensitive_table_access(",
           "  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),",
           "  CAST(CURRENT_DATE() AS STRING)",
           "))",
@@ -226,7 +226,7 @@
         ],
         "query": [
           "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_failed_access_attempts(7)",
+          "FROM ${catalog}.${gold_schema}.get_failed_actions(7)",
           "ORDER BY failed_count DESC",
           "LIMIT 20;"
         ]
@@ -250,7 +250,7 @@
         ],
         "query": [
           "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_unusual_access_patterns(7)",
+          "FROM ${catalog}.${gold_schema}.get_off_hours_activity(7)",
           "ORDER BY deviation_score DESC",
           "LIMIT 20;"
         ]
@@ -303,7 +303,7 @@
         ],
         "query": [
           "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_data_export_events(7)",
+          "FROM ${catalog}.${gold_schema}.get_table_access_audit(7)",
           "ORDER BY export_date DESC",
           "LIMIT 20;"
         ]
@@ -340,7 +340,7 @@
         ],
         "query": [
           "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_service_account_activity(30)",
+          "FROM ${catalog}.${gold_schema}.get_service_account_audit(30)",
           "ORDER BY event_count DESC",
           "LIMIT 20;"
         ]
@@ -434,7 +434,7 @@
           "    user_identity,",
           "    COUNT(*) as unusual_pattern_count,",
           "    AVG(deviation_score) as avg_deviation",
-          "  FROM ${catalog}.${gold_schema}.get_unusual_access_patterns(30)",
+          "  FROM ${catalog}.${gold_schema}.get_off_hours_activity(30)",
           "  GROUP BY user_identity",
           "),",
           "ml_risk AS (",
@@ -493,7 +493,7 @@
           "    user_identity,",
           "    access_count,",
           "    last_access",
-          "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(",
+          "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_table_access(",
           "    CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),",
           "    CAST(CURRENT_DATE() AS STRING)",
           "  ))",
@@ -640,7 +640,7 @@
           "    distinct_services,",
           "    failed_actions,",
           "    last_activity",
-          "  FROM ${catalog}.${gold_schema}.get_service_account_activity(30)",
+          "  FROM ${catalog}.${gold_schema}.get_service_account_audit(30)",
           "),",
           "access_patterns AS (",
           "  SELECT",
@@ -665,7 +665,7 @@
           "    user_identity,",
           "    COUNT(DISTINCT table_name) as sensitive_table_count,",
           "    SUM(access_count) as total_sensitive_access",
-          "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(",
+          "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_table_access(",
           "    CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),",
           "    CAST(CURRENT_DATE() AS STRING)",
           "  ))",
@@ -743,7 +743,7 @@
           "    COUNT(DISTINCT table_name) as sensitive_tables,",
           "    COUNT(DISTINCT user_identity) as users_accessing_pii,",
           "    SUM(access_count) as total_sensitive_access",
-          "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(",
+          "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_table_access(",
           "    CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),",
           "    CAST(CURRENT_DATE() AS STRING)",
           "  ))",

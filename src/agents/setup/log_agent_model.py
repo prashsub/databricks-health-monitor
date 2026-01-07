@@ -99,18 +99,43 @@ class HealthMonitorAgent(mlflow.pyfunc.PythonModel):
         self._genie_agents = None
         print(f"Agent loaded. LLM: {self.llm_endpoint}")
     
-    def _get_llm(self):
-        """Lazy LLM initialization with tracing."""
+    def _get_openai_client(self):
+        """Get OpenAI client configured for Databricks Foundation Models."""
         if self._llm is None:
-            from langchain_databricks import ChatDatabricks
-            self._llm = ChatDatabricks(
-                endpoint=self.llm_endpoint,
-                temperature=0.3,
+            import os
+            from openai import OpenAI
+            
+            # Use Databricks-hosted endpoint
+            host = os.environ.get('DATABRICKS_HOST', 'https://e2-demo-field-eng.cloud.databricks.com')
+            token = os.environ.get('DATABRICKS_TOKEN', '')
+            
+            self._llm = OpenAI(
+                api_key=token,
+                base_url=f"{host}/serving-endpoints"
             )
         return self._llm
     
+    def _call_llm(self, prompt: str, system_prompt: str = "") -> str:
+        """Call Databricks Foundation Model using OpenAI SDK."""
+        try:
+            client = self._get_openai_client()
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+            
+            response = client.chat.completions.create(
+                model=self.llm_endpoint,
+                messages=messages,
+                temperature=0.3,
+                max_tokens=4096
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"LLM call failed: {str(e)}"
+    
     def _get_genie(self, domain: str):
-        """Lazy Genie agent initialization."""
+        """Lazy Genie agent initialization using databricks-agents."""
         if self._genie_agents is None:
             self._genie_agents = {}
         
@@ -118,7 +143,7 @@ class HealthMonitorAgent(mlflow.pyfunc.PythonModel):
             space_id = self.genie_spaces.get(domain, "")
             if space_id:
                 try:
-                    from databricks_langchain.genie import GenieAgent
+                    from databricks_agents.genie import GenieAgent
                     self._genie_agents[domain] = GenieAgent(
                         genie_space_id=space_id,
                         genie_agent_name=f"{domain}_genie",
@@ -348,12 +373,9 @@ class HealthMonitorAgent(mlflow.pyfunc.PythonModel):
                     except Exception as e:
                         tool_span.set_attributes({"error": str(e)})
             
-            # Fallback to LLM using loaded prompts
+            # Fallback to LLM using OpenAI SDK with loaded prompts
             with mlflow.start_span(name="llm_fallback", span_type="LLM") as llm_span:
                 try:
-                    llm = self._get_llm()
-                    from langchain_core.messages import SystemMessage, HumanMessage
-                    
                     # Get domain-specific prompt (loaded earlier, linked to trace!)
                     domain_prompt_key = f"{domain}_analyst" if domain != "unified" else "orchestrator"
                     domain_prompt = prompts.get(domain_prompt_key, f"You are a {domain} analyst.")
@@ -368,18 +390,16 @@ class HealthMonitorAgent(mlflow.pyfunc.PythonModel):
                     system_content = domain_prompt if "{query}" not in domain_prompt else \
                         f"You are a Databricks Health Monitor {domain} analyst. {domain_prompt}"
                     
-                    response = llm.invoke([
-                        SystemMessage(content=system_content),
-                        HumanMessage(content=query)
-                    ])
+                    # Call LLM using OpenAI SDK
+                    response_text = self._call_llm(query, system_prompt=system_content)
                     
                     llm_span.set_outputs({
-                        "response": response.content,
+                        "response": response_text,
                         "prompt_key": domain_prompt_key
                     })
                     
                     output = {
-                        "messages": [{"role": "assistant", "content": response.content}],
+                        "messages": [{"role": "assistant", "content": response_text}],
                         "metadata": {"domain": domain, "source": "llm"}
                     }
                     span.set_outputs(output)
@@ -545,15 +565,15 @@ def log_agent():
             resources=resources if resources else None,
             registered_model_name=model_name,
             pip_requirements=[
-                # Note: langchain-databricks is pre-installed on Databricks Model Serving
-                # Don't specify version constraints to avoid installation conflicts
-                "mlflow",
-                "langchain",
-                "langchain-core",
-                "langchain-databricks",  # Required for ChatDatabricks
-                "langgraph",
-                "databricks-sdk",
-                "databricks-agents",  # Required for GenieAgent
+                # Package dependencies for Model Serving
+                # =========================================================
+                # Using OpenAI SDK for LLM calls (most reliable)
+                # databricks-agents for GenieAgent
+                # =========================================================
+                "mlflow>=3.0.0",  # Required for mlflow.genai
+                "openai",  # For calling Databricks Foundation Models
+                "databricks-agents",  # For GenieAgent
+                "databricks-sdk>=0.28.0",
             ],
         )
         

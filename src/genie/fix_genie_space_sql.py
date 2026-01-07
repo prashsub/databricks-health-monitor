@@ -41,6 +41,12 @@ TVF_REPLACEMENTS = {
     # Job/Reliability TVFs
     'get_job_failures': 'get_failed_jobs',  # Actual name is get_failed_jobs
     'get_job_trends': 'get_job_failure_trends',  # Actual name
+    # Security TVFs - map non-existent to existing equivalents
+    'get_sensitive_data_access': 'get_sensitive_table_access',  # Actual name
+    'get_failed_access_attempts': 'get_failed_actions',  # Actual name
+    'get_service_account_activity': 'get_service_account_audit',  # Actual name
+    'get_data_export_events': 'get_table_access_audit',  # Use table access audit for export events
+    'get_unusual_access_patterns': 'get_off_hours_activity',  # Map to off-hours analysis
 }
 
 # TVF Signature Fixes: function_name -> (old_call_pattern, new_call_pattern)

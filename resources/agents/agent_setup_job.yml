@@ -38,21 +38,23 @@ resources:
           spec:
             environment_version: "4"
         
-        # MLflow env for prompt registry (no langchain needed)
+        # MLflow 3.0+ env for prompt registry and scorers
+        # REQUIRES: MLflow 3.0+ for mlflow.genai module
+        # This is a HARD requirement - job WILL FAIL without it
         - environment_key: mlflow_env
           spec:
             environment_version: "4"
             dependencies:
-              - mlflow
+              - "mlflow>=3.0.0"  # REQUIRED for mlflow.genai (Prompt Registry, Scorers)
         
         # Full env for agent model logging
+        # REQUIRES: MLflow 3.0+ for mlflow.genai
         # Note: langchain-databricks is pre-installed on Databricks runtime
-        # Don't specify version constraints for pre-installed packages
         - environment_key: agent_env
           spec:
             environment_version: "4"
             dependencies:
-              - mlflow
+              - "mlflow>=3.0.0"  # REQUIRED for mlflow.genai
               - langchain
               - langchain-core
               - langgraph
@@ -64,7 +66,7 @@ resources:
             environment_version: "4"
             dependencies:
               - databricks-agents
-              - mlflow
+              - "mlflow>=3.0.0"  # Required for mlflow.genai
       
       tasks:
         # ==================================================================

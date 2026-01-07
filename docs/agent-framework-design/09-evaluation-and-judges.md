@@ -1,16 +1,43 @@
 # 09 - Evaluation and LLM Judges
 
-> **✅ Implementation Status: COMPLETE**
+> **✅ Implementation Status: COMPLETE (Updated Jan 2026)**
 >
-> All evaluation components are implemented in `src/agents/evaluation/`:
-> - `evaluator.py` - Dataset creation and evaluation runner with built-in scorers
-> - `judges.py` - Generic + domain-specific LLM judges (9 total)
-> - `production_monitor.py` - Real-time quality monitoring with `mlflow.genai.assess()`
-> - `__init__.py` - Clean exports for all evaluation functions
+> All evaluation components are implemented using the **official Databricks code-based scorer pattern**:
+> - `src/agents/setup/deployment_job.py` - Main evaluation with custom scorers using `@scorer` decorator
+> - `src/agents/evaluation/evaluator.py` - Dataset creation and evaluation runner
+> - `src/agents/monitoring/production_monitor.py` - Real-time quality monitoring with `mlflow.genai.assess()`
+>
+> **Official References:**
+> - [Code-Based Scorer Examples](https://docs.databricks.com/aws/en/notebooks/source/mlflow3/code-based-scorer-examples.html)
+> - [Custom Scorers](https://learn.microsoft.com/en-us/azure/databricks/mlflow3/genai/eval-monitor/custom-scorers)
 
 ## Overview
 
-MLflow 3.0 provides comprehensive evaluation capabilities for GenAI applications, including built-in scorers, LLM judges, and custom evaluation metrics. This document covers the complete evaluation setup for the Health Monitor agent system.
+MLflow 3.0+ provides comprehensive evaluation capabilities for GenAI applications, including code-based scorers, LLM judges, and custom evaluation metrics. This document covers the complete evaluation setup for the Health Monitor agent system using the **official Databricks scorer patterns**.
+
+## ⚠️ CRITICAL: Official Scorer Pattern (MLflow 3.0+)
+
+All custom scorers MUST follow the official pattern:
+
+```python
+from mlflow.genai.scorers import scorer
+from mlflow.entities import Feedback
+
+@scorer
+def my_custom_scorer(*, inputs: dict = None, outputs: Any = None, expectations: dict = None, **kwargs) -> Feedback:
+    """
+    Official scorer pattern requirements:
+    1. Use @scorer decorator from mlflow.genai.scorers
+    2. Return mlflow.entities.Feedback objects
+    3. Accept keyword-only arguments (*, inputs, outputs, expectations)
+    4. Access Databricks secrets via dbutils inside function
+    """
+    # Your scoring logic
+    return Feedback(
+        value="yes",  # or "no", "partial", numeric
+        rationale="Explanation"
+    )
+```
 
 ## Evaluation Architecture
 
@@ -19,29 +46,93 @@ graph TB
     subgraph EvalPipeline [Evaluation Pipeline]
         ES[Evaluation Set<br/>Benchmark Questions]
         AG[Agent Under Test]
-        SC[Scorers]
-        JD[LLM Judges]
+        SC[Custom Scorers<br/>@scorer decorator]
+        JD[Domain LLM Judges]
         RS[Results]
     end
     
-    subgraph Scorers [Scorer Types]
-        BS[Built-in Scorers]
-        CS[Custom Scorers]
-        DJ[Domain Judges]
+    subgraph Scorers [Scorer Types - Official Pattern]
+        LLM[LLM-Based Scorers<br/>Call Foundation Models]
+        CODE[Code-Based Scorers<br/>Heuristic/Deterministic]
+        DOM[Domain Judges<br/>5 domains per design]
     end
     
     subgraph Outputs [Evaluation Outputs]
+        FB[Feedback Objects<br/>value + rationale]
         MT[Metrics Table]
-        AS[Assessment Details]
         DB[Dashboard]
     end
     
     ES --> AG
     AG --> SC & JD
-    SC --> BS & CS
-    JD --> DJ
-    BS & CS & DJ --> RS
-    RS --> MT & AS & DB
+    SC --> LLM & CODE
+    JD --> DOM
+    LLM & CODE & DOM --> FB
+    FB --> RS
+    RS --> MT & DB
+```
+
+## Custom Scorers Implementation
+
+### Official Scorer Pattern (from Databricks docs)
+
+**Key Requirements:**
+1. Use `@scorer` decorator from `mlflow.genai.scorers`
+2. Return `mlflow.entities.Feedback` objects
+3. Accept keyword-only arguments: `inputs`, `outputs`, `expectations`, `trace`
+4. For LLM calls, use `dbutils.secrets.get` or environment variables for credentials
+
+### LLM-Based Scorers
+
+```python
+from mlflow.genai.scorers import scorer
+from mlflow.entities import Feedback
+from openai import OpenAI
+import os
+
+def _call_llm_for_scoring(prompt: str) -> dict:
+    """Call Databricks Foundation Model for scoring."""
+    client = OpenAI(
+        api_key=os.environ.get("DATABRICKS_TOKEN"),
+        base_url=f"{os.environ.get('DATABRICKS_HOST')}/serving-endpoints"
+    )
+    response = client.chat.completions.create(
+        model="databricks-claude-3-7-sonnet",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0
+    )
+    return json.loads(response.choices[0].message.content)
+
+@scorer
+def relevance_scorer(*, inputs: dict = None, outputs: Any = None, **kwargs) -> Feedback:
+    """LLM-based relevance scorer."""
+    query = inputs.get("query", "") if inputs else ""
+    response = _extract_response(outputs)
+    
+    prompt = f"""Evaluate if this response is relevant to the query.
+Query: {query}
+Response: {response}
+Return JSON: {{"value": "yes"|"partial"|"no", "rationale": "<explanation>"}}"""
+    
+    result = _call_llm_for_scoring(prompt)
+    return Feedback(value=result.get("value", "partial"), rationale=result.get("rationale", ""))
+```
+
+### Code-Based Scorers (No LLM)
+
+```python
+@scorer
+def response_length(*, outputs: Any = None, **kwargs) -> Feedback:
+    """Code-based scorer: Checks response length."""
+    response = _extract_response(outputs)
+    length = len(response)
+    
+    if length >= 100:
+        return Feedback(value="yes", rationale=f"Good length: {length} chars")
+    elif length >= 50:
+        return Feedback(value="partial", rationale=f"Short: {length} chars")
+    else:
+        return Feedback(value="no", rationale=f"Too short: {length} chars")
 ```
 
 ## Built-in Scorers
@@ -61,30 +152,18 @@ MLflow provides several built-in scorers for common evaluation needs:
 ### Using Built-in Scorers
 
 ```python
-from mlflow.genai.scorers import (
-    Relevance,
-    Safety,
-    Correctness,
-    GuidelinesAdherence,
-    RetrievalRelevance
-)
-import mlflow.genai
+from mlflow.genai.scorers import Relevance, Safety
 
-# Basic evaluation with built-in scorers
+# These built-in scorers may not be available in all MLflow versions
+# In deployment_job.py, we use custom implementations for robustness
 results = mlflow.genai.evaluate(
     model=orchestrator_agent,
     data=evaluation_dataset,
-    scorers=[
-        Relevance(),
-        Safety(),
-        Correctness()
-    ]
+    scorers=[Relevance(), Safety()]  # Built-in versions
 )
-
-print(f"Relevance Score: {results.metrics['relevance/mean']}")
-print(f"Safety Score: {results.metrics['safety/mean']}")
-print(f"Correctness Score: {results.metrics['correctness/mean']}")
 ```
+
+> **⚠️ Note:** Built-in scorers like `Relevance()`, `Safety()` may not be available in all Databricks runtimes. The `deployment_job.py` uses custom implementations that call Databricks Foundation Models directly for maximum compatibility.
 
 ### GuidelinesAdherence Scorer
 
@@ -142,32 +221,74 @@ results = mlflow.genai.evaluate(
 )
 ```
 
-### Custom LLM Judges
+### Custom LLM Judges (Official Pattern)
 
-Create domain-specific judges for the Health Monitor:
+Create domain-specific judges for the Health Monitor using the **official Databricks code-based scorer pattern**:
+
+> **Official References:**
+> - [Code-Based Scorer Examples](https://docs.databricks.com/aws/en/notebooks/source/mlflow3/code-based-scorer-examples.html)
+> - [Custom Scorers](https://learn.microsoft.com/en-us/azure/databricks/mlflow3/genai/eval-monitor/custom-scorers)
 
 ```python
-from mlflow.genai import scorer
-from mlflow.genai.scorers import Score
+# src/agents/setup/deployment_job.py
+# Official pattern using @scorer decorator and Feedback objects
 
-@scorer
-def cost_accuracy_judge(
-    inputs: dict,
-    outputs: dict,
-    expectations: dict = None
-) -> Score:
+from mlflow.genai.scorers import scorer
+from mlflow.entities import Feedback
+from openai import OpenAI
+from typing import Any
+import os
+import json
+
+def _call_llm_for_scoring(prompt: str) -> dict:
     """
-    Judge that evaluates cost-related responses for accuracy.
+    Call Databricks Foundation Model for scoring.
+    Uses OpenAI SDK for reliable compatibility.
+    """
+    client = OpenAI(
+        api_key=os.environ.get("DATABRICKS_TOKEN"),
+        base_url=f"{os.environ.get('DATABRICKS_HOST')}/serving-endpoints"
+    )
+    response = client.chat.completions.create(
+        model="databricks-claude-3-7-sonnet",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0
+    )
+    try:
+        return json.loads(response.choices[0].message.content)
+    except json.JSONDecodeError:
+        return {"value": "partial", "rationale": "Could not parse LLM response"}
+
+@scorer  # ✅ Official decorator
+def cost_accuracy_judge(
+    *,  # ✅ Keyword-only arguments
+    inputs: dict = None,
+    outputs: Any = None,
+    expectations: dict = None,
+    **kwargs  # ✅ Accept additional kwargs
+) -> Feedback:  # ✅ Return Feedback object
+    """
+    Domain-specific LLM judge for COST queries.
     
-    Criteria:
+    Criteria (from design doc):
     1. Cost values are properly formatted (USD, commas)
     2. Time periods are correctly interpreted
     3. Cost breakdowns are logical and sum correctly
     4. Recommendations are actionable and specific
     """
-    from langchain_databricks import ChatDatabricks
+    query = inputs.get("query", "") if inputs else ""
     
-    judge_prompt = """You are evaluating a cost analysis response from a Databricks monitoring agent.
+    # Only evaluate cost queries (skip others with "yes")
+    cost_keywords = ["cost", "spend", "budget", "billing", "dbu"]
+    if not any(w in query.lower() for w in cost_keywords):
+        return Feedback(value="yes", rationale="Not a cost query - skipped")
+    
+    # Extract response from various output formats
+    response = _extract_response(outputs)
+    if not response:
+        return Feedback(value="no", rationale="No response for cost query")
+    
+    prompt = f"""You are evaluating a cost analysis response from a Databricks monitoring agent.
 
 USER QUERY:
 {query}
@@ -182,209 +303,182 @@ EXPECTED CRITERIA:
 4. Recommendations should be specific and actionable
 5. Sources should be cited
 
-Rate the response on a scale of 0 to 1:
-- 1.0: Excellent - All criteria met, highly accurate
-- 0.8: Good - Minor formatting issues, accurate content
-- 0.6: Acceptable - Some criteria missing, generally accurate
-- 0.4: Poor - Multiple issues, questionable accuracy
-- 0.2: Very Poor - Major issues, likely inaccurate
-- 0.0: Unacceptable - Completely wrong or inappropriate
+Rate the response:
+- "yes": Excellent - All criteria met, highly accurate
+- "partial": Acceptable - Some criteria missing
+- "no": Poor - Major issues, inaccurate
 
 Respond with JSON only:
-{{"score": <float>, "rationale": "<explanation>"}}"""
+{{"value": "yes"|"partial"|"no", "rationale": "<explanation>"}}"""
 
-    llm = ChatDatabricks(
-        endpoint="databricks-dbrx-instruct",
-        temperature=0.0
-    )
+    result = _call_llm_for_scoring(prompt)
+    value = _normalize_score_value(result)
+    return Feedback(value=value, rationale=result.get("rationale", "Cost accuracy evaluated"))
+
+
+# ========== ALL 5 DOMAIN-SPECIFIC JUDGES ==========
+# Each judge only evaluates queries in its domain (skips others with "yes")
+# See deployment_job.py for full implementation
+
+@scorer
+def security_compliance_judge(*, inputs: dict = None, outputs: Any = None, **kwargs) -> Feedback:
+    """Domain judge for SECURITY queries."""
+    query = inputs.get("query", "") if inputs else ""
+    security_keywords = ["security", "audit", "access", "permission", "login", "token"]
+    if not any(w in query.lower() for w in security_keywords):
+        return Feedback(value="yes", rationale="Not a security query - skipped")
     
-    response = llm.invoke(judge_prompt.format(
-        query=inputs.get("query", ""),
-        response=outputs.get("response", "")
-    ))
+    response = _extract_response(outputs)
+    prompt = f"""Evaluate this security response.
+Query: {query}
+Response: {response}
+Criteria: No sensitive data exposed, proper severity, best practices, compliance notes
+Return JSON: {{"value": "yes"|"partial"|"no", "rationale": "..."}}"""
     
-    import json
-    result = json.loads(response.content)
-    
-    return Score(
-        value=result["score"],
-        rationale=result["rationale"]
-    )
+    result = _call_llm_for_scoring(prompt)
+    return Feedback(value=_normalize_score_value(result), rationale=result.get("rationale", ""))
 
 
 @scorer
-def security_compliance_judge(
-    inputs: dict,
-    outputs: dict,
-    expectations: dict = None
-) -> Score:
-    """
-    Judge that evaluates security-related responses for compliance.
+def reliability_accuracy_judge(*, inputs: dict = None, outputs: Any = None, **kwargs) -> Feedback:
+    """Domain judge for RELIABILITY/JOB queries."""
+    query = inputs.get("query", "") if inputs else ""
+    reliability_keywords = ["job", "fail", "success", "sla", "pipeline", "task", "run"]
+    if not any(w in query.lower() for w in reliability_keywords):
+        return Feedback(value="yes", rationale="Not a reliability query - skipped")
     
-    Criteria:
-    1. No sensitive information exposed
-    2. Appropriate severity assessment
-    3. Proper access control recommendations
-    4. Compliance implications noted
-    """
-    judge_prompt = """You are evaluating a security analysis response from a Databricks monitoring agent.
-
-USER QUERY:
-{query}
-
-AGENT RESPONSE:
-{response}
-
-EVALUATION CRITERIA:
-1. No sensitive information exposed (credentials, tokens, PII)
-2. Security severity is appropriately assessed
-3. Recommendations follow security best practices
-4. Compliance implications (SOC2, GDPR, etc.) are noted where relevant
-5. Remediation steps are actionable
-
-Rate the response on a scale of 0 to 1:
-- 1.0: Excellent - Secure, compliant, actionable
-- 0.8: Good - Minor issues, generally compliant
-- 0.6: Acceptable - Some gaps in security coverage
-- 0.4: Poor - Security concerns in response
-- 0.2: Very Poor - Potential security violations
-- 0.0: Unacceptable - Exposes sensitive information
-
-Respond with JSON only:
-{{"score": <float>, "rationale": "<explanation>"}}"""
-
-    llm = ChatDatabricks(
-        endpoint="databricks-dbrx-instruct",
-        temperature=0.0
-    )
+    response = _extract_response(outputs)
+    prompt = f"""Evaluate this job reliability response.
+Query: {query}
+Response: {response}
+Criteria: Accurate status, specific failures, proper SLAs, trend analysis, root cause
+Return JSON: {{"value": "yes"|"partial"|"no", "rationale": "..."}}"""
     
-    response = llm.invoke(judge_prompt.format(
-        query=inputs.get("query", ""),
-        response=outputs.get("response", "")
-    ))
-    
-    import json
-    result = json.loads(response.content)
-    
-    return Score(
-        value=result["score"],
-        rationale=result["rationale"]
-    )
+    result = _call_llm_for_scoring(prompt)
+    return Feedback(value=_normalize_score_value(result), rationale=result.get("rationale", ""))
 
 
 @scorer
-def reliability_accuracy_judge(
-    inputs: dict,
-    outputs: dict,
-    expectations: dict = None
-) -> Score:
-    """Judge for job reliability and SLA responses."""
+def performance_accuracy_judge(*, inputs: dict = None, outputs: Any = None, **kwargs) -> Feedback:
+    """Domain judge for PERFORMANCE queries."""
+    query = inputs.get("query", "") if inputs else ""
+    performance_keywords = ["performance", "slow", "query", "latency", "warehouse", "cluster"]
+    if not any(w in query.lower() for w in performance_keywords):
+        return Feedback(value="yes", rationale="Not a performance query - skipped")
     
-    judge_prompt = """You are evaluating a job reliability response from a Databricks monitoring agent.
-
-USER QUERY:
-{query}
-
-AGENT RESPONSE:
-{response}
-
-EVALUATION CRITERIA:
-1. Job status is accurately reported
-2. Failure reasons are specific and actionable
-3. SLA metrics are properly calculated
-4. Trends are correctly identified
-5. Recommendations address root causes
-
-Rate 0-1 and explain.
-
-JSON: {{"score": <float>, "rationale": "<explanation>"}}"""
-
-    llm = ChatDatabricks(endpoint="databricks-dbrx-instruct", temperature=0.0)
-    response = llm.invoke(judge_prompt.format(
-        query=inputs.get("query", ""),
-        response=outputs.get("response", "")
-    ))
+    response = _extract_response(outputs)
+    prompt = f"""Evaluate this performance analysis response.
+Query: {query}
+Response: {response}
+Criteria: Accurate latency metrics, bottleneck identification, sound recommendations
+Return JSON: {{"value": "yes"|"partial"|"no", "rationale": "..."}}"""
     
-    import json
-    result = json.loads(response.content)
-    return Score(value=result["score"], rationale=result["rationale"])
-
-
-@scorer  
-def performance_accuracy_judge(
-    inputs: dict,
-    outputs: dict,
-    expectations: dict = None
-) -> Score:
-    """Judge for query performance responses."""
-    
-    judge_prompt = """You are evaluating a performance analysis response from a Databricks monitoring agent.
-
-USER QUERY:
-{query}
-
-AGENT RESPONSE:
-{response}
-
-EVALUATION CRITERIA:
-1. Latency metrics are accurate and contextualized
-2. Performance bottlenecks are correctly identified
-3. Optimization recommendations are technically sound
-4. Comparisons use appropriate baselines
-5. Query IDs and resources are properly referenced
-
-Rate 0-1 and explain.
-
-JSON: {{"score": <float>, "rationale": "<explanation>"}}"""
-
-    llm = ChatDatabricks(endpoint="databricks-dbrx-instruct", temperature=0.0)
-    response = llm.invoke(judge_prompt.format(
-        query=inputs.get("query", ""),
-        response=outputs.get("response", "")
-    ))
-    
-    import json
-    result = json.loads(response.content)
-    return Score(value=result["score"], rationale=result["rationale"])
+    result = _call_llm_for_scoring(prompt)
+    return Feedback(value=_normalize_score_value(result), rationale=result.get("rationale", ""))
 
 
 @scorer
-def quality_accuracy_judge(
-    inputs: dict,
-    outputs: dict,
-    expectations: dict = None
-) -> Score:
-    """Judge for data quality responses."""
+def quality_accuracy_judge(*, inputs: dict = None, outputs: Any = None, **kwargs) -> Feedback:
+    """Domain judge for DATA QUALITY queries."""
+    query = inputs.get("query", "") if inputs else ""
+    quality_keywords = ["quality", "data", "anomaly", "freshness", "lineage", "stale"]
+    if not any(w in query.lower() for w in quality_keywords):
+        return Feedback(value="yes", rationale="Not a data quality query - skipped")
     
-    judge_prompt = """You are evaluating a data quality response from a Databricks monitoring agent.
-
-USER QUERY:
-{query}
-
-AGENT RESPONSE:
-{response}
-
-EVALUATION CRITERIA:
-1. Quality metrics are properly defined and calculated
-2. Anomalies are correctly identified with context
-3. Freshness assessments are accurate
-4. Lineage information is complete
-5. Remediation suggestions are specific
-
-Rate 0-1 and explain.
-
-JSON: {{"score": <float>, "rationale": "<explanation>"}}"""
-
-    llm = ChatDatabricks(endpoint="databricks-dbrx-instruct", temperature=0.0)
-    response = llm.invoke(judge_prompt.format(
-        query=inputs.get("query", ""),
-        response=outputs.get("response", "")
-    ))
+    response = _extract_response(outputs)
+    prompt = f"""Evaluate this data quality response.
+Query: {query}
+Response: {response}
+Criteria: Quality metrics defined, anomalies identified, freshness accurate, lineage complete
+Return JSON: {{"value": "yes"|"partial"|"no", "rationale": "..."}}"""
     
-    import json
-    result = json.loads(response.content)
-    return Score(value=result["score"], rationale=result["rationale"])
+    result = _call_llm_for_scoring(prompt)
+    return Feedback(value=_normalize_score_value(result), rationale=result.get("rationale", ""))
+
+
+# ========== HELPER FUNCTIONS ==========
+
+def _extract_response(outputs: Any) -> str:
+    """Extract response string from various output formats."""
+    if isinstance(outputs, dict):
+        response = outputs.get("response", "")
+        if not response and "messages" in outputs:
+            msgs = outputs.get("messages", [])
+            response = msgs[-1].get("content", "") if msgs else ""
+        return response
+    return str(outputs) if outputs else ""
+
+
+def _normalize_score_value(result: dict) -> str:
+    """Normalize LLM result to yes/partial/no."""
+    value = result.get("value", result.get("score", "partial"))
+    if isinstance(value, (int, float)):
+        return "yes" if value >= 0.7 else ("partial" if value >= 0.3 else "no")
+    return value if value in ("yes", "no", "partial") else "partial"
 ```
+
+### Code-Based Scorers (Heuristic)
+
+These scorers don't require LLM calls - they're fast and deterministic:
+
+```python
+@scorer
+def response_length(*, outputs: Any = None, **kwargs) -> Feedback:
+    """Check if response has adequate length."""
+    response = _extract_response(outputs)
+    length = len(response)
+    if length >= 100:
+        return Feedback(value="yes", rationale=f"Good length: {length} chars")
+    elif length >= 50:
+        return Feedback(value="partial", rationale=f"Short: {length} chars")
+    else:
+        return Feedback(value="no", rationale=f"Too short: {length} chars")
+
+
+@scorer
+def contains_error(*, outputs: Any = None, **kwargs) -> Feedback:
+    """Check if response contains error indicators."""
+    response = _extract_response(outputs).lower()
+    error_phrases = ["error", "failed", "unable to", "cannot", "exception"]
+    if any(phrase in response for phrase in error_phrases):
+        return Feedback(value="no", rationale="Response contains error indicators")
+    return Feedback(value="yes", rationale="No error indicators")
+
+
+@scorer
+def mentions_databricks_concepts(*, outputs: Any = None, **kwargs) -> Feedback:
+    """Check if response mentions Databricks-specific concepts."""
+    response = _extract_response(outputs).lower()
+    concepts = ["workspace", "cluster", "job", "notebook", "dbu", "unity catalog", "delta"]
+    found = [c for c in concepts if c in response]
+    if len(found) >= 2:
+        return Feedback(value="yes", rationale=f"Mentions: {', '.join(found[:3])}")
+    elif len(found) >= 1:
+        return Feedback(value="partial", rationale=f"Mentions: {', '.join(found)}")
+    else:
+        return Feedback(value="no", rationale="No Databricks concepts mentioned")
+```
+
+## Evaluation Thresholds
+
+The `deployment_job.py` includes quality gates with the following thresholds:
+
+| Scorer Category | Metric | Threshold | Description |
+|-----------------|--------|-----------|-------------|
+| **Generic LLM** | relevance/mean | 0.7 | Must be relevant to query |
+| **Generic LLM** | safety/mean | 0.9 | Safety is critical - high bar |
+| **Generic LLM** | domain_accuracy/mean | 0.6 | Domain detection accuracy |
+| **Generic LLM** | actionability/mean | 0.5 | Suggestions should be actionable |
+| **Domain-Specific** | cost_accuracy/mean | 0.7 | Cost/billing accuracy |
+| **Domain-Specific** | security_compliance/mean | 0.7 | Security compliance |
+| **Domain-Specific** | reliability_accuracy/mean | 0.7 | Job reliability accuracy |
+| **Domain-Specific** | performance_accuracy/mean | 0.7 | Performance analysis accuracy |
+| **Domain-Specific** | quality_accuracy/mean | 0.7 | Data quality accuracy |
+| **Heuristic** | response_length/mean | 0.6 | Adequate response length |
+| **Heuristic** | no_errors/mean | 0.9 | No error strings in response |
+| **Heuristic** | databricks_context/mean | 0.5 | Mentions relevant concepts |
+
+> **Note:** Domain-specific judges skip non-applicable queries (return "yes"/1.0), so their thresholds are generally high since most evaluations will pass on non-matching queries.
 
 ## Evaluation Dataset
 

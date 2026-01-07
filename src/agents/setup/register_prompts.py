@@ -154,9 +154,32 @@ def register_prompts_to_uc_registry(catalog: str, schema: str, prompts: dict):
     This is the NEW MLflow 3.0 pattern that makes prompts appear in the 
     MLflow UI "Prompts" tab.
     
+    REQUIRES: MLflow 3.0+ with mlflow.genai module. Job will FAIL if not available.
+    
     Reference: https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/
     """
-    import mlflow.genai
+    # Check if mlflow.genai is available (requires MLflow 3.0+)
+    try:
+        import mlflow.genai
+    except ImportError as e:
+        error_msg = (
+            "\n" + "=" * 70 + "\n"
+            "❌ CRITICAL ERROR: MLflow 3.0+ Required\n"
+            "=" * 70 + "\n"
+            f"The mlflow.genai module is not available.\n\n"
+            f"Import Error: {e}\n\n"
+            "This agent requires MLflow 3.0+ for:\n"
+            "  - MLflow Prompt Registry\n"
+            "  - MLflow GenAI Scorers\n"
+            "  - Production Monitoring\n\n"
+            "Solutions:\n"
+            "  1. Upgrade MLflow: pip install 'mlflow>=3.0.0'\n"
+            "  2. Use a Databricks Runtime with MLflow 3.0+ pre-installed\n"
+            "  3. Add mlflow>=3.0.0 to job environment dependencies\n"
+            "=" * 70
+        )
+        print(error_msg)
+        raise ImportError(error_msg) from e
     
     print(f"\nRegistering prompts to MLflow Prompt Registry (Unity Catalog)...")
     print(f"Target: {catalog}.{schema}.<prompt_name>")

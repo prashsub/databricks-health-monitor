@@ -877,7 +877,7 @@
       },
       {
         "id": "u2e3f4a5b6c7789012345678901234uc",
-        "identifier": "${catalog}.${gold_schema}.get_cost_forecast_summary_summary_summary_summary_summary_summary_summary"
+        "identifier": "${catalog}.${gold_schema}.get_cost_forecast_summary_summary_summary_summary_summary_summary_summary_summary"
       },
       {
         "id": "u2e3f4a5b6c7789012345678901234ud",
@@ -1045,11 +1045,11 @@
       },
       {
         "id": "u2e3f4a5b6c7789012345678901234vi",
-        "identifier": "${catalog}.${gold_schema}.get_sensitive_data_access"
+        "identifier": "${catalog}.${gold_schema}.get_sensitive_table_access"
       },
       {
         "id": "u2e3f4a5b6c7789012345678901234vj",
-        "identifier": "${catalog}.${gold_schema}.get_failed_access_attempts"
+        "identifier": "${catalog}.${gold_schema}.get_failed_actions"
       },
       {
         "id": "u2e3f4a5b6c7789012345678901234vk",
@@ -1065,7 +1065,7 @@
       },
       {
         "id": "u2e3f4a5b6c7789012345678901234vn",
-        "identifier": "${catalog}.${gold_schema}.get_service_account_activity"
+        "identifier": "${catalog}.${gold_schema}.get_service_account_audit"
       },
       {
         "id": "u2e3f4a5b6c7789012345678901234vo",
@@ -1870,7 +1870,7 @@
               "",
               "    SUM(access_count) as total_sensitive_access",
               "",
-              "  FROM ${catalog}.${gold_schema}.get_sensitive_data_access(",
+              "  FROM ${catalog}.${gold_schema}.get_sensitive_table_access(",
               "",
               "    7",
               "",

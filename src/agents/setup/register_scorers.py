@@ -8,13 +8,40 @@ Register built-in and custom scorers to MLflow for production monitoring.
 This makes scorers appear in the MLflow UI "Scorers" tab and enables
 automatic quality assessment of production traces.
 
+NOTE: Requires MLflow 3.0+ with mlflow.genai module. If not available,
+this notebook will exit early (scorers require MLflow GenAI features).
+
 Reference: https://learn.microsoft.com/en-us/azure/databricks/mlflow3/genai/eval-monitor/production-monitoring
 """
 
 # COMMAND ----------
 
 import mlflow
-from mlflow.genai.scorers import scorer, ScorerSamplingConfig
+
+# Check if mlflow.genai is available (requires MLflow 3.0+)
+# Job will FAIL if MLflow 3.0+ is not available - no graceful degradation
+try:
+    from mlflow.genai.scorers import scorer, ScorerSamplingConfig
+    print("✓ mlflow.genai module available")
+except ImportError as e:
+    error_msg = (
+        "\n" + "=" * 70 + "\n"
+        "❌ CRITICAL ERROR: MLflow 3.0+ Required\n"
+        "=" * 70 + "\n"
+        f"The mlflow.genai module is not available.\n\n"
+        f"Import Error: {e}\n\n"
+        "This agent requires MLflow 3.0+ for:\n"
+        "  - MLflow GenAI Scorers (Safety, Relevance, etc.)\n"
+        "  - Production Monitoring\n"
+        "  - Custom LLM Judges\n\n"
+        "Solutions:\n"
+        "  1. Upgrade MLflow: pip install 'mlflow>=3.0.0'\n"
+        "  2. Use a Databricks Runtime with MLflow 3.0+ pre-installed\n"
+        "  3. Add mlflow>=3.0.0 to job environment dependencies\n"
+        "=" * 70
+    )
+    print(error_msg)
+    raise ImportError(error_msg) from e
 
 # COMMAND ----------
 

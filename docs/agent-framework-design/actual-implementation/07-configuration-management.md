@@ -53,7 +53,40 @@ This document details the configuration architecture, including Genie Space conf
 
 ---
 
-## 🎯 Genie Space Configuration
+## 🎯 Genie Space Configuration (Consolidated)
+
+### Why Consolidation Matters
+
+Before consolidation, Genie Space IDs were scattered across multiple files:
+- `settings.py` had hardcoded IDs
+- `log_agent_model.py` had fallback defaults
+- `create_serving_endpoint.py` had its own copies
+
+**Problems:**
+- ❌ Easy to get out of sync
+- ❌ No single place to update
+- ❌ Agent had no context about WHEN to use each space
+- ❌ No routing instructions for the orchestrator
+
+### Consolidated Architecture
+
+```
+genie_spaces.py  ← SINGLE SOURCE OF TRUTH
+    │
+    ├── settings.py (delegates via @property)
+    │       │
+    │       └── All agent code imports from settings
+    │
+    ├── log_agent_model.py (fallback defaults for isolated container)
+    │
+    └── create_serving_endpoint.py (imports at runtime)
+```
+
+**Benefits:**
+- ✅ One file to update all Genie Space IDs
+- ✅ Rich metadata for agent routing decisions
+- ✅ Environment variable overrides still work
+- ✅ Self-documenting with examples and keywords
 
 ### Single Source of Truth
 
@@ -80,6 +113,22 @@ Environment variables override defaults (for per-environment config):
     export COST_GENIE_SPACE_ID="new-space-id"
 """
 ```
+
+### GenieSpaceConfig Fields Reference
+
+| Field | Type | Purpose | Used By |
+|-------|------|---------|---------|
+| `space_id` | `str` | Default Genie Space ID | Genie API calls |
+| `domain` | `str` | Domain name (cost, security, etc.) | Routing, logging |
+| `env_var` | `str` | Environment variable for override | Deployment config |
+| `name` | `str` | Human-readable display name | UI, logs |
+| `short_description` | `str` | Brief description | Tool descriptions |
+| `agent_instructions` | `str` | **CRITICAL:** Detailed routing instructions | Orchestrator agent |
+| `example_queries` | `List[str]` | Sample questions this space handles | Documentation, testing |
+| `routing_keywords` | `List[str]` | Keywords for intent classification | Intent classifier |
+| `data_assets` | `List[str]` | Available tables/views | Documentation |
+| `get_id()` | method | Get ID with env var override | Runtime |
+| `get_tool_description()` | method | Generate LangChain tool description | Tool creation |
 
 ### GenieSpaceConfig Dataclass
 
@@ -183,6 +232,60 @@ DO NOT use for: Job failures (use reliability), slow queries (use performance)..
 }
 ```
 
+### Agent Routing with Genie Config
+
+The orchestrator uses `agent_instructions` to decide which Genie Space to query:
+
+```python
+# Example: Cost Space Configuration
+GenieSpaceConfig(
+    space_id="01f0ea871ffe176fa6aee6f895f83d3b",
+    domain=DOMAINS.COST,
+    name="Cost Intelligence Space",
+    
+    # CRITICAL: This tells the orchestrator WHEN to route here
+    agent_instructions="""Use this tool for ANY question about:
+- Billing, spending, or costs (yesterday, last week, month, etc.)
+- DBU (Databricks Unit) consumption by SKU, workspace, or cluster
+- Cost spikes, anomalies, or unexpected charges
+- Budget tracking and forecasting
+- Chargeback and cost allocation to teams/projects
+- Serverless vs classic compute cost comparison
+
+DO NOT use for:
+- Job failures or errors (use reliability space)
+- Slow queries or performance issues (use performance space)
+- Security or access control (use security space)
+- Data quality issues (use quality space)""",
+    
+    example_queries=[
+        "Why did costs spike yesterday?",
+        "What are the top 10 most expensive jobs?",
+        "Show DBU usage by workspace for last 30 days",
+        "Which teams are over budget this month?",
+    ],
+    
+    routing_keywords=[
+        "cost", "spend", "spending", "budget", "dbu", "billing",
+        "expensive", "price", "money", "waste", "optimize",
+    ],
+)
+```
+
+**How the Agent Uses This:**
+
+```python
+# In orchestrator - get routing instructions for tool selection
+from agents.config.genie_spaces import get_genie_space_config
+
+config = get_genie_space_config("cost")
+tool_description = config.get_tool_description()  # Used in LangChain tool
+
+# For intent classification
+keywords_map = get_routing_keywords_map()
+# {"cost": "cost", "billing": "cost", "dbu": "cost", ...}
+```
+
 ### Accessor Functions
 
 ```python
@@ -226,6 +329,44 @@ def validate_genie_spaces() -> Dict[str, bool]:
         for domain, config in GENIE_SPACE_REGISTRY.items()
     }
 ```
+
+### How to Update Genie Space IDs
+
+**Step 1: Edit ONE file**
+```bash
+# Edit the single source of truth
+vim src/agents/config/genie_spaces.py
+```
+
+**Step 2: Update the space_id**
+```python
+DOMAINS.COST: GenieSpaceConfig(
+    space_id="NEW-SPACE-ID-HERE",  # ← Change this
+    ...
+)
+```
+
+**Step 3: Redeploy**
+```bash
+databricks bundle deploy -t dev
+```
+
+**Alternative: Use Environment Variables (No Redeploy)**
+```bash
+# Override at runtime without code change
+export COST_GENIE_SPACE_ID="new-space-id"
+databricks bundle run -t dev agent_setup_job
+```
+
+### Files That Reference Genie Config
+
+| File | How It Uses genie_spaces.py |
+|------|---------------------------|
+| `settings.py` | Delegates via `@property` methods |
+| `log_agent_model.py` | Has fallback `DEFAULT_GENIE_SPACES` for container isolation |
+| `deployment_job.py` | Builds env vars from registry for endpoint |
+| `orchestrator/agent.py` | Uses `get_tool_description()` for LangChain tools |
+| `tools/genie_tool.py` | Gets space IDs for API calls |
 
 ---
 
@@ -525,6 +666,58 @@ for domain, configured in genie_status.items():
     status = "✓" if configured else "✗"
     print(f"{status} {domain}: {'Configured' if configured else 'Missing'}")
 ```
+
+---
+
+## ⚠️ Serverless Compute Constraints
+
+### MLflow Version on Serverless
+
+**Problem:** Serverless compute environments have a pre-installed MLflow version that may not include `mlflow.genai` (MLflow 3.0+ feature).
+
+**Symptoms:**
+```
+ModuleNotFoundError: No module named 'mlflow.genai'
+```
+
+### Graceful Degradation Strategy
+
+Our scripts handle this gracefully:
+
+| Script | If mlflow.genai unavailable |
+|--------|---------------------------|
+| `register_prompts.py` | Skips Prompt Registry, uses table + artifacts |
+| `register_scorers.py` | Exits with `SKIPPED_NO_MLFLOW_GENAI` (not an error) |
+| `deployment_job.py` | Uses custom scorer implementations |
+
+### Environment Configuration
+
+```yaml
+# DON'T specify mlflow as a dependency (causes install failures)
+# mlflow is pre-installed on Databricks runtime
+
+environments:
+  - environment_key: mlflow_env
+    spec:
+      environment_version: "4"
+      # No dependencies - use pre-installed mlflow
+
+  - environment_key: agent_env
+    spec:
+      environment_version: "4"
+      dependencies:
+        # Only non-pre-installed packages
+        - langchain
+        - langchain-core
+        - langgraph
+        - databricks-sdk
+```
+
+### Workarounds
+
+1. **For Prompt Registry:** Use table-based storage instead
+2. **For Scorers:** Define custom scorer functions at evaluation time
+3. **For Production:** Consider using a cluster (not serverless) with `mlflow>=3.0.0`
 
 ---
 

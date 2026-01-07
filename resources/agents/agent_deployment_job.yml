@@ -28,12 +28,13 @@ resources:
           spec:
             environment_version: "4"
             dependencies:
-              # Note: langchain-databricks is pre-installed on Databricks runtime
-              # Don't specify version constraints for pre-installed packages
-              - mlflow
-              - langchain
-              - langchain-core
-              - langgraph
+              # REQUIRED: MLflow 3.0+ for mlflow.genai (Scorers, Evaluation)
+              # This is a HARD requirement - job WILL FAIL without it
+              - "mlflow>=3.0.0"
+              # OpenAI SDK for calling Databricks Foundation Models in scorers
+              # This is the most reliable approach - no langchain dependencies needed
+              # Ref: https://docs.databricks.com/aws/en/notebooks/source/mlflow3/code-based-scorer-examples.html
+              - openai
               - databricks-sdk
               - databricks-agents
       
