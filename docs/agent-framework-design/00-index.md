@@ -38,6 +38,12 @@ This documentation suite provides comprehensive architecture and implementation 
 | 12 | [Implementation Guide](12-implementation-guide.md) | Step-by-step implementation phases |
 | 13 | [Deployment and Monitoring](13-deployment-and-monitoring.md) | Production deployment and observability |
 
+## Supplemental Guides
+
+| Document | Description |
+|----------|-------------|
+| [OBO Authentication Guide](obo-authentication-guide.md) | **On-Behalf-Of-User authentication** for Genie Spaces - required for per-user access control |
+
 ## Appendices
 
 | # | Document | Description |

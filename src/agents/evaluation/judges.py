@@ -24,12 +24,59 @@ Usage:
 """
 
 import json
+import re
 from typing import Dict, Optional
 
 from mlflow.genai import scorer, Score
-from langchain_databricks import ChatDatabricks
 
 from ..config import settings
+
+
+# =============================================================================
+# LLM Helper Function (using Databricks SDK)
+# =============================================================================
+
+
+def _call_llm(prompt: str, model: str = None) -> dict:
+    """
+    Call Databricks Foundation Model using Databricks SDK.
+    Uses automatic authentication in notebooks.
+    
+    Returns dict with 'score' and 'rationale' keys.
+    """
+    if model is None:
+        model = settings.llm_endpoint
+    
+    try:
+        # Use Databricks SDK for automatic auth
+        from databricks.sdk import WorkspaceClient
+        from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
+        
+        w = WorkspaceClient()
+        response = w.serving_endpoints.query(
+            name=model,
+            messages=[ChatMessage(role=ChatMessageRole.USER, content=prompt)],
+            temperature=0,
+            max_tokens=500
+        )
+        
+        content = response.choices[0].message.content
+        
+        # Parse JSON response
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            # Try to extract JSON from text
+            json_match = re.search(r'\{[^{}]*\}', content)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except:
+                    pass
+            return {"score": 0.5, "rationale": content[:200]}
+            
+    except Exception as e:
+        return {"score": 0.5, "rationale": f"LLM call failed: {str(e)}"}
 
 
 # =============================================================================
@@ -63,11 +110,6 @@ def domain_accuracy_judge(
     response = outputs.get("response", "")
     expected_domains = expectations.get("domains", []) if expectations else []
 
-    llm = ChatDatabricks(
-        endpoint=settings.llm_endpoint,
-        temperature=0,
-    )
-
     prompt = f"""Evaluate the domain accuracy of this response.
 
 QUERY: {query}
@@ -83,15 +125,11 @@ Rate the response on domain accuracy (0.0-1.0):
 
 Return JSON: {{"score": <float>, "rationale": "<1-2 sentence explanation>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(
-            value=float(parsed["score"]),
-            rationale=parsed.get("rationale", ""),
-        )
-    except Exception as e:
-        return Score(value=0.5, rationale=f"Evaluation error: {str(e)}")
+    result = _call_llm(prompt)
+    return Score(
+        value=float(result.get("score", 0.5)),
+        rationale=result.get("rationale", ""),
+    )
 
 
 @scorer
@@ -119,11 +157,6 @@ def response_relevance_judge(
     query = inputs.get("query", "")
     response = outputs.get("response", "")
 
-    llm = ChatDatabricks(
-        endpoint=settings.llm_endpoint,
-        temperature=0,
-    )
-
     prompt = f"""Evaluate how directly this response answers the question.
 
 QUERY: {query}
@@ -138,15 +171,11 @@ Rate the relevance (0.0-1.0):
 
 Return JSON: {{"score": <float>, "rationale": "<1-2 sentence explanation>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(
-            value=float(parsed["score"]),
-            rationale=parsed.get("rationale", ""),
-        )
-    except Exception as e:
-        return Score(value=0.5, rationale=f"Evaluation error: {str(e)}")
+    result = _call_llm(prompt)
+    return Score(
+        value=float(result.get("score", 0.5)),
+        rationale=result.get("rationale", ""),
+    )
 
 
 @scorer
@@ -174,11 +203,6 @@ def actionability_judge(
     query = inputs.get("query", "")
     response = outputs.get("response", "")
 
-    llm = ChatDatabricks(
-        endpoint=settings.llm_endpoint,
-        temperature=0,
-    )
-
     prompt = f"""Evaluate the actionability of this response.
 
 QUERY: {query}
@@ -193,15 +217,11 @@ Rate the actionability (0.0-1.0):
 
 Return JSON: {{"score": <float>, "rationale": "<1-2 sentence explanation>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(
-            value=float(parsed["score"]),
-            rationale=parsed.get("rationale", ""),
-        )
-    except Exception as e:
-        return Score(value=0.5, rationale=f"Evaluation error: {str(e)}")
+    result = _call_llm(prompt)
+    return Score(
+        value=float(result.get("score", 0.5)),
+        rationale=result.get("rationale", ""),
+    )
 
 
 @scorer
@@ -285,11 +305,6 @@ def cost_accuracy_judge(
     query = inputs.get("query", "")
     response = outputs.get("response", "")
 
-    llm = ChatDatabricks(
-        endpoint=settings.llm_endpoint,
-        temperature=0,
-    )
-
     prompt = f"""Evaluate the COST ACCURACY of this Databricks platform response.
 
 QUERY: {query}
@@ -311,15 +326,11 @@ Rate the cost accuracy (0.0-1.0):
 
 Return JSON: {{"score": <float>, "rationale": "<1-2 sentence explanation>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(
-            value=float(parsed["score"]),
-            rationale=parsed.get("rationale", ""),
-        )
-    except Exception as e:
-        return Score(value=0.5, rationale=f"Evaluation error: {str(e)}")
+    result = _call_llm(prompt)
+    return Score(
+        value=float(result.get("score", 0.5)),
+        rationale=result.get("rationale", ""),
+    )
 
 
 @scorer
@@ -349,11 +360,6 @@ def security_compliance_judge(
     query = inputs.get("query", "")
     response = outputs.get("response", "")
 
-    llm = ChatDatabricks(
-        endpoint=settings.llm_endpoint,
-        temperature=0,
-    )
-
     prompt = f"""Evaluate the SECURITY COMPLIANCE of this Databricks platform response.
 
 QUERY: {query}
@@ -375,15 +381,11 @@ Rate the security compliance (0.0-1.0):
 
 Return JSON: {{"score": <float>, "rationale": "<1-2 sentence explanation>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(
-            value=float(parsed["score"]),
-            rationale=parsed.get("rationale", ""),
-        )
-    except Exception as e:
-        return Score(value=0.5, rationale=f"Evaluation error: {str(e)}")
+    result = _call_llm(prompt)
+    return Score(
+        value=float(result.get("score", 0.5)),
+        rationale=result.get("rationale", ""),
+    )
 
 
 @scorer
@@ -412,11 +414,6 @@ def performance_accuracy_judge(
     query = inputs.get("query", "")
     response = outputs.get("response", "")
 
-    llm = ChatDatabricks(
-        endpoint=settings.llm_endpoint,
-        temperature=0,
-    )
-
     prompt = f"""Evaluate the PERFORMANCE ACCURACY of this Databricks platform response.
 
 QUERY: {query}
@@ -438,15 +435,11 @@ Rate the performance accuracy (0.0-1.0):
 
 Return JSON: {{"score": <float>, "rationale": "<1-2 sentence explanation>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(
-            value=float(parsed["score"]),
-            rationale=parsed.get("rationale", ""),
-        )
-    except Exception as e:
-        return Score(value=0.5, rationale=f"Evaluation error: {str(e)}")
+    result = _call_llm(prompt)
+    return Score(
+        value=float(result.get("score", 0.5)),
+        rationale=result.get("rationale", ""),
+    )
 
 
 @scorer
@@ -476,11 +469,6 @@ def reliability_accuracy_judge(
     query = inputs.get("query", "")
     response = outputs.get("response", "")
 
-    llm = ChatDatabricks(
-        endpoint=settings.llm_endpoint,
-        temperature=0,
-    )
-
     prompt = f"""Evaluate the RELIABILITY ACCURACY of this Databricks platform response.
 
 QUERY: {query}
@@ -502,15 +490,11 @@ Rate the reliability accuracy (0.0-1.0):
 
 Return JSON: {{"score": <float>, "rationale": "<1-2 sentence explanation>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(
-            value=float(parsed["score"]),
-            rationale=parsed.get("rationale", ""),
-        )
-    except Exception as e:
-        return Score(value=0.5, rationale=f"Evaluation error: {str(e)}")
+    result = _call_llm(prompt)
+    return Score(
+        value=float(result.get("score", 0.5)),
+        rationale=result.get("rationale", ""),
+    )
 
 
 @scorer
@@ -539,11 +523,6 @@ def quality_accuracy_judge(
     query = inputs.get("query", "")
     response = outputs.get("response", "")
 
-    llm = ChatDatabricks(
-        endpoint=settings.llm_endpoint,
-        temperature=0,
-    )
-
     prompt = f"""Evaluate the DATA QUALITY ACCURACY of this Databricks platform response.
 
 QUERY: {query}
@@ -565,12 +544,8 @@ Rate the data quality accuracy (0.0-1.0):
 
 Return JSON: {{"score": <float>, "rationale": "<1-2 sentence explanation>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(
-            value=float(parsed["score"]),
-            rationale=parsed.get("rationale", ""),
-        )
-    except Exception as e:
-        return Score(value=0.5, rationale=f"Evaluation error: {str(e)}")
+    result = _call_llm(prompt)
+    return Score(
+        value=float(result.get("score", 0.5)),
+        rationale=result.get("rationale", ""),
+    )

@@ -680,44 +680,92 @@ for domain, configured in genie_status.items():
 ModuleNotFoundError: No module named 'mlflow.genai'
 ```
 
-### Graceful Degradation Strategy
+### MLflow 3.0+ Required (No Graceful Degradation)
 
-Our scripts handle this gracefully:
+**Our agent REQUIRES MLflow 3.0+.** Scripts explicitly fail if `mlflow.genai` is unavailable:
 
-| Script | If mlflow.genai unavailable |
-|--------|---------------------------|
-| `register_prompts.py` | Skips Prompt Registry, uses table + artifacts |
-| `register_scorers.py` | Exits with `SKIPPED_NO_MLFLOW_GENAI` (not an error) |
-| `deployment_job.py` | Uses custom scorer implementations |
+```python
+# src/agents/setup/register_prompts.py
+try:
+    import mlflow.genai
+except ImportError:
+    print("❌ CRITICAL ERROR: MLflow 3.0+ Required")
+    raise ImportError("mlflow.genai not available")  # Job fails
+```
+
+| Script | Behavior if mlflow.genai unavailable |
+|--------|--------------------------------------|
+| `register_prompts.py` | ❌ **FAILS** - Raises ImportError |
+| `register_scorers.py` | ❌ **FAILS** - Raises ImportError |
+| `deployment_job.py` | Uses fallback scorer implementations |
+
+### langchain-databricks / databricks-langchain Issues
+
+**Problem:** The `langchain-databricks` and `databricks-langchain` packages have caused persistent issues:
+- Import conflicts between packages
+- Unavailability on serverless compute
+- Version mismatches
+
+**Solution:** We migrated to **Databricks SDK** for all LLM calls:
+
+```python
+# ❌ OLD PATTERN (caused issues)
+from langchain_databricks import ChatDatabricks
+llm = ChatDatabricks(endpoint="...", temperature=0)
+result = llm.invoke(prompt)
+
+# ✅ NEW PATTERN (Databricks SDK)
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
+
+w = WorkspaceClient()  # Automatic authentication
+response = w.serving_endpoints.query(
+    name="databricks-claude-3-7-sonnet",
+    messages=[ChatMessage(role=ChatMessageRole.USER, content=prompt)],
+    temperature=0
+)
+result = response.choices[0].message.content
+```
 
 ### Environment Configuration
 
 ```yaml
-# DON'T specify mlflow as a dependency (causes install failures)
-# mlflow is pre-installed on Databricks runtime
-
+# Require MLflow 3.0+ explicitly
 environments:
   - environment_key: mlflow_env
     spec:
       environment_version: "4"
-      # No dependencies - use pre-installed mlflow
+      dependencies:
+        - mlflow>=3.0.0  # Explicitly require 3.0+
 
   - environment_key: agent_env
     spec:
       environment_version: "4"
       dependencies:
-        # Only non-pre-installed packages
+        - mlflow>=3.0.0  # Explicitly require 3.0+
         - langchain
         - langchain-core
         - langgraph
         - databricks-sdk
+        # Note: DO NOT add langchain-databricks or databricks-langchain
+        # Use Databricks SDK for LLM calls instead
+
+  - environment_key: evaluation_env
+    spec:
+      environment_version: "4"
+      dependencies:
+        - mlflow>=3.0.0
+        - databricks-sdk
+        - databricks-agents  # For GenieAgent
+        - openai  # For OpenAI SDK calls to Databricks Foundation Models
 ```
 
-### Workarounds
+### Best Practices
 
-1. **For Prompt Registry:** Use table-based storage instead
-2. **For Scorers:** Define custom scorer functions at evaluation time
-3. **For Production:** Consider using a cluster (not serverless) with `mlflow>=3.0.0`
+1. **Always require MLflow 3.0+** explicitly in job environments
+2. **Use Databricks SDK** (`WorkspaceClient`) for LLM calls in scorers
+3. **Use OpenAI SDK** for agent's direct LLM calls (fallback pattern)
+4. **Avoid langchain-databricks** in deployment environments - use `databricks.agents` for GenieAgent
 
 ---
 

@@ -1,0 +1,1775 @@
+{
+  "version": 1,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "a1b2c3d4e5f6789012345678901234aa",
+        "question": [
+          "What is our job success rate this week?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234ab",
+        "question": [
+          "Show me failed jobs today"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234ac",
+        "question": [
+          "Which jobs have the most failures this month?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234ad",
+        "question": [
+          "How many jobs ran yesterday?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234ae",
+        "question": [
+          "What is the P95 job duration?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234af",
+        "question": [
+          "Which jobs are the slowest?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234b0",
+        "question": [
+          "Show me job duration percentiles"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234b1",
+        "question": [
+          "What is the average job runtime?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234b2",
+        "question": [
+          "What are our most expensive jobs?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234b3",
+        "question": [
+          "Show me jobs with high repair costs"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234b4",
+        "question": [
+          "Which jobs have the highest retry rate?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234b5",
+        "question": [
+          "Which jobs are likely to fail tomorrow?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234b6",
+        "question": [
+          "What's the health score for the ETL pipeline?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234b7",
+        "question": [
+          "Will retrying this job succeed?"
+        ]
+      },
+      {
+        "id": "a1b2c3d4e5f6789012345678901234b8",
+        "question": [
+          "Show me jobs with performance regression"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "${catalog}.${feature_schema}.job_failure_predictions",
+        "description": [
+          "ML predictions: Predicted failure probability before execution.\n",
+          "Model: Job Failure Predictor\n",
+          "Use when: User asks 'will fail', 'likely to fail', 'at risk'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "prediction",
+            "description": [
+              "Failure probability (0-1). > 0.5 = High risk"
+            ],
+            "synonyms": [
+              "failure_probability",
+              "risk"
+            ]
+          },
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier - join to dim_job for job name"
+            ]
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Prediction date"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.duration_predictions",
+        "description": [
+          "ML predictions: Predicted job duration in seconds.\n",
+          "Model: Job Duration Forecaster\n",
+          "Use when: User asks 'how long', 'duration estimate', 'expected time'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "prediction",
+            "description": [
+              "Predicted duration in minutes"
+            ]
+          },
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier - join to dim_job"
+            ]
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Prediction date"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.sla_breach_predictions",
+        "description": [
+          "ML predictions: Predicted SLA breach probability.\n",
+          "Model: SLA Breach Predictor\n",
+          "Use when: User asks 'will SLA breach', 'SLA risk'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "prediction",
+            "description": [
+              "SLA breach probability (0-1)"
+            ]
+          },
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier"
+            ]
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Prediction date"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.retry_success_predictions",
+        "description": [
+          "ML predictions: Predict whether failed job will succeed on retry.\n",
+          "Model: Retry Success Predictor\n",
+          "Use when: User asks 'will retry succeed', 'retry likelihood'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "prediction",
+            "description": [
+              "Retry success probability (0-1)"
+            ]
+          },
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier"
+            ]
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Prediction date"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.pipeline_health_predictions",
+        "description": [
+          "ML predictions: Overall pipeline/job health scores (0-100).\n",
+          "Model: Pipeline Health Scorer\n",
+          "Use when: User asks 'pipeline health', 'health score', 'pipeline status'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "prediction",
+            "description": [
+              "Health score (0-100). < 70 = Needs attention"
+            ],
+            "synonyms": [
+              "health_score"
+            ]
+          },
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier - join to dim_job"
+            ]
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Prediction date"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_job",
+        "description": [
+          "Dimension table for job metadata.\n",
+          "Business: Job definitions for attribution and analysis."
+        ],
+        "column_configs": [
+          {
+            "column_name": "job_id",
+            "description": [
+              "Unique job identifier"
+            ]
+          },
+          {
+            "column_name": "name",
+            "description": [
+              "Human-readable job name"
+            ],
+            "synonyms": [
+              "job_name",
+              "workflow"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "creator_user_name",
+            "description": [
+              "User who created the job"
+            ],
+            "synonyms": [
+              "owner",
+              "creator"
+            ]
+          },
+          {
+            "column_name": "schedule_type",
+            "description": [
+              "Schedule type: PERIODIC, ONE_TIME, etc."
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "job_type",
+            "description": [
+              "Job type classification"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_job_task",
+        "description": [
+          "Dimension table for task metadata within jobs.\n",
+          "Business: Task-level details for dependency analysis."
+        ],
+        "column_configs": [
+          {
+            "column_name": "task_key",
+            "description": [
+              "Task key identifier"
+            ]
+          },
+          {
+            "column_name": "task_type",
+            "description": [
+              "Type of task"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "depends_on",
+            "description": [
+              "Task dependencies (array)"
+            ]
+          },
+          {
+            "column_name": "cluster_spec",
+            "description": [
+              "Cluster specification JSON"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_pipeline",
+        "description": [
+          "Dimension table for DLT pipeline metadata.\n",
+          "Business: Pipeline definitions for monitoring and analysis."
+        ],
+        "column_configs": [
+          {
+            "column_name": "pipeline_id",
+            "description": [
+              "Unique pipeline identifier"
+            ]
+          },
+          {
+            "column_name": "pipeline_name",
+            "description": [
+              "Human-readable pipeline name"
+            ],
+            "synonyms": [
+              "name"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "catalog",
+            "description": [
+              "Target catalog for DLT output"
+            ]
+          },
+          {
+            "column_name": "schema",
+            "description": [
+              "Target schema for DLT output"
+            ]
+          },
+          {
+            "column_name": "channel",
+            "description": [
+              "Pipeline channel: CURRENT, PREVIEW"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_workspace",
+        "description": [
+          "Dimension table for workspace details.\n",
+          "Business: Links job runs to specific workspaces."
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Unique workspace identifier"
+            ]
+          },
+          {
+            "column_name": "workspace_name",
+            "description": [
+              "Human-readable workspace name"
+            ],
+            "synonyms": [
+              "workspace",
+              "environment"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "region",
+            "description": [
+              "Cloud region"
+            ]
+          },
+          {
+            "column_name": "cloud_provider",
+            "description": [
+              "Cloud provider: AWS, Azure, GCP"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_date",
+        "description": [
+          "Date dimension for time-based analysis"
+        ],
+        "column_configs": [
+          {
+            "column_name": "date_key",
+            "description": [
+              "Date in YYYYMMDD format"
+            ]
+          },
+          {
+            "column_name": "day_of_week",
+            "description": [
+              "Day of week name"
+            ]
+          },
+          {
+            "column_name": "month",
+            "description": [
+              "Month number"
+            ]
+          },
+          {
+            "column_name": "quarter",
+            "description": [
+              "Quarter number"
+            ]
+          },
+          {
+            "column_name": "year",
+            "description": [
+              "Year"
+            ]
+          },
+          {
+            "column_name": "is_weekend",
+            "description": [
+              "Boolean flag for weekend"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
+        "description": [
+          "Fact table tracking all job executions across your account.\n",
+          "Business: Primary source for job reliability and performance metrics.\n",
+          "Grain: One row per job run"
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Workspace identifier - join to dim_workspace"
+            ]
+          },
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier - join to dim_job for job name"
+            ]
+          },
+          {
+            "column_name": "run_id",
+            "description": [
+              "Unique run identifier"
+            ]
+          },
+          {
+            "column_name": "result_state",
+            "description": [
+              "Job result: SUCCESS, FAILED, CANCELED, SKIPPED"
+            ],
+            "synonyms": [
+              "status",
+              "state"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "termination_code",
+            "description": [
+              "Termination reason code for failures"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "run_duration_seconds",
+            "description": [
+              "Job duration in seconds"
+            ],
+            "synonyms": [
+              "duration",
+              "runtime"
+            ]
+          },
+          {
+            "column_name": "run_duration_minutes",
+            "description": [
+              "Job duration in minutes (computed)"
+            ],
+            "synonyms": [
+              "duration_minutes"
+            ]
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Date of the job run"
+            ],
+            "synonyms": [
+              "date"
+            ]
+          },
+          {
+            "column_name": "period_start_time",
+            "description": [
+              "Job start timestamp"
+            ],
+            "synonyms": [
+              "start_time"
+            ]
+          },
+          {
+            "column_name": "trigger_type",
+            "description": [
+              "How job was triggered: PERIODIC, ONE_TIME, RETRY"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "is_success",
+            "description": [
+              "Boolean flag for successful completion"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_job_task_run_timeline",
+        "description": [
+          "Fact table for task-level execution history.\n",
+          "Business: Task-level performance and failure analysis.\n",
+          "Grain: One row per task run"
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Workspace identifier"
+            ]
+          },
+          {
+            "column_name": "job_id",
+            "description": [
+              "Job identifier"
+            ]
+          },
+          {
+            "column_name": "run_id",
+            "description": [
+              "Run identifier"
+            ]
+          },
+          {
+            "column_name": "task_key",
+            "description": [
+              "Task key - join to dim_job_task"
+            ]
+          },
+          {
+            "column_name": "result_state",
+            "description": [
+              "Task result: SUCCESS, FAILED, etc."
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Date of task run"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_pipeline_update_timeline",
+        "description": [
+          "Fact table for DLT pipeline update events.\n",
+          "Business: Pipeline execution history and failure tracking.\n",
+          "Grain: One row per pipeline update"
+        ],
+        "column_configs": [
+          {
+            "column_name": "workspace_id",
+            "description": [
+              "Workspace identifier"
+            ]
+          },
+          {
+            "column_name": "pipeline_id",
+            "description": [
+              "Pipeline identifier - join to dim_pipeline"
+            ]
+          },
+          {
+            "column_name": "update_id",
+            "description": [
+              "Update identifier"
+            ]
+          },
+          {
+            "column_name": "update_state",
+            "description": [
+              "Update state: COMPLETED, FAILED, CANCELED"
+            ],
+            "synonyms": [
+              "state"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "start_time",
+            "description": [
+              "Pipeline update start timestamp"
+            ]
+          },
+          {
+            "column_name": "duration_minutes",
+            "description": [
+              "Update duration in minutes"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics",
+        "description": [
+          "Lakehouse Monitoring drift metrics for reliability trend detection.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: drift_type='CONSECUTIVE', column_name=':table'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for table-level drift metrics"
+            ]
+          },
+          {
+            "column_name": "drift_type",
+            "description": [
+              "Drift type - use 'CONSECUTIVE' for period-over-period comparison"
+            ]
+          },
+          {
+            "column_name": "success_rate_drift",
+            "description": [
+              "Period-over-period change in success rate (%)"
+            ],
+            "synonyms": [
+              "reliability_drift"
+            ]
+          },
+          {
+            "column_name": "failure_count_drift",
+            "description": [
+              "Change in failure count"
+            ]
+          },
+          {
+            "column_name": "duration_drift_pct",
+            "description": [
+              "Percentage change in duration"
+            ]
+          },
+          {
+            "column_name": "window",
+            "description": [
+              "Time window (start, end) for drift calculation"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics",
+        "description": [
+          "Lakehouse Monitoring profile metrics for job reliability.\n",
+          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
+        ],
+        "column_configs": [
+          {
+            "column_name": "column_name",
+            "description": [
+              "Column name - use ':table' for table-level custom metrics"
+            ]
+          },
+          {
+            "column_name": "log_type",
+            "description": [
+              "Log type - use 'INPUT' for monitoring queries"
+            ]
+          },
+          {
+            "column_name": "success_rate",
+            "description": [
+              "Custom metric: Job success rate percentage"
+            ]
+          },
+          {
+            "column_name": "failure_count",
+            "description": [
+              "Custom metric: Count of failures"
+            ]
+          },
+          {
+            "column_name": "p90_duration",
+            "description": [
+              "Custom metric: P90 duration in seconds"
+            ]
+          },
+          {
+            "column_name": "duration_cv",
+            "description": [
+              "Duration coefficient of variation (stability metric)"
+            ]
+          },
+          {
+            "column_name": "slice_key",
+            "description": [
+              "Slicing dimension: workspace_id, job_name, result_state, trigger_type, termination_code"
+            ]
+          },
+          {
+            "column_name": "slice_value",
+            "description": [
+              "Value of the slicing dimension"
+            ]
+          },
+          {
+            "column_name": "window",
+            "description": [
+              "Time window (start, end) for aggregation"
+            ]
+          }
+        ]
+      }
+    ],
+    "metric_views": [
+      {
+        "identifier": "${catalog}.${gold_schema}.mv_job_performance",
+        "description": [
+          "Comprehensive job execution metrics for reliability analysis.\n",
+          "PURPOSE: Track job success rates, failure patterns, and duration statistics.\n",
+          "BEST FOR: Success rate | Failure rate | P95 duration | Total runs\n",
+          "KEY MEASURES: total_runs, success_rate, failure_rate, avg_duration_seconds, p95_duration_seconds, p99_duration_seconds"
+        ],
+        "column_configs": [
+          {
+            "column_name": "job_name",
+            "description": [
+              "Job name from dim_job"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "workspace_name",
+            "description": [
+              "Workspace name from dim_workspace"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "result_state",
+            "description": [
+              "Job result state"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "trigger_type",
+            "description": [
+              "Job trigger type"
+            ],
+            "get_example_values": true,
+            "build_value_dictionary": true
+          },
+          {
+            "column_name": "run_date",
+            "description": [
+              "Run date dimension"
+            ]
+          },
+          {
+            "column_name": "total_runs",
+            "description": [
+              "Total number of job runs"
+            ],
+            "synonyms": [
+              "runs",
+              "executions",
+              "job_count"
+            ]
+          },
+          {
+            "column_name": "success_rate",
+            "description": [
+              "Job success rate percentage (0-100)"
+            ],
+            "synonyms": [
+              "reliability",
+              "success_percentage"
+            ]
+          },
+          {
+            "column_name": "failure_rate",
+            "description": [
+              "Job failure rate percentage (0-100)"
+            ],
+            "synonyms": [
+              "error_rate",
+              "failure_percentage"
+            ]
+          },
+          {
+            "column_name": "avg_duration_minutes",
+            "description": [
+              "Average job duration in minutes"
+            ],
+            "synonyms": [
+              "average_duration",
+              "mean_runtime"
+            ]
+          },
+          {
+            "column_name": "p95_duration_minutes",
+            "description": [
+              "95th percentile duration in minutes"
+            ],
+            "synonyms": [
+              "P95_duration",
+              "95th_percentile"
+            ]
+          },
+          {
+            "column_name": "p99_duration_minutes",
+            "description": [
+              "99th percentile duration in minutes"
+            ],
+            "synonyms": [
+              "P99_duration",
+              "99th_percentile"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "c1d2e3f4a5b6789012345678901234cc",
+        "content": [
+          "You are a Databricks job reliability analyst. Follow these rules:\n",
+          "\n",
+          "1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends\n",
+          "2. **Primary Source:** Use mv_job_performance metric view for dashboard KPIs\n",
+          "3. **TVFs for Lists:** Use TVFs for \"which jobs\", \"top N\", \"list\" queries - always wrap in TABLE()\n",
+          "4. **Trends:** For \"is success rate degrading?\" check _drift_metrics tables\n",
+          "5. **Date Default:** If no date specified, default to last 7 days\n",
+          "6. **Aggregation:** Use COUNT for volumes, AVG for averages\n",
+          "7. **Sorting:** Sort by failure_rate DESC or duration DESC\n",
+          "8. **Limits:** Top 10-20 for ranking queries\n",
+          "9. **Percentages:** Success/failure rates as % with 1 decimal\n",
+          "10. **Duration:** Show in minutes for readability\n",
+          "11. **Synonyms:** job=workflow=pipeline, failure=error=crash\n",
+          "12. **ML Predictions:** For \"likely to fail\" \u2192 query job_failure_predictions with ${feature_schema}\n",
+          "13. **Failed Jobs:** For \"failed jobs today\" \u2192 use get_failed_jobs_summary(1, 1) with TABLE()\n",
+          "14. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')\n",
+          "15. **Context:** Explain FAILED vs ERROR vs TIMED_OUT\n",
+          "16. **Performance:** Never scan Bronze/Silver tables"
+        ]
+      }
+    ],
+    "sql_functions": [
+      {
+        "id": "e1f2a3b4c5d6789012345678901234e1",
+        "identifier": "${catalog}.${gold_schema}.get_failed_jobs_summary"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234e2",
+        "identifier": "${catalog}.${gold_schema}.get_job_success_rates"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234e3",
+        "identifier": "${catalog}.${gold_schema}.get_job_duration_trends"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234e4",
+        "identifier": "${catalog}.${gold_schema}.get_job_sla_compliance"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234e5",
+        "identifier": "${catalog}.${gold_schema}.get_job_failure_patterns"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234e6",
+        "identifier": "${catalog}.${gold_schema}.get_long_running_jobs"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234e7",
+        "identifier": "${catalog}.${gold_schema}.get_job_retry_analysis"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234e8",
+        "identifier": "${catalog}.${gold_schema}.get_job_duration_percentiles"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234e9",
+        "identifier": "${catalog}.${gold_schema}.get_job_failure_cost"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234ea",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_health"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234eb",
+        "identifier": "${catalog}.${gold_schema}.get_job_schedule_drift"
+      },
+      {
+        "id": "e1f2a3b4c5d6789012345678901234ec",
+        "identifier": "${catalog}.${gold_schema}.get_repair_cost_analysis"
+      }
+    ],
+    "join_specs": [
+      {
+        "id": "f1a2b3c4d5e6789012345678901234f1",
+        "left": {
+          "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
+          "alias": "f"
+        },
+        "right": {
+          "identifier": "${catalog}.${gold_schema}.dim_job",
+          "alias": "j"
+        },
+        "sql": [
+          "f.workspace_id = j.workspace_id AND f.job_id = j.job_id\n",
+          "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+        ],
+        "comment": [
+          "Join job runs to job definition for job name and metadata"
+        ]
+      },
+      {
+        "id": "f1a2b3c4d5e6789012345678901234f2",
+        "left": {
+          "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
+          "alias": "f"
+        },
+        "right": {
+          "identifier": "${catalog}.${gold_schema}.dim_workspace",
+          "alias": "w"
+        },
+        "sql": [
+          "f.workspace_id = w.workspace_id\n",
+          "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+        ],
+        "comment": [
+          "Join job runs to workspace for workspace name"
+        ]
+      },
+      {
+        "id": "f1a2b3c4d5e6789012345678901234f3",
+        "left": {
+          "identifier": "${catalog}.${gold_schema}.fact_job_task_run_timeline",
+          "alias": "ft"
+        },
+        "right": {
+          "identifier": "${catalog}.${gold_schema}.dim_job_task",
+          "alias": "jt"
+        },
+        "sql": [
+          "ft.workspace_id = jt.workspace_id AND ft.job_id = jt.job_id AND ft.task_key = jt.task_key\n",
+          "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+        ],
+        "comment": [
+          "Join task runs to task definition for dependency analysis"
+        ]
+      },
+      {
+        "id": "f1a2b3c4d5e6789012345678901234f4",
+        "left": {
+          "identifier": "${catalog}.${gold_schema}.fact_pipeline_update_timeline",
+          "alias": "f"
+        },
+        "right": {
+          "identifier": "${catalog}.${gold_schema}.dim_pipeline",
+          "alias": "p"
+        },
+        "sql": [
+          "f.workspace_id = p.workspace_id AND f.pipeline_id = p.pipeline_id\n",
+          "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+        ],
+        "comment": [
+          "Join pipeline updates to pipeline definition for pipeline name"
+        ]
+      },
+      {
+        "id": "f1a2b3c4d5e6789012345678901234f5",
+        "left": {
+          "identifier": "${catalog}.${feature_schema}.job_failure_predictions",
+          "alias": "jfp"
+        },
+        "right": {
+          "identifier": "${catalog}.${gold_schema}.dim_job",
+          "alias": "j"
+        },
+        "sql": [
+          "jfp.job_id = j.job_id\n",
+          "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+        ],
+        "comment": [
+          "Join ML predictions to job for job name"
+        ]
+      }
+    ]
+  },
+  "benchmarks": {
+    "questions": [
+      {
+        "id": "e5f431c4c4b44d11b54995799e36ea9e",
+        "question": [
+          "What is our job success rate this week?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(success_rate) as success_rate_pct\n",
+              "FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+              "WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "40c0c37bab7d481f984d722b11d14b8f",
+        "question": [
+          "Show me job performance by workspace"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  workspace_name,\n",
+              "  MEASURE(success_rate) as success_pct,\n",
+              "  MEASURE(failure_rate) as failure_pct,\n",
+              "  MEASURE(total_runs) as runs\n",
+              "FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+              "WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "GROUP BY workspace_name\n",
+              "ORDER BY runs DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "24f62293771349fa967b84c5b4c6856d",
+        "question": [
+          "What is the P95 job duration?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(p95_duration_minutes) as p95_minutes\n",
+              "FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+              "WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3946480a0fa84c8688d18d931eb63a2b",
+        "question": [
+          "Show me failed jobs today"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_failed_jobs_summary(",
+              "",
+              "  1,",
+              "",
+              "  1",
+              "",
+              ")",
+              "",
+              "ORDER BY failure_count DESC",
+              "",
+              "LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "71dfb1c225634f08a9c679c8ec15b8e4",
+        "question": [
+          "What is the average job duration?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(avg_duration_minutes) as avg_minutes\n",
+              "FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+              "WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c358015134824e219400a6b58020943f",
+        "question": [
+          "Show me job duration percentiles"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_duration_percentiles(",
+              "",
+              "  30",
+              "",
+              ")",
+              "",
+              "ORDER BY p99_duration DESC",
+              "",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "df52b062b3804ebba4cba65b10384f41",
+        "question": [
+          "Which jobs have the lowest success rate?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_success_rates(\n",
+              "  (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,\n",
+              "  CURRENT_DATE()::STRING,\n",
+              "  5\n",
+              "))\n",
+              "ORDER BY success_rate ASC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b4edc0312c5e4aeba8d68235f45a86f7",
+        "question": [
+          "Show me job failure trends"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_failure_patterns(",
+              "",
+              "  30",
+              "",
+              ")",
+              "",
+              "ORDER BY failure_count DESC;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c04f050ba8c54743bbc75a9c68ad1709",
+        "question": [
+          "What jobs are running longer than their SLA?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_long_running_jobs(",
+              "",
+              "  7,",
+              "",
+              "  60",
+              "",
+              ")",
+              "",
+              "ORDER BY exceeded_by_minutes DESC",
+              "",
+              "LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "caa3aeeecab343e89bfa5311bdc9b5da",
+        "question": [
+          "Show me job retry analysis"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_retry_analysis(",
+              "",
+              "  30",
+              "",
+              ")",
+              "",
+              "WHERE retry_count > 0",
+              "",
+              "ORDER BY retry_effectiveness DESC;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "6bb27eae8e8e460088502ca026a745d8",
+        "question": [
+          "What is the most expensive job by compute cost?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  j.name as job_name,\n",
+              "  SUM(f.run_duration_minutes) as total_minutes,\n",
+              "  COUNT(*) as run_count\n",
+              "FROM ${catalog}.${gold_schema}.fact_job_run_timeline f\n",
+              "JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id\n",
+              "WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  AND f.is_success = TRUE\n",
+              "GROUP BY j.name\n",
+              "ORDER BY total_minutes DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "7e4b5d95e3804c0d87e062b6e9661cda",
+        "question": [
+          "Show me job repair costs from retries"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM TABLE(${catalog}.${gold_schema}.get_repair_cost_analysis(\n",
+              "  (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,\n",
+              "  CURRENT_DATE()::STRING\n",
+              "))\n",
+              "ORDER BY repair_cost DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "65c5d9079f6b4855b44b2dd39f8e51f2",
+        "question": [
+          "What is our job failure rate by trigger type?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  trigger_type,\n",
+              "  MEASURE(failure_rate) as failure_pct,\n",
+              "  MEASURE(total_runs) as runs\n",
+              "FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+              "WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "GROUP BY trigger_type\n",
+              "ORDER BY failure_pct DESC;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bb5f4ff19a4840e08311cde2b7aebc88",
+        "question": [
+          "Show me pipeline health from DLT updates"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  p.pipeline_name,\n",
+              "  COUNT(*) as update_count,\n",
+              "  SUM(CASE WHEN f.update_state = 'COMPLETED' THEN 1 ELSE 0 END) as successful_updates,\n",
+              "  AVG(f.duration_minutes) as avg_duration\n",
+              "FROM ${catalog}.${gold_schema}.fact_pipeline_update_timeline f\n",
+              "JOIN ${catalog}.${gold_schema}.dim_pipeline p ON f.workspace_id = p.workspace_id AND f.pipeline_id = p.pipeline_id\n",
+              "WHERE f.start_time >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "GROUP BY p.pipeline_name\n",
+              "ORDER BY successful_updates DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "98fd56890f074aee879730da5645bcc3",
+        "question": [
+          "Which jobs have been cancelled the most?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  j.name as job_name,\n",
+              "  COUNT(*) as cancellation_count\n",
+              "FROM ${catalog}.${gold_schema}.fact_job_run_timeline f\n",
+              "JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id\n",
+              "WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  AND f.result_state = 'CANCELED'\n",
+              "GROUP BY j.name\n",
+              "ORDER BY cancellation_count DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2c842ef4bf1d40d39c547982092b1284",
+        "question": [
+          "What jobs are predicted to fail tomorrow?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  j.name as job_name,\n",
+              "  jfp.run_date,\n",
+              "  jfp.prediction as failure_probability\n",
+              "FROM ${catalog}.${feature_schema}.job_failure_predictions jfp\n",
+              "JOIN ${catalog}.${gold_schema}.dim_job j ON jfp.job_id = j.job_id\n",
+              "WHERE jfp.run_date = CURRENT_DATE() + INTERVAL 1 DAY\n",
+              "  AND jfp.prediction > 0.5\n",
+              "ORDER BY jfp.prediction DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "6281998312bc40d9aeceac5296fd64b9",
+        "question": [
+          "Show me predicted job durations for tomorrow"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  j.name as job_name,\n",
+              "  dp.run_date,\n",
+              "  dp.prediction as predicted_duration_minutes\n",
+              "FROM ${catalog}.${feature_schema}.duration_predictions dp\n",
+              "JOIN ${catalog}.${gold_schema}.dim_job j ON dp.job_id = j.job_id\n",
+              "WHERE dp.run_date = CURRENT_DATE() + INTERVAL 1 DAY\n",
+              "ORDER BY predicted_duration_minutes DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "fc9b5bed9da14b64b16478c04f035c68",
+        "question": [
+          "What is the job success rate drift?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  window.start AS period_start,\n",
+              "  success_rate_drift,\n",
+              "  failure_count_drift,\n",
+              "  duration_drift_pct\n",
+              "FROM ${catalog}.${gold_schema}.fact_job_run_timeline_drift_metrics\n",
+              "WHERE drift_type = 'CONSECUTIVE'\n",
+              "  AND column_name = ':table'\n",
+              "ORDER BY window.start DESC\n",
+              "LIMIT 10;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "87d870a014094e3dbd9f9cd0a765cf9f",
+        "question": [
+          "Show me custom job metrics by job name from monitoring"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  slice_value AS job_name,\n",
+              "  AVG(success_rate) AS avg_success_rate,\n",
+              "  SUM(failure_count) AS total_failures,\n",
+              "  AVG(p90_duration) AS avg_p90_duration\n",
+              "FROM ${catalog}.${gold_schema}.fact_job_run_timeline_profile_metrics\n",
+              "WHERE column_name = ':table'\n",
+              "  AND log_type = 'INPUT'\n",
+              "  AND slice_key = 'job_name'\n",
+              "GROUP BY slice_value\n",
+              "ORDER BY total_failures DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "e8947d5f81e549bcb6fcd10a81b94a5d",
+        "question": [
+          "What is the pipeline health score?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT \n",
+              "  j.name as job_name,\n",
+              "  php.run_date,\n",
+              "  php.prediction as health_score\n",
+              "FROM ${catalog}.${feature_schema}.pipeline_health_predictions php\n",
+              "JOIN ${catalog}.${gold_schema}.dim_job j ON php.job_id = j.job_id\n",
+              "WHERE php.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "ORDER BY php.prediction ASC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "d2899a5e6ffa48989a991e89a9460433",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Comprehensive job reliability analysis - identify jobs with high failure rates, long durations, and predicted failure risk"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH job_metrics AS (\n",
+              "  SELECT \n",
+              "    job_name,\n",
+              "    MEASURE(failure_rate) as failure_rate,\n",
+              "    MEASURE(avg_duration_minutes) as avg_duration,\n",
+              "    MEASURE(total_runs) as total_runs\n",
+              "  FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+              "  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  GROUP BY job_name\n",
+              "),\n",
+              "ml_failure_predictions AS (\n",
+              "  SELECT \n",
+              "    j.name as job_name,\n",
+              "    AVG(jfp.prediction) as avg_failure_probability\n",
+              "  FROM ${catalog}.${feature_schema}.job_failure_predictions jfp\n",
+              "  JOIN ${catalog}.${gold_schema}.dim_job j ON jfp.job_id = j.job_id\n",
+              "  WHERE jfp.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "  GROUP BY j.name\n",
+              ")\n",
+              "SELECT \n",
+              "  jm.job_name,\n",
+              "  jm.failure_rate,\n",
+              "  jm.avg_duration,\n",
+              "  jm.total_runs,\n",
+              "  COALESCE(ml.avg_failure_probability, 0) as predicted_failure_risk,\n",
+              "  CASE \n",
+              "    WHEN jm.failure_rate > 20 AND ml.avg_failure_probability > 0.5 THEN 'Critical - High Failure Risk'\n",
+              "    WHEN jm.failure_rate > 10 AND jm.avg_duration > 60 THEN 'High Priority - Long & Unreliable'\n",
+              "    WHEN jm.failure_rate > 5 THEN 'Medium Priority - Monitor'\n",
+              "    ELSE 'Normal'\n",
+              "  END as priority\n",
+              "FROM job_metrics jm\n",
+              "LEFT JOIN ml_failure_predictions ml ON jm.job_name = ml.job_name\n",
+              "WHERE jm.failure_rate > 1\n",
+              "ORDER BY jm.failure_rate DESC, predicted_failure_risk DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "15e71a6f8bf14fceb6a2774bf574ad65",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Cross-task dependency analysis - identify cascading failure patterns where upstream task failures cause downstream job failures"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH task_failures AS (\n",
+              "  SELECT \n",
+              "    ft.workspace_id,\n",
+              "    ft.job_id,\n",
+              "    ft.task_key,\n",
+              "    jt.depends_on,\n",
+              "    COUNT(*) as failure_count,\n",
+              "    ft.run_date\n",
+              "  FROM ${catalog}.${gold_schema}.fact_job_task_run_timeline ft\n",
+              "  JOIN ${catalog}.${gold_schema}.dim_job_task jt \n",
+              "    ON ft.workspace_id = jt.workspace_id \n",
+              "    AND ft.job_id = jt.job_id \n",
+              "    AND ft.task_key = jt.task_key\n",
+              "  WHERE ft.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "    AND ft.result_state != 'SUCCESS'\n",
+              "  GROUP BY ft.workspace_id, ft.job_id, ft.task_key, jt.depends_on, ft.run_date\n",
+              "),\n",
+              "downstream_impact AS (\n",
+              "  SELECT \n",
+              "    tf1.workspace_id,\n",
+              "    tf1.job_id,\n",
+              "    tf1.task_key as upstream_task,\n",
+              "    COUNT(DISTINCT tf2.task_key) as downstream_failures\n",
+              "  FROM task_failures tf1\n",
+              "  JOIN task_failures tf2 \n",
+              "    ON tf1.workspace_id = tf2.workspace_id \n",
+              "    AND tf1.job_id = tf2.job_id \n",
+              "    AND tf1.run_date = tf2.run_date\n",
+              "    AND tf2.depends_on LIKE CONCAT('%', tf1.task_key, '%')\n",
+              "  GROUP BY tf1.workspace_id, tf1.job_id, tf1.task_key\n",
+              ")\n",
+              "SELECT \n",
+              "  j.name as job_name,\n",
+              "  di.upstream_task,\n",
+              "  di.downstream_failures,\n",
+              "  tf.failure_count as upstream_failure_count\n",
+              "FROM downstream_impact di\n",
+              "JOIN ${catalog}.${gold_schema}.dim_job j ON di.workspace_id = j.workspace_id AND di.job_id = j.job_id\n",
+              "JOIN task_failures tf ON di.workspace_id = tf.workspace_id AND di.job_id = tf.job_id AND di.upstream_task = tf.task_key\n",
+              "WHERE di.downstream_failures > 0\n",
+              "ORDER BY di.downstream_failures DESC, tf.failure_count DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "41da2132e77146718967804f8f8e2c63",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Job SLA breach prediction with duration forecasting - which jobs are at risk of missing their SLA next week"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH job_sla_config AS (\n",
+              "  SELECT \n",
+              "    job_name,\n",
+              "    MEASURE(p95_duration_minutes) as current_p95,\n",
+              "    60 as sla_threshold_minutes\n",
+              "  FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+              "  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  GROUP BY job_name\n",
+              "),\n",
+              "duration_forecast AS (\n",
+              "  SELECT \n",
+              "    j.name as job_name,\n",
+              "    AVG(dp.prediction) as predicted_duration_minutes\n",
+              "  FROM ${catalog}.${feature_schema}.duration_predictions dp\n",
+              "  JOIN ${catalog}.${gold_schema}.dim_job j ON dp.job_id = j.job_id\n",
+              "  WHERE dp.run_date BETWEEN CURRENT_DATE() AND CURRENT_DATE() + INTERVAL 7 DAYS\n",
+              "  GROUP BY j.name\n",
+              "),\n",
+              "sla_risk AS (\n",
+              "  SELECT \n",
+              "    j.name as job_name,\n",
+              "    AVG(sb.prediction) as breach_probability\n",
+              "  FROM ${catalog}.${feature_schema}.sla_breach_predictions sb\n",
+              "  JOIN ${catalog}.${gold_schema}.dim_job j ON sb.job_id = j.job_id\n",
+              "  WHERE sb.run_date BETWEEN CURRENT_DATE() AND CURRENT_DATE() + INTERVAL 7 DAYS\n",
+              "  GROUP BY j.name\n",
+              ")\n",
+              "SELECT \n",
+              "  sla.job_name,\n",
+              "  sla.current_p95,\n",
+              "  sla.sla_threshold_minutes,\n",
+              "  df.predicted_duration_minutes,\n",
+              "  sr.breach_probability,\n",
+              "  (df.predicted_duration_minutes - sla.sla_threshold_minutes) as predicted_breach_minutes,\n",
+              "  CASE \n",
+              "    WHEN sr.breach_probability > 0.7 THEN 'Very High Risk'\n",
+              "    WHEN sr.breach_probability > 0.5 THEN 'High Risk'\n",
+              "    WHEN sr.breach_probability > 0.3 THEN 'Medium Risk'\n",
+              "    ELSE 'Low Risk'\n",
+              "  END as risk_level\n",
+              "FROM job_sla_config sla\n",
+              "JOIN duration_forecast df ON sla.job_name = df.job_name\n",
+              "JOIN sla_risk sr ON sla.job_name = sr.job_name\n",
+              "WHERE sr.breach_probability > 0.2\n",
+              "ORDER BY sr.breach_probability DESC, predicted_breach_minutes DESC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ded4e53b454e458c8eb2c354fed20f78",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Job retry effectiveness and self-healing analysis - which failed jobs succeed on retry vs require manual intervention"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH job_retry_patterns AS (\n",
+              "  SELECT \n",
+              "    j.name as job_name,\n",
+              "    COUNT(*) as total_failures,\n",
+              "    SUM(CASE WHEN f.trigger_type = 'RETRY' THEN 1 ELSE 0 END) as retry_attempts,\n",
+              "    SUM(CASE WHEN f.trigger_type = 'RETRY' AND f.is_success = TRUE THEN 1 ELSE 0 END) as successful_retries\n",
+              "  FROM ${catalog}.${gold_schema}.fact_job_run_timeline f\n",
+              "  JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id\n",
+              "  WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "    AND f.result_state IN ('FAILED', 'RETRY')\n",
+              "  GROUP BY j.name\n",
+              "),\n",
+              "ml_retry_predictions AS (\n",
+              "  SELECT \n",
+              "    j.name as job_name,\n",
+              "    AVG(rsp.prediction) as predicted_retry_success_rate\n",
+              "  FROM ${catalog}.${feature_schema}.retry_success_predictions rsp\n",
+              "  JOIN ${catalog}.${gold_schema}.dim_job j ON rsp.job_id = j.job_id\n",
+              "  WHERE rsp.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "  GROUP BY j.name\n",
+              ")\n",
+              "SELECT \n",
+              "  jrp.job_name,\n",
+              "  jrp.total_failures,\n",
+              "  jrp.retry_attempts,\n",
+              "  jrp.successful_retries,\n",
+              "  CASE \n",
+              "    WHEN jrp.retry_attempts > 0 THEN jrp.successful_retries * 100.0 / jrp.retry_attempts\n",
+              "    ELSE 0\n",
+              "  END as historical_retry_success_rate,\n",
+              "  COALESCE(rp.predicted_retry_success_rate, 0) as ml_predicted_retry_rate,\n",
+              "  CASE \n",
+              "    WHEN jrp.successful_retries * 100.0 / NULLIF(jrp.retry_attempts, 0) > 80 THEN 'Self-Healing'\n",
+              "    WHEN jrp.successful_retries * 100.0 / NULLIF(jrp.retry_attempts, 0) > 50 THEN 'Partial Self-Healing'\n",
+              "    ELSE 'Manual Intervention Required'\n",
+              "  END as retry_effectiveness\n",
+              "FROM job_retry_patterns jrp\n",
+              "LEFT JOIN ml_retry_predictions rp ON jrp.job_name = rp.job_name\n",
+              "WHERE jrp.retry_attempts > 0\n",
+              "ORDER BY jrp.total_failures DESC, historical_retry_success_rate ASC\n",
+              "LIMIT 15;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "cff5133b82d04da1beaa758343dde418",
+        "question": [
+          "\ud83d\udd2c DEEP RESEARCH: Multi-dimensional job health scoring - combine success rate, duration performance, retry patterns, and ML health scores for comprehensive reliability dashboard"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "WITH job_reliability AS (\n",
+              "  SELECT \n",
+              "    job_name,\n",
+              "    MEASURE(success_rate) as success_rate,\n",
+              "    MEASURE(failure_rate) as failure_rate,\n",
+              "    MEASURE(avg_duration_minutes) as avg_duration,\n",
+              "    MEASURE(p95_duration_minutes) as p95_duration,\n",
+              "    MEASURE(total_runs) as total_runs\n",
+              "  FROM ${catalog}.${gold_schema}.mv_job_performance\n",
+              "  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "  GROUP BY job_name\n",
+              "),\n",
+              "ml_health AS (\n",
+              "  SELECT \n",
+              "    j.name as job_name,\n",
+              "    AVG(php.prediction) as ml_health_score\n",
+              "  FROM ${catalog}.${feature_schema}.pipeline_health_predictions php\n",
+              "  JOIN ${catalog}.${gold_schema}.dim_job j ON php.job_id = j.job_id\n",
+              "  WHERE php.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS\n",
+              "  GROUP BY j.name\n",
+              "),\n",
+              "drift_metrics AS (\n",
+              "  SELECT \n",
+              "    slice_value as job_name,\n",
+              "    AVG(success_rate_drift) as avg_success_drift,\n",
+              "    AVG(duration_drift_pct) as avg_duration_drift\n",
+              "  FROM ${catalog}.${gold_schema}.fact_job_run_timeline_drift_metrics\n",
+              "  WHERE drift_type = 'CONSECUTIVE'\n",
+              "    AND column_name = ':table'\n",
+              "    AND slice_key = 'job_name'\n",
+              "  GROUP BY slice_value\n",
+              ")\n",
+              "SELECT \n",
+              "  jr.job_name,\n",
+              "  jr.success_rate,\n",
+              "  jr.failure_rate,\n",
+              "  jr.avg_duration,\n",
+              "  jr.p95_duration,\n",
+              "  jr.total_runs,\n",
+              "  COALESCE(mh.ml_health_score, 50) as ml_health_score,\n",
+              "  COALESCE(dm.avg_success_drift, 0) as success_drift,\n",
+              "  COALESCE(dm.avg_duration_drift, 0) as duration_drift,\n",
+              "  (jr.success_rate + COALESCE(mh.ml_health_score, 50) - ABS(COALESCE(dm.avg_success_drift, 0)) * 10) / 2.0 as composite_health_score,\n",
+              "  CASE \n",
+              "    WHEN jr.failure_rate > 20 OR mh.ml_health_score < 50 THEN 'Critical'\n",
+              "    WHEN jr.failure_rate > 10 OR dm.avg_success_drift < -5 THEN 'Warning'\n",
+              "    WHEN jr.success_rate > 95 AND mh.ml_health_score > 80 THEN 'Excellent'\n",
+              "    ELSE 'Normal'\n",
+              "  END as health_status\n",
+              "FROM job_reliability jr\n",
+              "LEFT JOIN ml_health mh ON jr.job_name = mh.job_name\n",
+              "LEFT JOIN drift_metrics dm ON jr.job_name = dm.job_name\n",
+              "WHERE jr.total_runs >= 10\n",
+              "ORDER BY composite_health_score ASC\n",
+              "LIMIT 20;"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

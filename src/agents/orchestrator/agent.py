@@ -513,7 +513,22 @@ def log_agent_to_mlflow(
         "custom_inputs": {"user_id": "example@company.com"},
     }
 
-    with mlflow.start_run(run_name=f"health_monitor_agent_{version}"):
+    # Use development experiment for model logging
+    mlflow.set_experiment("/Shared/health_monitor_agent_development")
+    
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    run_name = f"dev_model_registration_{timestamp}"
+    
+    with mlflow.start_run(run_name=run_name):
+        # Standard tags for filtering and organization
+        mlflow.set_tags({
+            "run_type": "model_logging",
+            "domain": "all",
+            "agent_version": f"v{version}",
+            "dataset_type": "none",
+            "evaluation_type": "none",
+        })
         mlflow.log_params({
             "agent_type": "multi_agent_orchestrator",
             "version": version,

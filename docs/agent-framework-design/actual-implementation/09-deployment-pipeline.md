@@ -354,15 +354,37 @@ resources:
 
 # Widget parameters
 dbutils.widgets.text("model_name", "")
-dbutils.widgets.text("promotion_target", "production")
-dbutils.widgets.text("relevance_threshold", "0.7")
-dbutils.widgets.text("safety_threshold", "0.9")
+dbutils.widgets.text("promotion_target", "staging")
 
 MODEL_NAME = dbutils.widgets.get("model_name")
 PROMOTION_TARGET = dbutils.widgets.get("promotion_target")
-THRESHOLDS = {
-    "relevance": float(dbutils.widgets.get("relevance_threshold")),
-    "safety": float(dbutils.widgets.get("safety_threshold")),
+
+# ========== THRESHOLD CONFIGURATION ==========
+# NOTE: guidelines/mean REMOVED - redundant with custom scorers
+thresholds = {
+    # Built-in MLflow judges
+    "relevance/mean": 0.4,
+    "safety/mean": 0.7,
+    
+    # Domain-specific LLM judges
+    "cost_accuracy/mean": 0.6,
+    "security_compliance/mean": 0.6,
+    "reliability_accuracy/mean": 0.5,
+    "performance_accuracy/mean": 0.6,
+    "quality_accuracy/mean": 0.6,
+    
+    # Heuristic scorers
+    "response_length/mean": 0.1,
+    "no_errors/mean": 0.3,
+    "databricks_context/mean": 0.1,
+}
+
+# Metric aliases to handle different naming conventions from MLflow
+METRIC_ALIASES = {
+    "relevance/mean": ["relevance/mean", "relevance_to_query/mean"],
+    "databricks_context/mean": ["databricks_context/mean", "mentions_databricks_concepts/mean"],
+    "cost_accuracy/mean": ["cost_accuracy/mean", "cost_accuracy_judge/mean"],
+    # ... additional aliases
 }
 
 # COMMAND ----------
@@ -906,6 +928,60 @@ databricks jobs get-run-output --run-id <run_id>
 | Library installation failed | Version constraints | Remove version constraints (see above) |
 | No module named 'langchain_databricks' | Missing pip requirement | Add `langchain-databricks` (no version) |
 | Module not found in Model Serving | pip_requirements incomplete | Ensure all deps in `log_model()` |
+
+### Evaluation-Specific Issues
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| **Custom scorers return 0.0** | All `@scorer` functions show 0.0 | Use `_extract_response_text()` helper to handle serialized dict format from `mlflow.genai.evaluate()` |
+| **Metadata type warning** | `Non-string values in metadata` | Cast numeric values to strings: `"query_length": str(len(query))` |
+| **Guidelines blocking deployment** | `guidelines/mean: 0.000` fails | Remove from thresholds - redundant with custom scorers |
+| **Metric name mismatch** | Threshold check can't find metric | Add metric name to `METRIC_ALIASES` dict |
+
+### Serving Endpoint Issues
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| **Agent/non-agent conflict** | `Agent endpoint cannot be updated to serve non-agent models` | Auto-handled: Deployment job deletes and recreates endpoint |
+| **Endpoint not ready** | Stuck in `NOT_READY` state | Wait up to 15 minutes; check Serving Endpoints UI |
+| **Permission denied** | `PERMISSION_DENIED` error | Check UC grants and service principal permissions |
+
+### Agent Endpoint Recreation Pattern
+
+When switching from non-agent to agent model, the endpoint must be recreated:
+
+```python
+# Automatic handling in create_or_update_serving_endpoint()
+try:
+    client.serving_endpoints.update_config(...)
+except Exception as e:
+    if "Agent endpoint cannot be updated" in str(e):
+        # Delete existing non-agent endpoint
+        client.serving_endpoints.delete(endpoint_name)
+        time.sleep(5)
+        # Create fresh agent endpoint
+        client.serving_endpoints.create(...)
+```
+
+**Trigger condition:** First-time deployment of an agent model to an endpoint that previously served a non-agent model.
+
+### Response Extraction Fix
+
+`mlflow.genai.evaluate()` serializes `ResponsesAgentResponse` to dict:
+
+```python
+# MLflow passes this to scorers:
+outputs = {
+    'output': [{'content': [{'type': 'output_text', 'text': '...actual text...'}]}]
+}
+
+# Use _extract_response_text() to handle all formats:
+def my_scorer(*, outputs=None, **kwargs):
+    response = _extract_response_text(outputs)  # Works with both formats
+    # ...
+```
+
+See [08-evaluation-and-quality.md](./08-evaluation-and-quality.md#-critical-response-extraction-for-mlflowgenaievaluate) for full implementation.
 
 ### Useful Commands
 

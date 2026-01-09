@@ -22,10 +22,12 @@ model_name = dbutils.widgets.get("model_name")
 
 import mlflow
 import pandas as pd
+from datetime import datetime
 
-# Use consolidated experiment (single experiment for all agent runs)
-experiment_name = "/Shared/health_monitor/agent"
+# Use dedicated evaluation experiment
+experiment_name = "/Shared/health_monitor_agent_evaluation"
 mlflow.set_experiment(experiment_name)
+print(f"✓ Experiment: {experiment_name}")
 
 # COMMAND ----------
 
@@ -88,10 +90,39 @@ display(eval_data)
 # COMMAND ----------
 
 import json
+import re
 from mlflow.genai import scorer, Score
-from langchain_databricks import ChatDatabricks
 
 LLM_ENDPOINT = "databricks-claude-3-7-sonnet"
+
+
+def _call_llm(prompt: str, model: str = LLM_ENDPOINT) -> dict:
+    """Call Databricks Foundation Model using Databricks SDK."""
+    try:
+        from databricks.sdk import WorkspaceClient
+        from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
+        
+        w = WorkspaceClient()
+        response = w.serving_endpoints.query(
+            name=model,
+            messages=[ChatMessage(role=ChatMessageRole.USER, content=prompt)],
+            temperature=0,
+            max_tokens=500
+        )
+        content = response.choices[0].message.content
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            json_match = re.search(r'\{[^{}]*\}', content)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except:
+                    pass
+            return {"score": 0.5, "rationale": content[:200]}
+    except Exception as e:
+        return {"score": 0.5, "rationale": f"LLM call failed: {str(e)}"}
+
 
 @scorer
 def domain_accuracy_judge(inputs: dict, outputs: dict, expectations: dict = None) -> Score:
@@ -100,8 +131,6 @@ def domain_accuracy_judge(inputs: dict, outputs: dict, expectations: dict = None
     response = outputs.get("response", "")
     expected = expectations.get("expected_domains", []) if expectations else []
 
-    llm = ChatDatabricks(endpoint=LLM_ENDPOINT, temperature=0)
-
     prompt = f"""Rate domain accuracy (0-1):
 Query: {query}
 Expected domains: {expected}
@@ -109,19 +138,14 @@ Response: {response[:500]}
 
 Return JSON: {{"score": <float>, "rationale": "<reason>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(value=float(parsed["score"]), rationale=parsed.get("rationale", ""))
-    except:
-        return Score(value=0.5, rationale="Evaluation error")
+    result = _call_llm(prompt)
+    return Score(value=float(result.get("score", 0.5)), rationale=result.get("rationale", ""))
+
 
 @scorer
 def actionability_judge(inputs: dict, outputs: dict, expectations: dict = None) -> Score:
     """Judge response actionability."""
     response = outputs.get("response", "")
-
-    llm = ChatDatabricks(endpoint=LLM_ENDPOINT, temperature=0)
 
     prompt = f"""Rate actionability (0-1):
 Response: {response[:500]}
@@ -132,12 +156,8 @@ Response: {response[:500]}
 
 Return JSON: {{"score": <float>, "rationale": "<reason>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(value=float(parsed["score"]), rationale=parsed.get("rationale", ""))
-    except:
-        return Score(value=0.5, rationale="Evaluation error")
+    result = _call_llm(prompt)
+    return Score(value=float(result.get("score", 0.5)), rationale=result.get("rationale", ""))
 
 # COMMAND ----------
 
@@ -176,10 +196,19 @@ def predict_fn(inputs):
     result = agent.predict({"messages": messages})
     return {"response": result.get("response", "")}
 
-# Run evaluation
-with mlflow.start_run(run_name="agent_evaluation"):
-    # Tag this run as evaluation type for filtering in consolidated experiment
-    mlflow.set_tag("run_type", "evaluation")
+# Run evaluation with proper naming convention
+timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+run_name = f"eval_notebook_{timestamp}"
+
+with mlflow.start_run(run_name=run_name):
+    # Standard tags for filtering and organization
+    mlflow.set_tags({
+        "run_type": "evaluation",
+        "evaluation_type": "notebook_interactive",
+        "domain": "all",
+        "agent_version": "v4.0",
+        "dataset_type": "evaluation",
+    })
     
     results = mlflow.genai.evaluate(
         predict_fn=predict_fn,

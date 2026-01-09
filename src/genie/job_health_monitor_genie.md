@@ -59,18 +59,18 @@
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_failed_jobs_summary` | Failed job analysis | "failed jobs", "errors today" |
-| `get_job_success_rates` | Success rate by job | "success rate", "reliability" |
-| `get_job_duration_trends` | Duration trends over time | "duration trends" |
+| `get_failed_jobs` | Failed job analysis | "failed jobs", "errors today" |
+| `get_job_success_rate` | Success rate by job | "success rate", "reliability" |
+| `get_job_failure_trends` | Failure trend analysis | "failure trends" |
 | `get_job_sla_compliance` | SLA tracking | "SLA compliance" |
-| `get_job_failure_patterns` | Failure pattern analysis | "failure patterns" |
-| `get_long_running_jobs` | Long-running jobs | "slow jobs", "long duration" |
 | `get_job_retry_analysis` | Retry pattern analysis | "flaky jobs", "retries" |
 | `get_job_duration_percentiles` | Duration percentiles | "P95 duration", "job timing" |
-| `get_job_failure_cost` | Failure impact costs | "failure costs" |
-| `get_pipeline_health` | Pipeline health status | "pipeline health", "DLT health" |
-| `get_job_schedule_drift` | Schedule drift analysis | "schedule drift", "late jobs" |
-| `get_repair_cost_analysis` | Repair (retry) costs | "repair costs" |
+| `get_job_failure_costs` | Failure impact costs | "failure costs" |
+| `get_job_repair_costs` | Repair (retry) costs | "repair costs" |
+| `get_job_run_duration_analysis` | Duration statistics by job | "duration analysis" |
+| `get_job_run_details` | Detailed run history | "job run details" |
+| `get_job_outlier_runs` | Outlier run detection | "outlier runs" |
+| `get_job_data_quality_status` | Job-based quality scoring | "job quality" |
 
 ### ML Prediction Tables 🤖 (5 Models)
 
@@ -257,92 +257,92 @@ You are a Databricks job reliability analyst. Follow these rules:
 
 | Function Name | Signature | Purpose | When to Use |
 |---------------|-----------|---------|-------------|
-| `get_failed_jobs_summary` | `(days_back INT, min_failures INT DEFAULT 1)` | Failed jobs list | "failed jobs today" |
-| `get_job_success_rates` | `(start_date STRING, end_date STRING, min_runs INT DEFAULT 5)` | Success rates | "job success rate" |
-| `get_job_duration_trends` | `(start_date STRING, end_date STRING)` | Duration trends over time | "duration trends" |
+| `get_failed_jobs` | `(start_date STRING, end_date STRING, workspace_filter STRING DEFAULT NULL)` | Failed jobs list | "failed jobs today" |
+| `get_job_success_rate` | `(start_date STRING, end_date STRING, min_runs INT DEFAULT 5)` | Success rates | "job success rate" |
+| `get_job_failure_trends` | `(days_back INT DEFAULT 30)` | Failure trends | "failure trends" |
 | `get_job_sla_compliance` | `(start_date STRING, end_date STRING)` | SLA tracking | "SLA compliance" |
-| `get_job_failure_patterns` | `(days_back INT)` | Failure pattern analysis | "failure patterns" |
-| `get_long_running_jobs` | `(days_back INT, duration_threshold_min INT DEFAULT 60)` | Long-running jobs | "slow jobs" |
-| `get_job_retry_analysis` | `(days_back INT)` | Retry pattern analysis | "retry analysis" |
-| `get_job_duration_percentiles` | `(days_back INT)` | Duration P50/P90/P95/P99 | "P95 duration" |
-| `get_job_failure_cost` | `(start_date STRING, end_date STRING)` | Failure impact costs | "failure costs" |
-| `get_pipeline_health` | `(days_back INT)` | Pipeline health status | "pipeline health" |
-| `get_job_schedule_drift` | `(days_back INT)` | Schedule drift analysis | "schedule drift" |
-| `get_repair_cost_analysis` | `(start_date STRING, end_date STRING)` | Repair costs | "repair costs" |
+| `get_job_retry_analysis` | `(start_date STRING, end_date STRING)` | Retry pattern analysis | "retry analysis" |
+| `get_job_duration_percentiles` | `(days_back INT, job_name_filter STRING DEFAULT '%')` | Duration P50/P90/P95/P99 | "P95 duration" |
+| `get_job_failure_costs` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 20)` | Failure impact costs | "failure costs" |
+| `get_job_repair_costs` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 20)` | Repair costs | "repair costs" |
+| `get_job_run_duration_analysis` | `(days_back INT, min_runs INT DEFAULT 5, top_n INT DEFAULT 20)` | Duration statistics | "duration analysis" |
+| `get_job_run_details` | `(job_id_filter BIGINT, days_back INT DEFAULT 30)` | Run history | "job details" |
+| `get_job_outlier_runs` | `(days_back INT, min_baseline_runs INT DEFAULT 10, deviation_threshold DOUBLE DEFAULT 2.0)` | Outlier detection | "outlier runs" |
+| `get_job_data_quality_status` | `(days_back INT DEFAULT 7)` | Quality scoring | "job quality" |
 
 ### TVF Details
 
-#### get_failed_jobs_summary
-- **Signature:** `get_failed_jobs_summary(days_back INT, min_failures INT DEFAULT 1)`
-- **Returns:** job_name, run_id, result_state, termination_code, error_message, duration_minutes
+#### get_failed_jobs
+- **Signature:** `get_failed_jobs(start_date STRING, end_date STRING, workspace_filter STRING DEFAULT NULL)`
+- **Returns:** job_name, run_id, result_state, termination_code, error_message, duration_minutes, workspace_name
 - **Use When:** User asks for "failed jobs" or "errors today"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_failed_jobs_summary(1, 1))`
+- **Example:** `SELECT * FROM get_failed_jobs('2024-12-01', '2024-12-31', NULL))`
 
-#### get_job_success_rates
-- **Signature:** `get_job_success_rates(start_date STRING, end_date STRING, min_runs INT DEFAULT 5)`
+#### get_job_success_rate
+- **Signature:** `get_job_success_rate(start_date STRING, end_date STRING, min_runs INT DEFAULT 5)`
 - **Returns:** job_name, total_runs, successful_runs, failed_runs, success_rate, failure_rate
 - **Use When:** User asks for "success rate" or "reliability by job"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_success_rates('2024-12-01', '2024-12-31', 5))`
+- **Example:** `SELECT * FROM get_job_success_rate('2024-12-01', '2024-12-31', 5))`
 
 #### get_job_duration_percentiles
 - **Signature:** `get_job_duration_percentiles(days_back INT)`
 - **Returns:** job_name, p50_duration, p90_duration, p95_duration, p99_duration, avg_duration
 - **Use When:** User asks for "P95 duration" or "job timing"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_duration_percentiles(30))`
+- **Example:** `SELECT * FROM get_job_duration_percentiles(30))`
 
-#### get_job_failure_patterns
-- **Signature:** `get_job_failure_patterns(days_back INT)`
-- **Returns:** job_name, failure_category, failure_count, failure_rate
-- **Use When:** User asks for "failure patterns" or "failure trends"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_failure_patterns(30))`
+#### get_job_failure_trends
+- **Signature:** `get_job_failure_trends(days_back INT DEFAULT 30)`
+- **Returns:** run_date, failure_count, failure_rate, total_runs
+- **Use When:** User asks for "failure trends" or "daily failures"
+- **Example:** `SELECT * FROM get_job_failure_trends(30))`
 
-#### get_long_running_jobs
-- **Signature:** `get_long_running_jobs(days_back INT, duration_threshold_min INT DEFAULT 60)`
-- **Returns:** job_name, run_duration_minutes, exceeded_by_minutes
-- **Use When:** User asks for "slow jobs" or "long-running jobs"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_long_running_jobs(7, 60))`
+#### get_job_run_duration_analysis
+- **Signature:** `get_job_run_duration_analysis(days_back INT, min_runs INT DEFAULT 5, top_n INT DEFAULT 20)`
+- **Returns:** job_name, avg_duration_minutes, p50_duration, p95_duration, p99_duration
+- **Use When:** User asks for "slow jobs" or "duration analysis"
+- **Example:** `SELECT * FROM get_job_run_duration_analysis(30, 5, 20))`
 
 #### get_job_retry_analysis
 - **Signature:** `get_job_retry_analysis(days_back INT)`
 - **Returns:** job_name, retry_count, retry_success_rate, retry_effectiveness
 - **Use When:** User asks for "retry patterns" or "retry analysis"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_retry_analysis(30))`
+- **Example:** `SELECT * FROM get_job_retry_analysis(30))`
 
-#### get_repair_cost_analysis
-- **Signature:** `get_repair_cost_analysis(start_date STRING, end_date STRING)`
+#### get_job_repair_costs
+- **Signature:** `get_job_repair_costs(start_date STRING, end_date STRING, top_n INT DEFAULT 20)`
 - **Returns:** job_name, repair_count, repair_cost, original_cost, repair_rate
 - **Use When:** User asks for "repair costs" or "retry costs"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_repair_cost_analysis('2024-12-01', '2024-12-31'))`
+- **Example:** `SELECT * FROM get_job_repair_costs('2024-12-01', '2024-12-31', 20))`
 
-#### get_job_failure_cost
-- **Signature:** `get_job_failure_cost(start_date STRING, end_date STRING)`
+#### get_job_failure_costs
+- **Signature:** `get_job_failure_costs(start_date STRING, end_date STRING, top_n INT DEFAULT 20)`
 - **Returns:** job_name, failure_count, failure_cost, total_cost, failure_cost_pct
 - **Use When:** User asks for "failure costs" or "cost of failures"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_failure_cost('2024-12-01', '2024-12-31'))`
+- **Example:** `SELECT * FROM get_job_failure_costs('2024-12-01', '2024-12-31', 20))`
 
-#### get_pipeline_health
-- **Signature:** `get_pipeline_health(days_back INT)`
-- **Returns:** pipeline_name, health_score, update_count, failure_rate
-- **Use When:** User asks for "pipeline health" or "DLT health"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_pipeline_health(7))`
+#### get_job_run_details
+- **Signature:** `get_job_run_details(job_id_filter BIGINT, days_back INT DEFAULT 30)`
+- **Returns:** run_id, run_date, result_state, duration_minutes, error_message
+- **Use When:** User asks for "job run history" or "run details"
+- **Example:** `SELECT * FROM get_job_run_details(12345, 30))`
 
-#### get_job_schedule_drift
-- **Signature:** `get_job_schedule_drift(days_back INT)`
-- **Returns:** job_name, expected_start, actual_start, drift_minutes
-- **Use When:** User asks for "schedule drift" or "late jobs"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_schedule_drift(7))`
+#### get_job_outlier_runs
+- **Signature:** `get_job_outlier_runs(days_back INT, min_baseline_runs INT DEFAULT 10, deviation_threshold DOUBLE DEFAULT 2.0)`
+- **Returns:** job_name, run_id, duration_minutes, baseline_avg, deviation_score
+- **Use When:** User asks for "outlier runs" or "unusual durations"
+- **Example:** `SELECT * FROM get_job_outlier_runs(30, 10, 2.0))`
 
-#### get_job_duration_trends
-- **Signature:** `get_job_duration_trends(start_date STRING, end_date STRING)`
-- **Returns:** job_name, run_date, duration_minutes, trend
-- **Use When:** User asks for "duration trends" or "duration over time"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_duration_trends('2024-12-01', '2024-12-31'))`
+#### get_job_data_quality_status
+- **Signature:** `get_job_data_quality_status(days_back INT DEFAULT 7)`
+- **Returns:** job_name, quality_score, failed_checks, data_freshness_status
+- **Use When:** User asks for "job quality" or "data quality by job"
+- **Example:** `SELECT * FROM get_job_data_quality_status(7))`
 
 #### get_job_sla_compliance
 - **Signature:** `get_job_sla_compliance(start_date STRING, end_date STRING)`
 - **Returns:** job_name, sla_threshold, breach_count, compliance_rate
 - **Use When:** User asks for "SLA compliance" or "SLA breaches"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_sla_compliance('2024-12-01', '2024-12-31'))`
+- **Example:** `SELECT * FROM get_job_sla_compliance('2024-12-01', '2024-12-31'))`
 
 ---
 
@@ -468,7 +468,7 @@ WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ### Question 4: "Show me failed jobs today"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_failed_jobs_summary(
+SELECT * FROM get_failed_jobs_summary(
   1,
   1
 ))
@@ -493,7 +493,7 @@ WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ### Question 6: "Show me job duration percentiles"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_duration_percentiles(
+SELECT * FROM get_job_duration_percentiles(
   30
 ))
 ORDER BY p99_duration DESC
@@ -506,7 +506,7 @@ LIMIT 15;
 ### Question 7: "Which jobs have the lowest success rate?"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_success_rates(
+SELECT * FROM get_job_success_rates(
   (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
   CURRENT_DATE()::STRING,
   5
@@ -521,7 +521,7 @@ LIMIT 10;
 ### Question 8: "Show me job failure trends"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_failure_patterns(
+SELECT * FROM get_job_failure_patterns(
   30
 ))
 ORDER BY failure_count DESC;
@@ -533,7 +533,7 @@ ORDER BY failure_count DESC;
 ### Question 9: "What jobs are running longer than their SLA?"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_long_running_jobs(
+SELECT * FROM get_long_running_jobs(
   7,
   60
 ))
@@ -547,7 +547,7 @@ LIMIT 20;
 ### Question 10: "Show me job retry analysis"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_retry_analysis(
+SELECT * FROM get_job_retry_analysis(
   30
 ))
 WHERE retry_count > 0
@@ -579,7 +579,7 @@ LIMIT 10;
 ### Question 12: "Show me job repair costs from retries"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_repair_cost_analysis(
+SELECT * FROM get_repair_cost_analysis(
   (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
   CURRENT_DATE()::STRING
 ))

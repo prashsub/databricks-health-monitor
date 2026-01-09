@@ -22,7 +22,7 @@ Usage:
 
 from typing import Dict, Optional, List
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import threading
 import mlflow
 import mlflow.genai
@@ -52,7 +52,7 @@ class CachedPrompt:
     @property
     def age_seconds(self) -> float:
         """Age of cached prompt in seconds."""
-        return (datetime.utcnow() - self.loaded_at).total_seconds()
+        return (datetime.now(timezone.utc) - self.loaded_at).total_seconds()
 
 
 class PromptManager:
@@ -159,7 +159,7 @@ class PromptManager:
                     prompt=prompt,
                     version=version or "unknown",
                     alias=self.alias,
-                    loaded_at=datetime.utcnow(),
+                    loaded_at=datetime.now(timezone.utc),
                     source="registry",
                 )
 
@@ -187,7 +187,7 @@ class PromptManager:
                 prompt=fallback,
                 version="fallback",
                 alias="fallback",
-                loaded_at=datetime.utcnow(),
+                loaded_at=datetime.now(timezone.utc),
                 source="fallback",
             )
 

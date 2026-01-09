@@ -146,69 +146,69 @@ def extract_benchmark_queries_from_json(json_path: Path, catalog: str, gold_sche
     return queries
 
 
-def validate_query(spark: SparkSession, query_info: Dict) -> Dict:
-    """Validate a single SQL query by executing it with LIMIT 1.
+def validate_query(spark: SparkSession, query_info: Dict, catalog: str, gold_schema: str) -> Dict:
+    """Validate a single SQL query by EXECUTING it with LIMIT 1.
     
-    Using SELECT LIMIT 1 instead of EXPLAIN because:
-    - EXPLAIN may not catch all column resolution errors
-    - EXPLAIN may not catch type mismatches
-    - SELECT LIMIT 1 validates the full execution path
-    - Only returns 1 row, so it's still fast
+    Why execute instead of EXPLAIN:
+    - EXPLAIN may miss runtime errors (type mismatches, NULL handling, etc.)
+    - LIMIT 1 catches ALL errors while being fast (returns only 1 row)
+    - Full execution path validation ensures queries work in production
+    
+    Catalog/Schema Context:
+    - Sets USE CATALOG and USE SCHEMA before each query
+    - This allows TVFs to use simple names (get_slow_queries) instead of
+      three-part names (catalog.schema.get_slow_queries)
+    - Works around Spark SQL bug with TABLE() wrapper and three-part names
     """
     
     result = {
         'genie_space': query_info['genie_space'],
         'question_num': query_info['question_num'],
         'question_text': query_info['question_text'],
+        'query': query_info['query'][:200] + '...' if len(query_info['query']) > 200 else query_info['query'],
         'valid': False,
         'error': None,
         'error_type': None
     }
     
     try:
-        # Wrap query with LIMIT 1 for fast validation
-        # This catches ALL errors - syntax, columns, types, runtime
+        # Set catalog/schema context BEFORE executing query
+        # This enables simple TVF names without three-part identifiers
+        spark.sql(f"USE CATALOG {catalog}").collect()
+        spark.sql(f"USE SCHEMA {gold_schema}").collect()
+        
+        # Wrap query with LIMIT 1 for fast but complete validation
+        # This catches ALL errors: syntax, columns, types, runtime logic
         original_query = query_info['query'].strip().rstrip(';')
 
-        # DEBUG: Print first 200 chars of query for troubleshooting
-        if query_info['genie_space'] == 'performance' and str(query_info['question_num']) == '5':
-            print(f"\n=== DEBUG Q5 ===")
-            print(f"Question num: {query_info['question_num']} (type: {type(query_info['question_num'])})")
-            print(f"Query type: {type(original_query)}")
-            print(f"Query (first 300 chars): {repr(original_query[:300])}")
-            print(f"Has TABLE(: {'TABLE(' in original_query}")
-            print(f"=== END DEBUG ===\n")
-
-        # Handle queries - for TVF queries or queries with LIMIT, replace LIMIT value
-        # For other queries, just add LIMIT 1
-        if 'LIMIT' in original_query.upper():
-            # Replace existing LIMIT with LIMIT 1
-            validation_query = re.sub(r'LIMIT\s+\d+', 'LIMIT 1', original_query, flags=re.IGNORECASE)
+        # Determine if we need to wrap with SELECT * FROM ()
+        # CTEs and complex queries need wrapping, simple SELECT can append LIMIT 1
+        needs_wrapping = (
+            'WITH ' in original_query.upper()[:50] or
+            original_query.upper().strip().startswith('SELECT') is False
+        )
+        
+        if needs_wrapping:
+            # Wrap complex queries (CTEs, etc.) to add LIMIT 1
+            validation_query = f"SELECT * FROM ({original_query}) LIMIT 1"
         else:
-            validation_query = f"{original_query} LIMIT 1"
+            # Simple SELECT - just append LIMIT 1
+            # Remove existing LIMIT clause if present
+            validation_query = re.sub(r'\s+LIMIT\s+\d+\s*$', '', original_query, flags=re.IGNORECASE)
+            validation_query = f"{validation_query} LIMIT 1"
 
-        # DEBUG: Show full validation query for Q5
-        if query_info['genie_space'] == 'performance' and str(query_info['question_num']) == '5':
-            print(f"\n=== DEBUG Q5 FULL VALIDATION QUERY ===")
-            print(f"{validation_query}")
-            print(f"=== END DEBUG ===\n")
-
-        # Actually execute the query
-        spark.sql(validation_query).collect()
+        # EXECUTE the query (not just EXPLAIN)
+        result_df = spark.sql(validation_query)
+        
+        # Force execution by calling collect() - catches all runtime errors
+        result_df.collect()
+        
         result['valid'] = True
         
     except Exception as e:
         error_str = str(e)
         result['error'] = error_str
-
-        # DEBUG: Show SQL for NOT_A_SCALAR_FUNCTION errors
-        if 'NOT_A_SCALAR_FUNCTION' in error_str:
-            print(f"\n=== NOT_A_SCALAR_FUNCTION ERROR ===")
-            print(f"Genie Space: {query_info['genie_space']}")
-            print(f"Question: {query_info['question_num']}")
-            print(f"Original Query:\n{original_query[:500]}")
-            print(f"Validation Query:\n{validation_query[:500]}")
-            print(f"=== END ===\n")
+        result['sql_query'] = original_query  # Store full query for debugging
 
         # Categorize the error
         if 'UNRESOLVED_COLUMN' in error_str:
@@ -359,14 +359,56 @@ def validate_all_genie_benchmarks(genie_dir: Path, catalog: str, gold_schema: st
     print("   (This executes each query to catch ALL errors)")
     print("-" * 80)
     
-    # Validate each query
+    # Validate each query with timing and immediate error reporting
+    import time
     results = []
+    error_count = 0
+    start_time = time.time()
+    
     for i, query_info in enumerate(all_queries):
-        result = validate_query(spark, query_info)
+        query_start = time.time()
+        result = validate_query(spark, query_info, catalog, gold_schema)
+        query_duration = time.time() - query_start
         results.append(result)
         
         status = "✓" if result['valid'] else "✗"
-        print(f"  [{i+1}/{len(all_queries)}] {status} {query_info['genie_space']} Q{query_info['question_num']}")
+        
+        # Show timing for slow queries or errors
+        timing_str = f" ({query_duration:.1f}s)" if (query_duration > 5.0 or not result['valid']) else ""
+        print(f"  [{i+1}/{len(all_queries)}] {status} {query_info['genie_space']} Q{query_info['question_num']}{timing_str}")
+        
+        # Print error details IMMEDIATELY
+        if not result['valid']:
+            error_count += 1
+            error_type = result.get('error_type', 'UNKNOWN')
+            error_msg = result.get('error', 'No error message')[:300]
+            
+            print(f"      ❌ {error_type}: {error_msg}")
+            
+            # Print question text for context
+            question_text = query_info.get('question_text', '')[:100]
+            if question_text:
+                print(f"      💬 Question: {question_text}...")
+            
+            # Print specific error details based on type
+            if error_type == 'COLUMN_NOT_FOUND':
+                column = result.get('error_column', 'unknown')
+                suggestions = result.get('suggestions', '')
+                print(f"      🔎 Missing column: {column}")
+                if suggestions:
+                    print(f"      💡 Did you mean: {suggestions}")
+            elif error_type == 'TABLE_NOT_FOUND':
+                table = result.get('missing_table', 'unknown')
+                print(f"      🔎 Missing table: {table}")
+            elif error_type == 'FUNCTION_NOT_FOUND':
+                func = result.get('missing_function', 'unknown')
+                print(f"      🔎 Missing function: {func}")
+            
+            # Print running summary every 10 errors
+            if error_count % 10 == 0:
+                elapsed = time.time() - start_time
+                valid_count = (i + 1) - error_count
+                print(f"      📊 Running Total: {error_count} errors / {valid_count} passed in {elapsed:.0f}s ({i+1}/{len(all_queries)} done)\n")
     
     # Generate report
     report = generate_validation_report(results)

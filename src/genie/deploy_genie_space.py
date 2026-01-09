@@ -162,15 +162,25 @@ def load_genie_space_export(json_path: str, catalog: str, gold_schema: str, feat
                     mv['column_configs'].sort(key=lambda x: x.get('column_name', ''))
     
     # Sort instructions by (id, identifier) - API requirement
+    # Note: Some fields may be list-of-strings OR list-of-objects, handle both
     if 'instructions' in processed:
         if 'sql_functions' in processed['instructions']:
-            processed['instructions']['sql_functions'].sort(key=lambda x: (x.get('id', ''), x.get('identifier', '')))
+            funcs = processed['instructions']['sql_functions']
+            if funcs and isinstance(funcs[0], dict):
+                funcs.sort(key=lambda x: (x.get('id', ''), x.get('identifier', '')))
         if 'text_instructions' in processed['instructions']:
-            processed['instructions']['text_instructions'].sort(key=lambda x: (x.get('id', ''), x.get('content', '')))
+            instructions = processed['instructions']['text_instructions']
+            if instructions and isinstance(instructions[0], dict):
+                instructions.sort(key=lambda x: (x.get('id', ''), x.get('content', '')))
+            # If list of strings, don't sort (order matters for instructions)
         if 'example_question_sqls' in processed['instructions']:
-            processed['instructions']['example_question_sqls'].sort(key=lambda x: (x.get('id', ''), x.get('question', '')))
+            examples = processed['instructions']['example_question_sqls']
+            if examples and isinstance(examples[0], dict):
+                examples.sort(key=lambda x: (x.get('id', ''), x.get('question', '')))
         if 'join_specs' in processed['instructions']:
-            processed['instructions']['join_specs'].sort(key=lambda x: (x.get('id', '')))
+            joins = processed['instructions']['join_specs']
+            if joins and isinstance(joins[0], dict):
+                joins.sort(key=lambda x: (x.get('id', '')))
     
     return processed
 

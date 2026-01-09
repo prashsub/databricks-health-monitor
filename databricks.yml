@@ -109,8 +109,11 @@ include:
   # Machine Learning
   - resources/ml/*.yml
   
-  # Semantic Layer (TVFs, Metric Views, Genie)
+  # Semantic Layer (TVFs, Metric Views)
   - resources/semantic/*.yml
+  
+  # Genie Spaces
+  - resources/genie/*.yml
   
   # Lakehouse Monitoring
   - resources/monitoring/*.yml

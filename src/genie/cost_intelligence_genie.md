@@ -66,15 +66,15 @@
 | `get_cost_by_tag` | Tag-based cost allocation | "cost by team", "cost by project" |
 | `get_untagged_resources` | Resources without tags | "untagged resources" |
 | `get_cost_anomalies` | Cost anomaly detection | "cost anomalies", "unusual spending" |
-| `get_daily_cost_summary` | Daily cost summary | "daily cost", "cost breakdown" |
-| `get_workspace_cost_comparison` | Workspace cost comparison | "compare workspaces" |
-| `get_serverless_vs_classic_cost` | Serverless vs classic analysis | "serverless adoption" |
-| `get_job_cost_breakdown` | Job cost breakdown | "job costs", "job spend" |
-| `get_warehouse_cost_analysis` | Warehouse cost analysis | "warehouse costs", "SQL warehouse spend" |
-| `get_cost_forecast` | Cost forecasting | "forecast", "predict" |
-| `get_cost_by_cluster_type` | Cluster type cost analysis | "cluster costs by type" |
-| `get_storage_cost_analysis` | Storage cost breakdown | "storage costs" |
-| `get_cost_efficiency_metrics` | Cost efficiency metrics | "efficiency metrics", "cost per DBU" |
+| `get_cost_week_over_week` | Weekly cost trends with growth analysis | "week over week", "WoW growth" |
+| `get_spend_by_custom_tags` | Multi-tag cost analysis | "cost by tags" |
+| `get_tag_coverage` | Tag coverage metrics | "tag gaps", "tag coverage" |
+| `get_most_expensive_jobs` | Top expensive jobs | "job costs", "job spend" |
+| `get_cost_growth_analysis` | Cost growth analysis by entity | "growth drivers", "cost growth" |
+| `get_cost_growth_by_period` | Period-over-period cost growth | "period comparison" |
+| `get_cost_forecast_summary` | Cost forecasting based on historical trends | "forecast", "predict" |
+| `get_all_purpose_cluster_cost` | All-purpose cluster cost analysis | "cluster costs by type" |
+| `get_commit_vs_actual` | Commit tracking vs actual spend | "commit tracking", "commit status" |
 
 ### ML Prediction Tables 🤖 (6 Models)
 
@@ -276,16 +276,16 @@ You are a Databricks FinOps analyst. Follow these rules:
 | `get_cost_by_owner` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 20)` | Cost by owner | "cost by owner", "chargeback" |
 | `get_cost_by_tag` | `(start_date STRING, end_date STRING, tag_key STRING DEFAULT 'team')` | Tag-based allocation | "cost by team" |
 | `get_untagged_resources` | `(start_date STRING, end_date STRING)` | Untagged resources | "untagged resources" |
-| `get_cost_anomalies` | `(days_back INT, threshold_pct DOUBLE DEFAULT 50.0)` | Anomaly detection | "unusual spending" |
-| `get_daily_cost_summary` | `(start_date STRING, end_date STRING)` | Daily summary | "daily breakdown" |
-| `get_workspace_cost_comparison` | `(start_date STRING, end_date STRING)` | Workspace comparison | "compare workspaces" |
-| `get_serverless_vs_classic_cost` | `(start_date STRING, end_date STRING)` | Serverless analysis | "serverless adoption" |
-| `get_job_cost_breakdown` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 20)` | Job costs | "job spend" |
-| `get_warehouse_cost_analysis` | `(start_date STRING, end_date STRING)` | Warehouse costs | "warehouse spend" |
-| `get_cost_forecast` | `(days_back INT, forecast_days INT DEFAULT 30)` | Cost forecasting | "predict costs" |
-| `get_cost_by_cluster_type` | `(start_date STRING, end_date STRING)` | Cluster type costs | "cluster costs" |
-| `get_storage_cost_analysis` | `(start_date STRING, end_date STRING)` | Storage costs | "storage spend" |
-| `get_cost_efficiency_metrics` | `(start_date STRING, end_date STRING)` | Efficiency metrics | "cost per DBU" |
+| `get_cost_anomalies` | `(start_date STRING, end_date STRING, z_score_threshold DOUBLE DEFAULT 2.0)` | Anomaly detection | "unusual spending" |
+| `get_cost_week_over_week` | `(weeks_back INT DEFAULT 4)` | Weekly trends | "WoW growth" |
+| `get_spend_by_custom_tags` | `(start_date STRING, end_date STRING, tag_keys STRING)` | Multi-tag analysis | "cost by tags" |
+| `get_tag_coverage` | `(start_date STRING, end_date STRING)` | Tag coverage | "tag gaps" |
+| `get_most_expensive_jobs` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 20)` | Job costs | "job spend" |
+| `get_cost_growth_analysis` | `(entity_type STRING, days_back INT DEFAULT 30, top_n INT DEFAULT 10)` | Growth analysis | "cost growth" |
+| `get_cost_growth_by_period` | `(entity_type STRING, top_n INT DEFAULT 10)` | Period comparison | "period growth" |
+| `get_cost_forecast_summary` | `(forecast_months INT DEFAULT 3)` | Cost forecasting | "predict costs" |
+| `get_all_purpose_cluster_cost` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 20)` | Cluster costs | "cluster costs" |
+| `get_commit_vs_actual` | `(commit_year INT, annual_commit_amount DECIMAL, as_of_date DATE)` | Commit tracking | "commit status" |
 
 ### TVF Details
 
@@ -293,91 +293,91 @@ You are a Databricks FinOps analyst. Follow these rules:
 - **Signature:** `get_top_cost_contributors(start_date STRING, end_date STRING, top_n INT DEFAULT 10)`
 - **Returns:** workspace_name, sku_name, total_cost, total_dbus, pct_of_total
 - **Use When:** User asks for "top N workspaces/SKUs by cost"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_top_cost_contributors('2024-12-01', '2024-12-31', 10))`
+- **Example:** `SELECT * FROM get_top_cost_contributors('2024-12-01', '2024-12-31', 10))`
 
 #### get_cost_trend_by_sku
 - **Signature:** `get_cost_trend_by_sku(start_date STRING, end_date STRING, sku_filter STRING DEFAULT '%')`
 - **Returns:** usage_date, sku_name, daily_cost, cumulative_cost
 - **Use When:** User asks for "cost trend by SKU" or "daily cost breakdown"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_trend_by_sku('2024-12-01', '2024-12-31', '%'))`
+- **Example:** `SELECT * FROM get_cost_trend_by_sku('2024-12-01', '2024-12-31', '%'))`
 
 #### get_cost_by_owner
 - **Signature:** `get_cost_by_owner(start_date STRING, end_date STRING, top_n INT DEFAULT 20)`
 - **Returns:** owner, workspace_name, total_cost, pct_of_total
 - **Use When:** User asks for "cost by owner" or "chargeback report"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_by_owner('2024-12-01', '2024-12-31', 20))`
+- **Example:** `SELECT * FROM get_cost_by_owner('2024-12-01', '2024-12-31', 20))`
 
 #### get_cost_by_tag
 - **Signature:** `get_cost_by_tag(start_date STRING, end_date STRING, tag_key STRING DEFAULT 'team')`
 - **Returns:** tag_value, total_cost, pct_of_total
 - **Use When:** User asks for "cost by team" or "cost by project"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_by_tag('2024-12-01', '2024-12-31', 'team'))`
+- **Example:** `SELECT * FROM get_cost_by_tag('2024-12-01', '2024-12-31', 'team'))`
 
 #### get_untagged_resources
 - **Signature:** `get_untagged_resources(start_date STRING, end_date STRING)`
 - **Returns:** workspace_name, resource_id, total_cost, days_untagged
 - **Use When:** User asks for "untagged resources" or "tag compliance"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_untagged_resources('2024-12-01', '2024-12-31'))`
+- **Example:** `SELECT * FROM get_untagged_resources('2024-12-01', '2024-12-31'))`
 
 #### get_cost_anomalies
-- **Signature:** `get_cost_anomalies(days_back INT, threshold_pct DOUBLE DEFAULT 50.0)`
-- **Returns:** usage_date, workspace_name, actual_cost, expected_cost, deviation_pct
+- **Signature:** `get_cost_anomalies(start_date STRING, end_date STRING, z_score_threshold DOUBLE DEFAULT 2.0)`
+- **Returns:** usage_date, workspace_name, actual_cost, expected_cost, deviation_pct, z_score
 - **Use When:** User asks for "cost anomalies" or "unusual spending patterns"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_anomalies(30, 50.0))`
+- **Example:** `SELECT * FROM get_cost_anomalies('2024-12-01', '2024-12-31', 2.0))`
 
-#### get_daily_cost_summary
-- **Signature:** `get_daily_cost_summary(start_date STRING, end_date STRING)`
-- **Returns:** usage_date, total_cost, dod_change, wow_change
-- **Use When:** User asks for "daily cost summary" or "day over day"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_daily_cost_summary('2024-12-01', '2024-12-31'))`
+#### get_cost_week_over_week
+- **Signature:** `get_cost_week_over_week(weeks_back INT DEFAULT 4)`
+- **Returns:** week_start, week_end, total_cost, wow_growth_pct
+- **Use When:** User asks for "week over week" or "WoW growth"
+- **Example:** `SELECT * FROM get_cost_week_over_week(4))`
 
-#### get_workspace_cost_comparison
-- **Signature:** `get_workspace_cost_comparison(start_date STRING, end_date STRING)`
-- **Returns:** workspace_name, total_cost, rank, pct_of_total
-- **Use When:** User asks to "compare workspaces" or "workspace ranking"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_workspace_cost_comparison('2024-12-01', '2024-12-31'))`
+#### get_cost_mtd_summary
+- **Signature:** `get_cost_mtd_summary()`
+- **Returns:** mtd_cost, mtd_dbu, mom_growth_pct, projected_month_end_cost
+- **Use When:** User asks for "month to date" or "MTD cost"
+- **Example:** `SELECT * FROM get_cost_mtd_summary())`
 
-#### get_serverless_vs_classic_cost
-- **Signature:** `get_serverless_vs_classic_cost(start_date STRING, end_date STRING)`
-- **Returns:** compute_type, total_cost, total_dbus, pct_of_total
-- **Use When:** User asks for "serverless adoption" or "serverless vs classic"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_serverless_vs_classic_cost('2024-12-01', '2024-12-31'))`
+#### get_spend_by_custom_tags
+- **Signature:** `get_spend_by_custom_tags(start_date STRING, end_date STRING, tag_keys STRING)`
+- **Returns:** tag_key, tag_value, total_cost, pct_of_total
+- **Use When:** User asks for "cost by tags" or "multi-tag analysis"
+- **Example:** `SELECT * FROM get_spend_by_custom_tags('2024-12-01', '2024-12-31', 'team,project'))`
 
-#### get_job_cost_breakdown
-- **Signature:** `get_job_cost_breakdown(start_date STRING, end_date STRING, top_n INT DEFAULT 20)`
+#### get_most_expensive_jobs
+- **Signature:** `get_most_expensive_jobs(start_date STRING, end_date STRING, top_n INT DEFAULT 20)`
 - **Returns:** job_name, workspace_name, total_cost, run_count
 - **Use When:** User asks for "job costs" or "most expensive jobs"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_cost_breakdown('2024-12-01', '2024-12-31', 20))`
+- **Example:** `SELECT * FROM get_most_expensive_jobs('2024-12-01', '2024-12-31', 20))`
 
-#### get_warehouse_cost_analysis
-- **Signature:** `get_warehouse_cost_analysis(start_date STRING, end_date STRING)`
-- **Returns:** warehouse_name, total_cost, query_count, cost_per_query
-- **Use When:** User asks for "warehouse costs" or "SQL warehouse spend"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_warehouse_cost_analysis('2024-12-01', '2024-12-31'))`
+#### get_tag_coverage
+- **Signature:** `get_tag_coverage(start_date STRING, end_date STRING)`
+- **Returns:** tag_key, tagged_cost, untagged_cost, coverage_pct
+- **Use When:** User asks for "tag coverage" or "tag gaps"
+- **Example:** `SELECT * FROM get_tag_coverage('2024-12-01', '2024-12-31'))`
 
-#### get_cost_forecast
-- **Signature:** `get_cost_forecast(days_back INT, forecast_days INT DEFAULT 30)`
-- **Returns:** forecast_date, predicted_cost, confidence_lower, confidence_upper
+#### get_cost_forecast_summary
+- **Signature:** `get_cost_forecast_summary(forecast_months INT DEFAULT 3)`
+- **Returns:** forecast_month, predicted_cost, confidence_lower, confidence_upper
 - **Use When:** User asks for "cost forecast" or "predict future cost"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_forecast(90, 30))`
+- **Example:** `SELECT * FROM get_cost_forecast_summary(3))`
 
-#### get_cost_by_cluster_type
-- **Signature:** `get_cost_by_cluster_type(start_date STRING, end_date STRING)`
-- **Returns:** cluster_type, total_cost, cluster_count, avg_cost_per_cluster
-- **Use When:** User asks for "cost by cluster type" or "ALL_PURPOSE vs JOBS"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_by_cluster_type('2024-12-01', '2024-12-31'))`
+#### get_all_purpose_cluster_cost
+- **Signature:** `get_all_purpose_cluster_cost(start_date STRING, end_date STRING, top_n INT DEFAULT 20)`
+- **Returns:** cluster_name, workspace_name, total_cost, migration_savings_potential
+- **Use When:** User asks for "ALL_PURPOSE cluster costs" or "migration opportunities"
+- **Example:** `SELECT * FROM get_all_purpose_cluster_cost('2024-12-01', '2024-12-31', 20))`
 
-#### get_storage_cost_analysis
-- **Signature:** `get_storage_cost_analysis(start_date STRING, end_date STRING)`
-- **Returns:** storage_type, total_cost, total_gb, cost_per_gb
-- **Use When:** User asks for "storage costs" or "storage spend"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_storage_cost_analysis('2024-12-01', '2024-12-31'))`
+#### get_cost_growth_analysis
+- **Signature:** `get_cost_growth_analysis(entity_type STRING, days_back INT DEFAULT 30, top_n INT DEFAULT 10)`
+- **Returns:** entity_name, current_cost, previous_cost, growth_pct, growth_category
+- **Use When:** User asks for "cost growth drivers" or "what's growing"
+- **Example:** `SELECT * FROM get_cost_growth_analysis('workspace', 30, 10))`
 
-#### get_cost_efficiency_metrics
-- **Signature:** `get_cost_efficiency_metrics(start_date STRING, end_date STRING)`
-- **Returns:** metric_name, metric_value, benchmark_value, efficiency_score
-- **Use When:** User asks for "efficiency metrics" or "cost per DBU"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_efficiency_metrics('2024-12-01', '2024-12-31'))`
+#### get_commit_vs_actual
+- **Signature:** `get_commit_vs_actual(commit_year INT, annual_commit_amount DECIMAL, as_of_date DATE)`
+- **Returns:** commit_amount, consumed_amount, remaining_amount, burn_rate_daily, projected_year_end
+- **Use When:** User asks for "commit tracking" or "commitment status"
+- **Example:** `SELECT * FROM get_commit_vs_actual(2024, 1000000, CURRENT_DATE()))`
 
 ---
 
@@ -456,7 +456,7 @@ ORDER BY usage_date DESC;
 ### Question 6: "Show me the top 10 cost contributors this month"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_top_cost_contributors(
+SELECT * FROM get_top_cost_contributors(
   DATE_TRUNC('month', CURRENT_DATE())::STRING,
   CURRENT_DATE()::STRING,
   10
@@ -469,21 +469,22 @@ SELECT * FROM TABLE(${catalog}.${gold_schema}.get_top_cost_contributors(
 ### Question 7: "What are the cost anomalies in the last 30 days?"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_anomalies(
-  30,
-  50.0
+SELECT * FROM get_cost_anomalies(
+  (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
+  CURRENT_DATE()::STRING,
+  2.0
 ))
-ORDER BY deviation_pct DESC
+ORDER BY z_score DESC
 LIMIT 20;
 ```
-**Expected Result:** Cost anomalies with deviation scores
+**Expected Result:** Cost anomalies with z-scores and deviation percentages
 
 ---
 
 ### Question 8: "Show me untagged resources"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_untagged_resources(
+SELECT * FROM get_untagged_resources(
   (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
   CURRENT_DATE()::STRING
 ))
@@ -497,7 +498,7 @@ LIMIT 20;
 ### Question 9: "What is the cost breakdown by owner?"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_by_owner(
+SELECT * FROM get_cost_by_owner(
   (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
   CURRENT_DATE()::STRING,
   15
@@ -510,25 +511,36 @@ SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_by_owner(
 ### Question 10: "Show me serverless vs classic cost comparison"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_serverless_vs_classic_cost(
-  (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
-  CURRENT_DATE()::STRING
-));
+SELECT 
+  is_serverless,
+  MEASURE(total_cost) as cost,
+  MEASURE(total_dbu) as dbus,
+  MEASURE(serverless_ratio) as serverless_pct
+FROM ${catalog}.${gold_schema}.mv_cost_analytics
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+GROUP BY is_serverless
+ORDER BY cost DESC;
 ```
-**Expected Result:** Compute type cost breakdown with efficiency metrics
+**Expected Result:** Compute type cost breakdown (serverless vs classic) with efficiency metrics
 
 ---
 
 ### Question 11: "What is the daily cost summary?"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_daily_cost_summary(
-  (CURRENT_DATE() - INTERVAL 14 DAYS)::STRING,
-  CURRENT_DATE()::STRING
-))
+SELECT 
+  usage_date,
+  MEASURE(total_cost) as daily_cost,
+  LAG(MEASURE(total_cost), 1) OVER (ORDER BY usage_date) as prev_day_cost,
+  LAG(MEASURE(total_cost), 7) OVER (ORDER BY usage_date) as week_ago_cost,
+  (MEASURE(total_cost) - LAG(MEASURE(total_cost), 1) OVER (ORDER BY usage_date)) / NULLIF(LAG(MEASURE(total_cost), 1) OVER (ORDER BY usage_date), 0) * 100 as dod_change_pct,
+  (MEASURE(total_cost) - LAG(MEASURE(total_cost), 7) OVER (ORDER BY usage_date)) / NULLIF(LAG(MEASURE(total_cost), 7) OVER (ORDER BY usage_date), 0) * 100 as wow_change_pct
+FROM ${catalog}.${gold_schema}.mv_cost_analytics
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS
+GROUP BY usage_date
 ORDER BY usage_date DESC;
 ```
-**Expected Result:** Daily cost with day-over-day and week-over-week changes
+**Expected Result:** Daily cost with day-over-day and week-over-week growth percentages
 
 ---
 
@@ -562,7 +574,7 @@ WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS;
 ### Question 14: "Show me cost by team tag"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_by_tag(
+SELECT * FROM get_cost_by_tag(
   (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
   CURRENT_DATE()::STRING,
   'team'
@@ -577,7 +589,7 @@ LIMIT 15;
 ### Question 15: "What is the job cost breakdown?"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_job_cost_breakdown(
+SELECT * FROM get_most_expensive_jobs(
   (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
   CURRENT_DATE()::STRING,
   20
@@ -601,12 +613,12 @@ WHERE usage_date >= DATE_TRUNC('year', CURRENT_DATE());
 ### Question 17: "Show me ALL_PURPOSE cluster costs and migration opportunities"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cost_by_cluster_type(
+SELECT * FROM get_all_purpose_cluster_cost(
   (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
-  CURRENT_DATE()::STRING
+  CURRENT_DATE()::STRING,
+  20
 ))
-ORDER BY total_cost DESC
-LIMIT 20;
+ORDER BY total_cost DESC;
 ```
 **Expected Result:** ALL_PURPOSE clusters with potential savings from migration to JOBS clusters
 
@@ -626,14 +638,19 @@ WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS;
 ### Question 19: "Show me warehouse cost analysis"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_warehouse_cost_analysis(
-  (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
-  CURRENT_DATE()::STRING
-))
-ORDER BY total_cost DESC
+SELECT 
+  warehouse_name,
+  MEASURE(total_cost) as warehouse_cost,
+  MEASURE(total_queries) as query_count,
+  MEASURE(total_cost) / NULLIF(MEASURE(total_queries), 0) as cost_per_query
+FROM ${catalog}.${gold_schema}.mv_cost_analytics
+WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  AND warehouse_name IS NOT NULL
+GROUP BY warehouse_name
+ORDER BY warehouse_cost DESC
 LIMIT 15;
 ```
-**Expected Result:** SQL Warehouse cost breakdown with query efficiency metrics
+**Expected Result:** SQL Warehouse cost breakdown with cost-per-query efficiency metrics
 
 ---
 
@@ -777,7 +794,7 @@ total_costs AS (
 ),
 untagged AS (
   SELECT SUM(total_cost) as total_untagged
-  FROM TABLE(${catalog}.${gold_schema}.get_untagged_resources(
+  FROM get_untagged_resources(
     (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
     CURRENT_DATE()::STRING
   ))
@@ -804,12 +821,18 @@ LIMIT 10;
 ```sql
 WITH cost_forecast AS (
   SELECT
-    w.workspace_name,
-    AVG(cf.predicted_cost) as projected_daily_cost
-  FROM TABLE(${catalog}.${gold_schema}.get_cost_forecast(30, 7)) cf
-  JOIN ${catalog}.${gold_schema}.dim_workspace w ON cf.workspace_id = w.workspace_id
-  WHERE cf.forecast_date BETWEEN CURRENT_DATE() AND CURRENT_DATE() + INTERVAL 7 DAYS
-  GROUP BY w.workspace_name
+    workspace_name,
+    predicted_cost as projected_monthly_cost
+  FROM get_cost_forecast_summary(1))
+  LIMIT 1
+) AS forecast_data
+CROSS JOIN (
+  SELECT 
+    workspace_name,
+    MEASURE(total_cost) / 30.0 as projected_daily_cost
+  FROM ${catalog}.${gold_schema}.mv_cost_analytics
+  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+  GROUP BY workspace_name
 ),
 anomalies AS (
   SELECT

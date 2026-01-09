@@ -283,3 +283,7 @@ This pattern is now documented in:
 - [Monitor Catalog](../lakehouse-monitoring-design/04-monitor-catalog.md)
 - [Model Catalog](../ml-framework-design/07-model-catalog.md)
 
+
+
+
+

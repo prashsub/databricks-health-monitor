@@ -7066,7 +7066,7 @@
     {
       "name": "ds_monitor_cost_slice_values",
       "displayName": "Cost Slice Values",
-      "query": "-- Available slice values based on selected slice key\nSELECT 'All' AS slice_value\nUNION ALL\nSELECT DISTINCT \n  CASE \n    WHEN :monitor_slice_key = 'workspace_name' THEN workspace_name\n    WHEN :monitor_slice_key = 'billing_origin_product' THEN billing_origin_product\n    WHEN :monitor_slice_key = 'sku_name' THEN sku_name\n    ELSE 'All'\n  END AS slice_value\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date >= :monitor_time_start\n  AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\n  AND :monitor_slice_key != 'All'\nLIMIT 50",
+      "query": "-- Available slice values based on selected slice key\nSELECT 'All' AS slice_value\nWHERE :monitor_slice_key IN ('No Slice', 'All')\nUNION ALL\nSELECT DISTINCT \n  CASE \n    WHEN :monitor_slice_key = 'workspace_name' THEN workspace_name\n    WHEN :monitor_slice_key = 'billing_origin_product' THEN billing_origin_product\n    WHEN :monitor_slice_key = 'sku_name' THEN sku_name\n  END AS slice_value\nFROM ${catalog}.${gold_schema}.fact_usage\nWHERE usage_date >= :monitor_time_start\n  AND usage_date <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\n  AND :monitor_slice_key IN ('workspace_name', 'billing_origin_product', 'sku_name')\n  AND CASE \n    WHEN :monitor_slice_key = 'workspace_name' THEN workspace_name\n    WHEN :monitor_slice_key = 'billing_origin_product' THEN billing_origin_product\n    WHEN :monitor_slice_key = 'sku_name' THEN sku_name\n  END IS NOT NULL\nLIMIT 50",
       "parameters": [
         {
           "displayName": "monitor_time_start",

@@ -1,25 +1,88 @@
-# Genie Spaces Deployment Job
-# Validates and deploys Genie Spaces programmatically via REST API
+# ██████████████████████████████████████████████████████████████████████████████
+# GENIE SPACES DEPLOYMENT JOB
+# ██████████████████████████████████████████████████████████████████████████████
 #
-# Pre-Deployment Validation:
-#   - Executes all 150 benchmark SQL queries with LIMIT 1
-#   - Catches column resolution, table reference, and runtime errors
-#   - Fails fast if any SQL errors are found
+# Deploys 6 Databricks Health Monitor Genie Spaces programmatically via the 
+# Genie Space Export/Import REST API.
 #
-# Deploys 6 Genie Spaces:
-#   - 💰 Cost Intelligence (cost_intelligence_genie_export.json)
-#   - 📊 Data Quality Monitor (data_quality_monitor_genie_export.json)
-#   - 🔄 Job Health Monitor (job_health_monitor_genie_export.json)
-#   - ⚡ Performance (performance_genie_export.json)
-#   - 🔐 Security Auditor (security_auditor_genie_export.json)
-#   - 🏥 Unified Health Monitor (unified_health_monitor_genie_export.json)
+# ⚠️ PREREQUISITE: Run genie_benchmark_sql_validation_job FIRST to validate
+#                  all benchmark SQL queries before deploying!
 #
-# API Endpoints:
-#   - POST /api/2.0/genie/spaces - Create new Genie Space
-#   - PATCH /api/2.0/genie/spaces/{space_id} - Update existing Space
+# ══════════════════════════════════════════════════════════════════════════════
+# GENIE SPACES DEPLOYED (6 Spaces)
+# ══════════════════════════════════════════════════════════════════════════════
 #
-# Reference:
-#   - https://docs.databricks.com/api/workspace/genie/createspace
+#   1. 💰 Cost Intelligence Genie Space
+#      - File: cost_intelligence_genie_export.json
+#      - TVFs: 15 cost functions | ML: 6 models | Queries: 25
+#
+#   2. 📊 Data Quality Monitor Genie Space
+#      - File: data_quality_monitor_genie_export.json
+#      - TVFs: 5 quality functions | ML: 2 models | Queries: 20
+#
+#   3. 🔄 Job Health Monitor Genie Space
+#      - File: job_health_monitor_genie_export.json
+#      - TVFs: 12 reliability functions | ML: 5 models | Queries: 25
+#
+#   4. ⚡ Performance Genie Space
+#      - File: performance_genie_export.json
+#      - TVFs: 21 performance functions | ML: 7 models | Queries: 25
+#
+#   5. 🔐 Security Auditor Genie Space
+#      - File: security_auditor_genie_export.json
+#      - TVFs: 10 security functions | ML: 4 models | Queries: 25
+#
+#   6. 🏥 Unified Health Monitor Genie Space
+#      - File: unified_health_monitor_genie_export.json
+#      - TVFs: 60 cross-domain functions | ML: 5 models | Queries: 25
+#
+# ══════════════════════════════════════════════════════════════════════════════
+# API INTEGRATION
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Genie Space Export/Import API Endpoints:
+#   - POST   /api/2.0/genie/spaces           - Create new Genie Space
+#   - PATCH  /api/2.0/genie/spaces/{id}      - Update existing Space
+#   - GET    /api/2.0/genie/spaces/{id}      - Get Space details
+#   - DELETE /api/2.0/genie/spaces/{id}      - Delete Space
+#
+# Export/Import Format:
+#   - JSON schema v1 (Databricks Genie Space Export format)
+#   - Includes: config, data_sources, instructions, benchmarks
+#   - Variable substitution: ${catalog}, ${gold_schema}, ${feature_schema}
+#
+# ══════════════════════════════════════════════════════════════════════════════
+# DEPLOYMENT WORKFLOW
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Prerequisites:
+#   1. Run genie_benchmark_sql_validation_job to validate SQL queries ✅
+#   2. Ensure semantic layer assets exist (TVFs, Metric Views, ML Models) ✅
+#   3. Verify UC permissions for Genie API access ✅
+#
+# Deployment Steps: ⏱️ ~2-3 minutes
+#   ├─ Load all 6 JSON export files
+#   ├─ Substitute catalog/schema variables
+#   ├─ Check if Genie Space exists (GET)
+#   ├─ Create new Space (POST) or Update existing (PATCH)
+#   ├─ Configure permissions and access
+#   ├─ Verify deployment success
+#   └─ Log deployment status
+#
+# ══════════════════════════════════════════════════════════════════════════════
+# REFERENCES
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Official Documentation:
+#   - Genie Space API: https://docs.databricks.com/api/workspace/genie/createspace
+#   - Export/Import API: cursor rules/semantic-layer/29-genie-space-export-import-api.mdc
+#
+# Project Documentation:
+#   - Deployment Guide: docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md
+#   - Validation Report: docs/reference/genie-fixes-complete-report.md
+#   - Asset Inventory: docs/actual_assets.md
+#
+# ██████████████████████████████████████████████████████████████████████████████
 
 resources:
   jobs:
@@ -34,22 +97,33 @@ resources:
             environment_version: "4"
 
       tasks:
-        # Task 1: Validate all 150 benchmark SQL queries (catches ALL errors)
-        - task_key: validate_benchmark_sql
-          description: "Execute all benchmark SQL with LIMIT 1 to catch column/table/runtime errors"
-          environment_key: default
-          notebook_task:
-            notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
-            base_parameters:
-              catalog: ${var.catalog}
-              gold_schema: ${var.gold_schema}
-              feature_schema: ${var.feature_schema}
-
-        # Task 2: Deploy all Genie Spaces (only runs if validation passes)
+        # ═══════════════════════════════════════════════════════════════════
+        # GENIE SPACE DEPLOYMENT TASK ⏱️ ~2-3 min
+        # ═══════════════════════════════════════════════════════════════════
+        # 
+        # Deploys Genie Spaces via REST API:
+        #   ✅ Reads 6 JSON export files from src/genie/ directory
+        #   ✅ Substitutes catalog/schema variables in JSON
+        #   ✅ Checks if Genie Space exists (GET /api/2.0/genie/spaces/{id})
+        #   ✅ Creates new (POST) or updates existing (PATCH)
+        #   ✅ Configures space permissions and access
+        #   ✅ Verifies deployment success
+        #
+        # ⚠️ PREREQUISITE: Run genie_benchmark_sql_validation_job FIRST!
+        #
+        # Deployment Order (sequential, not parallel):
+        #   1. Cost Intelligence Genie Space
+        #   2. Data Quality Monitor Genie Space
+        #   3. Job Health Monitor Genie Space
+        #   4. Performance Genie Space
+        #   5. Security Auditor Genie Space
+        #   6. Unified Health Monitor Genie Space
+        #
+        # Output: Deployment status for each Genie Space
+        # Duration: ~2-3 minutes (6 spaces × ~20-30 seconds each)
+        #
         - task_key: deploy_genie_spaces
-          description: "Deploy all 6 Genie Spaces from JSON export files"
-          depends_on:
-            - task_key: validate_benchmark_sql
+          description: "🚀 Deploy all 6 Genie Spaces from JSON export files"
           environment_key: default
           notebook_task:
             notebook_path: ../../src/genie/deploy_genie_space.py
@@ -59,25 +133,43 @@ resources:
               feature_schema: ${var.feature_schema}
               warehouse_id: ${var.warehouse_id}
               genie_space_json: ""  # Empty = deploy all *_export.json files
+          
+          # Timeout: 10 minutes (allows time for 6 Genie Space deployments)
+          timeout_seconds: 600
 
-      # No schedule - run on demand after semantic layer deployment
+      # ═══════════════════════════════════════════════════════════════════
+      # JOB SCHEDULING & MONITORING
+      # ═══════════════════════════════════════════════════════════════════
+      
+      # Schedule: Run on-demand (not scheduled)
+      # Trigger: Manually after semantic layer deployment and SQL validation
+      # Typical Flow:
+      #   1. Deploy TVFs, Metric Views, ML Models (semantic layer)
+      #   2. Run genie_benchmark_sql_validation_job to validate SQL queries ✅
+      #   3. Run THIS JOB to deploy Genie Spaces
+      #   4. Share Genie Spaces with users
 
-      # Email notifications
-      email_notifications:
-        on_failure:
-          - data-engineering@company.com
-        on_success:
-          - data-engineering@company.com
+      # Timeout at job level: 10 minutes (deployment only, no validation)
+      timeout_seconds: 600
 
-      # Tags
+      # Max concurrent runs: 1 (prevent concurrent deployments)
+      max_concurrent_runs: 1
+
+      # Tags for cost tracking and governance
       tags:
         environment: ${bundle.target}
         project: health_monitor
         layer: semantic
         artifact_type: genie_space
         job_type: deployment
-        api_driven: "true"
-        benchmark_validation: "true"
+        deployment_method: rest_api
+        genie_space_count: "6"
+        api_version: "v1"
+        prerequisite_job: genie_benchmark_sql_validation_job
+      
+      # ═══════════════════════════════════════════════════════════════════
+      # JOB PERMISSIONS (inherited from bundle default)
+      # ═══════════════════════════════════════════════════════════════════
 
 
 

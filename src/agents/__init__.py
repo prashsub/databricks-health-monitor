@@ -32,9 +32,14 @@ try:
 except Exception as e:
     print(f"⚠ MLflow autolog not available: {e}")
 
-# Set SINGLE consolidated experiment for ALL agent-related runs
-# Different run types are differentiated using mlflow.set_tag("run_type", ...)
-EXPERIMENT_NAME = settings.mlflow_experiment_path
+# MLflow Experiment Structure (Organized by Purpose)
+# Three separate experiments for clean organization:
+EXPERIMENT_DEVELOPMENT = "/Shared/health_monitor_agent_development"
+EXPERIMENT_EVALUATION = "/Shared/health_monitor_agent_evaluation"
+EXPERIMENT_DEPLOYMENT = "/Shared/health_monitor_agent_deployment"
+
+# Default to evaluation (most common use case for imports)
+EXPERIMENT_NAME = EXPERIMENT_EVALUATION
 try:
     mlflow.set_experiment(EXPERIMENT_NAME)
 except Exception:
@@ -46,6 +51,9 @@ except Exception:
 __all__ = [
     "settings",
     "EXPERIMENT_NAME",
+    "EXPERIMENT_DEVELOPMENT",
+    "EXPERIMENT_EVALUATION",
+    "EXPERIMENT_DEPLOYMENT",
 ]
 
 def get_agent():

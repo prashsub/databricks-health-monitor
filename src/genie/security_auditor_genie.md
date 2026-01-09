@@ -60,22 +60,22 @@
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_user_activity_summary` | User activity with risk scoring | "user activity" |
+| `get_user_activity` | User activity with risk scoring | "user activity" |
 | `get_table_access_audit` | Table access audit trail | "table access" |
-| `get_permission_changes` | Permission modifications | "permission changes" |
-| `get_service_account_activity` | Service account activity | "service accounts" |
-| `get_failed_access_attempts` | Failed operations | "failed actions" |
-| `get_sensitive_data_access` | Sensitive data access | "sensitive data access" |
-| `get_unusual_access_patterns` | Anomalous behavior | "unusual patterns" |
-| `get_user_activity_patterns` | Temporal patterns | "activity patterns" |
-| `get_data_export_events` | Data export tracking | "data exports" |
-| `get_user_risk_scores` | User risk assessment | "risk scores" |
+| `get_permission_change_events` | Permission modifications | "permission changes" |
+| `get_service_account_audit` | Service account activity | "service accounts" |
+| `get_failed_authentication_events` | Failed operations | "failed actions" |
+| `get_pii_access_events` | Sensitive data access | "sensitive data access" |
+| `get_anomalous_access_events` | Anomalous behavior | "unusual patterns" |
+| `get_off_hours_activity` | Temporal patterns | "activity patterns" |
+| `get_data_exfiltration_events` | Data export tracking | "data exports" |
+| `user_risk_scores` | User risk assessment | "risk scores" |
 
 ### ML Prediction Tables (4 Models)
 
 | Table Name | Purpose | Model | Key Columns |
 |---|---|---|---|
-| `access_anomaly_predictions` | Unusual access pattern detection | Security Threat Detector | `prediction`, `user_identity`, `event_date` |
+| `security_anomaly_predictions` | Unusual access pattern detection | Security Threat Detector | `prediction`, `user_identity`, `event_date` |
 | `user_risk_scores` | User risk assessment (0-5 scale) | Compliance Risk Classifier | `prediction`, `user_identity`, `evaluation_date` |
 | `access_classifications` | Normal vs suspicious access classification | Access Pattern Analyzer | `prediction`, `pattern_class`, `user_identity` |
 | `off_hours_baseline_predictions` | Expected off-hours activity baseline | Off-Hours Baseline Predictor | `prediction`, `user_identity`, `event_date` |
@@ -199,9 +199,9 @@ ORDER BY window.start DESC;
 │  "Is auth failure increasing?"     → Custom Metrics (_drift_metrics)│
 │  "Security event trend"            → Custom Metrics (_profile_metrics)│
 │  ─────────────────────────────────────────────────────────────  │
-│  "Who accessed sensitive data?"    → TVF (get_sensitive_data_access)│
-│  "Failed actions today"            → TVF (get_failed_access_attempts)    │
-│  "User activity for X"             → TVF (get_user_activity_summary)│
+│  "Who accessed sensitive data?"    → TVF (get_pii_access_events)│
+│  "Failed actions today"            → TVF (get_failed_authentication_events)    │
+│  "User activity for X"             → TVF (get_user_activity)│
 │  ─────────────────────────────────────────────────────────────  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -213,9 +213,9 @@ ORDER BY window.start DESC;
 |--------------|-----------|---------|
 | **Total events count** | Metric View | "Audit events today" → `mv_security_events` |
 | **Auth failure trend** | Custom Metrics | "Is failure increasing?" → `_drift_metrics` |
-| **User activity list** | TVF | "Activity for user X" → `get_user_activity_summary` |
-| **Anomaly detection** | ML Tables | "Security anomalies" → `access_anomaly_predictions` |
-| **Risk assessment** | TVF/ML | "User risk scores" → `get_user_risk_scores` |
+| **User activity list** | TVF | "Activity for user X" → `get_user_activity` |
+| **Anomaly detection** | ML Tables | "Security anomalies" → `security_anomaly_predictions` |
+| **Risk assessment** | TVF/ML | "User risk scores" → `user_risk_scores` |
 
 ### Priority Order
 
@@ -241,7 +241,7 @@ You are a Databricks security and compliance analyst. Follow these rules:
 8. **Sorting:** Sort by risk_score DESC for security queries
 9. **Limits:** Top 20 for activity lists
 10. **Synonyms:** user=identity=principal, access=event=action
-11. **ML Anomaly:** For "anomalies" → query access_anomaly_predictions (prediction < -0.5 = threat)
+11. **ML Anomaly:** For "anomalies" → query security_anomaly_predictions (prediction < -0.5 = threat)
 12. **Risk Score:** For "risk score" → query user_risk_scores (prediction >= 4 = high risk)
 13. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')
 14. **Context:** Explain READ vs WRITE vs DDL actions
@@ -259,78 +259,78 @@ You are a Databricks security and compliance analyst. Follow these rules:
 
 | Function Name | Signature | Purpose | When to Use |
 |---------------|-----------|---------|-------------|
-| `get_user_activity_summary` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 50)` | User activity summary | "user activity" |
+| `get_user_activity` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 50)` | User activity summary | "user activity" |
 | `get_table_access_audit` | `(start_date STRING, end_date STRING)` | Table access audit | "table access" |
-| `get_permission_changes` | `(days_back INT)` | Permission changes | "permission changes" |
-| `get_service_account_activity` | `(days_back INT)` | Service account activity | "service accounts" |
-| `get_failed_access_attempts` | `(days_back INT)` | Failed operations | "failed actions" |
-| `get_sensitive_data_access` | `(start_date STRING, end_date STRING)` | Sensitive data access | "sensitive data access" |
-| `get_unusual_access_patterns` | `(days_back INT)` | Unusual patterns | "unusual patterns" |
-| `get_user_activity_patterns` | `(days_back INT)` | Activity patterns | "activity patterns" |
-| `get_data_export_events` | `(days_back INT)` | Data exports | "data exports" |
-| `get_user_risk_scores` | `(days_back INT)` | User risk scores | "risk scores" |
+| `get_permission_change_events` | `(days_back INT)` | Permission changes | "permission changes" |
+| `get_service_account_audit` | `(days_back INT)` | Service account activity | "service accounts" |
+| `get_failed_authentication_events` | `(days_back INT)` | Failed operations | "failed actions" |
+| `get_pii_access_events` | `(start_date STRING, end_date STRING)` | Sensitive data access | "sensitive data access" |
+| `get_anomalous_access_events` | `(days_back INT)` | Unusual patterns | "unusual patterns" |
+| `get_off_hours_activity` | `(days_back INT)` | Activity patterns | "activity patterns" |
+| `get_data_exfiltration_events` | `(days_back INT)` | Data exports | "data exports" |
+| `user_risk_scores` | `(days_back INT)` | User risk scores | "risk scores" |
 
 ### TVF Details
 
-#### get_user_activity_summary
-- **Signature:** `get_user_activity_summary(start_date STRING, end_date STRING, top_n INT DEFAULT 50)`
+#### get_user_activity
+- **Signature:** `get_user_activity(start_date STRING, end_date STRING, top_n INT DEFAULT 50)`
 - **Returns:** user_identity, total_events, read_events, write_events, failed_events, risk_score
 - **Use When:** User asks for "activity summary" or "top users by activity"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_user_activity_summary('2024-12-01', '2024-12-31', 20))`
+- **Example:** `SELECT * FROM get_user_activity('2024-12-01', '2024-12-31', 20))`
 
 #### get_table_access_audit
 - **Signature:** `get_table_access_audit(start_date STRING, end_date STRING)`
 - **Returns:** table_name, user_identity, access_count, access_type, last_access
 - **Use When:** User asks for "who accessed table" or "table access audit"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_table_access_audit('2024-12-01', '2024-12-31'))`
+- **Example:** `SELECT * FROM get_table_access_audit('2024-12-01', '2024-12-31'))`
 
-#### get_permission_changes
-- **Signature:** `get_permission_changes(days_back INT)`
+#### get_permission_change_events
+- **Signature:** `get_permission_change_events(days_back INT)`
 - **Returns:** change_date, user_identity, entity_type, entity_name, change_type, grantor
 - **Use When:** User asks for "permission changes" or "access modifications"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_permission_changes(7))`
+- **Example:** `SELECT * FROM get_permission_change_events(7))`
 
-#### get_service_account_activity
-- **Signature:** `get_service_account_activity(days_back INT)`
+#### get_service_account_audit
+- **Signature:** `get_service_account_audit(days_back INT)`
 - **Returns:** service_account_name, event_count, distinct_services, failed_actions, last_activity
 - **Use When:** User asks for "service account activity" or "service principal usage"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_service_account_activity(30))`
+- **Example:** `SELECT * FROM get_service_account_audit(30))`
 
-#### get_failed_access_attempts
-- **Signature:** `get_failed_access_attempts(days_back INT)`
+#### get_failed_authentication_events
+- **Signature:** `get_failed_authentication_events(days_back INT)`
 - **Returns:** user_identity, failed_count, failed_actions, first_failure, last_failure
 - **Use When:** User asks for "failed actions" or "authentication failures"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_failed_access_attempts(7))`
+- **Example:** `SELECT * FROM get_failed_authentication_events(7))`
 
-#### get_sensitive_data_access
-- **Signature:** `get_sensitive_data_access(start_date STRING, end_date STRING)`
+#### get_pii_access_events
+- **Signature:** `get_pii_access_events(start_date STRING, end_date STRING)`
 - **Returns:** table_name, user_identity, access_count, access_type, last_access
 - **Use When:** User asks for "who accessed sensitive data" or "PII access"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access('2024-12-01', '2024-12-31'))`
+- **Example:** `SELECT * FROM get_pii_access_events('2024-12-01', '2024-12-31'))`
 
-#### get_unusual_access_patterns
-- **Signature:** `get_unusual_access_patterns(days_back INT)`
+#### get_anomalous_access_events
+- **Signature:** `get_anomalous_access_events(days_back INT)`
 - **Returns:** user_identity, pattern_type, deviation_score, event_count, description
 - **Use When:** User asks for "unusual patterns" or "anomalous behavior"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_unusual_access_patterns(7))`
+- **Example:** `SELECT * FROM get_anomalous_access_events(7))`
 
-#### get_user_activity_patterns
-- **Signature:** `get_user_activity_patterns(days_back INT)`
+#### get_off_hours_activity
+- **Signature:** `get_off_hours_activity(days_back INT)`
 - **Returns:** user_identity, hour_of_day, day_of_week, avg_events, pattern_type
 - **Use When:** User asks for "activity patterns" or "temporal behavior"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_user_activity_patterns(30))`
+- **Example:** `SELECT * FROM get_off_hours_activity(30))`
 
-#### get_data_export_events
-- **Signature:** `get_data_export_events(days_back INT)`
+#### get_data_exfiltration_events
+- **Signature:** `get_data_exfiltration_events(days_back INT)`
 - **Returns:** user_identity, export_date, table_name, row_count, export_method
 - **Use When:** User asks for "data exports" or "data downloads"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_data_export_events(7))`
+- **Example:** `SELECT * FROM get_data_exfiltration_events(7))`
 
-#### get_user_risk_scores
-- **Signature:** `get_user_risk_scores(days_back INT)`
+#### user_risk_scores
+- **Signature:** `user_risk_scores(days_back INT)`
 - **Returns:** user_identity, risk_score, risk_level, risk_factors, evaluation_date
 - **Use When:** User asks for "risk scores" or "high risk users"
-- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.get_user_risk_scores(7))`
+- **Example:** `SELECT * FROM TABLE(${catalog}.${gold_schema}.user_risk_scores(7))`
 
 ---
 
@@ -340,7 +340,7 @@ You are a Databricks security and compliance analyst. Follow these rules:
 
 | ML Model | Prediction Table | Key Columns | Use When |
 |----------|-----------------|-------------|----------|
-| `security_threat_detector` | `access_anomaly_predictions` | `prediction`, `user_identity` | "Detect threats" |
+| `security_threat_detector` | `security_anomaly_predictions` | `prediction`, `user_identity` | "Detect threats" |
 | `access_pattern_analyzer` | `access_classifications` | `prediction`, `pattern_class` | "Classify access" |
 | `compliance_risk_classifier` | `user_risk_scores` | `prediction` (1-5) | "User risk score" |
 | `off_hours_baseline_predictor` | `off_hours_baseline_predictions` | `prediction`, `baseline_deviation` | "Off-hours baseline" |
@@ -352,7 +352,7 @@ You are a Databricks security and compliance analyst. Follow these rules:
 - **Query Pattern:**
 ```sql
 SELECT user_identity, event_date, prediction as threat_score
-FROM ${catalog}.${feature_schema}.access_anomaly_predictions
+FROM ${catalog}.${feature_schema}.security_anomaly_predictions
 WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
   AND prediction < -0.5
 ORDER BY prediction ASC;
@@ -398,13 +398,13 @@ ORDER BY event_date DESC;
 USER QUESTION                           → USE THIS
 ────────────────────────────────────────────────────
 "Who are the risky users?"              → ML: user_risk_scores
-"Any security threats?"                 → ML: access_anomaly_predictions
+"Any security threats?"                 → ML: security_anomaly_predictions
 "Classify access patterns"              → ML: access_classifications
 "Off-hours baseline"                    → ML: off_hours_baseline_predictions
 ────────────────────────────────────────────────────
 "How many security events?"             → Metric View: mv_security_events
 "Is event volume increasing?"           → Custom Metrics: _drift_metrics
-"Show failed access attempts"           → TVF: get_failed_access_attempts
+"Show failed access attempts"           → TVF: get_failed_authentication_events
 ```
 
 ---
@@ -471,7 +471,7 @@ WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 **Expected SQL:**
 ```sql
 SELECT *
-FROM TABLE(${catalog}.${gold_schema}.get_user_activity_summary(
+FROM get_user_activity(
   CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),
   CAST(CURRENT_DATE() AS STRING),
   20
@@ -486,7 +486,7 @@ ORDER BY total_events DESC;
 **Expected SQL:**
 ```sql
 SELECT *
-FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(
+FROM get_pii_access_events(
   CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),
   CAST(CURRENT_DATE() AS STRING)
 ))
@@ -501,7 +501,7 @@ LIMIT 20;
 **Expected SQL:**
 ```sql
 SELECT *
-FROM TABLE(${catalog}.${gold_schema}.get_failed_access_attempts(7))
+FROM get_failed_authentication_events(7))
 ORDER BY failed_count DESC
 LIMIT 20;
 ```
@@ -513,7 +513,7 @@ LIMIT 20;
 **Expected SQL:**
 ```sql
 SELECT *
-FROM TABLE(${catalog}.${gold_schema}.get_permission_changes(7))
+FROM get_permission_change_events(7))
 ORDER BY change_date DESC
 LIMIT 20;
 ```
@@ -525,7 +525,7 @@ LIMIT 20;
 **Expected SQL:**
 ```sql
 SELECT *
-FROM TABLE(${catalog}.${gold_schema}.get_unusual_access_patterns(7))
+FROM get_anomalous_access_events(7))
 ORDER BY deviation_score DESC
 LIMIT 20;
 ```
@@ -555,7 +555,7 @@ LIMIT 15;
 **Expected SQL:**
 ```sql
 SELECT *
-FROM TABLE(${catalog}.${gold_schema}.get_user_activity_patterns(30))
+FROM get_off_hours_activity(30))
 ORDER BY user_identity, hour_of_day
 LIMIT 50;
 ```
@@ -578,7 +578,7 @@ WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 **Expected SQL:**
 ```sql
 SELECT *
-FROM TABLE(${catalog}.${gold_schema}.get_data_export_events(7))
+FROM get_data_exfiltration_events(7))
 ORDER BY export_date DESC
 LIMIT 20;
 ```
@@ -615,7 +615,7 @@ WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 **Expected SQL:**
 ```sql
 SELECT *
-FROM TABLE(${catalog}.${gold_schema}.get_service_account_activity(30))
+FROM get_service_account_audit(30))
 ORDER BY event_count DESC
 LIMIT 20;
 ```
@@ -630,7 +630,7 @@ SELECT
   user_identity,
   prediction as threat_score,
   event_date
-FROM ${catalog}.${feature_schema}.access_anomaly_predictions
+FROM ${catalog}.${feature_schema}.security_anomaly_predictions
 WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
   AND prediction < -0.5
 ORDER BY prediction ASC
@@ -680,7 +680,7 @@ LIMIT 10;
 **Expected SQL:**
 ```sql
 SELECT *
-FROM TABLE(${catalog}.${gold_schema}.get_table_access_audit(
+FROM get_table_access_audit(
   CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),
   CAST(CURRENT_DATE() AS STRING)
 ))
@@ -711,7 +711,7 @@ unusual_patterns AS (
     user_identity,
     COUNT(*) as unusual_pattern_count,
     AVG(deviation_score) as avg_deviation
-  FROM TABLE(${catalog}.${gold_schema}.get_unusual_access_patterns(30))
+  FROM get_anomalous_access_events(30))
   GROUP BY user_identity
 ),
 ml_risk AS (
@@ -727,7 +727,7 @@ anomalies AS (
     user_identity,
     COUNT(*) as anomaly_count,
     MIN(prediction) as min_threat_score
-  FROM ${catalog}.${feature_schema}.access_anomaly_predictions
+  FROM ${catalog}.${feature_schema}.security_anomaly_predictions
   WHERE prediction < -0.3
     AND event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
   GROUP BY user_identity
@@ -770,7 +770,7 @@ WITH sensitive_access AS (
     user_identity,
     access_count,
     last_access
-  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(
+  FROM get_pii_access_events(
     CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),
     CAST(CURRENT_DATE() AS STRING)
   ))
@@ -840,7 +840,7 @@ WITH activity_patterns AS (
     hour_of_day,
     day_of_week,
     avg_events
-  FROM TABLE(${catalog}.${gold_schema}.get_user_activity_patterns(7))
+  FROM get_off_hours_activity(7))
 ),
 anomaly_windows AS (
   SELECT
@@ -853,7 +853,7 @@ anomaly_windows AS (
       WHEN prediction < -0.3 THEN 'Medium Threat'
       ELSE 'Low Threat'
     END as threat_level
-  FROM ${catalog}.${feature_schema}.access_anomaly_predictions
+  FROM ${catalog}.${feature_schema}.security_anomaly_predictions
   WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
 ),
 drift_metrics AS (
@@ -917,7 +917,7 @@ WITH service_activity AS (
     distinct_services,
     failed_actions,
     last_activity
-  FROM TABLE(${catalog}.${gold_schema}.get_service_account_activity(30))
+  FROM get_service_account_audit(30))
 ),
 access_patterns AS (
   SELECT
@@ -942,7 +942,7 @@ sensitive_access AS (
     user_identity,
     COUNT(DISTINCT table_name) as sensitive_table_count,
     SUM(access_count) as total_sensitive_access
-  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(
+  FROM get_pii_access_events(
     CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),
     CAST(CURRENT_DATE() AS STRING)
   ))
@@ -1003,7 +1003,7 @@ threat_intel AS (
     COUNT(DISTINCT user_identity) as users_with_threats,
     AVG(prediction) as avg_threat_score,
     MIN(prediction) as worst_threat_score
-  FROM ${catalog}.${feature_schema}.access_anomaly_predictions
+  FROM ${catalog}.${feature_schema}.security_anomaly_predictions
   WHERE prediction < -0.3
     AND event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
 ),
@@ -1020,7 +1020,7 @@ sensitive_access_metrics AS (
     COUNT(DISTINCT table_name) as sensitive_tables,
     COUNT(DISTINCT user_identity) as users_accessing_pii,
     SUM(access_count) as total_sensitive_access
-  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(
+  FROM get_pii_access_events(
     CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),
     CAST(CURRENT_DATE() AS STRING)
   ))

@@ -37,6 +37,10 @@ resources:
               - openai
               - databricks-sdk
               - databricks-agents
+              # REQUIRED for GenieAgent - contains databricks_langchain.genie.GenieAgent
+              # Without this, model evaluation will fail as Genie cannot be initialized
+              # Reference: https://github.com/databricks/databricks-ai-bridge
+              - databricks-langchain
       
       # Job parameters - REQUIRED for deployment job integration
       # Per: https://docs.databricks.com/aws/en/mlflow/deployment-job

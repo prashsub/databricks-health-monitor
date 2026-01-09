@@ -1,8 +1,19 @@
 # Metrics Inventory
 
+> **📢 UPDATED VERSION AVAILABLE**  
+> This inventory has been enhanced with dashboard tracking. See **[metrics-inventory-enhanced.md](metrics-inventory-enhanced.md)** for:
+> - ✅ Dashboard column showing where each metric appears
+> - ✅ 100% reconciliation with actual dashboards
+> - ✅ Multi-dashboard overlap analysis
+> - ✅ Gap analysis and optimization recommendations
+> 
+> **Reconciliation Report:** [metrics-reconciliation-report.md](metrics-reconciliation-report.md)
+
 ## Overview
 
 This document is the **one-stop reference** for all measurements in the Databricks Health Monitor platform. Each measurement is documented once, with columns indicating which method(s) can be used to access it.
+
+> **Note:** This is the **original baseline inventory**. For the version with dashboard tracking, see [metrics-inventory-enhanced.md](metrics-inventory-enhanced.md).
 
 ### Reading This Document
 

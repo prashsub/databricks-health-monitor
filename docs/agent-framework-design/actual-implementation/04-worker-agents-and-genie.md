@@ -160,21 +160,26 @@ class GenieWorkerAgent(BaseWorkerAgent):
         """
         Lazily create GenieAgent instance.
 
-        Uses databricks_langchain.genie.GenieAgent which is the official
+        Uses GenieAgent from the databricks-agents package, which is the official
         LangGraph-compatible wrapper for Genie Spaces.
+        
+        Import priority (for compatibility):
+        1. databricks.agents.genie (databricks-agents >= 0.16.0)
+        2. databricks_langchain.genie (fallback for older environments)
         """
         if self._genie_agent is None:
             try:
-                from databricks_langchain.genie import GenieAgent
+                # Primary: databricks-agents package (recommended)
+                from databricks.agents.genie import GenieAgent
                 
                 self._genie_agent = GenieAgent(
                     genie_space_id=self.get_genie_space_id(),
                     genie_agent_name=f"{self.domain}_genie",
                 )
             except ImportError:
-                # Fallback for older packages
+                # Fallback: databricks_langchain package
                 try:
-                    from databricks_agents.genie import GenieAgent
+                    from databricks_langchain.genie import GenieAgent
                     self._genie_agent = GenieAgent(
                         genie_space_id=self.get_genie_space_id(),
                         genie_agent_name=f"{self.domain}_genie",

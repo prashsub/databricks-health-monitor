@@ -63,32 +63,32 @@
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_slowest_queries` | Queries exceeding threshold | "slow queries" |
-| `get_query_latency_percentiles` | Latency percentiles | "P95 latency", "percentiles" |
-| `get_warehouse_performance` | Warehouse metrics | "warehouse utilization" |
-| `get_query_volume_trends` | Query volume trends | "query volume" |
-| `get_top_users_by_query_count` | Top users by query count | "queries by user", "top users" |
-| `get_query_efficiency_by_user` | User-level efficiency | "user efficiency" |
-| `get_query_queue_analysis` | Queue time analysis | "queue time", "queueing" |
-| `get_failed_queries_summary` | Failed queries | "failed queries", "errors" |
-| `get_cache_hit_analysis` | Cache effectiveness | "cache hit", "caching" |
-| `get_spill_analysis` | Memory pressure queries | "spill", "memory issues" |
+| `get_slow_queries` | Queries exceeding threshold | "slow queries" |
+| `get_query_duration_percentiles` | Duration percentiles | "P95 duration", "percentiles" |
+| `get_warehouse_utilization` | Warehouse metrics | "warehouse utilization" |
+| `get_query_volume_by_hour` | Query volume trends | "query volume" |
+| `get_top_query_users` | Top users by query count | "queries by user", "top users" |
+| `get_user_query_efficiency` | User-level efficiency | "user efficiency" |
+| `get_warehouse_queue_analysis` | Queue time analysis | "queue time", "queueing" |
+| `get_failed_queries` | Failed queries | "failed queries", "errors" |
+| `get_query_cache_analysis` | Cache effectiveness | "cache hit", "caching" |
+| `get_query_spill_analysis` | Memory pressure queries | "spill", "memory issues" |
 
 #### Cluster TVFs (11)
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_cluster_utilization` | Cluster resource metrics | "cluster utilization" |
-| `get_cluster_resource_metrics` | Detailed resource metrics | "CPU/memory details" |
-| `get_underutilized_clusters` | Underutilized clusters | "underutilized", "wasted capacity" |
-| `get_cluster_rightsizing_recommendations` | Right-sizing suggestions | "right-sizing", "resize" |
-| `get_autoscaling_disabled_jobs` | Jobs missing autoscale | "jobs without autoscaling" |
-| `get_legacy_dbr_jobs` | Legacy DBR jobs | "legacy DBR", "old runtime" |
-| `get_cluster_cost_by_type` | Cost breakdown by type | "cluster costs", "cost by type" |
-| `get_cluster_uptime_analysis` | Uptime patterns | "uptime", "cluster hours" |
-| `get_cluster_scaling_events` | Autoscaling events | "scaling events", "autoscale history" |
-| `get_cluster_efficiency_metrics` | Efficiency scores | "efficiency metrics" |
-| `get_node_utilization_by_cluster` | Per-node utilization | "node utilization" |
+| `get_cluster_resource_utilization` | Cluster resource metrics | "cluster utilization" |
+| `get_cluster_efficiency_score` | Detailed efficiency metrics | "efficiency score" |
+| `get_idle_clusters` | Underutilized clusters | "underutilized", "wasted capacity" |
+| `get_jobs_without_autoscaling` | Jobs missing autoscale | "jobs without autoscaling" |
+| `get_jobs_on_old_dbr` | Legacy DBR jobs | "legacy DBR", "old runtime" |
+| `get_cluster_cost_analysis` | Cost breakdown by type | "cluster costs", "cost by type" |
+| `get_cluster_uptime` | Uptime patterns | "uptime", "cluster hours" |
+| `get_autoscaling_events` | Autoscaling events | "scaling events", "autoscale history" |
+| `get_cluster_memory_pressure` | Memory pressure detection | "memory issues" |
+| `get_cluster_cpu_saturation` | CPU saturation events | "CPU saturation" |
+| `get_cluster_node_efficiency` | Per-node efficiency | "node efficiency" |
 
 ### ML Prediction Tables 🤖 (7 Models)
 
@@ -240,9 +240,9 @@ ORDER BY window.start DESC;
 │  "Is latency increasing?"          → Custom Metrics (_drift_metrics)│
 │  "Query performance trend"         → Custom Metrics (_profile_metrics)│
 │  ─────────────────────────────────────────────────────────────  │
-│  "List slow queries today"         → TVF (get_slowest_queries)      │
-│  "Underutilized clusters"          → TVF (get_underutilized_clusters)│
-│  "Queries with high spill"         → TVF (get_spill_analysis)│
+│  "List slow queries today"         → TVF (get_slow_queries)      │
+│  "Underutilized clusters"          → TVF (get_idle_clusters)│
+│  "Queries with high spill"         → TVF (get_query_spill_analysis)│
 │  ─────────────────────────────────────────────────────────────  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -254,8 +254,8 @@ ORDER BY window.start DESC;
 |--------------|-----------|---------|
 | **Current P95/P99 latency** | Metric View | "Query latency" → `query_performance` |
 | **Latency trend** | Custom Metrics | "Is latency degrading?" → `_drift_metrics` |
-| **List of slow queries** | TVF | "Slow queries >30s" → `get_slowest_queries` |
-| **Right-sizing recs** | TVF/ML | "Cluster recommendations" → `get_cluster_rightsizing_recommendations` |
+| **List of slow queries** | TVF | "Slow queries >30s" → `get_slow_queries` |
+| **Right-sizing recs** | ML Table | "Cluster recommendations" → `cluster_rightsizing_recommendations` |
 | **Optimization suggestions** | ML Tables | "Optimize queries" → `query_optimization_recommendations` |
 
 ### Priority Order
@@ -297,27 +297,26 @@ You are a Databricks performance analyst. Follow these rules:
 
 | Function Name | Signature | Purpose | When to Use |
 |---------------|-----------|---------|-------------|
-| `get_slowest_queries` | `(days_back INT, duration_threshold_sec INT DEFAULT 30)` | Slow queries | "slow queries today" |
-| `get_query_latency_percentiles` | `(start_date STRING, end_date STRING)` | Latency percentiles | "P95 latency" |
-| `get_warehouse_performance` | `(start_date STRING, end_date STRING)` | Warehouse metrics | "warehouse utilization" |
-| `get_query_volume_trends` | `(start_date STRING, end_date STRING)` | Query volume trends | "query volume" |
-| `get_top_users_by_query_count` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 20)` | Top users by queries | "top users" |
-| `get_query_efficiency_by_user` | `(start_date STRING, end_date STRING)` | User efficiency | "user efficiency" |
-| `get_query_queue_analysis` | `(start_date STRING, end_date STRING)` | Queue time analysis | "queue time" |
-| `get_failed_queries_summary` | `(days_back INT)` | Failed queries | "failed queries" |
-| `get_cache_hit_analysis` | `(days_back INT)` | Cache effectiveness | "cache hit rate" |
-| `get_spill_analysis` | `(days_back INT)` | Memory pressure | "spill queries" |
+| `get_slow_queries` | `(start_date STRING, end_date STRING, duration_threshold_seconds INT DEFAULT 30, top_n INT DEFAULT 50)` | Slow queries | "slow queries today" |
+| `get_query_duration_percentiles` | `(days_back INT, warehouse_filter STRING DEFAULT '%')` | Duration percentiles | "P95 duration" |
+| `get_warehouse_utilization` | `(start_date STRING, end_date STRING)` | Warehouse metrics | "warehouse utilization" |
+| `get_query_volume_by_hour` | `(start_date STRING, end_date STRING)` | Query volume trends | "query volume" |
+| `get_top_query_users` | `(start_date STRING, end_date STRING, top_n INT DEFAULT 20)` | Top users by queries | "top users" |
+| `get_user_query_efficiency` | `(start_date STRING, end_date STRING, min_queries INT DEFAULT 10)` | User efficiency | "user efficiency" |
+| `get_warehouse_queue_analysis` | `(start_date STRING, end_date STRING)` | Queue time analysis | "queue time" |
+| `get_failed_queries` | `(start_date STRING, end_date STRING, workspace_filter STRING DEFAULT NULL)` | Failed queries | "failed queries" |
+| `get_query_cache_analysis` | `(start_date STRING, end_date STRING)` | Cache effectiveness | "cache hit rate" |
+| `get_query_spill_analysis` | `(start_date STRING, end_date STRING, min_spill_gb DOUBLE DEFAULT 1.0)` | Memory pressure | "spill queries" |
 
 ### Cluster TVFs (11 Functions)
 
 | Function Name | Signature | Purpose | When to Use |
 |---------------|-----------|---------|-------------|
-| `get_cluster_utilization` | `(start_date STRING, end_date STRING)` | Cluster metrics | "cluster utilization" |
-| `get_cluster_resource_metrics` | `(start_date STRING, end_date STRING)` | Detailed metrics | "CPU/memory details" |
-| `get_underutilized_clusters` | `(days_back INT)` | Underutilized clusters | "wasted capacity" |
-| `get_cluster_rightsizing_recommendations` | `(days_back INT)` | Right-sizing suggestions | "right-sizing" |
-| `get_autoscaling_disabled_jobs` | `(days_back INT)` | Missing autoscale | "no autoscaling" |
-| `get_legacy_dbr_jobs` | `(days_back INT)` | Legacy DBR jobs | "old DBR versions" |
+| `get_cluster_resource_utilization` | `(start_date STRING, end_date STRING, cluster_filter STRING DEFAULT '%')` | Cluster metrics | "cluster utilization" |
+| `get_cluster_efficiency_score` | `(start_date STRING, end_date STRING, min_hours INT DEFAULT 4)` | Efficiency scores | "efficiency metrics" |
+| `get_idle_clusters` | `(start_date STRING, end_date STRING, idle_threshold_pct DOUBLE DEFAULT 20.0)` | Underutilized clusters | "wasted capacity" |
+| `get_jobs_without_autoscaling` | `(days_back INT DEFAULT 7)` | Missing autoscale | "no autoscaling" |
+| `get_jobs_on_legacy_dbr` | `(days_back INT)` | Legacy DBR jobs | "old DBR versions" |
 | `get_cluster_cost_by_type` | `(start_date STRING, end_date STRING)` | Cost by cluster type | "cluster costs" |
 | `get_cluster_uptime_analysis` | `(start_date STRING, end_date STRING)` | Uptime patterns | "uptime" |
 | `get_cluster_scaling_events` | `(days_back INT)` | Scaling events | "autoscale history" |
@@ -388,7 +387,7 @@ USER QUESTION                           → USE THIS
 ────────────────────────────────────────────────────
 "What is P95 latency?"                  → Metric View: query_performance
 "Is latency trending up?"               → Custom Metrics: _drift_metrics
-"Show slow queries"                     → TVF: get_slowest_queries
+"Show slow queries"                     → TVF: get_slow_queries
 ```
 
 ---
@@ -454,7 +453,12 @@ WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ### Question 5: "Show me slow queries from today"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_slowest_queries(1, 30))
+SELECT * FROM get_slow_queries(
+  CURRENT_DATE()::STRING,
+  CURRENT_DATE()::STRING,
+  30,
+  50
+))
 ORDER BY duration_seconds DESC
 LIMIT 20;
 ```
@@ -476,7 +480,7 @@ WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ### Question 7: "Show me warehouse utilization metrics"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_warehouse_performance(
+SELECT * FROM get_warehouse_utilization(
   (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
   CURRENT_DATE()::STRING
 ))
@@ -490,7 +494,11 @@ LIMIT 10;
 ### Question 8: "Which queries have high disk spill?"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_spill_analysis(7))
+SELECT * FROM get_query_spill_analysis(
+  (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
+  CURRENT_DATE()::STRING,
+  1.0
+))
 ORDER BY spill_bytes DESC
 LIMIT 15;
 ```
@@ -512,7 +520,11 @@ WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ### Question 10: "Show me underutilized clusters"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_underutilized_clusters(30))
+SELECT * FROM get_idle_clusters(
+  (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
+  CURRENT_DATE()::STRING,
+  20.0
+))
 WHERE avg_cpu_pct < 30
 ORDER BY potential_savings DESC
 LIMIT 15;
@@ -535,7 +547,7 @@ WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
 ### Question 12: "Show me query volume trends"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_query_volume_trends(
+SELECT * FROM get_query_volume_trends(
   (CURRENT_DATE() - INTERVAL 14 DAYS)::STRING,
   CURRENT_DATE()::STRING
 ))
@@ -567,7 +579,7 @@ LIMIT 10;
 ### Question 14: "Show me query latency percentiles by warehouse"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_query_latency_percentiles(
+SELECT * FROM get_query_duration_percentiles(
   (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
   CURRENT_DATE()::STRING
 ))
@@ -581,7 +593,7 @@ LIMIT 10;
 ### Question 15: "Which jobs don't have autoscaling enabled?"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_autoscaling_disabled_jobs(30))
+SELECT * FROM get_jobs_without_autoscaling(30))
 ORDER BY estimated_savings DESC
 LIMIT 15;
 ```
@@ -592,7 +604,10 @@ LIMIT 15;
 ### Question 16: "Show me cluster right-sizing recommendations"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cluster_rightsizing_recommendations(30))
+SELECT * FROM ${catalog}.${feature_schema}.cluster_rightsizing_recommendations
+WHERE recommended_action IN ('DOWNSIZE', 'UPSIZE')
+ORDER BY potential_savings_usd DESC
+LIMIT 20;
 ORDER BY potential_savings DESC
 LIMIT 15;
 ```
@@ -686,7 +701,11 @@ spill_detail AS (
     warehouse_id,
     COUNT(*) as spill_query_count,
     AVG(spill_bytes) as avg_spill_bytes
-  FROM TABLE(${catalog}.${gold_schema}.get_spill_analysis(7))
+  FROM get_query_spill_analysis(
+    (CURRENT_DATE() - INTERVAL 7 DAYS)::STRING,
+    CURRENT_DATE()::STRING,
+    1.0
+  ))
   GROUP BY warehouse_id
 ),
 cache_metrics AS (

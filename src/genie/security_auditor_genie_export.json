@@ -69,9 +69,6 @@
     "metric_views": [
       {
         "identifier": "${catalog}.${gold_schema}.mv_security_events"
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.mv_governance_analytics"
       }
     ]
   },
@@ -92,14 +89,11 @@
           "8. **Sorting:** Sort by risk_score DESC for security queries",
           "9. **Limits:** Top 20 for activity lists",
           "10. **Synonyms:** user=identity=principal, access=event=action",
-          "11. **ML Anomaly:** For \"anomalies\" \u2192 query access_anomaly_predictions (prediction < -0.5 = threat)",
-          "12. **Risk Score:** For \"risk score\" \u2192 query user_risk_scores (prediction >= 4 = high risk)",
-          "13. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')",
-          "14. **Context:** Explain READ vs WRITE vs DDL actions",
-          "15. **Compliance:** Never expose PII in responses",
-          "16. **Performance:** Never scan Bronze/Silver tables",
-          "17. **ML Schema:** All ML tables in ${catalog}.${feature_schema}",
-          "18. **TVF Calls:** Always use TABLE() wrapper for TVF calls"
+          "11. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')",
+          "12. **Context:** Explain READ vs WRITE vs DDL actions",
+          "13. **Compliance:** Never expose PII in responses",
+          "14. **Performance:** Never scan Bronze/Silver tables",
+          "15. **TVF Calls:** Always use TABLE() wrapper for TVF calls"
         ]
       }
     ],
@@ -108,13 +102,13 @@
         "identifier": "${catalog}.${gold_schema}.get_user_activity_summary"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_table_access_audit"
+        "identifier": "${catalog}.${gold_schema}.get_table_access_events"
       },
       {
         "identifier": "${catalog}.${gold_schema}.get_permission_changes"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_service_account_audit"
+        "identifier": "${catalog}.${gold_schema}.get_service_principal_activity"
       },
       {
         "identifier": "${catalog}.${gold_schema}.get_failed_actions"
@@ -126,13 +120,10 @@
         "identifier": "${catalog}.${gold_schema}.get_off_hours_activity"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_user_activity_patterns"
+        "identifier": "${catalog}.${gold_schema}.get_anomalous_access_events"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_table_access_audit"
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.get_user_risk_scores"
+        "identifier": "${catalog}.${gold_schema}.get_data_exfiltration_events"
       }
     ]
   },
@@ -143,10 +134,13 @@
         "question": [
           "What is our total event count this week?"
         ],
-        "query": [
-          "SELECT MEASURE(total_events) as event_count",
-          "FROM ${catalog}.${gold_schema}.mv_security_events",
-          "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(total_events) as event_count FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
         ]
       },
       {
@@ -154,11 +148,13 @@
         "question": [
           "What is the failure rate for security events?"
         ],
-        "query": [
-          "SELECT",
-          "  MEASURE(failed_events) / NULLIF(MEASURE(total_events), 0) * 100 as failure_rate_pct",
-          "FROM ${catalog}.${gold_schema}.mv_security_events",
-          "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT  MEASURE(failed_events) / NULLIF(MEASURE(total_events), 0) * 100 as failure_rate_pct FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
         ]
       },
       {
@@ -166,16 +162,13 @@
         "question": [
           "Show me events by user"
         ],
-        "query": [
-          "SELECT",
-          "  user_email,",
-          "  MEASURE(total_events) as event_count,",
-          "  MEASURE(failed_events) as failed_count",
-          "FROM ${catalog}.${gold_schema}.mv_security_events",
-          "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "GROUP BY user_email",
-          "ORDER BY event_count DESC",
-          "LIMIT 15;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT  user_email,  MEASURE(total_events) as event_count,  MEASURE(failed_events) as failed_count FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY user_email ORDER BY event_count DESC LIMIT 15;"
+            ]
+          }
         ]
       },
       {
@@ -183,10 +176,13 @@
         "question": [
           "What is the success rate?"
         ],
-        "query": [
-          "SELECT MEASURE(success_rate) as success_pct",
-          "FROM ${catalog}.${gold_schema}.mv_security_events",
-          "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT (1.0 - MEASURE(failed_events) / NULLIF(MEASURE(total_events), 0)) * 100 as success_pct FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
         ]
       },
       {
@@ -194,14 +190,13 @@
         "question": [
           "Show me user activity summary"
         ],
-        "query": [
-          "SELECT *",
-          "FROM TABLE(${catalog}.${gold_schema}.get_user_activity_summary(",
-          "  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),",
-          "  CAST(CURRENT_DATE() AS STRING),",
-          "  20",
-          "))",
-          "ORDER BY total_events DESC;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM get_user_activity_summary(\n  CAST(CURRENT_DATE(), CURRENT_DATE()::STRING,\n  10\n) - INTERVAL 7 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  20) ORDER BY total_events DESC;"
+            ]
+          }
         ]
       },
       {
@@ -209,14 +204,13 @@
         "question": [
           "Who accessed sensitive tables?"
         ],
-        "query": [
-          "SELECT *",
-          "FROM TABLE(${catalog}.${gold_schema}.get_sensitive_table_access(",
-          "  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),",
-          "  CAST(CURRENT_DATE() AS STRING)",
-          "))",
-          "ORDER BY access_count DESC",
-          "LIMIT 20;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM get_sensitive_table_access(\n  CAST(CURRENT_DATE(), CURRENT_DATE()::STRING,\n  '%'\n) - INTERVAL 7 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING)) ORDER BY access_count DESC LIMIT 20;"
+            ]
+          }
         ]
       },
       {
@@ -224,11 +218,13 @@
         "question": [
           "Show me failed access attempts"
         ],
-        "query": [
-          "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_failed_actions(7)",
-          "ORDER BY failed_count DESC",
-          "LIMIT 20;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM get_failed_actions(\n  7,\n  CURRENT_DATE()::STRING,\n  '%'\n) ORDER BY event_time DESC LIMIT 20;"
+            ]
+          }
         ]
       },
       {
@@ -236,11 +232,13 @@
         "question": [
           "What permission changes happened this week?"
         ],
-        "query": [
-          "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_permission_changes(7)",
-          "ORDER BY change_date DESC",
-          "LIMIT 20;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM get_permission_changes(\n  7,\n  CURRENT_DATE()::STRING\n) ORDER BY event_time DESC LIMIT 20;"
+            ]
+          }
         ]
       },
       {
@@ -248,11 +246,13 @@
         "question": [
           "Show me unusual access patterns"
         ],
-        "query": [
-          "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_off_hours_activity(7)",
-          "ORDER BY deviation_score DESC",
-          "LIMIT 20;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM get_off_hours_activity(\n  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),\n  CAST(CURRENT_DATE() AS STRING),\n  7,\n  19\n) ORDER BY off_hours_events DESC LIMIT 20;"
+            ]
+          }
         ]
       },
       {
@@ -260,17 +260,13 @@
         "question": [
           "What are the high-risk events?"
         ],
-        "query": [
-          "SELECT",
-          "  user_email,",
-          "  action_category,",
-          "  MEASURE(high_risk_events) as risk_events",
-          "FROM ${catalog}.${gold_schema}.mv_security_events",
-          "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "  AND risk_level = 'HIGH'",
-          "GROUP BY user_email, action_category",
-          "ORDER BY risk_events DESC",
-          "LIMIT 15;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT  user_email,  action_category,  MEASURE(failed_events) as risk_events FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS  AND audit_level = 'HIGH'GROUP BY user_email, action_category ORDER BY risk_events DESC LIMIT 15;"
+            ]
+          }
         ]
       },
       {
@@ -278,11 +274,13 @@
         "question": [
           "Show me user activity patterns"
         ],
-        "query": [
-          "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_user_activity_patterns(30)",
-          "ORDER BY user_identity, hour_of_day",
-          "LIMIT 50;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM get_off_hours_activity(\n  CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),\n  CAST(CURRENT_DATE() AS STRING),\n  7,\n  19\n) ORDER BY user_email, event_date LIMIT 50;"
+            ]
+          }
         ]
       },
       {
@@ -290,10 +288,13 @@
         "question": [
           "What is the unique user count?"
         ],
-        "query": [
-          "SELECT MEASURE(unique_users) as user_count",
-          "FROM ${catalog}.${gold_schema}.mv_security_events",
-          "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(unique_users) as user_count FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
         ]
       },
       {
@@ -301,11 +302,13 @@
         "question": [
           "Show me data export events"
         ],
-        "query": [
-          "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_table_access_audit(7)",
-          "ORDER BY export_date DESC",
-          "LIMIT 20;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM get_table_access_audit(  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  '%') ORDER BY access_count DESC LIMIT 20;"
+            ]
+          }
         ]
       },
       {
@@ -313,13 +316,13 @@
         "question": [
           "Show me governance data lineage"
         ],
-        "query": [
-          "SELECT",
-          "  MEASURE(read_events) as read_count,",
-          "  MEASURE(write_events) as write_count,",
-          "  MEASURE(active_table_count) as active_tables",
-          "FROM ${catalog}.${gold_schema}.mv_governance_analytics",
-          "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT  MEASURE(read_events) as read_count,  MEASURE(write_events) as write_count,  MEASURE(active_table_count) as active_tables FROM mv_governance_analytics WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
         ]
       },
       {
@@ -327,10 +330,13 @@
         "question": [
           "What is the unique data consumer count?"
         ],
-        "query": [
-          "SELECT MEASURE(unique_data_consumers) as consumer_count",
-          "FROM ${catalog}.${gold_schema}.mv_governance_analytics",
-          "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT MEASURE(unique_users) as consumer_count FROM mv_governance_analytics WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+            ]
+          }
         ]
       },
       {
@@ -338,473 +344,41 @@
         "question": [
           "Show me service account activity"
         ],
-        "query": [
-          "SELECT *",
-          "FROM ${catalog}.${gold_schema}.get_service_account_audit(30)",
-          "ORDER BY event_count DESC",
-          "LIMIT 20;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM get_service_account_audit(30) ORDER BY total_events DESC LIMIT 20;"
+            ]
+          }
         ]
       },
       {
-        "id": "789abcdef0123456789abcdef0123456",
-        "question": [
-          "Are there any security threats detected?"
-        ],
-        "query": [
-          "SELECT",
-          "  user_identity,",
-          "  prediction as threat_score,",
-          "  event_date",
-          "FROM ${catalog}.${feature_schema}.access_anomaly_predictions",
-          "WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "  AND prediction < -0.5",
-          "ORDER BY prediction ASC",
-          "LIMIT 20;"
-        ]
-      },
-      {
-        "id": "89abcdef0123456789abcdef01234567",
-        "question": [
-          "What are the user risk scores?"
-        ],
-        "query": [
-          "SELECT",
-          "  user_identity,",
-          "  prediction as risk_level,",
-          "  evaluation_date",
-          "FROM ${catalog}.${feature_schema}.user_risk_scores",
-          "WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "  AND prediction >= 4",
-          "ORDER BY prediction DESC",
-          "LIMIT 20;"
-        ]
-      },
-      {
-        "id": "9abcdef0123456789abcdef012345678",
+        "id": "b16acdef0123456789abcdef01234516",
         "question": [
           "Show me security event drift"
         ],
-        "query": [
-          "SELECT",
-          "  window.start AS period_start,",
-          "  event_volume_drift,",
-          "  sensitive_action_drift,",
-          "  failure_rate_drift",
-          "FROM ${catalog}.${gold_schema}.fact_audit_logs_drift_metrics",
-          "WHERE drift_type = 'CONSECUTIVE'",
-          "  AND column_name = ':table'",
-          "  AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "ORDER BY window.start DESC",
-          "LIMIT 10;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT  window.start AS period_start,  event_volume_drift_pct,  sensitive_action_drift,  failure_rate_drift FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_audit_logs_drift_metrics WHERE drift_type = 'CONSECUTIVE'  AND column_name = ':table'  AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY window.start DESC LIMIT 10;"
+            ]
+          }
         ]
       },
       {
-        "id": "abcdef0123456789abcdef0123456789",
+        "id": "c17adef01234567890abcdef1234517a",
         "question": [
           "Show me table access audit"
         ],
-        "query": [
-          "SELECT *",
-          "FROM TABLE(${catalog}.${gold_schema}.get_table_access_audit(",
-          "  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),",
-          "  CAST(CURRENT_DATE() AS STRING)",
-          "))",
-          "ORDER BY access_count DESC",
-          "LIMIT 20;"
-        ]
-      },
-      {
-        "id": "bcdef0123456789abcdef0123456789a",
-        "question": [
-          "DEEP RESEARCH: User risk profile with behavioral anomalies - combine access patterns, unusual activity, and ML risk scoring"
-        ],
-        "query": [
-          "WITH user_behavior AS (",
-          "  SELECT",
-          "    user_email,",
-          "    MEASURE(total_events) as event_count,",
-          "    MEASURE(failed_events) as failed_count,",
-          "    MEASURE(high_risk_events) as risk_count",
-          "  FROM ${catalog}.${gold_schema}.mv_security_events",
-          "  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS",
-          "  GROUP BY user_email",
-          "),",
-          "unusual_patterns AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    COUNT(*) as unusual_pattern_count,",
-          "    AVG(deviation_score) as avg_deviation",
-          "  FROM ${catalog}.${gold_schema}.get_off_hours_activity(30)",
-          "  GROUP BY user_identity",
-          "),",
-          "ml_risk AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    AVG(prediction) as avg_risk_level",
-          "  FROM ${catalog}.${feature_schema}.user_risk_scores",
-          "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "  GROUP BY user_identity",
-          "),",
-          "anomalies AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    COUNT(*) as anomaly_count,",
-          "    MIN(prediction) as min_threat_score",
-          "  FROM ${catalog}.${feature_schema}.access_anomaly_predictions",
-          "  WHERE prediction < -0.3",
-          "    AND event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "  GROUP BY user_identity",
-          ")",
-          "SELECT",
-          "  ub.user_email,",
-          "  ub.event_count,",
-          "  ub.failed_count,",
-          "  ub.risk_count,",
-          "  COALESCE(up.unusual_pattern_count, 0) as unusual_patterns,",
-          "  COALESCE(up.avg_deviation, 0) as avg_deviation_score,",
-          "  COALESCE(ml.avg_risk_level, 0) as ml_risk_score,",
-          "  COALESCE(an.anomaly_count, 0) as detected_anomalies,",
-          "  COALESCE(an.min_threat_score, 0) as worst_threat_score,",
-          "  CASE",
-          "    WHEN an.anomaly_count > 5 AND ml.avg_risk_level >= 4 THEN 'Critical - Investigate Immediately'",
-          "    WHEN up.unusual_pattern_count > 10 AND ub.failed_count > 10 THEN 'High Risk - Review Access'",
-          "    WHEN ml.avg_risk_level >= 3 THEN 'Medium Risk - Monitor'",
-          "    ELSE 'Normal'",
-          "  END as security_status,",
-          "  ub.failed_count * 100.0 / NULLIF(ub.event_count, 0) as failure_rate_pct",
-          "FROM user_behavior ub",
-          "LEFT JOIN unusual_patterns up ON ub.user_email = up.user_identity",
-          "LEFT JOIN ml_risk ml ON ub.user_email = ml.user_identity",
-          "LEFT JOIN anomalies an ON ub.user_email = an.user_identity",
-          "WHERE ub.event_count > 10",
-          "ORDER BY detected_anomalies DESC, ml_risk_score DESC, unusual_patterns DESC",
-          "LIMIT 20;"
-        ]
-      },
-      {
-        "id": "cdef0123456789abcdef0123456789ab",
-        "question": [
-          "DEEP RESEARCH: Sensitive data access compliance audit - identify PII access patterns with access classification and risk assessment"
-        ],
-        "query": [
-          "WITH sensitive_access AS (",
-          "  SELECT",
-          "    table_name,",
-          "    user_identity,",
-          "    access_count,",
-          "    last_access",
-          "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_table_access(",
-          "    CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),",
-          "    CAST(CURRENT_DATE() AS STRING)",
-          "  ))",
-          "),",
-          "access_patterns AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    prediction as pattern_class_score",
-          "  FROM ${catalog}.${feature_schema}.access_classifications",
-          "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "),",
-          "user_risk AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    prediction as risk_level",
-          "  FROM ${catalog}.${feature_schema}.user_risk_scores",
-          "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "),",
-          "event_metrics AS (",
-          "  SELECT",
-          "    user_email,",
-          "    MEASURE(failed_events) as failed_count,",
-          "    MEASURE(high_risk_events) as risk_events",
-          "  FROM ${catalog}.${gold_schema}.mv_security_events",
-          "  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS",
-          "  GROUP BY user_email",
-          ")",
-          "SELECT",
-          "  sa.table_name,",
-          "  sa.user_identity,",
-          "  sa.access_count,",
-          "  sa.last_access,",
-          "  COALESCE(ap.pattern_class_score, 0) as access_pattern_score,",
-          "  COALESCE(ur.risk_level, 0) as user_risk_level,",
-          "  COALESCE(em.failed_count, 0) as recent_failures,",
-          "  COALESCE(em.risk_events, 0) as high_risk_actions,",
-          "  CASE",
-          "    WHEN ur.risk_level >= 4 AND sa.access_count > 100 THEN 'Critical - Restrict Access'",
-          "    WHEN ap.pattern_class_score > 0.7 AND ur.risk_level >= 3 THEN 'High Risk - Review Permissions'",
-          "    WHEN em.failed_count > 5 THEN 'Medium Risk - Investigate Failures'",
-          "    ELSE 'Normal'",
-          "  END as compliance_status,",
-          "  CASE",
-          "    WHEN ur.risk_level >= 4 THEN 'Revoke access, conduct investigation'",
-          "    WHEN ap.pattern_class_score > 0.7 THEN 'Audit access logs, verify business need'",
-          "    WHEN sa.access_count > 500 THEN 'Review data export policies'",
-          "    ELSE 'Continue monitoring'",
-          "  END as recommended_action",
-          "FROM sensitive_access sa",
-          "LEFT JOIN access_patterns ap ON sa.user_identity = ap.user_identity",
-          "LEFT JOIN user_risk ur ON sa.user_identity = ur.user_identity",
-          "LEFT JOIN event_metrics em ON sa.user_identity = em.user_email",
-          "WHERE sa.access_count > 5",
-          "ORDER BY user_risk_level DESC, access_count DESC, access_pattern_score DESC",
-          "LIMIT 20;"
-        ]
-      },
-      {
-        "id": "def0123456789abcdef0123456789abc",
-        "question": [
-          "DEEP RESEARCH: Security event timeline with threat correlation - combine activity patterns with ML anomaly detection and drift analysis"
-        ],
-        "query": [
-          "WITH activity_patterns AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    hour_of_day,",
-          "    day_of_week,",
-          "    avg_events",
-          "  FROM ${catalog}.${gold_schema}.get_user_activity_patterns(7)",
-          "),",
-          "anomaly_windows AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    event_date,",
-          "    prediction as threat_score,",
-          "    CASE",
-          "      WHEN prediction < -1.0 THEN 'Critical Threat'",
-          "      WHEN prediction < -0.5 THEN 'High Threat'",
-          "      WHEN prediction < -0.3 THEN 'Medium Threat'",
-          "      ELSE 'Low Threat'",
-          "    END as threat_level",
-          "  FROM ${catalog}.${feature_schema}.access_anomaly_predictions",
-          "  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "),",
-          "drift_metrics AS (",
-          "  SELECT",
-          "    window.start AS drift_window_start,",
-          "    event_volume_drift,",
-          "    sensitive_action_drift,",
-          "    failure_rate_drift",
-          "  FROM ${catalog}.${gold_schema}.fact_audit_logs_drift_metrics",
-          "  WHERE drift_type = 'CONSECUTIVE'",
-          "    AND column_name = ':table'",
-          "    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "),",
-          "hourly_events AS (",
-          "  SELECT",
-          "    user_email,",
-          "    event_date,",
-          "    HOUR(event_timestamp) as event_hour,",
-          "    MEASURE(total_events) as event_count,",
-          "    MEASURE(failed_events) as failed_count",
-          "  FROM ${catalog}.${gold_schema}.mv_security_events",
-          "  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "  GROUP BY user_email, event_date, HOUR(event_timestamp)",
-          ")",
-          "SELECT",
-          "  he.event_date,",
-          "  he.event_hour,",
-          "  COUNT(DISTINCT he.user_email) as unique_users,",
-          "  SUM(he.event_count) as total_events,",
-          "  SUM(he.failed_count) as failed_events,",
-          "  COUNT(DISTINCT CASE WHEN aw.threat_level IN ('Critical Threat', 'High Threat') THEN he.user_email END) as high_threat_users,",
-          "  MAX(COALESCE(dm.event_volume_drift, 0)) as max_volume_drift,",
-          "  MAX(COALESCE(dm.failure_rate_drift, 0)) as max_failure_drift,",
-          "  CASE",
-          "    WHEN COUNT(DISTINCT CASE WHEN aw.threat_level = 'Critical Threat' THEN he.user_email END) > 0 THEN 'Critical - Multiple Threats Detected'",
-          "    WHEN MAX(COALESCE(dm.failure_rate_drift, 0)) > 50 THEN 'High - Failure Spike Detected'",
-          "    WHEN MAX(COALESCE(dm.event_volume_drift, 0)) > 100 THEN 'High - Volume Spike Detected'",
-          "    ELSE 'Normal'",
-          "  END as period_status",
-          "FROM hourly_events he",
-          "LEFT JOIN anomaly_windows aw",
-          "  ON he.user_email = aw.user_identity",
-          "  AND he.event_date = aw.event_date",
-          "LEFT JOIN drift_metrics dm",
-          "  ON he.event_date >= DATE(dm.drift_window_start)",
-          "GROUP BY he.event_date, he.event_hour",
-          "ORDER BY he.event_date DESC, he.event_hour DESC",
-          "LIMIT 72;"
-        ]
-      },
-      {
-        "id": "ef0123456789abcdef0123456789abcd",
-        "question": [
-          "DEEP RESEARCH: Service account security posture - analyze service principal activity patterns with risk assessment and compliance gaps"
-        ],
-        "query": [
-          "WITH service_activity AS (",
-          "  SELECT",
-          "    service_account_name,",
-          "    event_count,",
-          "    distinct_services,",
-          "    failed_actions,",
-          "    last_activity",
-          "  FROM ${catalog}.${gold_schema}.get_service_account_audit(30)",
-          "),",
-          "access_patterns AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    COUNT(*) as pattern_deviations,",
-          "    AVG(prediction) as avg_pattern_score",
-          "  FROM ${catalog}.${feature_schema}.access_classifications",
-          "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "  GROUP BY user_identity",
-          "),",
-          "ml_user_risk_scores AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    AVG(prediction) as avg_risk_level,",
-          "    MAX(prediction) as max_risk_level",
-          "  FROM ${catalog}.${feature_schema}.user_risk_scores",
-          "  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "  GROUP BY user_identity",
-          "),",
-          "sensitive_access AS (",
-          "  SELECT",
-          "    user_identity,",
-          "    COUNT(DISTINCT table_name) as sensitive_table_count,",
-          "    SUM(access_count) as total_sensitive_access",
-          "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_table_access(",
-          "    CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),",
-          "    CAST(CURRENT_DATE() AS STRING)",
-          "  ))",
-          "  GROUP BY user_identity",
-          ")",
-          "SELECT",
-          "  sa.service_account_name,",
-          "  sa.event_count,",
-          "  sa.distinct_services,",
-          "  sa.failed_actions,",
-          "  sa.failed_actions * 100.0 / NULLIF(sa.event_count, 0) as failure_rate_pct,",
-          "  COALESCE(ap.pattern_deviations, 0) as unusual_patterns,",
-          "  COALESCE(rs.avg_risk_level, 0) as risk_level,",
-          "  COALESCE(ss.sensitive_table_count, 0) as sensitive_tables_accessed,",
-          "  COALESCE(ss.total_sensitive_access, 0) as sensitive_access_count,",
-          "  DATEDIFF(CURRENT_DATE(), sa.last_activity) as days_since_activity,",
-          "  CASE",
-          "    WHEN rs.max_risk_level >= 4 AND ss.sensitive_table_count > 10 THEN 'Critical - Rotate Credentials'",
-          "    WHEN ap.pattern_deviations > 20 AND sa.failed_actions > 50 THEN 'High - Investigate Activity'",
-          "    WHEN sa.failed_actions * 100.0 / NULLIF(sa.event_count, 0) > 10 THEN 'Medium - Review Permissions'",
-          "    WHEN DATEDIFF(CURRENT_DATE(), sa.last_activity) > 90 THEN 'Low - Consider Decommission'",
-          "    ELSE 'Normal'",
-          "  END as security_posture,",
-          "  CASE",
-          "    WHEN rs.max_risk_level >= 4 THEN 'Immediate credential rotation required'",
-          "    WHEN ss.sensitive_table_count > 20 THEN 'Review and restrict sensitive data access'",
-          "    WHEN ap.pattern_deviations > 20 THEN 'Audit automation workflows'",
-          "    WHEN DATEDIFF(CURRENT_DATE(), sa.last_activity) > 90 THEN 'Deactivate unused service account'",
-          "    ELSE 'Continue monitoring'",
-          "  END as recommended_action",
-          "FROM service_activity sa",
-          "LEFT JOIN access_patterns ap ON sa.service_account_name = ap.user_identity",
-          "LEFT JOIN ml_user_risk_scores rs ON sa.service_account_name = rs.user_identity",
-          "LEFT JOIN sensitive_access ss ON sa.service_account_name = ss.user_identity",
-          "ORDER BY risk_level DESC, sensitive_access_count DESC, failure_rate_pct DESC",
-          "LIMIT 20;"
-        ]
-      },
-      {
-        "id": "f0123456789abcdef0123456789abcde",
-        "question": [
-          "DEEP RESEARCH: Executive security dashboard - combine access metrics, threat intelligence, compliance status, and ML insights"
-        ],
-        "query": [
-          "WITH access_summary AS (",
-          "  SELECT",
-          "    MEASURE(total_events) as total_events,",
-          "    MEASURE(failed_events) as failed_events,",
-          "    MEASURE(success_rate) as success_rate,",
-          "    MEASURE(unique_users) as active_users,",
-          "    MEASURE(high_risk_events) as high_risk_count",
-          "  FROM ${catalog}.${gold_schema}.mv_security_events",
-          "  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "),",
-          "threat_intel AS (",
-          "  SELECT",
-          "    COUNT(*) as detected_threats,",
-          "    COUNT(DISTINCT user_identity) as users_with_threats,",
-          "    AVG(prediction) as avg_threat_score,",
-          "    MIN(prediction) as worst_threat_score",
-          "  FROM ${catalog}.${feature_schema}.access_anomaly_predictions",
-          "  WHERE prediction < -0.3",
-          "    AND event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "),",
-          "compliance_status AS (",
-          "  SELECT",
-          "    COUNT(DISTINCT user_identity) as high_risk_users,",
-          "    AVG(prediction) as avg_user_risk",
-          "  FROM ${catalog}.${feature_schema}.user_risk_scores",
-          "  WHERE prediction >= 4",
-          "    AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "),",
-          "sensitive_access_metrics AS (",
-          "  SELECT",
-          "    COUNT(DISTINCT table_name) as sensitive_tables,",
-          "    COUNT(DISTINCT user_identity) as users_accessing_pii,",
-          "    SUM(access_count) as total_sensitive_access",
-          "  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_table_access(",
-          "    CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),",
-          "    CAST(CURRENT_DATE() AS STRING)",
-          "  ))",
-          "),",
-          "drift_status AS (",
-          "  SELECT",
-          "    AVG(event_volume_drift) as avg_volume_drift,",
-          "    AVG(failure_rate_drift) as avg_failure_drift,",
-          "    AVG(sensitive_action_drift) as avg_sensitive_drift",
-          "  FROM ${catalog}.${gold_schema}.fact_audit_logs_drift_metrics",
-          "  WHERE drift_type = 'CONSECUTIVE'",
-          "    AND column_name = ':table'",
-          "    AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          "),",
-          "governance_metrics AS (",
-          "  SELECT",
-          "    MEASURE(read_events) as data_reads,",
-          "    MEASURE(write_events) as data_writes,",
-          "    MEASURE(active_table_count) as governed_tables",
-          "  FROM ${catalog}.${gold_schema}.mv_governance_analytics",
-          "  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS",
-          ")",
-          "SELECT",
-          "  acs.total_events,",
-          "  acs.failed_events,",
-          "  acs.success_rate,",
-          "  acs.active_users,",
-          "  acs.high_risk_count,",
-          "  ti.detected_threats,",
-          "  ti.users_with_threats,",
-          "  ti.avg_threat_score,",
-          "  cs.high_risk_users,",
-          "  cs.avg_user_risk,",
-          "  sam.sensitive_tables,",
-          "  sam.users_accessing_pii,",
-          "  sam.total_sensitive_access,",
-          "  ds.avg_volume_drift,",
-          "  ds.avg_failure_drift,",
-          "  ds.avg_sensitive_drift,",
-          "  gm.data_reads,",
-          "  gm.data_writes,",
-          "  gm.governed_tables,",
-          "  CASE",
-          "    WHEN ti.detected_threats > 10 OR cs.high_risk_users > 5 THEN 'Critical Security Posture'",
-          "    WHEN ds.avg_failure_drift > 30 OR ds.avg_sensitive_drift > 20 THEN 'Security Degradation Detected'",
-          "    WHEN acs.success_rate > 95 AND ti.detected_threats < 5 THEN 'Strong Security Posture'",
-          "    ELSE 'Normal'",
-          "  END as overall_security_status,",
-          "  CASE",
-          "    WHEN ti.detected_threats > 10 THEN 'Investigate and contain active threats'",
-          "    WHEN cs.high_risk_users > 5 THEN 'Review high-risk user access'",
-          "    WHEN ds.avg_failure_drift > 30 THEN 'Analyze authentication failures'",
-          "    WHEN sam.users_accessing_pii > 100 THEN 'Audit sensitive data access patterns'",
-          "    ELSE 'Continue monitoring'",
-          "  END as top_priority_action",
-          "FROM access_summary acs",
-          "CROSS JOIN threat_intel ti",
-          "CROSS JOIN compliance_status cs",
-          "CROSS JOIN sensitive_access_metrics sam",
-          "CROSS JOIN drift_status ds",
-          "CROSS JOIN governance_metrics gm;"
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM get_table_access_audit(  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  '%') ORDER BY access_count DESC LIMIT 20;"
+            ]
+          }
         ]
       }
     ]

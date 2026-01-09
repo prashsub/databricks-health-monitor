@@ -7,9 +7,7 @@ Combines responses from multiple domain agents into a unified answer.
 
 from typing import Dict, List
 import mlflow
-
-from langchain_databricks import ChatDatabricks
-from langchain_core.prompts import ChatPromptTemplate
+import os
 
 from ..config import settings
 
@@ -67,12 +65,25 @@ class ResponseSynthesizer:
             llm_endpoint: Databricks model serving endpoint
             temperature: LLM temperature for response generation
         """
-        self.llm = ChatDatabricks(
-            endpoint=llm_endpoint or settings.llm_endpoint,
-            temperature=temperature,
-        )
-        self.prompt = ChatPromptTemplate.from_template(SYNTHESIZER_PROMPT)
-        self.chain = self.prompt | self.llm
+        self.llm_endpoint = llm_endpoint or settings.llm_endpoint
+        self.temperature = temperature
+
+    def _call_llm(self, prompt: str) -> str:
+        """Call Databricks Foundation Model using Databricks SDK."""
+        try:
+            from databricks.sdk import WorkspaceClient
+            from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
+            
+            w = WorkspaceClient()
+            response = w.serving_endpoints.query(
+                name=self.llm_endpoint,
+                messages=[ChatMessage(role=ChatMessageRole.USER, content=prompt)],
+                temperature=self.temperature,
+                max_tokens=2000
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"Error synthesizing response: {str(e)}"
 
     @mlflow.trace(name="synthesize_response", span_type="LLM")
     def synthesize(
@@ -104,18 +115,21 @@ class ResponseSynthesizer:
             # Format user context
             context_str = self._format_user_context(user_context or {})
 
-            # Invoke synthesizer
-            result = self.chain.invoke({
-                "query": query,
-                "agent_responses": formatted_responses,
-                "user_context": context_str,
-            })
+            # Build the full prompt
+            full_prompt = SYNTHESIZER_PROMPT.format(
+                query=query,
+                agent_responses=formatted_responses,
+                user_context=context_str,
+            )
+
+            # Call LLM
+            result = self._call_llm(full_prompt)
 
             span.set_outputs({
-                "response_length": len(result.content),
+                "response_length": len(result),
             })
 
-            return result.content
+            return result
 
     def _format_agent_responses(self, responses: Dict[str, Dict]) -> str:
         """Format agent responses for the prompt."""

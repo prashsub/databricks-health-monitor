@@ -908,16 +908,12 @@
                       "expression": "`table_owner`"
                     },
                     {
-                      "name": "query_count",
-                      "expression": "`query_count`"
-                    },
-                    {
-                      "name": "days_accessed",
-                      "expression": "`days_accessed`"
-                    },
-                    {
                       "name": "table_type",
                       "expression": "`table_type`"
+                    },
+                    {
+                      "name": "asset_type",
+                      "expression": "`asset_type`"
                     }
                   ]
                 }
@@ -949,27 +945,20 @@
                     "type": "string"
                   },
                   {
-                    "fieldName": "query_count",
-                    "title": "Queries (90d)",
-                    "type": "number",
-                    "numberFormat": "#,###"
-                  },
-                  {
-                    "fieldName": "days_accessed",
-                    "title": "Days Used",
-                    "type": "number",
-                    "numberFormat": "#,###"
-                  },
-                  {
                     "fieldName": "table_type",
                     "title": "Type",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "asset_type",
+                    "title": "Asset Type",
                     "type": "string"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83c\udff7\ufe0f Tables Missing Tags (Prioritized by Usage)"
+                "title": "\ud83c\udff7\ufe0f Tables Missing Tags"
               }
             }
           },
@@ -1007,16 +996,12 @@
                       "expression": "`table_owner`"
                     },
                     {
-                      "name": "query_count",
-                      "expression": "`query_count`"
-                    },
-                    {
-                      "name": "days_accessed",
-                      "expression": "`days_accessed`"
-                    },
-                    {
                       "name": "doc_status",
                       "expression": "`doc_status`"
+                    },
+                    {
+                      "name": "priority",
+                      "expression": "`priority`"
                     }
                   ]
                 }
@@ -1048,16 +1033,9 @@
                     "type": "string"
                   },
                   {
-                    "fieldName": "query_count",
-                    "title": "Queries (90d)",
-                    "type": "number",
-                    "numberFormat": "#,###"
-                  },
-                  {
-                    "fieldName": "days_accessed",
-                    "title": "Days Used",
-                    "type": "number",
-                    "numberFormat": "#,###"
+                    "fieldName": "priority",
+                    "title": "Priority",
+                    "type": "string"
                   },
                   {
                     "fieldName": "doc_status",
@@ -1068,7 +1046,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udcdd Tables Missing Documentation (Prioritized by Usage)"
+                "title": "\ud83d\udcdd Tables Missing Documentation"
               }
             }
           },
@@ -1818,7 +1796,7 @@
           }
         }
       ]
-    },
+        },
     {
       "name": "page_lakehouse_monitoring",
       "displayName": "📈 Governance Metrics Overview",
@@ -2332,7 +2310,7 @@
     {
       "name": "ds_untagged_tables",
       "displayName": "Untagged Tables",
-      "query": "-- Tables without governance tags (prioritized by usage)\nWITH untagged AS (\n  SELECT\n    t.table_catalog AS catalog_name,\n    t.table_schema AS schema_name,\n    t.table_name,\n    t.table_type,\n    t.table_owner,\n    'No Tags' AS tag_status\n  FROM system.information_schema.tables t\n  LEFT JOIN system.information_schema.table_tags tt\n    ON t.table_catalog = tt.catalog_name\n    AND t.table_schema = tt.schema_name\n    AND t.table_name = tt.table_name\n  WHERE t.table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n    AND t.table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n    AND t.table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n    AND tt.tag_name IS NULL\n    AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, t.table_catalog))\n),\nusage_stats AS (\n  SELECT\n    CONCAT(catalog, '.', schema, '.', table_name) AS full_table_name,\n    COUNT(*) AS query_count,\n    COUNT(DISTINCT DATE(start_time)) AS days_accessed\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 90 DAYS\n    AND catalog IS NOT NULL\n    AND schema IS NOT NULL\n    AND table_name IS NOT NULL\n  GROUP BY 1\n)\nSELECT\n  u.catalog_name,\n  u.schema_name,\n  u.table_name,\n  u.table_type,\n  u.table_owner,\n  COALESCE(s.query_count, 0) AS query_count,\n  COALESCE(s.days_accessed, 0) AS days_accessed,\n  u.tag_status\nFROM untagged u\nLEFT JOIN usage_stats s ON CONCAT(u.catalog_name, '.', u.schema_name, '.', u.table_name) = s.full_table_name\nORDER BY query_count DESC NULLS LAST, days_accessed DESC NULLS LAST\nLIMIT 50",
+      "query": "-- Tables without governance tags\nSELECT\n  t.table_catalog AS catalog_name,\n  t.table_schema AS schema_name,\n  t.table_name,\n  t.table_type,\n  COALESCE(t.table_owner, 'Unknown') AS table_owner,\n  'No Tags' AS tag_status,\n  CASE \n    WHEN t.table_type = 'VIEW' THEN 'View'\n    WHEN t.table_type = 'MANAGED' THEN 'Managed Table'\n    WHEN t.table_type = 'EXTERNAL' THEN 'External Table'\n    ELSE t.table_type\n  END AS asset_type\nFROM system.information_schema.tables t\nLEFT JOIN system.information_schema.table_tags tt\n  ON t.table_catalog = tt.catalog_name\n  AND t.table_schema = tt.schema_name\n  AND t.table_name = tt.table_name\nWHERE t.table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n  AND t.table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  AND t.table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n  AND tt.tag_name IS NULL\n  AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, t.table_catalog))\nORDER BY t.table_catalog, t.table_schema, t.table_name\nLIMIT 100",
       "parameters": [
         {
           "displayName": "param_catalog",
@@ -2385,7 +2363,7 @@
     {
       "name": "ds_undocumented_tables",
       "displayName": "Undocumented Tables",
-      "query": "-- Tables with missing documentation (table or column descriptions) prioritized by usage\nWITH table_docs AS (\n  SELECT\n    t.table_catalog,\n    t.table_schema,\n    t.table_name,\n    t.table_type,\n    t.table_owner,\n    CASE\n      WHEN t.comment IS NULL OR TRIM(t.comment) = '' THEN 1\n      ELSE 0\n    END AS missing_table_comment\n  FROM system.information_schema.tables t\n  WHERE t.table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n    AND t.table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n    AND t.table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n    AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, t.table_catalog))\n),\ncolumn_docs AS (\n  SELECT\n    table_catalog,\n    table_schema,\n    table_name,\n    COUNT(*) AS total_columns,\n    SUM(CASE WHEN comment IS NULL OR TRIM(comment) = '' THEN 1 ELSE 0 END) AS missing_column_comments\n  FROM system.information_schema.columns\n  WHERE table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n    AND table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  GROUP BY 1, 2, 3\n),\nusage_stats AS (\n  SELECT\n    CONCAT(catalog, '.', schema, '.', table_name) AS full_table_name,\n    COUNT(*) AS query_count,\n    COUNT(DISTINCT DATE(start_time)) AS days_accessed\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= CURRENT_DATE() - INTERVAL 90 DAYS\n    AND catalog IS NOT NULL\n    AND schema IS NOT NULL\n    AND table_name IS NOT NULL\n  GROUP BY 1\n)\nSELECT\n  td.table_catalog AS catalog_name,\n  td.table_schema AS schema_name,\n  td.table_name,\n  td.table_type,\n  td.table_owner,\n  COALESCE(s.query_count, 0) AS query_count,\n  COALESCE(s.days_accessed, 0) AS days_accessed,\n  CASE\n    WHEN td.missing_table_comment = 1 AND COALESCE(cd.missing_column_comments, 0) > 0 THEN 'Missing Table & Column Descriptions'\n    WHEN td.missing_table_comment = 1 THEN 'Missing Table Description'\n    WHEN COALESCE(cd.missing_column_comments, 0) > 0 THEN CONCAT('Missing ', cd.missing_column_comments, ' of ', cd.total_columns, ' Column Descriptions')\n    ELSE 'OK'\n  END AS doc_status\nFROM table_docs td\nLEFT JOIN column_docs cd\n  ON td.table_catalog = cd.table_catalog\n  AND td.table_schema = cd.table_schema\n  AND td.table_name = cd.table_name\nLEFT JOIN usage_stats s\n  ON CONCAT(td.table_catalog, '.', td.table_schema, '.', td.table_name) = s.full_table_name\nWHERE td.missing_table_comment = 1 OR COALESCE(cd.missing_column_comments, 0) > 0\nORDER BY query_count DESC NULLS LAST, days_accessed DESC NULLS LAST\nLIMIT 50",
+      "query": "-- Tables with missing documentation (table or column descriptions)\nWITH table_docs AS (\n  SELECT\n    t.table_catalog,\n    t.table_schema,\n    t.table_name,\n    t.table_type,\n    COALESCE(t.table_owner, 'Unknown') AS table_owner,\n    CASE\n      WHEN t.comment IS NULL OR TRIM(t.comment) = '' THEN 1\n      ELSE 0\n    END AS missing_table_comment\n  FROM system.information_schema.tables t\n  WHERE t.table_type IN ('MANAGED', 'EXTERNAL', 'VIEW')\n    AND t.table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n    AND t.table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n    AND (ARRAY_CONTAINS(:param_catalog, 'all') OR ARRAY_CONTAINS(:param_catalog, t.table_catalog))\n),\ncolumn_docs AS (\n  SELECT\n    table_catalog,\n    table_schema,\n    table_name,\n    COUNT(*) AS total_columns,\n    SUM(CASE WHEN comment IS NULL OR TRIM(comment) = '' THEN 1 ELSE 0 END) AS missing_column_comments\n  FROM system.information_schema.columns\n  WHERE table_catalog NOT IN ('system', '__databricks_internal', 'samples', 'hive_metastore')\n    AND table_schema NOT IN ('information_schema', 'default', '__databricks_internal')\n  GROUP BY 1, 2, 3\n)\nSELECT\n  td.table_catalog AS catalog_name,\n  td.table_schema AS schema_name,\n  td.table_name,\n  td.table_type,\n  td.table_owner,\n  COALESCE(cd.total_columns, 0) AS total_columns,\n  COALESCE(cd.missing_column_comments, 0) AS missing_column_comments,\n  CASE\n    WHEN td.missing_table_comment = 1 AND COALESCE(cd.missing_column_comments, 0) > 0 THEN '❌ Missing Table & Column Descriptions'\n    WHEN td.missing_table_comment = 1 THEN '⚠️ Missing Table Description'\n    WHEN COALESCE(cd.missing_column_comments, 0) > 0 THEN CONCAT('⚠️ Missing ', cd.missing_column_comments, ' of ', cd.total_columns, ' Column Descriptions')\n    ELSE '✅ OK'\n  END AS doc_status,\n  CASE \n    WHEN td.missing_table_comment = 1 AND COALESCE(cd.missing_column_comments, 0) > 0 THEN 'CRITICAL'\n    WHEN td.missing_table_comment = 1 THEN 'HIGH'\n    WHEN COALESCE(cd.missing_column_comments, 0) > 0 THEN 'MEDIUM'\n    ELSE 'OK'\n  END AS priority\nFROM table_docs td\nLEFT JOIN column_docs cd\n  ON td.table_catalog = cd.table_catalog\n  AND td.table_schema = cd.table_schema\n  AND td.table_name = cd.table_name\nWHERE td.missing_table_comment = 1 OR COALESCE(cd.missing_column_comments, 0) > 0\nORDER BY \n  CASE priority\n    WHEN 'CRITICAL' THEN 1\n    WHEN 'HIGH' THEN 2\n    WHEN 'MEDIUM' THEN 3\n    ELSE 4\n  END,\n  td.table_catalog, td.table_schema, td.table_name\nLIMIT 100",
       "parameters": [
         {
           "displayName": "param_catalog",

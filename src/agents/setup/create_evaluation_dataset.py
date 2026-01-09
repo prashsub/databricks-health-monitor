@@ -1,27 +1,32 @@
 # Databricks notebook source
 # ===========================================================================
-# Create Synthetic Evaluation Dataset for Health Monitor Agent
+# Create Manual Evaluation Dataset for Health Monitor Agent
 # ===========================================================================
 """
-Creates a synthetic evaluation dataset using Databricks' official
-generate_evals_df API from databricks-agents.
+Creates a hand-crafted evaluation dataset with domain-specific questions
+for evaluating the Databricks Health Monitor Agent.
+
+NOTE: We don't use generate_evals_df (synthetic evaluation) because:
+- That API is designed for document-based RAG agents
+- Our agent queries Genie Spaces backed by system tables
+- Hand-crafted domain-specific questions are more appropriate
 
 This makes evaluation datasets visible in the MLflow UI under:
   Experiment → Datasets tab
 
-Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-evaluation/synthesize-evaluation-set
+Reference: https://learn.microsoft.com/en-us/azure/databricks/mlflow3/genai/eval-monitor/build-eval-dataset
 """
 
 # COMMAND ----------
 
-# MAGIC %pip install databricks-agents mlflow>=3.0.0
+# MAGIC %pip install mlflow>=3.0.0
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
 import mlflow
 from mlflow import MlflowClient
-from databricks.agents.evals import generate_evals_df, estimate_synthetic_num_evals
+import mlflow.genai.datasets as mlflow_datasets
 import pandas as pd
 from datetime import datetime
 
@@ -30,488 +35,41 @@ from datetime import datetime
 # Parameters
 dbutils.widgets.text("catalog", "prashanth_subrahmanyam_catalog")
 dbutils.widgets.text("agent_schema", "dev_prashanth_subrahmanyam_system_gold_agent")
-dbutils.widgets.text("num_evals", "50")  # Number of synthetic evaluations
 
 catalog = dbutils.widgets.get("catalog")
 agent_schema = dbutils.widgets.get("agent_schema")
-num_evals = int(dbutils.widgets.get("num_evals"))
 
 print(f"Catalog: {catalog}")
 print(f"Agent Schema: {agent_schema}")
-print(f"Target Evaluations: {num_evals}")
 
 # COMMAND ----------
 
-# Set experiment
-experiment_path = "/Shared/health_monitor/agent"
+# ===========================================================================
+# MLFLOW EXPERIMENT SETUP
+# ===========================================================================
+# Datasets are attached to experiments - using the same experiment as evaluation
+
+experiment_path = "/Shared/health_monitor_agent_evaluation"
 mlflow.set_experiment(experiment_path)
-print(f"Experiment: {experiment_path}")
+print(f"MLflow Experiment: {experiment_path}")
 
 # COMMAND ----------
 
 # ===========================================================================
-# DOMAIN DOCUMENTATION
+# MANUAL EVALUATION DATASET
 # ===========================================================================
-# These documents describe what the agent knows about each domain.
-# generate_evals_df uses these to synthesize relevant questions.
-
-DOMAIN_DOCUMENTS = pd.DataFrame([
-    # ===========================================================================
-    # COST DOMAIN
-    # ===========================================================================
-    {
-        "content": """
-        The Cost Intelligence domain provides comprehensive Databricks billing and usage analysis.
-        
-        Key capabilities:
-        - Total DBU (Databricks Unit) consumption by workspace, cluster, job, and user
-        - Cost breakdown by SKU type (Jobs Compute, SQL Warehouse, All-Purpose Compute)
-        - Serverless vs classic compute cost comparison
-        - Tag coverage analysis for cost allocation
-        - Daily, weekly, and monthly cost trends
-        - Budget tracking and overspend alerts
-        - Cost attribution to teams via tags (tag_team, tag_project)
-        
-        Common questions users ask:
-        - "Why did costs spike yesterday?"
-        - "Which jobs are most expensive?"
-        - "What is our serverless vs classic ratio?"
-        - "Which teams are over budget?"
-        - "Show DBU usage by workspace"
-        
-        Key metrics: total_cost, total_dbus, cost_7d, cost_30d, tag_coverage_percentage
-        """,
-        "doc_uri": "health_monitor://domains/cost"
-    },
-    {
-        "content": """
-        Cost anomaly detection and budget management for Databricks workloads.
-        
-        The agent can identify:
-        - Sudden cost spikes (>20% day-over-day increase)
-        - Unusual DBU consumption patterns
-        - Inefficient cluster configurations
-        - Underutilized resources
-        - Cost optimization opportunities
-        
-        Budget features:
-        - Compare actual spend vs allocated budget
-        - Forecast monthly costs based on current trajectory
-        - Alert when spend exceeds thresholds
-        - Track committed vs on-demand usage
-        
-        Optimization recommendations:
-        - Resize overprovisioned clusters
-        - Enable autoscaling
-        - Use spot instances for non-critical workloads
-        - Consolidate underutilized warehouses
-        """,
-        "doc_uri": "health_monitor://domains/cost/optimization"
-    },
-    
-    # ===========================================================================
-    # SECURITY DOMAIN
-    # ===========================================================================
-    {
-        "content": """
-        The Security Auditor domain provides comprehensive security monitoring and compliance.
-        
-        Key capabilities:
-        - Audit log analysis (who did what, when, where)
-        - Failed login attempt tracking
-        - Permission change monitoring
-        - Sensitive data access patterns
-        - Compliance reporting (SOC2, HIPAA, GDPR)
-        - Service principal activity tracking
-        
-        Common questions users ask:
-        - "Who accessed sensitive data last week?"
-        - "Show failed login attempts today"
-        - "What permissions were changed recently?"
-        - "Which service principals are most active?"
-        - "Are there any unusual access patterns?"
-        
-        Key metrics: total_events, failed_events, success_rate, unique_users, high_risk_events
-        """,
-        "doc_uri": "health_monitor://domains/security"
-    },
-    {
-        "content": """
-        Security risk detection and threat monitoring for Databricks workspaces.
-        
-        Risk indicators tracked:
-        - Multiple failed authentication attempts
-        - Access from unusual IP addresses or locations
-        - After-hours data access
-        - Bulk data downloads
-        - Privilege escalation attempts
-        - Dormant account reactivation
-        
-        Compliance features:
-        - Track access to PII-tagged columns
-        - Monitor data export activities
-        - Audit secret and credential access
-        - Report on data retention compliance
-        """,
-        "doc_uri": "health_monitor://domains/security/risk"
-    },
-    
-    # ===========================================================================
-    # PERFORMANCE DOMAIN
-    # ===========================================================================
-    {
-        "content": """
-        The Performance domain monitors query execution and compute efficiency.
-        
-        Key capabilities:
-        - Query execution time analysis
-        - Cluster utilization metrics
-        - SQL warehouse performance
-        - Spark job optimization
-        - Cache hit rate tracking
-        - Query queue analysis
-        
-        Common questions users ask:
-        - "What are the slowest queries today?"
-        - "Which warehouses have low cache hit rates?"
-        - "Show cluster utilization this week"
-        - "Are there any queries timing out?"
-        - "Which jobs have performance regressions?"
-        
-        Key metrics: avg_duration_seconds, p95_duration_seconds, cache_hit_rate, queue_time
-        """,
-        "doc_uri": "health_monitor://domains/performance"
-    },
-    {
-        "content": """
-        Performance optimization and bottleneck detection.
-        
-        Optimization opportunities:
-        - Queries without clustering keys
-        - Missing Z-ORDER optimization
-        - Inefficient join patterns
-        - Full table scans on large tables
-        - Suboptimal file sizes
-        
-        Cluster tuning:
-        - Right-size worker nodes
-        - Optimize Spark configurations
-        - Enable Photon acceleration
-        - Configure auto-termination
-        """,
-        "doc_uri": "health_monitor://domains/performance/optimization"
-    },
-    
-    # ===========================================================================
-    # RELIABILITY DOMAIN
-    # ===========================================================================
-    {
-        "content": """
-        The Reliability domain tracks job execution and pipeline health.
-        
-        Key capabilities:
-        - Job success/failure rates
-        - Pipeline run monitoring
-        - SLA compliance tracking
-        - Error categorization
-        - Retry pattern analysis
-        - Duration trend monitoring
-        
-        Common questions users ask:
-        - "Which jobs failed today?"
-        - "What is our SLA compliance this week?"
-        - "Show pipeline health across workspaces"
-        - "Which jobs have the highest failure rate?"
-        - "Are there any recurring errors?"
-        
-        Key metrics: success_rate, failure_rate, total_runs, avg_duration, error_count
-        """,
-        "doc_uri": "health_monitor://domains/reliability"
-    },
-    {
-        "content": """
-        Job failure analysis and root cause detection.
-        
-        Error categories:
-        - DRIVER_FAILED: Driver process crashed
-        - CLUSTER_FAILED: Cluster startup issues
-        - TIMEOUT: Job exceeded time limit
-        - USER_CANCELLED: Manually stopped
-        - DEPENDENCY_FAILED: Upstream failure
-        - OUT_OF_MEMORY: Resource exhaustion
-        
-        Reliability improvements:
-        - Configure job alerts
-        - Set up retry policies
-        - Implement circuit breakers
-        - Add health checks
-        """,
-        "doc_uri": "health_monitor://domains/reliability/failures"
-    },
-    
-    # ===========================================================================
-    # DATA QUALITY DOMAIN
-    # ===========================================================================
-    {
-        "content": """
-        The Data Quality domain monitors data freshness, completeness, and accuracy.
-        
-        Key capabilities:
-        - Data freshness monitoring (staleness detection)
-        - Schema drift detection
-        - Null rate tracking
-        - Duplicate detection
-        - Data volume monitoring
-        - Expectation validation results
-        
-        Common questions users ask:
-        - "Which tables have stale data?"
-        - "What tables have data quality issues?"
-        - "Show data freshness by schema"
-        - "Are there any schema changes today?"
-        - "Which pipelines have failing expectations?"
-        
-        Key metrics: freshness_hours, null_rate, duplicate_rate, row_count_change
-        """,
-        "doc_uri": "health_monitor://domains/quality"
-    },
-    {
-        "content": """
-        Data quality rules and validation framework.
-        
-        Quality checks:
-        - NOT_NULL constraints
-        - UNIQUE constraints
-        - RANGE checks (min/max values)
-        - PATTERN matching (regex)
-        - REFERENTIAL integrity
-        - CUSTOM expectations
-        
-        Monitoring features:
-        - Track quality score over time
-        - Alert on quality degradation
-        - Quarantine bad records
-        - Generate quality reports
-        """,
-        "doc_uri": "health_monitor://domains/quality/rules"
-    },
-    
-    # ===========================================================================
-    # UNIFIED/CROSS-DOMAIN
-    # ===========================================================================
-    {
-        "content": """
-        The Unified Health Monitor provides cross-domain analysis and insights.
-        
-        Key capabilities:
-        - Correlate cost with performance issues
-        - Link job failures to data quality problems
-        - Identify expensive and unreliable jobs
-        - Holistic platform health assessment
-        - Executive summary dashboards
-        
-        Common questions users ask:
-        - "Give me a complete health check"
-        - "Are expensive jobs also failing frequently?"
-        - "What's the overall platform status?"
-        - "Summarize issues across all domains"
-        - "What should I prioritize fixing?"
-        
-        The agent routes questions to the appropriate domain specialist
-        and can synthesize insights across multiple domains.
-        """,
-        "doc_uri": "health_monitor://domains/unified"
-    },
-])
-
-print(f"Created {len(DOMAIN_DOCUMENTS)} domain documents")
-display(DOMAIN_DOCUMENTS)
-
-# COMMAND ----------
-
-# ===========================================================================
-# AGENT DESCRIPTION
-# ===========================================================================
-
-AGENT_DESCRIPTION = """
-The Databricks Health Monitor Agent is an AI assistant that helps users understand
-and optimize their Databricks platform. It specializes in five domains:
-
-1. COST: Billing analysis, DBU consumption, budget tracking, cost optimization
-2. SECURITY: Audit logs, access patterns, compliance, threat detection
-3. PERFORMANCE: Query optimization, cluster utilization, cache efficiency
-4. RELIABILITY: Job monitoring, failure analysis, SLA compliance
-5. DATA QUALITY: Freshness monitoring, schema drift, data validation
-
-The agent uses Genie Spaces to query structured data in the Gold layer,
-providing accurate, data-driven insights rather than generic advice.
-
-Users are typically:
-- Data Engineers monitoring pipeline health
-- Platform Administrators managing costs and security
-- Data Scientists optimizing query performance
-- Engineering Managers tracking SLA compliance
-"""
-
-# ===========================================================================
-# QUESTION GUIDELINES
-# ===========================================================================
-
-QUESTION_GUIDELINES = """
-# User Personas
-- Data Engineer: Focuses on pipeline reliability and data quality
-- Platform Admin: Focuses on costs, security, and resource management
-- Data Scientist: Focuses on query performance and optimization
-- Engineering Manager: Focuses on SLAs and overall health
-
-# Question Types by Domain
-
-## Cost Domain
-- "Why did costs spike yesterday?"
-- "What are the top 10 most expensive jobs this month?"
-- "Show DBU usage by workspace for last quarter"
-- "Which teams are over budget?"
-- "Compare serverless vs classic compute costs"
-
-## Security Domain
-- "Who accessed sensitive data last week?"
-- "Show failed login attempts in the past 24 hours"
-- "What permissions changes were made this week?"
-- "Are there any unusual access patterns?"
-
-## Performance Domain
-- "What are the slowest queries today?"
-- "Show cluster utilization trends this week"
-- "Which warehouses have low cache hit rates?"
-- "Are there any queries timing out?"
-
-## Reliability Domain
-- "Which jobs failed today?"
-- "What is our SLA compliance this week?"
-- "Show pipeline health across all workspaces"
-- "Which jobs have the highest failure rate?"
-
-## Quality Domain
-- "Which tables have data quality issues?"
-- "Show data freshness by schema"
-- "What tables have stale data?"
-- "Are there any schema changes today?"
-
-## Cross-Domain
-- "Are expensive jobs also the ones failing frequently?"
-- "Give me a complete health check of the platform"
-- "What should I prioritize fixing?"
-
-# Additional Guidelines
-- Questions should be natural and human-like
-- Include both simple (single fact) and complex (analysis) questions
-- Cover different time ranges (today, this week, last month)
-- Include questions that require data from Genie Spaces
-"""
-
-# COMMAND ----------
-
-# ===========================================================================
-# GENERATE SYNTHETIC EVALUATION DATASET
-# ===========================================================================
-
-print("\n" + "=" * 60)
-print("GENERATING SYNTHETIC EVALUATION DATASET")
-print("=" * 60)
-
-# Estimate how many evals we can generate given the documents
-estimated_evals = estimate_synthetic_num_evals(
-    DOMAIN_DOCUMENTS,
-    eval_per_x_tokens=500  # Generate 1 eval per 500 tokens
-)
-print(f"Estimated possible evaluations: {estimated_evals}")
-print(f"Requested evaluations: {num_evals}")
-
-# Generate the synthetic dataset
-print("\nGenerating synthetic evaluations...")
-evals_df = generate_evals_df(
-    docs=DOMAIN_DOCUMENTS,
-    num_evals=min(num_evals, estimated_evals),
-    agent_description=AGENT_DESCRIPTION,
-    question_guidelines=QUESTION_GUIDELINES
-)
-
-print(f"\n✓ Generated {len(evals_df)} synthetic evaluations")
-display(evals_df)
-
-# COMMAND ----------
-
-# ===========================================================================
-# REGISTER DATASET TO MLFLOW
-# ===========================================================================
-
-print("\n" + "=" * 60)
-print("REGISTERING DATASET TO MLFLOW")
-print("=" * 60)
-
-# Create MLflow dataset from the DataFrame
-dataset_name = f"health_monitor_eval_synthetic_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
-with mlflow.start_run(run_name="create_evaluation_dataset"):
-    mlflow.set_tag("run_type", "dataset_creation")
-    
-    # Log the dataset as an MLflow artifact
-    # This makes it visible in the MLflow UI
-    mlflow_dataset = mlflow.data.from_pandas(
-        evals_df,
-        source=f"synthetic_generation_{num_evals}_evals",
-        name=dataset_name,
-    )
-    
-    # Log the dataset to the run
-    mlflow.log_input(mlflow_dataset, context="evaluation")
-    
-    # Also log parameters about the generation
-    mlflow.log_params({
-        "num_evals_requested": num_evals,
-        "num_evals_generated": len(evals_df),
-        "num_source_documents": len(DOMAIN_DOCUMENTS),
-        "dataset_name": dataset_name,
-    })
-    
-    print(f"✓ Registered dataset: {dataset_name}")
-
-# COMMAND ----------
-
-# ===========================================================================
-# SAVE TO UNITY CATALOG TABLE
-# ===========================================================================
-
-print("\n" + "=" * 60)
-print("SAVING TO UNITY CATALOG")
-print("=" * 60)
-
-# Convert to Spark DataFrame
-spark_df = spark.createDataFrame(evals_df)
-
-# Save to Unity Catalog
-table_name = f"{catalog}.{agent_schema}.evaluation_dataset_synthetic"
-
-# Create or replace the table
-spark_df.write.mode("overwrite").saveAsTable(table_name)
-
-print(f"✓ Saved to: {table_name}")
-print(f"  Total rows: {spark_df.count()}")
-
-# COMMAND ----------
-
-# ===========================================================================
-# ALSO CREATE MANUAL EVALUATION DATASET (Domain-Specific)
-# ===========================================================================
+# Hand-crafted evaluation questions with expected responses
+# These provide high-quality ground truth for evaluation
+# REQUIREMENT: At least 5 questions per domain for comprehensive coverage
 
 print("\n" + "=" * 60)
 print("CREATING MANUAL EVALUATION DATASET")
 print("=" * 60)
 
-# Hand-crafted evaluation questions with expected responses
-# These provide high-quality ground truth for evaluation
 MANUAL_EVALS = [
-    # COST DOMAIN
+    # ===========================================================================
+    # COST DOMAIN (6 questions)
+    # ===========================================================================
     {
         "inputs": {"messages": [{"role": "user", "content": "Why did costs spike yesterday?"}]},
         "expectations": {
@@ -551,8 +109,49 @@ MANUAL_EVALS = [
         "category": "cost",
         "difficulty": "moderate"
     },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What is our serverless vs classic compute cost ratio?"}]},
+        "expectations": {
+            "expected_domains": ["cost"],
+            "expected_facts": [
+                "Should break down serverless costs",
+                "Should break down classic compute costs",
+                "Should show ratio or percentage comparison"
+            ]
+        },
+        "category": "cost",
+        "difficulty": "moderate"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Show DBU consumption trends over the last 7 days"}]},
+        "expectations": {
+            "expected_domains": ["cost"],
+            "expected_facts": [
+                "Should show daily DBU consumption",
+                "Should identify trends (increasing/decreasing)",
+                "Should cover 7-day timeframe"
+            ]
+        },
+        "category": "cost",
+        "difficulty": "simple"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Which workspaces have the highest untagged spend?"}]},
+        "expectations": {
+            "expected_domains": ["cost"],
+            "expected_facts": [
+                "Should identify workspaces",
+                "Should show untagged cost amounts",
+                "Should rank by highest untagged spend"
+            ]
+        },
+        "category": "cost",
+        "difficulty": "moderate"
+    },
     
-    # SECURITY DOMAIN
+    # ===========================================================================
+    # SECURITY DOMAIN (6 questions)
+    # ===========================================================================
     {
         "inputs": {"messages": [{"role": "user", "content": "Who accessed sensitive data last week?"}]},
         "expectations": {
@@ -579,8 +178,62 @@ MANUAL_EVALS = [
         "category": "security",
         "difficulty": "simple"
     },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What permissions were changed yesterday?"}]},
+        "expectations": {
+            "expected_domains": ["security"],
+            "expected_facts": [
+                "Should list permission changes",
+                "Should identify who made changes",
+                "Should show what was changed"
+            ]
+        },
+        "category": "security",
+        "difficulty": "moderate"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are there any unusual access patterns today?"}]},
+        "expectations": {
+            "expected_domains": ["security"],
+            "expected_facts": [
+                "Should identify anomalous activity",
+                "Should describe what makes it unusual",
+                "Should mention users or resources involved"
+            ]
+        },
+        "category": "security",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Which service principals are most active?"}]},
+        "expectations": {
+            "expected_domains": ["security"],
+            "expected_facts": [
+                "Should list service principal names",
+                "Should show activity counts",
+                "Should rank by activity level"
+            ]
+        },
+        "category": "security",
+        "difficulty": "simple"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Show audit events for data deletions this week"}]},
+        "expectations": {
+            "expected_domains": ["security"],
+            "expected_facts": [
+                "Should filter for delete operations",
+                "Should list affected resources",
+                "Should identify who performed deletions"
+            ]
+        },
+        "category": "security",
+        "difficulty": "moderate"
+    },
     
-    # PERFORMANCE DOMAIN
+    # ===========================================================================
+    # PERFORMANCE DOMAIN (6 questions)
+    # ===========================================================================
     {
         "inputs": {"messages": [{"role": "user", "content": "What are the slowest queries today?"}]},
         "expectations": {
@@ -607,8 +260,62 @@ MANUAL_EVALS = [
         "category": "performance",
         "difficulty": "moderate"
     },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are there any performance regressions this week?"}]},
+        "expectations": {
+            "expected_domains": ["performance"],
+            "expected_facts": [
+                "Should compare current vs historical performance",
+                "Should identify degraded queries or jobs",
+                "Should quantify the regression"
+            ]
+        },
+        "category": "performance",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What is the average query latency by warehouse?"}]},
+        "expectations": {
+            "expected_domains": ["performance"],
+            "expected_facts": [
+                "Should group by warehouse",
+                "Should show average latency metrics",
+                "Should enable comparison across warehouses"
+            ]
+        },
+        "category": "performance",
+        "difficulty": "simple"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Which jobs are running longer than usual?"}]},
+        "expectations": {
+            "expected_domains": ["performance"],
+            "expected_facts": [
+                "Should identify outlier job durations",
+                "Should compare to historical baseline",
+                "Should list affected jobs"
+            ]
+        },
+        "category": "performance",
+        "difficulty": "moderate"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Show cluster utilization metrics for the past week"}]},
+        "expectations": {
+            "expected_domains": ["performance"],
+            "expected_facts": [
+                "Should show CPU/memory utilization",
+                "Should identify over/under-utilized clusters",
+                "Should cover 7-day timeframe"
+            ]
+        },
+        "category": "performance",
+        "difficulty": "moderate"
+    },
     
-    # RELIABILITY DOMAIN
+    # ===========================================================================
+    # RELIABILITY DOMAIN (6 questions)
+    # ===========================================================================
     {
         "inputs": {"messages": [{"role": "user", "content": "Which jobs failed today?"}]},
         "expectations": {
@@ -635,8 +342,62 @@ MANUAL_EVALS = [
         "category": "reliability",
         "difficulty": "moderate"
     },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What is the job success rate by workspace?"}]},
+        "expectations": {
+            "expected_domains": ["reliability"],
+            "expected_facts": [
+                "Should calculate success rates",
+                "Should group by workspace",
+                "Should enable comparison"
+            ]
+        },
+        "category": "reliability",
+        "difficulty": "moderate"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Show recurring job failures this week"}]},
+        "expectations": {
+            "expected_domains": ["reliability"],
+            "expected_facts": [
+                "Should identify repeatedly failing jobs",
+                "Should show failure frequency",
+                "Should help prioritize fixes"
+            ]
+        },
+        "category": "reliability",
+        "difficulty": "moderate"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Which pipelines have the most retries?"}]},
+        "expectations": {
+            "expected_domains": ["reliability"],
+            "expected_facts": [
+                "Should list pipeline names",
+                "Should count retries",
+                "Should rank by retry count"
+            ]
+        },
+        "category": "reliability",
+        "difficulty": "simple"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are there any jobs with degraded reliability?"}]},
+        "expectations": {
+            "expected_domains": ["reliability"],
+            "expected_facts": [
+                "Should compare current vs historical reliability",
+                "Should identify degraded jobs",
+                "Should quantify the degradation"
+            ]
+        },
+        "category": "reliability",
+        "difficulty": "complex"
+    },
     
-    # QUALITY DOMAIN
+    # ===========================================================================
+    # QUALITY DOMAIN (6 questions)
+    # ===========================================================================
     {
         "inputs": {"messages": [{"role": "user", "content": "Which tables have stale data?"}]},
         "expectations": {
@@ -663,8 +424,62 @@ MANUAL_EVALS = [
         "category": "quality",
         "difficulty": "moderate"
     },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are there any null rate anomalies?"}]},
+        "expectations": {
+            "expected_domains": ["quality"],
+            "expected_facts": [
+                "Should identify columns with unexpected nulls",
+                "Should compare to baseline null rates",
+                "Should flag anomalies"
+            ]
+        },
+        "category": "quality",
+        "difficulty": "moderate"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Show data freshness for all monitored tables"}]},
+        "expectations": {
+            "expected_domains": ["quality"],
+            "expected_facts": [
+                "Should list all monitored tables",
+                "Should show last update times",
+                "Should indicate freshness status"
+            ]
+        },
+        "category": "quality",
+        "difficulty": "simple"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Which columns have schema drift?"}]},
+        "expectations": {
+            "expected_domains": ["quality"],
+            "expected_facts": [
+                "Should identify columns with type changes",
+                "Should show old vs new schema",
+                "Should list affected tables"
+            ]
+        },
+        "category": "quality",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What is our data quality score across domains?"}]},
+        "expectations": {
+            "expected_domains": ["quality"],
+            "expected_facts": [
+                "Should provide aggregate quality metrics",
+                "Should break down by data domain",
+                "Should enable comparison"
+            ]
+        },
+        "category": "quality",
+        "difficulty": "moderate"
+    },
     
-    # CROSS-DOMAIN
+    # ===========================================================================
+    # CROSS-DOMAIN (Complex multi-domain questions)
+    # ===========================================================================
     {
         "inputs": {"messages": [{"role": "user", "content": "Are expensive jobs also the ones failing frequently?"}]},
         "expectations": {
@@ -692,36 +507,123 @@ MANUAL_EVALS = [
         "category": "cross_domain",
         "difficulty": "complex"
     },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What's the relationship between query performance and data quality?"}]},
+        "expectations": {
+            "expected_domains": ["performance", "quality"],
+            "expected_facts": [
+                "Should analyze performance on low-quality tables",
+                "Should identify quality issues affecting performance",
+                "Should provide insights on correlation"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Show me a summary of issues requiring immediate attention"}]},
+        "expectations": {
+            "expected_domains": ["cost", "security", "performance", "reliability", "quality"],
+            "expected_facts": [
+                "Should prioritize by severity",
+                "Should list actionable issues",
+                "Should cover multiple domains"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
 ]
 
 # Convert to DataFrame
 manual_evals_df = pd.DataFrame(MANUAL_EVALS)
 print(f"Created {len(manual_evals_df)} manual evaluations")
+print(f"  Categories: {list(manual_evals_df['category'].unique())}")
+print(f"  Difficulties: {list(manual_evals_df['difficulty'].unique())}")
 
-# Register to MLflow
-with mlflow.start_run(run_name="create_manual_evaluation_dataset"):
-    mlflow.set_tag("run_type", "dataset_creation")
-    
-    mlflow_manual_dataset = mlflow.data.from_pandas(
-        manual_evals_df,
-        source="manual_curation",
-        name="health_monitor_eval_manual",
-    )
-    
-    mlflow.log_input(mlflow_manual_dataset, context="evaluation")
-    
-    mlflow.log_params({
-        "num_evals": len(manual_evals_df),
-        "categories": list(manual_evals_df["category"].unique()),
-        "difficulties": list(manual_evals_df["difficulty"].unique()),
-    })
-    
-    print(f"✓ Registered manual dataset")
+# COMMAND ----------
 
-# Save to Unity Catalog
-manual_table_name = f"{catalog}.{agent_schema}.evaluation_dataset_manual"
-spark.createDataFrame(manual_evals_df).write.mode("overwrite").saveAsTable(manual_table_name)
-print(f"✓ Saved to: {manual_table_name}")
+# ===========================================================================
+# CONVERT TO MLFLOW EVALUATION RECORDS FORMAT
+# ===========================================================================
+
+def convert_to_eval_records(df):
+    """Convert DataFrame to MLflow GenAI evaluation records format.
+    
+    Uses "query" as the input key to match:
+    - Built-in MLflow scorers (RelevanceToQuery expects inputs.query)
+    - Custom scorers in deployment_job.py
+    """
+    records = []
+    columns = df.columns.tolist()
+    
+    for _, row in df.iterrows():
+        # Extract query from nested message format
+        query = ""
+        inputs_val = row["inputs"] if "inputs" in columns else None
+        if isinstance(inputs_val, dict):
+            messages = inputs_val.get("messages", [])
+            if messages and isinstance(messages[0], dict):
+                query = messages[0].get("content", "")
+        elif inputs_val:
+            query = str(inputs_val)
+        
+        expectations_val = row["expectations"] if "expectations" in columns else {}
+        category_val = row["category"] if "category" in columns else "unknown"
+        difficulty_val = row["difficulty"] if "difficulty" in columns else "moderate"
+        
+        record = {
+            "inputs": {
+                "query": query,  # CRITICAL: Use "query" not "question"
+                "category": category_val,
+                "difficulty": difficulty_val,
+            },
+            "expectations": expectations_val
+        }
+        records.append(record)
+    
+    return records
+
+# COMMAND ----------
+
+# ===========================================================================
+# CREATE MLFLOW GENAI EVALUATION DATASET
+# ===========================================================================
+
+dataset_name = f"{catalog}.{agent_schema}.eval_dataset_manual"
+
+print(f"\n📊 Creating evaluation dataset: {dataset_name}")
+
+# Delete existing dataset to ensure clean state
+try:
+    mlflow_datasets.delete_dataset(name=dataset_name)
+    print(f"  ✓ Deleted existing dataset")
+except Exception as e:
+    print(f"  No existing dataset found: {str(e)[:100]}")
+
+# Create fresh dataset
+print(f"  Creating new dataset...")
+dataset = mlflow_datasets.create_dataset(name=dataset_name)
+print(f"  ✓ Created dataset: {dataset_name}")
+
+# Convert and add records
+records = convert_to_eval_records(manual_evals_df)
+print(f"\n  Adding {len(records)} records...")
+
+# Validate records before adding
+valid_records = []
+for i, r in enumerate(records):
+    query = r.get("inputs", {}).get("query", "")
+    if query and query.strip():
+        valid_records.append(r)
+    else:
+        print(f"  ⚠ Skipping record {i} with empty query")
+
+if valid_records:
+    dataset.merge_records(valid_records)
+    print(f"  ✓ Added {len(valid_records)} records")
+else:
+    print(f"  ⚠ WARNING: No valid records!")
 
 # COMMAND ----------
 
@@ -730,25 +632,22 @@ print(f"✓ Saved to: {manual_table_name}")
 # ===========================================================================
 
 print("\n" + "=" * 70)
-print("EVALUATION DATASET CREATION SUMMARY")
+print("EVALUATION DATASET CREATION COMPLETE")
 print("=" * 70)
 
-print("\n📊 Datasets Created:")
-print(f"  1. Synthetic Dataset: {len(evals_df)} evaluations")
-print(f"     → Table: {table_name}")
-print(f"  2. Manual Dataset: {len(manual_evals_df)} evaluations")
-print(f"     → Table: {manual_table_name}")
+print(f"\n📊 Dataset: {dataset_name}")
+print(f"   Records: {len(valid_records)}")
+print(f"   Categories: {list(manual_evals_df['category'].unique())}")
+print(f"   Questions per domain:")
+for cat in manual_evals_df['category'].unique():
+    count = len(manual_evals_df[manual_evals_df['category'] == cat])
+    print(f"     • {cat}: {count}")
 
-print("\n📍 View in MLflow UI:")
-print(f"  Experiment: {experiment_path}")
-print(f"  Tab: Datasets")
+print(f"\n✨ Dataset visible in MLflow UI:")
+print(f"   Experiment: {experiment_path}")
+print(f"   → Navigate to Experiment → Datasets tab")
 
-print("\n🔧 Usage:")
-print(f"  # Load synthetic dataset")
-print(f"  evals = spark.table('{table_name}').toPandas()")
-print(f"  mlflow.evaluate(model=agent, data=evals, model_type='databricks-agent')")
+print("\n" + "=" * 70)
 
-print("=" * 70)
-
+# Return success
 dbutils.notebook.exit("SUCCESS")
-

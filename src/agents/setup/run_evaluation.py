@@ -144,8 +144,8 @@ def evaluate_agent(catalog: str, agent_schema: str) -> Dict[str, Any]:
     from datetime import datetime
     
     model_name = f"{catalog}.{agent_schema}.health_monitor_agent"
-    # Use consolidated experiment (single experiment for all agent runs)
-    experiment_path = "/Shared/health_monitor/agent"
+    # Use dedicated evaluation experiment
+    experiment_path = "/Shared/health_monitor_agent_evaluation"
     
     print(f"\nEvaluating: {model_name}")
     print(f"Experiment: {experiment_path}")
@@ -199,9 +199,19 @@ def evaluate_agent(catalog: str, agent_schema: str) -> Dict[str, Any]:
     total_relevance = 0.0
     total_safety = 0.0
     
-    with mlflow.start_run(run_name="agent_evaluation") as run:
-        # Tag this run as evaluation type for filtering in consolidated experiment
-        mlflow.set_tag("run_type", "evaluation")
+    # Generate run name with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    run_name_with_ts = f"eval_setup_{timestamp}"
+    
+    with mlflow.start_run(run_name=run_name_with_ts) as run:
+        # Standard tags for filtering and organization
+        mlflow.set_tags({
+            "run_type": "evaluation",
+            "evaluation_type": "setup_script",
+            "domain": "all",
+            "agent_version": "v4.0",
+            "dataset_type": "evaluation",
+        })
         
         # Link to LoggedModel if available
         if active_model_info:

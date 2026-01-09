@@ -1,10 +1,16 @@
 # Dashboard Deployment Job
-# Deploys all Lakeview AI/BI Dashboards for Health Monitor
+# Validates and deploys all Lakeview AI/BI Dashboards for Health Monitor
 #
 # Workflow:
-#   1. Validate SQL queries (catches errors before deployment)
+#   1. Validate dashboards (catches whackamole regressions before deployment)
+#      - Column name mismatches (duration_ms vs total_duration_ms)
+#      - Widget field errors (warehouse vs warehouse_name)
+#      - Missing parameters (checks global + dataset level)
+#      - Databricks-specific issues (fact_query_history column names)
 #   2. Deploy 5 domain dashboards (Cost, Performance, Quality, Security, Reliability)
 #   3. Deploy unified dashboard (combines overview pages from all domains)
+#
+# ⚠️  Deployment is BLOCKED if validation finds errors
 #
 # Domain Dashboards:
 #   - 💰 Cost: cost_management, commit_tracking
@@ -26,8 +32,15 @@ resources:
     dashboard_deployment_job:
       name: "[${bundle.target}] Health Monitor - Dashboard Deployment"
       description: |
-        Validates and deploys all AI/BI Lakeview dashboards.
-        First validates SQL queries, then deploys domain dashboards, then unified dashboard.
+        Validates and deploys all AI/BI Lakeview dashboards with whackamole prevention.
+        
+        Validation catches:
+        - Column name mismatches (duration_ms vs total_duration_ms)
+        - Widget field errors (warehouse vs warehouse_name)  
+        - Missing parameters (global + dataset level)
+        - Databricks-specific issues
+        
+        Deployment blocked if validation fails.
 
       # ✅ MANDATORY: Serverless environment configuration
       environments:
@@ -36,17 +49,22 @@ resources:
             environment_version: "4"
 
       tasks:
-        # Task 1: Validate all SQL queries FIRST (optional - use dashboard_validation_job for standalone validation)
-        # - task_key: validate_sql_queries
-        #   environment_key: default
-        #   notebook_task:
-        #     notebook_path: ../../src/dashboards/validate_dashboard_queries.py
-        #     base_parameters:
-        #       catalog: ${var.catalog}
-        #       gold_schema: ${var.gold_schema}
+        # Task 1: Validate all dashboards FIRST (prevents whackamole regressions)
+        # MODE: Warning-Only with Baseline Tracking (148 errors as of 2026-01-08)
+        # - If errors <= 148: Warn but allow deployment (no NEW errors)
+        # - If errors > 148: BLOCK deployment (regression detected!)
+        # - Automatically switches to full blocking when errors reach 0
+        - task_key: validate_dashboards
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../scripts/validate_dashboards_notebook.py
+            base_parameters:
+              dashboards_dir: src/dashboards
 
-        # Task 2: Deploy all dashboards (domain + unified)
+        # Task 2: Deploy all dashboards (domain + unified) - ONLY if validation passes
         - task_key: deploy_all_dashboards
+          depends_on:
+            - task_key: validate_dashboards
           environment_key: default
           notebook_task:
             notebook_path: ../../src/dashboards/deploy_dashboards.py

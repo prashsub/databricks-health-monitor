@@ -20,9 +20,10 @@ catalog = dbutils.widgets.get("catalog")
 import mlflow
 import mlflow.genai
 
-# Use consolidated experiment (single experiment for all agent runs)
-experiment_name = "/Shared/health_monitor/agent"
-mlflow.set_experiment(experiment_name)
+# NOTE: Prompt registration doesn't log to experiments
+# Prompts are registered directly to MLflow Prompt Registry
+# This is configuration management, not experimentation
+print("✓ Prompts will be registered to MLflow Prompt Registry (no experiment run)")
 
 # COMMAND ----------
 

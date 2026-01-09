@@ -1654,6 +1654,22 @@
                       "expression": "`owner`"
                     },
                     {
+                      "name": "affected_jobs_count",
+                      "expression": "`affected_jobs_count`"
+                    },
+                    {
+                      "name": "affected_tables",
+                      "expression": "`affected_tables`"
+                    },
+                    {
+                      "name": "downstream_jobs",
+                      "expression": "`downstream_jobs`"
+                    },
+                    {
+                      "name": "notify_owners",
+                      "expression": "`notify_owners`"
+                    },
+                    {
                       "name": "tags",
                       "expression": "`tags`"
                     },
@@ -1690,8 +1706,24 @@
                     "type": "string"
                   },
                   {
-                    "fieldName": "tags",
-                    "title": "Tags",
+                    "fieldName": "affected_jobs_count",
+                    "title": "Impact (Jobs)",
+                    "type": "number",
+                    "numberFormat": "#,###"
+                  },
+                  {
+                    "fieldName": "affected_tables",
+                    "title": "Blocked Tables",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "downstream_jobs",
+                    "title": "Downstream Jobs",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "notify_owners",
+                    "title": "Notify Owners",
                     "type": "string"
                   },
                   {
@@ -1708,7 +1740,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "\ud83d\udd34 Failed Jobs Today (with Owner & Dependencies)"
+                "title": "\ud83d\udd34 Failed Jobs Today (with Downstream Impact)"
               }
             }
           },
@@ -5236,7 +5268,7 @@
     {
       "name": "ds_failed_today",
       "displayName": "Failed Today",
-      "query": "SELECT \n  COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name,\n  COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n  f.termination_code,\n  f.run_date AS run_time,\n  ROUND(f.run_duration_seconds / 60.0, 1) AS duration_minutes,\n  COALESCE(u.email, j.run_as, j.creator_id, 'Unknown') AS owner,\n  COALESCE(j.tags_json, '{}') AS tags\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline f\nLEFT JOIN ${catalog}.${gold_schema}.dim_job j \n  ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id\nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w \n  ON f.workspace_id = w.workspace_id\nLEFT JOIN ${catalog}.${gold_schema}.dim_user u \n  ON CAST(COALESCE(j.run_as, j.creator_id) AS STRING) = u.user_id\nWHERE f.run_date BETWEEN :time_range.min AND :time_range.max\n  AND f.termination_code IS NOT NULL \n  AND f.termination_code NOT IN ('SUCCESS', 'SKIPPED')\n  AND (ARRAY_CONTAINS(:param_workspace, 'all') OR ARRAY_CONTAINS(:param_workspace, w.workspace_name))\nORDER BY f.run_date DESC\nLIMIT 50",
+      "query": "-- Failed Jobs with Lineage-Based Downstream Impact Analysis\nWITH failed_jobs AS (\n  SELECT \n    f.workspace_id,\n    f.job_id,\n    COALESCE(j.name, CAST(f.job_id AS STRING)) AS job_name,\n    f.run_date,\n    f.termination_code,\n    f.run_duration_seconds,\n    COALESCE(u.email, j.run_as, j.creator_id, 'Unknown') AS owner,\n    COALESCE(j.tags_json, '{}') AS tags\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j \n    ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_user u \n    ON CAST(COALESCE(j.run_as, j.creator_id) AS STRING) = u.user_id\n  WHERE f.run_date BETWEEN :time_range.min AND :time_range.max\n    AND f.termination_code IS NOT NULL \n    AND f.termination_code NOT IN ('SUCCESS', 'SKIPPED')\n),\n-- Tables written by failed jobs\nfailed_job_outputs AS (\n  SELECT DISTINCT\n    fj.workspace_id,\n    fj.job_id,\n    l.target_table_full_name AS output_table\n  FROM failed_jobs fj\n  JOIN system.access.table_lineage l\n    ON CAST(fj.job_id AS STRING) = l.entity_id\n    AND fj.workspace_id = l.workspace_id\n    AND l.entity_type = 'JOB'\n    AND l.target_table_full_name IS NOT NULL\n    AND l.event_date >= CURRENT_DATE() - INTERVAL 90 DAYS\n),\n-- Downstream jobs that read those tables\ndownstream_dependencies AS (\n  SELECT\n    fjo.workspace_id AS failed_workspace_id,\n    fjo.job_id AS failed_job_id,\n    fjo.output_table AS affected_table,\n    l.entity_id AS downstream_job_id,\n    dj.name AS downstream_job_name,\n    COALESCE(du.email, dj.run_as, dj.creator_id, 'Unknown') AS downstream_owner\n  FROM failed_job_outputs fjo\n  JOIN system.access.table_lineage l\n    ON fjo.output_table = l.source_table_full_name\n    AND l.entity_type = 'JOB'\n    AND l.source_table_full_name IS NOT NULL\n    AND l.event_date >= CURRENT_DATE() - INTERVAL 90 DAYS\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job dj \n    ON l.workspace_id = dj.workspace_id \n    AND CAST(l.entity_id AS STRING) = CAST(dj.job_id AS STRING)\n  LEFT JOIN ${catalog}.${gold_schema}.dim_user du \n    ON CAST(COALESCE(dj.run_as, dj.creator_id) AS STRING) = du.user_id\n  WHERE l.entity_id != CAST(fjo.job_id AS STRING)\n)\n-- Final aggregation with impact analysis\nSELECT\n  fj.job_name,\n  COALESCE(w.workspace_name, CAST(fj.workspace_id AS STRING)) AS workspace_name,\n  fj.termination_code,\n  fj.run_date AS run_time,\n  ROUND(fj.run_duration_seconds / 60.0, 1) AS duration_minutes,\n  fj.owner,\n  fj.tags,\n  COALESCE(COUNT(DISTINCT dd.downstream_job_id), 0) AS affected_jobs_count,\n  CASE \n    WHEN COUNT(DISTINCT dd.affected_table) > 0 \n    THEN CONCAT_WS(', ', COLLECT_SET(dd.affected_table))\n    ELSE 'None'\n  END AS affected_tables,\n  CASE \n    WHEN COUNT(DISTINCT dd.downstream_job_name) > 0 \n    THEN CONCAT_WS(', ', COLLECT_SET(dd.downstream_job_name))\n    ELSE 'None'\n  END AS downstream_jobs,\n  CASE \n    WHEN COUNT(DISTINCT dd.downstream_owner) > 0 \n    THEN CONCAT_WS(', ', COLLECT_SET(dd.downstream_owner))\n    ELSE 'None'\n  END AS notify_owners\nFROM failed_jobs fj\nLEFT JOIN ${catalog}.${gold_schema}.dim_workspace w \n  ON fj.workspace_id = w.workspace_id\nLEFT JOIN downstream_dependencies dd \n  ON fj.workspace_id = dd.failed_workspace_id \n  AND fj.job_id = dd.failed_job_id\nWHERE (ARRAY_CONTAINS(:param_workspace, 'all') OR ARRAY_CONTAINS(:param_workspace, w.workspace_name))\nGROUP BY \n  fj.job_name, \n  w.workspace_name, \n  fj.workspace_id,\n  fj.termination_code, \n  fj.run_date, \n  fj.run_duration_seconds,\n  fj.owner, \n  fj.tags\nORDER BY affected_jobs_count DESC, fj.run_date DESC\nLIMIT 50",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5786,7 +5818,7 @@
     {
       "name": "ds_monitor_latest",
       "displayName": "Monitor: Latest",
-      "query": "SELECT \n  ROUND(COALESCE(success_rate, 0), 1) AS success_rate_pct,\n  COALESCE(total_runs, 0) AS total_runs,\n  ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window.start DESC\nLIMIT 1",
+      "query": "-- Latest reliability metrics calculated from fact_job_run_timeline\nSELECT \n  ROUND(100.0 * SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS success_rate_pct,\n  COUNT(*) AS total_runs,\n  ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY run_duration_seconds) / 60.0, 1) AS p95_duration\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE run_date >= :time_range.min\n  AND run_date <= :time_range.max",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5810,7 +5842,7 @@
     {
       "name": "ds_monitor_trend",
       "displayName": "Monitor: Trend",
-      "query": "SELECT \n  window.start AS window_start,\n  ROUND(COALESCE(success_rate, 0), 1) AS success_rate,\n  ROUND(COALESCE(failure_rate, 0), 1) AS failure_rate,\n  ROUND(COALESCE(timeout_rate, 0), 1) AS timeout_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start",
+      "query": "-- Reliability rate trends over time calculated from fact_job_run_timeline\nSELECT \n  run_date AS window_start,\n  ROUND(100.0 * SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS success_rate,\n  ROUND(100.0 * SUM(CASE WHEN result_state IN ('FAILED', 'ERROR') THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS failure_rate,\n  ROUND(100.0 * SUM(CASE WHEN result_state = 'TIMEDOUT' OR termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS timeout_rate\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE run_date >= :time_range.min\n  AND run_date <= :time_range.max\nGROUP BY run_date\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5834,7 +5866,7 @@
     {
       "name": "ds_monitor_duration",
       "displayName": "Monitor: Duration",
-      "query": "SELECT \n  window.start AS window_start,\n  ROUND(COALESCE(avg_duration_minutes, 0), 1) AS avg_duration,\n  ROUND(COALESCE(p50_duration_minutes, 0), 1) AS p50_duration,\n  ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration,\n  ROUND(COALESCE(p99_duration_minutes, 0), 1) AS p99_duration\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start",
+      "query": "-- Duration percentiles calculated from fact_job_run_timeline\nSELECT \n  run_date AS window_start,\n  ROUND(AVG(run_duration_seconds) / 60.0, 1) AS avg_duration,\n  ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY run_duration_seconds) / 60.0, 1) AS p50_duration,\n  ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY run_duration_seconds) / 60.0, 1) AS p95_duration,\n  ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY run_duration_seconds) / 60.0, 1) AS p99_duration\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE run_date >= :time_range.min\n  AND run_date <= :time_range.max\nGROUP BY run_date\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5858,7 +5890,7 @@
     {
       "name": "ds_monitor_run_types",
       "displayName": "Monitor: Run Types",
-      "query": "SELECT \n  window.start AS window_start,\n  COALESCE(scheduled_runs, 0) AS scheduled_runs,\n  COALESCE(manual_runs, 0) AS manual_runs,\n  COALESCE(retry_runs, 0) AS retry_runs\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start",
+      "query": "-- Run type breakdown calculated from fact_job_run_timeline\nSELECT \n  run_date AS window_start,\n  SUM(CASE WHEN trigger_type = 'SCHEDULED' OR trigger_type = 'PERIODIC' THEN 1 ELSE 0 END) AS scheduled_runs,\n  SUM(CASE WHEN trigger_type = 'MANUAL' OR trigger_type = 'ONE_TIME' THEN 1 ELSE 0 END) AS manual_runs,\n  SUM(CASE WHEN trigger_type = 'RETRY' THEN 1 ELSE 0 END) AS retry_runs\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE run_date >= :time_range.min\n  AND run_date <= :time_range.max\nGROUP BY run_date\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5882,7 +5914,7 @@
     {
       "name": "ds_monitor_errors",
       "displayName": "Monitor: Errors",
-      "query": "SELECT \n  window.start AS window_start,\n  COALESCE(timeout_count, 0) AS timeout_count,\n  COALESCE(cancelled_count, 0) AS cancelled_count,\n  COALESCE(internal_error_count, 0) AS internal_error_count\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start",
+      "query": "-- Error type breakdown calculated from fact_job_run_timeline\nSELECT \n  run_date AS window_start,\n  SUM(CASE WHEN result_state = 'TIMEDOUT' OR termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) AS timeout_count,\n  SUM(CASE WHEN result_state = 'CANCELED' OR termination_code = 'USER_CANCELLED' THEN 1 ELSE 0 END) AS cancelled_count,\n  SUM(CASE WHEN result_state = 'INTERNAL_ERROR' OR termination_code = 'INTERNAL_ERROR' THEN 1 ELSE 0 END) AS internal_error_count\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE run_date >= :time_range.min\n  AND run_date <= :time_range.max\nGROUP BY run_date\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5906,7 +5938,7 @@
     {
       "name": "ds_monitor_drift",
       "displayName": "Monitor: Drift",
-      "query": "SELECT \n  window.start AS window_start,\n  ROUND(COALESCE(success_rate_drift, 0), 2) AS success_rate_drift,\n  ROUND(COALESCE(duration_drift_pct, 0), 2) AS duration_drift,\n  ROUND(COALESCE(run_count_drift_pct, 0), 2) AS volume_drift\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND drift_type = 'CONSECUTIVE'\n  AND slice_key IS NULL\nORDER BY window.start",
+      "query": "-- Drift metrics calculated as % change from previous day\nWITH daily_metrics AS (\n  SELECT \n    run_date AS window_start,\n    100.0 * SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) AS success_rate,\n    AVG(run_duration_seconds) / 60.0 AS avg_duration,\n    COUNT(*) AS run_count\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= :time_range.min - INTERVAL 1 DAY\n    AND run_date <= :time_range.max\n  GROUP BY run_date\n)\nSELECT \n  window_start,\n  ROUND(COALESCE(success_rate - LAG(success_rate) OVER (ORDER BY window_start), 0), 2) AS success_rate_drift,\n  ROUND(COALESCE(100.0 * (avg_duration - LAG(avg_duration) OVER (ORDER BY window_start)) / NULLIF(LAG(avg_duration) OVER (ORDER BY window_start), 0), 0), 2) AS duration_drift,\n  ROUND(COALESCE(100.0 * (run_count - LAG(run_count) OVER (ORDER BY window_start)) / NULLIF(LAG(run_count) OVER (ORDER BY window_start), 0), 0), 2) AS volume_drift\nFROM daily_metrics\nWHERE window_start >= :time_range.min\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "time_range",
@@ -5930,7 +5962,7 @@
     {
       "name": "ds_monitor_detailed",
       "displayName": "Monitor: Detailed",
-      "query": "SELECT \n  window.start AS window_start,\n  COALESCE(total_runs, 0) AS total_runs,\n  ROUND(COALESCE(success_rate, 0), 1) AS success_rate,\n  ROUND(COALESCE(failure_rate, 0), 1) AS failure_rate,\n  ROUND(COALESCE(p95_duration_minutes, 0), 1) AS p95_duration,\n  COALESCE(retry_runs, 0) AS retry_runs,\n  COALESCE(distinct_jobs, 0) AS distinct_jobs\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE window.start >= :time_range.min\n  AND column_name = ':table'\n  AND log_type = 'INPUT'\n  AND slice_key IS NULL\nORDER BY window_start DESC",
+      "query": "-- Detailed reliability metrics calculated from fact_job_run_timeline\nSELECT \n  run_date AS window_start,\n  COUNT(*) AS total_runs,\n  ROUND(100.0 * SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS success_rate,\n  ROUND(100.0 * SUM(CASE WHEN result_state IN ('FAILED', 'ERROR') THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS failure_rate,\n  ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY run_duration_seconds) / 60.0, 1) AS p95_duration,\n  SUM(CASE WHEN trigger_type = 'RETRY' THEN 1 ELSE 0 END) AS retry_runs,\n  COUNT(DISTINCT job_id) AS distinct_jobs\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE run_date >= :time_range.min\n  AND run_date <= :time_range.max\nGROUP BY run_date\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "time_range",
@@ -6232,7 +6264,7 @@
     {
       "name": "ds_monitor_reliability_aggregate",
       "displayName": "Reliability Aggregate Metrics",
-      "query": "-- Reliability aggregate metrics from fact_job_run_timeline\nSELECT\n  DATE(period_start_time) AS window_start,\n  COUNT(*) AS total_runs,\n  SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) AS success_count,\n  SUM(CASE WHEN result_state IN ('FAILED', 'ERROR') THEN 1 ELSE 0 END) AS failure_count,\n  SUM(CASE WHEN result_state = 'TIMEDOUT' OR termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) AS timeout_count,\n  COUNT(DISTINCT job_id) AS distinct_jobs\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE period_start_time >= :monitor_time_start\n  AND period_start_time <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\nGROUP BY DATE(period_start_time)\nORDER BY window_start DESC",
+      "query": "-- Reliability aggregate metrics from fact_job_run_timeline\nSELECT\n  run_date AS window_start,\n  COUNT(*) AS total_runs,\n  SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) AS success_count,\n  SUM(CASE WHEN result_state IN ('FAILED', 'ERROR') THEN 1 ELSE 0 END) AS failure_count,\n  SUM(CASE WHEN result_state = 'TIMEDOUT' OR termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) AS timeout_count,\n  COUNT(DISTINCT job_id) AS distinct_jobs\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE run_date >= :monitor_time_start\n  AND run_date <= COALESCE(:monitor_time_end, CURRENT_DATE())\nGROUP BY run_date\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6299,7 +6331,7 @@
     {
       "name": "ds_monitor_reliability_derived",
       "displayName": "Reliability Derived KPIs",
-      "query": "SELECT \n  window.start AS window_start,\n  window.end AS window_end,\n  ROUND(COALESCE(success_rate, 0), 2) AS success_rate,\n  ROUND(COALESCE(failure_rate, 0), 2) AS failure_rate,\n  ROUND(COALESCE(timeout_rate, 0), 2) AS timeout_rate\nFROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\nWHERE column_name = ':table'\n  AND log_type = 'INPUT'\n  AND window.start >= :monitor_time_start\n  AND window.end <= :monitor_time_end\n  AND COALESCE(slice_key, 'No Slice') = :monitor_slice_key\n  AND COALESCE(slice_value, 'No Slice') = :monitor_slice_value\nORDER BY window.start DESC",
+      "query": "-- Reliability derived KPIs calculated from fact_job_run_timeline\nSELECT \n  run_date AS window_start,\n  run_date + INTERVAL 1 DAY AS window_end,\n  ROUND(100.0 * SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 2) AS success_rate,\n  ROUND(100.0 * SUM(CASE WHEN result_state IN ('FAILED', 'ERROR') THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 2) AS failure_rate,\n  ROUND(100.0 * SUM(CASE WHEN result_state = 'TIMEDOUT' OR termination_code = 'TIMED_OUT' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 2) AS timeout_rate\nFROM ${catalog}.${gold_schema}.fact_job_run_timeline\nWHERE run_date >= :monitor_time_start\n  AND run_date <= COALESCE(:monitor_time_end, CURRENT_DATE())\nGROUP BY run_date\nORDER BY window_start DESC",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6366,7 +6398,7 @@
     {
       "name": "ds_monitor_reliability_drift",
       "displayName": "Reliability Drift Metrics",
-      "query": "-- Calculate week-over-week drift from fact_job_run_timeline\nWITH weekly_stats AS (\n  SELECT\n    DATE_TRUNC('week', period_start_time) AS week_start,\n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) AS successes,\n    ROUND(AVG(total_duration_ms / 60000.0), 2) AS avg_duration_min\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE period_start_time >= :monitor_time_start\n    AND period_start_time <= COALESCE(:monitor_time_end, CURRENT_TIMESTAMP())\n  GROUP BY DATE_TRUNC('week', period_start_time)\n),\ndrift_calc AS (\n  SELECT\n    week_start AS window_start,\n    total_runs,\n    successes,\n    avg_duration_min,\n    LAG(total_runs) OVER (ORDER BY week_start) AS prev_runs,\n    LAG(successes) OVER (ORDER BY week_start) AS prev_successes,\n    LAG(avg_duration_min) OVER (ORDER BY week_start) AS prev_duration\n  FROM weekly_stats\n)\nSELECT\n  window_start,\n  ROUND(CASE WHEN prev_successes > 0 THEN ((successes * 100.0 / total_runs) - (prev_successes * 100.0 / prev_runs)) ELSE 0 END, 2) AS success_rate_drift,\n  ROUND(CASE WHEN prev_duration > 0 THEN ((avg_duration_min - prev_duration) / prev_duration * 100) ELSE 0 END, 2) AS duration_drift,\n  ROUND(CASE WHEN prev_runs > 0 THEN ((total_runs - prev_runs) / prev_runs * 100.0) ELSE 0 END, 2) AS volume_drift\nFROM drift_calc\nWHERE prev_runs IS NOT NULL\nORDER BY window_start",
+      "query": "-- Calculate week-over-week drift from fact_job_run_timeline\nWITH weekly_stats AS (\n  SELECT\n    DATE_TRUNC('week', run_date) AS week_start,\n    COUNT(*) AS total_runs,\n    SUM(CASE WHEN result_state = 'SUCCESS' THEN 1 ELSE 0 END) AS successes,\n    ROUND(AVG(run_duration_seconds / 60.0), 2) AS avg_duration_min\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= :monitor_time_start\n    AND run_date <= COALESCE(:monitor_time_end, CURRENT_DATE())\n  GROUP BY DATE_TRUNC('week', run_date)\n),\ndrift_calc AS (\n  SELECT\n    week_start AS window_start,\n    total_runs,\n    successes,\n    avg_duration_min,\n    LAG(total_runs) OVER (ORDER BY week_start) AS prev_runs,\n    LAG(successes) OVER (ORDER BY week_start) AS prev_successes,\n    LAG(avg_duration_min) OVER (ORDER BY week_start) AS prev_duration\n  FROM weekly_stats\n)\nSELECT\n  window_start,\n  ROUND(CASE WHEN prev_successes > 0 THEN ((successes * 100.0 / total_runs) - (prev_successes * 100.0 / prev_runs)) ELSE 0 END, 2) AS success_rate_drift,\n  ROUND(CASE WHEN prev_duration > 0 THEN ((avg_duration_min - prev_duration) / prev_duration * 100) ELSE 0 END, 2) AS duration_drift,\n  ROUND(CASE WHEN prev_runs > 0 THEN ((total_runs - prev_runs) / prev_runs * 100.0) ELSE 0 END, 2) AS volume_drift\nFROM drift_calc\nWHERE prev_runs IS NOT NULL\nORDER BY window_start",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6433,7 +6465,7 @@
     {
       "name": "ds_monitor_reliability_slice_keys",
       "displayName": "Reliability Slice Keys",
-      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_key\n  FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_key IS NOT NULL\n)\nSELECT 'No Slice' AS slice_key\nUNION ALL\nSELECT slice_key FROM profile_metrics\nORDER BY slice_key",
+      "query": "-- Slicing not yet implemented - return default\nSELECT 'No Slice' AS slice_key",
       "parameters": [
         {
           "displayName": "monitor_time_start",
@@ -6470,7 +6502,7 @@
     {
       "name": "ds_monitor_reliability_slice_values",
       "displayName": "Reliability Slice Values",
-      "query": "WITH profile_metrics AS (\n  SELECT DISTINCT slice_value, COALESCE(slice_key, 'No Slice') AS sk\n  FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics\n  WHERE window.start >= :monitor_time_start \n    AND window.end <= :monitor_time_end\n    AND slice_value IS NOT NULL\n)\nSELECT 'No Slice' AS slice_value\nUNION ALL\nSELECT slice_value FROM profile_metrics WHERE sk = :monitor_slice_key\nORDER BY slice_value",
+      "query": "-- Slicing not yet implemented - return default\nSELECT 'No Slice' AS slice_value",
       "parameters": [
         {
           "displayName": "monitor_time_start",

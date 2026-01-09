@@ -28,7 +28,7 @@ Usage:
 
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import mlflow
 import mlflow.genai
@@ -188,7 +188,7 @@ class ProductionMonitor:
             alerts = self._generate_alerts(scores, overall_score, domains or [])
 
             result = AssessmentResult(
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 query=query,
                 response=response,
                 domains=domains or [],
@@ -354,7 +354,7 @@ class ProductionMonitor:
     ) -> AssessmentResult:
         """Create a placeholder result when monitoring is disabled."""
         return AssessmentResult(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             query=query,
             response=response,
             domains=domains,

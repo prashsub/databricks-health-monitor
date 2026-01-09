@@ -1,0 +1,119 @@
+# ██████████████████████████████████████████████████████████████████████████████
+# GENIE SPACES - BENCHMARK SQL VALIDATION JOB
+# ██████████████████████████████████████████████████████████████████████████████
+#
+# Standalone job to validate ALL 200+ benchmark SQL queries across 6 Genie Spaces
+# before deployment. This can be run independently during development/testing.
+#
+# ══════════════════════════════════════════════════════════════════════════════
+# WHAT IT VALIDATES
+# ══════════════════════════════════════════════════════════════════════════════
+#
+#   ✅ SQL syntax correctness
+#   ✅ Column resolution (columns exist in referenced tables/views)
+#   ✅ Table/view/function existence (TVFs, Metric Views, ML Tables)
+#   ✅ Function signatures (correct parameter types and counts)
+#   ✅ No ambiguous column references
+#   ✅ No type mismatches
+#
+# ══════════════════════════════════════════════════════════════════════════════
+# VALIDATION METHOD
+# ══════════════════════════════════════════════════════════════════════════════
+#
+#   - Uses EXPLAIN for each query (validates without data access)
+#   - Catches errors BEFORE deployment (fail-fast approach)
+#   - Prints detailed error logs to stdout for troubleshooting
+#   - Job FAILS if any query errors are found
+#
+# ══════════════════════════════════════════════════════════════════════════════
+# GENIE SPACES VALIDATED (200+ queries)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+#   1. 💰 Cost Intelligence (25 queries)
+#   2. 📊 Data Quality Monitor (20 queries)
+#   3. 🔄 Job Health Monitor (25 queries)
+#   4. ⚡ Performance (25 queries)
+#   5. 🔐 Security Auditor (25 queries)
+#   6. 🏥 Unified Health Monitor (25+ queries)
+#
+# ══════════════════════════════════════════════════════════════════════════════
+# USAGE
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Run validation independently:
+#   databricks bundle run -t dev genie_benchmark_sql_validation_job
+#
+# Expected Duration: ~5-10 minutes (200+ queries × ~2-3 seconds each)
+#
+# Output:
+#   - Detailed validation report in job logs
+#   - Error categorization by Genie Space and error type
+#   - Troubleshooting guidance for each error type
+#   - Exit code 0 = all queries valid, Exit code 1 = errors found
+#
+# ██████████████████████████████████████████████████████████████████████████████
+
+resources:
+  jobs:
+    genie_benchmark_sql_validation_job:
+      name: "[${bundle.target}] Health Monitor - Genie SQL Validation"
+      description: "EXECUTES 150+ benchmark SQL queries with LIMIT 1 across 6 Genie Spaces"
+
+      # Serverless environment
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+
+      tasks:
+        - task_key: validate_all_benchmark_sql
+          description: "🔍 Execute all benchmark SQL queries with LIMIT 1 for full validation"
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+
+      # ═══════════════════════════════════════════════════════════════════
+      # JOB CONFIGURATION
+      # ═══════════════════════════════════════════════════════════════════
+      
+      # No schedule - run on-demand for validation
+      # Typical workflow:
+      #   1. Update Genie Space JSON files
+      #   2. Run validation to catch SQL errors
+      #   3. Fix any errors found
+      #   4. Re-run validation until clean
+      #   5. Deploy Genie Spaces (separate job)
+
+      # Email notifications
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+        on_success:
+          - data-engineering@company.com
+
+      # Timeout at job level (30 minutes - actual: 123 queries × ~8 sec + cold start)
+      timeout_seconds: 1800
+
+      # Tags
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: semantic
+        artifact_type: genie_space
+        job_type: validation
+        validation_method: sql_execution
+        genie_space_count: "6"
+        benchmark_query_count: "200+"
+        fail_fast: "true"
+      
+      # ══════════════════════════════════════════════════════════════════
+      # REFERENCES
+      # ══════════════════════════════════════════════════════════════════
+      # Validation Script: src/genie/validate_genie_spaces_notebook.py
+      # Genie Space Files: src/genie/*_genie_export.json
+      # Asset Inventory: docs/actual_assets.md
+

@@ -27,6 +27,7 @@ This folder contains **detailed implementation documentation** for the Databrick
 | [08-evaluation-and-quality.md](./08-evaluation-and-quality.md) | Quality assurance | Scorers, judges, **synthetic evaluation datasets**, production monitoring |
 | [09-deployment-pipeline.md](./09-deployment-pipeline.md) | Deployment workflow | Setup jobs, Model Serving, promotion, **deployment job connection** |
 | [10-prompt-management.md](./10-prompt-management.md) | **MLflow Prompt Registry** | `register_prompt()`, aliases, trace linking, versioning |
+| [10-experiment-structure.md](./10-experiment-structure.md) | **MLflow Experiment Organization** | Three experiments, run naming, tags, separation of concerns |
 
 ---
 
@@ -146,7 +147,11 @@ def classify_intent(state: AgentState) -> Dict:
 All data access flows through GenieAgent:
 
 ```python
-from databricks_langchain.genie import GenieAgent
+# Primary import (databricks-agents >= 0.16.0)
+try:
+    from databricks.agents.genie import GenieAgent
+except ImportError:
+    from databricks_langchain.genie import GenieAgent
 
 genie = GenieAgent(
     genie_space_id=space_id,
@@ -154,14 +159,50 @@ genie = GenieAgent(
 )
 ```
 
-### 5. **Consolidated MLflow Experiment**
+### 5. **Databricks SDK for LLM Calls**
 
-All runs go to one experiment with tags:
+All LLM calls in scorers and utilities use Databricks SDK for reliable authentication:
 
 ```python
-mlflow.set_experiment("/Shared/health_monitor/agent")
-mlflow.set_tag("run_type", "evaluation")  # or "model_logging", "deployment"
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
+
+def _call_llm(prompt: str) -> dict:
+    w = WorkspaceClient()  # Automatic auth in notebooks
+    response = w.serving_endpoints.query(
+        name="databricks-claude-3-7-sonnet",
+        messages=[ChatMessage(role=ChatMessageRole.USER, content=prompt)],
+        temperature=0
+    )
+    return json.loads(response.choices[0].message.content)
 ```
+
+**Why Databricks SDK over langchain-databricks?**
+- ✅ Automatic authentication in notebooks
+- ✅ No package installation issues on serverless compute
+- ✅ More reliable in deployment jobs
+- ✅ Direct SDK support from Databricks
+
+### 5. **Separated MLflow Experiments**
+
+Runs are organized into three experiments by purpose:
+
+```python
+# Three experiments for clean organization
+EXPERIMENT_DEVELOPMENT = "/Shared/health_monitor_agent_development"  # Model logging
+EXPERIMENT_EVALUATION = "/Shared/health_monitor_agent_evaluation"    # Evaluations
+EXPERIMENT_DEPLOYMENT = "/Shared/health_monitor_agent_deployment"    # Pre-deploy validation
+
+# Standard tags for every run
+mlflow.set_tags({
+    "domain": "all",
+    "agent_version": "v4.0",
+    "dataset_type": "evaluation",
+    "evaluation_type": "comprehensive",
+})
+```
+
+See [10-experiment-structure.md](./10-experiment-structure.md) for details.
 
 ### 6. **MLflow Prompt Registry**
 
@@ -247,6 +288,9 @@ def predict(query):
 |---------|------|--------|---------|
 | 1.0.0 | Jan 2026 | System | Initial comprehensive documentation |
 | 1.1.0 | Jan 7, 2026 | System | Added 10-prompt-management.md for MLflow Prompt Registry patterns |
+| 1.2.0 | Jan 7, 2026 | System | **Major update**: Migrated from `langchain_databricks` to Databricks SDK for LLM calls in scorers. Updated 08-evaluation-and-quality.md with official `@scorer` decorator pattern and `Feedback` return type. Updated 04-worker-agents-and-genie.md with correct `databricks.agents.genie` import priority. Added Databricks SDK pattern documentation to index. |
+| 1.3.0 | Jan 7, 2026 | System | **Critical Evaluation Fixes**: (1) Added `_extract_response_text()` helper to handle serialized dict format from `mlflow.genai.evaluate()` - fixes custom scorers returning 0.0. (2) Removed `guidelines/mean` from thresholds - redundant with custom scorers and was blocking deployment. (3) Added `METRIC_ALIASES` documentation for handling different metric naming conventions. (4) Fixed metadata type warning by casting `query_length` to string. See [08-evaluation-and-quality.md](./08-evaluation-and-quality.md) and [09-deployment-pipeline.md](./09-deployment-pipeline.md) for details. |
+| 1.4.0 | Jan 8, 2026 | System | **MLflow Experiment Reorganization**: Split single experiment into three purpose-specific experiments (`development`, `evaluation`, `deployment`). Removed run logging from dataset creation and prompt registration. Added standardized run naming (`eval_{domain}_{timestamp}`) and tags (`domain`, `agent_version`, `dataset_type`, `evaluation_type`). See [10-experiment-structure.md](./10-experiment-structure.md). |
 
 ---
 

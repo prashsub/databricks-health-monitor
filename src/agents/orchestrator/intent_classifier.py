@@ -9,9 +9,6 @@ from typing import Dict, List
 import json
 import mlflow
 
-from langchain_databricks import ChatDatabricks
-from langchain_core.prompts import ChatPromptTemplate
-
 from ..config import settings
 
 
@@ -57,9 +54,8 @@ class IntentClassifier:
     worker agents should handle it.
 
     Attributes:
-        llm: ChatDatabricks LLM instance
-        prompt: Classification prompt template
-        chain: LangChain chain for classification
+        llm_endpoint: Databricks model serving endpoint name
+        temperature: LLM temperature (lower = more deterministic)
     """
 
     def __init__(self, llm_endpoint: str = None, temperature: float = 0.1):
@@ -70,15 +66,28 @@ class IntentClassifier:
             llm_endpoint: Databricks model serving endpoint
             temperature: LLM temperature (lower = more deterministic)
         """
-        self.llm = ChatDatabricks(
-            endpoint=llm_endpoint or settings.llm_endpoint,
-            temperature=temperature,
-        )
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", INTENT_CLASSIFIER_PROMPT),
-            ("human", "{query}"),
-        ])
-        self.chain = self.prompt | self.llm
+        self.llm_endpoint = llm_endpoint or settings.llm_endpoint
+        self.temperature = temperature
+
+    def _call_llm(self, query: str) -> str:
+        """Call Databricks Foundation Model using Databricks SDK."""
+        try:
+            from databricks.sdk import WorkspaceClient
+            from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
+            
+            w = WorkspaceClient()
+            response = w.serving_endpoints.query(
+                name=self.llm_endpoint,
+                messages=[
+                    ChatMessage(role=ChatMessageRole.SYSTEM, content=INTENT_CLASSIFIER_PROMPT),
+                    ChatMessage(role=ChatMessageRole.USER, content=query)
+                ],
+                temperature=self.temperature,
+                max_tokens=500
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return json.dumps({"domains": ["COST"], "confidence": 0.5, "error": str(e)})
 
     @mlflow.trace(name="classify_intent", span_type="CLASSIFIER")
     def classify(self, query: str) -> Dict:
@@ -100,13 +109,12 @@ class IntentClassifier:
         with mlflow.start_span(name="llm_classify") as span:
             span.set_inputs({"query": query})
 
-            response = self.chain.invoke({"query": query})
+            content = self._call_llm(query)
 
             try:
-                result = json.loads(response.content)
+                result = json.loads(content)
             except json.JSONDecodeError:
                 # Fallback: extract JSON from response
-                content = response.content
                 start = content.find("{")
                 end = content.rfind("}") + 1
                 if start >= 0 and end > start:

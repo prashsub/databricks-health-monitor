@@ -316,6 +316,51 @@ def prepare_features_and_predict(
 
 # COMMAND ----------
 
+def apply_tag_recommendations_metadata(spark, output_table: str) -> bool:
+    """
+    Apply table and column metadata for tag_recommendations table.
+    Enables Genie Space natural language queries and AI/BI discoverability.
+    """
+    try:
+        # Table comment
+        table_comment = """ML predictions from tag_recommender model.
+Recommends tags for untagged jobs using TF-IDF text analysis and Random Forest classification.
+Use for improving cost attribution coverage and governance compliance.
+Source: cost_features + job names (TF-IDF) | Model: RandomForestClassifier | Domain: Cost"""
+        table_comment = table_comment.replace("'", "''")
+        spark.sql(f"COMMENT ON TABLE {output_table} IS '{table_comment}'")
+        
+        # Column comments
+        column_comments = {
+            "job_id": "Unique identifier of the untagged job receiving a tag recommendation.",
+            "job_name": "Name of the job (used for TF-IDF text feature extraction).",
+            "workspace_id": "Workspace where the job is defined.",
+            "usage_date": "Reference date for cost features used in prediction.",
+            "predicted_tag": "Recommended tag value (e.g., team name, project, cost center).",
+            "confidence_score": "Model confidence in the recommendation (0-1). Higher=more confident.",
+            "total_cost_30d": "Total cost associated with this job over 30 days for prioritization.",
+            "model_name": "ML model that generated this prediction (tag_recommender).",
+            "model_version": "Version of the model used for scoring.",
+            "scored_at": "Timestamp when the prediction was generated.",
+            "scored_date": "Date partition for efficient querying of recent predictions."
+        }
+        
+        table_columns = [f.name for f in spark.table(output_table).schema.fields]
+        
+        for col_name, col_comment in column_comments.items():
+            if col_name in table_columns:
+                escaped_comment = col_comment.replace("'", "''")
+                spark.sql(f"ALTER TABLE {output_table} ALTER COLUMN `{col_name}` COMMENT '{escaped_comment}'")
+        
+        print(f"  ✓ Table and column metadata applied")
+        return True
+        
+    except Exception as e:
+        print(f"  ⚠ Metadata warning: {str(e)[:80]}")
+        return False
+
+# COMMAND ----------
+
 def save_predictions(
     spark,
     predictions_pdf: pd.DataFrame,
@@ -367,6 +412,9 @@ def save_predictions(
         # Fallback: append
         output_df.write.mode("append").saveAsTable(output_table)
         print(f"  ✓ Appended to {output_table}")
+    
+    # Apply table and column metadata for Genie/AI-BI discoverability
+    apply_tag_recommendations_metadata(spark, output_table)
     
     # Show sample output
     print(f"\n  Sample predictions:")

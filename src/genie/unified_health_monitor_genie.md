@@ -90,8 +90,8 @@
 #### Reliability TVFs (12)
 | Function | Purpose |
 |----------|---------|
-| `get_failed_jobs_summary` | Failed jobs |
-| `get_job_success_rates` | Success rates |
+| `get_failed_jobs` | Failed jobs |
+| `get_job_success_rate` | Success rates |
 | `get_job_duration_trends` | Duration trends |
 | `get_job_sla_compliance` | SLA tracking |
 | `get_job_failure_patterns` | Failure patterns |
@@ -99,7 +99,7 @@
 | `get_job_retry_analysis` | Retry patterns |
 | `get_job_duration_percentiles` | Duration percentiles |
 | `get_job_failure_cost` | Failure costs |
-| `get_pipeline_health` | Pipeline health |
+| `get_pipeline_data_lineage` | Pipeline health |
 | `get_job_schedule_drift` | Schedule drift |
 | `get_repair_cost_analysis` | Repair costs |
 
@@ -107,9 +107,9 @@
 | Function | Purpose |
 |----------|---------|
 | **Query TVFs (10)** | |
-| `get_slowest_queries` | Slow queries |
+| `get_slow_queries` | Slow queries |
 | `get_query_latency_percentiles` | Latency stats |
-| `get_warehouse_performance` | Warehouse metrics |
+| `get_warehouse_utilization` | Warehouse metrics |
 | `get_query_volume_trends` | Volume trends |
 | `get_top_users_by_query_count` | User activity |
 | `get_query_efficiency_by_user` | User efficiency |
@@ -120,10 +120,10 @@
 | **Cluster TVFs (11)** | |
 | `get_cluster_utilization` | Cluster metrics |
 | `get_cluster_resource_metrics` | Resource details |
-| `get_underutilized_clusters` | Underutilized |
+| `get_idle_clusters` | Underutilized |
 | `get_cluster_rightsizing_recommendations` | Right-sizing |
 | `get_autoscaling_disabled_jobs` | No autoscale |
-| `get_legacy_dbr_jobs` | Legacy DBR |
+| `get_jobs_on_legacy_dbr` | Legacy DBR |
 | `get_cluster_cost_by_type` | Cluster costs |
 | `get_cluster_uptime_analysis` | Uptime |
 | `get_cluster_scaling_events` | Scaling events |
@@ -134,7 +134,7 @@
 | Function | Purpose |
 |----------|---------|
 | `get_user_activity` | User activity |
-| `get_sensitive_data_access` | Sensitive access |
+| `get_pii_access_events` | Sensitive access |
 | `get_failed_access_attempts` | Failed access |
 | `get_permission_change_history` | Perm changes |
 | `get_off_hours_access` | Off-hours |
@@ -144,11 +144,11 @@
 #### Quality TVFs (5)
 | Function | Purpose |
 |----------|---------|
-| `get_stale_tables` | Stale tables |
+| `get_table_freshness` | Stale tables |
 | `get_table_lineage` | Table lineage |
-| `get_table_activity_summary` | Activity summary |
+| `get_table_activity_status` | Activity summary |
 | `get_data_lineage_summary` | Data lineage |
-| `get_pipeline_lineage_impact` | Pipeline impact |
+| `get_pipeline_data_lineage` | Pipeline impact |
 
 ### ML Prediction Tables (5 - Key Anomaly & Health Tables)
 
@@ -157,8 +157,8 @@
 | `cost_anomaly_predictions` | 💰 Cost | Detect unusual spending patterns | `anomaly_score`, `is_anomaly`, `workspace_id` |
 | `job_failure_predictions` | 🔄 Reliability | Predict job failure probability | `failure_probability`, `will_fail`, `risk_factors` |
 | `pipeline_health_predictions` | 🔄 Reliability | Overall pipeline health (0-100) | `prediction`, `job_id`, `run_date` |
-| `access_anomaly_predictions` | 🔒 Security | Detect unusual access patterns | `threat_score`, `is_threat`, `user_identity` |
-| `quality_anomaly_predictions` | ✅ Quality | Detect data drift/quality issues | `drift_score`, `is_drifted`, `table_name` |
+| `security_anomaly_predictions` | 🔒 Security | Detect unusual access patterns | `threat_score`, `is_threat`, `user_identity` |
+| `data_drift_predictions` | ✅ Quality | Detect data drift/quality issues | `drift_score`, `is_drifted`, `table_name` |
 
 **📌 Full ML model catalog (24 models) available in domain-specific spaces:**
 - **Cost (6):** cost_anomaly, budget_forecast, job_cost_optimizer, chargeback, commitment, tag_recommendations
@@ -367,7 +367,7 @@ WHERE drift_type = 'CONSECUTIVE' -- Period-over-period comparison
 |--------------|-----------|---------|
 | **Current state aggregates** | Metric View | "What's success rate?" → `mv_job_performance` |
 | **Trend over time** | Custom Metrics | "Is cost increasing?" → `_drift_metrics` |
-| **List of specific items** | TVF | "Which jobs failed?" → `get_failed_jobs_summary` |
+| **List of specific items** | TVF | "Which jobs failed?" → `get_failed_jobs` |
 | **Predictions/Forecasts** | ML Tables | "Cost forecast" → `cost_forecast_predictions` |
 
 ### Priority Order
@@ -433,15 +433,15 @@ You are a comprehensive Databricks platform health analyst. Follow these rules:
 | Function | Signature | Domain |
 |----------|-----------|--------|
 | `get_top_cost_contributors` | `(start_date, end_date, top_n)` | Cost |
-| `get_failed_jobs_summary` | `(start_date, end_date)` | Reliability |
-| `get_slowest_queries` | `(start_date, end_date, threshold_seconds)` | Performance |
-| `get_underutilized_clusters` | `(start_date, end_date, cpu_threshold)` | Performance |
+| `get_failed_jobs` | `(start_date, end_date)` | Reliability |
+| `get_slow_queries` | `(start_date, end_date, threshold_seconds)` | Performance |
+| `get_idle_clusters` | `(start_date, end_date, cpu_threshold)` | Performance |
 | `get_user_activity` | `(user_email, start_date, end_date)` | Security |
-| `get_stale_tables` | `(start_date, end_date, stale_threshold_hours)` | Quality |
+| `get_table_freshness` | `(start_date, end_date, stale_threshold_hours)` | Quality |
 | `get_cost_anomaly_analysis` | `(start_date, end_date, threshold)` | Cost |
-| `get_job_success_rates` | `(start_date, end_date)` | Reliability |
-| `get_warehouse_performance` | `(start_date, end_date)` | Performance |
-| `get_sensitive_data_access` | `(start_date, end_date)` | Security |
+| `get_job_success_rate` | `(start_date, end_date)` | Reliability |
+| `get_warehouse_utilization` | `(start_date, end_date)` | Performance |
+| `get_pii_access_events` | `(start_date, end_date)` | Security |
 
 ---
 
@@ -482,7 +482,7 @@ You are a comprehensive Databricks platform health analyst. Follow these rules:
 #### 🔒 Security Domain (4 Models)
 | Model | Prediction Table | Question Trigger |
 |-------|-----------------|------------------|
-| `security_threat_detector` | `access_anomaly_predictions` | "threat" |
+| `security_threat_detector` | `security_anomaly_predictions` | "threat" |
 | `user_risk_classifier` | `user_risk_scores` | "risk score" |
 | `access_pattern_classifier` | `access_classifications` | "access pattern" |
 | `off_hours_analyzer` | `off_hours_baseline_predictions` | "off hours baseline" |
@@ -490,7 +490,7 @@ You are a comprehensive Databricks platform health analyst. Follow these rules:
 #### 📋 Quality Domain (2 Models)
 | Model | Prediction Table | Question Trigger |
 |-------|-----------------|------------------|
-| `data_drift_detector` | `quality_anomaly_predictions` | "data drift" |
+| `data_drift_detector` | `data_drift_predictions` | "data drift" |
 | `freshness_monitor` | `freshness_alert_predictions` | "freshness alert" |
 
 ### Cross-Domain ML Query Patterns
@@ -502,10 +502,10 @@ SELECT 'COST' as domain, workspace_name as entity, anomaly_score, prediction_dat
 FROM ${catalog}.${gold_schema}.cost_anomaly_predictions WHERE is_anomaly = TRUE
 UNION ALL
 SELECT 'SECURITY', user_identity, threat_score, prediction_date
-FROM ${catalog}.${gold_schema}.access_anomaly_predictions WHERE is_threat = TRUE
+FROM ${catalog}.${gold_schema}.security_anomaly_predictions WHERE is_threat = TRUE
 UNION ALL
 SELECT 'QUALITY', table_name, drift_score, prediction_date
-FROM ${catalog}.${gold_schema}.quality_anomaly_predictions WHERE is_drifted = TRUE
+FROM ${catalog}.${gold_schema}.data_drift_predictions WHERE is_drifted = TRUE
 ORDER BY prediction_date DESC;
 ```
 
@@ -544,11 +544,11 @@ QUERY DOMAIN                    ML MODEL                    TRIGGER WORDS
   Capacity planning          → cluster_capacity_*            "capacity", "scale"
   
 🔒 Security:
-  Threat detection           → access_anomaly_predictions    "threat", "suspicious"
+  Threat detection           → security_anomaly_predictions    "threat", "suspicious"
   Risk scoring               → user_risk_scores              "risky", "risk score"
   
 📋 Quality:
-  Data drift                 → quality_anomaly_predictions   "drift", "changed"
+  Data drift                 → data_drift_predictions   "drift", "changed"
   Schema prediction          → quality_trend_predictions     "schema", "breaking"
 ```
 
@@ -669,7 +669,7 @@ LIMIT 10;
 ### Question 7: "Show me failed jobs today"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_failed_jobs_summary(
+SELECT * FROM get_failed_jobs(
   1
 ))
 ORDER BY failure_rate DESC
@@ -682,7 +682,7 @@ LIMIT 20;
 ### Question 8: "Show me slow queries"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_slowest_queries(
+SELECT * FROM get_slow_queries(
   1,
   30
 ))
@@ -699,7 +699,7 @@ LIMIT 20;
 SELECT 
   user_identity,
   prediction as threat_score
-FROM ${catalog}.${feature_schema}.access_anomaly_predictions
+FROM ${catalog}.${feature_schema}.security_anomaly_predictions
 WHERE prediction < -0.5
 ORDER BY prediction ASC
 LIMIT 20;
@@ -711,7 +711,7 @@ LIMIT 20;
 ### Question 10: "Show me stale tables"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(
+SELECT * FROM get_table_freshness(
   7
 ))
 WHERE freshness_status IN ('STALE', 'CRITICAL')
@@ -751,7 +751,7 @@ ORDER BY usage_pct DESC;
 ### Question 13: "Show me warehouse utilization"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_warehouse_performance(
+SELECT * FROM get_warehouse_utilization(
   7
 ))
 ORDER BY query_count DESC
@@ -764,7 +764,7 @@ LIMIT 10;
 ### Question 14: "What is the DLT pipeline health?"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_pipeline_health(
+SELECT * FROM get_pipeline_data_lineage(
   7
 ))
 ORDER BY success_rate ASC
@@ -777,7 +777,7 @@ LIMIT 10;
 ### Question 15: "Show me underutilized clusters"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_underutilized_clusters(
+SELECT * FROM get_idle_clusters(
   30
 ))
 WHERE avg_cpu_pct < 30
@@ -809,7 +809,7 @@ LIMIT 15;
 ### Question 17: "Show me tables failing quality checks"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_stale_tables(
+SELECT * FROM get_table_freshness(
   7
 ))
 ORDER BY failed_checks DESC, quality_score ASC
@@ -848,7 +848,7 @@ LIMIT 20;
 ### Question 20: "Show me cluster right-sizing recommendations"
 **Expected SQL:**
 ```sql
-SELECT * FROM TABLE(${catalog}.${gold_schema}.get_cluster_rightsizing_recommendations(
+SELECT * FROM get_cluster_rightsizing_recommendations(
   30
 ))
 ORDER BY potential_savings DESC
@@ -965,7 +965,7 @@ WITH underutilized AS (
     cluster_name,
     avg_cpu_pct,
     potential_savings as savings_from_underutilization
-  FROM TABLE(${catalog}.${gold_schema}.get_underutilized_clusters(30))
+  FROM get_idle_clusters(30))
   WHERE avg_cpu_pct < 30
 ),
 rightsizing AS (
@@ -974,7 +974,7 @@ rightsizing AS (
     current_size,
     recommended_size,
     potential_savings as savings_from_rightsizing
-  FROM TABLE(${catalog}.${gold_schema}.get_cluster_rightsizing_recommendations(30))
+  FROM get_cluster_rightsizing_recommendations(30))
   WHERE recommended_action != 'NO_CHANGE'
 ),
 untagged AS (
@@ -990,12 +990,12 @@ autoscaling_gaps AS (
   SELECT
     job_name,
     estimated_savings
-  FROM TABLE(${catalog}.${gold_schema}.get_autoscaling_disabled_jobs(30))
+  FROM get_autoscaling_disabled_jobs(30))
 ),
 legacy_dbr AS (
   SELECT
     COUNT(*) as legacy_job_count
-  FROM TABLE(${catalog}.${gold_schema}.get_legacy_dbr_jobs(30))
+  FROM get_jobs_on_legacy_dbr(30))
 )
 SELECT 
   COALESCE(SUM(u.savings_from_underutilization), 0) as savings_underutil,
@@ -1037,7 +1037,7 @@ WITH access_anomalies AS (
     user_identity,
     COUNT(*) as anomaly_count,
     MIN(prediction) as worst_threat_score
-  FROM ${catalog}.${feature_schema}.access_anomaly_predictions
+  FROM ${catalog}.${feature_schema}.security_anomaly_predictions
   WHERE prediction < -0.3
     AND event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
   GROUP BY user_identity
@@ -1056,7 +1056,7 @@ sensitive_access AS (
     user_identity,
     COUNT(DISTINCT table_name) as sensitive_table_count,
     SUM(access_count) as total_sensitive_access
-  FROM TABLE(${catalog}.${gold_schema}.get_sensitive_data_access(
+  FROM get_pii_access_events(
     7
   ))
   GROUP BY user_identity
@@ -1073,7 +1073,7 @@ off_hours AS (
   SELECT
     user_identity,
     COUNT(*) as off_hours_events
-  FROM TABLE(${catalog}.${gold_schema}.get_off_hours_access(
+  FROM get_off_hours_access(
     7
   ))
   GROUP BY user_identity
@@ -1128,7 +1128,7 @@ WITH job_failures AS (
     failure_rate,
     avg_duration_minutes,
     failure_count
-  FROM TABLE(${catalog}.${gold_schema}.get_failed_jobs_summary(7))
+  FROM get_failed_jobs(7))
   WHERE failure_rate > 5
 ),
 pipeline_health AS (
@@ -1247,7 +1247,7 @@ efficiency AS (
 optimization_potential AS (
   SELECT
     SUM(potential_savings) as total_savings_potential
-  FROM TABLE(${catalog}.${gold_schema}.get_cluster_rightsizing_recommendations(30))
+  FROM get_cluster_rightsizing_recommendations(30))
   WHERE recommended_action != 'NO_CHANGE'
 ),
 serverless_adoption AS (

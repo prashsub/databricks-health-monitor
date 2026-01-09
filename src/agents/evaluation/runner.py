@@ -18,17 +18,47 @@ from .judges import (
     actionability_judge,
     source_citation_judge,
 )
+import re
+
+
+def _call_llm(prompt: str, model: str = "databricks-claude-3-7-sonnet") -> dict:
+    """
+    Call Databricks Foundation Model using Databricks SDK.
+    Returns dict with 'score' and 'rationale' keys.
+    """
+    try:
+        from databricks.sdk import WorkspaceClient
+        from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
+        
+        w = WorkspaceClient()
+        response = w.serving_endpoints.query(
+            name=model,
+            messages=[ChatMessage(role=ChatMessageRole.USER, content=prompt)],
+            temperature=0,
+            max_tokens=500
+        )
+        
+        content = response.choices[0].message.content
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            json_match = re.search(r'\{[^{}]*\}', content)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except:
+                    pass
+            return {"score": 0.5, "rationale": content[:200]}
+    except Exception as e:
+        return {"score": 0.5, "rationale": f"LLM call failed: {str(e)}"}
+
 
 # Custom implementations for MLflow version compatibility
 @scorer
 def relevance_runner(inputs: dict, outputs: dict, expectations: dict = None) -> Score:
     """Custom relevance scorer."""
-    from langchain_databricks import ChatDatabricks
-    
     query = inputs.get("query", "")
     response = str(outputs.get("response", ""))
-    
-    llm = ChatDatabricks(endpoint="databricks-claude-3-7-sonnet", temperature=0)
     
     prompt = f"""Evaluate if response is relevant to query.
 Query: {query}
@@ -36,12 +66,8 @@ Response: {response}
 
 Return JSON: {{"score": <0-1>, "rationale": "<brief>"}}"""
 
-    try:
-        result = llm.invoke(prompt)
-        parsed = json.loads(result.content)
-        return Score(value=float(parsed["score"]), rationale=parsed.get("rationale", ""))
-    except:
-        return Score(value=0.5, rationale="Evaluation error")
+    result = _call_llm(prompt)
+    return Score(value=float(result.get("score", 0.5)), rationale=result.get("rationale", ""))
 
 
 @scorer
@@ -171,7 +197,8 @@ def run_evaluation(
     agent: Any,
     data: Optional[pd.DataFrame] = None,
     custom_scorers: Optional[List] = None,
-    run_name: str = "agent_evaluation",
+    run_name: str = None,
+    experiment_name: str = None,
 ) -> Dict:
     """
     Run evaluation pipeline on the agent.
@@ -180,11 +207,18 @@ def run_evaluation(
         agent: Agent to evaluate
         data: Optional evaluation DataFrame
         custom_scorers: Optional additional scorers
-        run_name: MLflow run name
+        run_name: MLflow run name (auto-generated if not provided)
+        experiment_name: MLflow experiment name (defaults to evaluation experiment)
 
     Returns:
         Evaluation results dict.
     """
+    from datetime import datetime
+    
+    # Set experiment (use evaluation experiment if not specified)
+    exp_path = experiment_name or "/Shared/health_monitor_agent_evaluation"
+    mlflow.set_experiment(exp_path)
+    
     # Use default dataset if none provided
     if data is None:
         data = create_evaluation_dataset()
@@ -203,8 +237,21 @@ def run_evaluation(
     if custom_scorers:
         scorers.extend(custom_scorers)
 
+    # Generate run name with timestamp if not provided
+    if run_name is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        run_name = f"eval_pipeline_{timestamp}"
+    
     # Run evaluation
     with mlflow.start_run(run_name=run_name):
+        # Standard tags for filtering and organization
+        mlflow.set_tags({
+            "run_type": "evaluation",
+            "evaluation_type": "pipeline",
+            "domain": "all",
+            "agent_version": "v4.0",
+            "dataset_type": "evaluation",
+        })
         results = mlflow.genai.evaluate(
             model=agent,
             data=data,

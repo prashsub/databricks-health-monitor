@@ -37,10 +37,12 @@ os.environ["LAKEBASE_INSTANCE_NAME"] = lakebase_instance
 
 import mlflow
 from databricks_langchain import DatabricksServingEndpoint, DatabricksLakebase
+from datetime import datetime
 
-# Use consolidated experiment (single experiment for all agent runs)
-experiment_name = "/Shared/health_monitor/agent"
+# Use development experiment for model logging
+experiment_name = "/Shared/health_monitor_agent_development"
 mlflow.set_experiment(experiment_name)
+print(f"✓ Experiment: {experiment_name}")
 
 # COMMAND ----------
 
@@ -89,9 +91,19 @@ mlflow.models.set_model(agent)
 # Registered model name
 registered_model_name = f"{catalog}.{schema}.{model_name}"
 
-with mlflow.start_run(run_name=f"agent_registration_v1") as run:
-    # Tag this run as model_logging type for filtering in consolidated experiment
-    mlflow.set_tag("run_type", "model_logging")
+# Generate run name with timestamp
+timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+run_name = f"dev_model_registration_{timestamp}"
+
+with mlflow.start_run(run_name=run_name) as run:
+    # Standard tags for filtering and organization
+    mlflow.set_tags({
+        "run_type": "model_logging",
+        "domain": "all",
+        "agent_version": "v4.0",
+        "dataset_type": "none",
+        "evaluation_type": "none",
+    })
     
     # Log parameters
     mlflow.log_params({

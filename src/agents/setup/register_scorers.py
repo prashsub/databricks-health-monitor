@@ -57,10 +57,11 @@ print(f"Agent Schema: {agent_schema}")
 
 # COMMAND ----------
 
-# Set experiment
-experiment_path = "/Shared/health_monitor/agent"
-mlflow.set_experiment(experiment_path)
-print(f"Experiment: {experiment_path}")
+# NOTE: Scorer registration is configuration, not experimentation
+# Scorers are registered to MLflow and used by evaluation runs
+# No MLflow run is created for scorer registration
+print("✓ Scorers will be available for evaluation runs")
+print("  Evaluation experiment: /Shared/health_monitor_agent_evaluation")
 
 # COMMAND ----------
 
@@ -375,6 +376,9 @@ def register_domain_judges():
 
 def main():
     """Main entry point for scorer registration."""
+    
+    # Experiment path for evaluation runs (scorers will be used here)
+    experiment_path = "/Shared/health_monitor_agent_evaluation"
     
     print("\n" + "=" * 70)
     print("PRODUCTION MONITORING SCORER REGISTRATION")

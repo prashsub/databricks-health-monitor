@@ -92,8 +92,10 @@ Domains:
 - RELIABILITY: Failures, SLAs, uptime, pipeline health
 - QUALITY: Data quality, freshness, lineage, governance
 
-Respond with JSON:
-{{"domains": ["DOMAIN1", "DOMAIN2"], "confidence": 0.95, "reasoning": "..."}}""",
+Respond with JSON format:
+- "domains": array of domain names like ["COST", "SECURITY"]
+- "confidence": number between 0 and 1
+- "reasoning": brief explanation string""",
 
     "synthesizer": """Synthesize responses from multiple domain specialists into a coherent answer.
 
@@ -108,7 +110,121 @@ Guidelines:
 3. Note any conflicting information
 4. Provide actionable next steps
 
-Synthesized Response:"""
+Synthesized Response:""",
+
+    # ==========================================================================
+    # Domain Analyst Prompts
+    # ==========================================================================
+    
+    "cost_analyst": """You are a Databricks Cost Analyst specializing in cloud spending optimization.
+
+Query: {query}
+
+Your expertise includes:
+- DBU (Databricks Unit) usage analysis and forecasting
+- Cost allocation across workspaces, teams, and projects
+- Budget monitoring and alerting
+- Identifying cost optimization opportunities
+- Analyzing spend trends (day-over-day, week-over-week)
+- SKU-level cost breakdown (Jobs, SQL, All-Purpose clusters)
+- Serverless vs. classic compute cost comparison
+- Tag-based cost attribution
+
+Analyze the Genie Space data and provide:
+1. Relevant cost metrics and trends
+2. Comparison to budgets or expectations
+3. Specific, actionable recommendations
+4. Supporting data and calculations
+
+Be precise with numbers and include time context.""",
+
+    "security_analyst": """You are a Databricks Security Analyst specializing in platform security and compliance.
+
+Query: {query}
+
+Your expertise includes:
+- Access control and permissions analysis
+- Audit log review and anomaly detection
+- Compliance monitoring (SOC2, HIPAA, GDPR)
+- Secret and credential management
+- Identity and authentication patterns
+- Data access governance
+- Security incident investigation
+- Permission change tracking
+
+Analyze the Genie Space data and provide:
+1. Security findings and risk assessment
+2. Compliance status if relevant
+3. Specific security recommendations
+4. Evidence from audit logs or access patterns
+
+Prioritize findings by risk level.""",
+
+    "performance_analyst": """You are a Databricks Performance Analyst specializing in query and cluster optimization.
+
+Query: {query}
+
+Your expertise includes:
+- Query performance analysis and optimization
+- Cluster utilization and sizing recommendations
+- Cache hit rates and optimization
+- Spark job performance tuning
+- SQL warehouse performance metrics
+- Photon acceleration analysis
+- I/O and shuffle optimization
+- Auto-scaling effectiveness
+
+Analyze the Genie Space data and provide:
+1. Performance metrics and bottlenecks
+2. Comparison to baselines or SLAs
+3. Specific optimization recommendations
+4. Expected improvement estimates
+
+Include quantitative metrics where possible.""",
+
+    "reliability_analyst": """You are a Databricks Reliability Analyst specializing in job health and SLA management.
+
+Query: {query}
+
+Your expertise includes:
+- Job failure analysis and root cause identification
+- SLA monitoring and compliance tracking
+- Pipeline health assessment
+- Retry patterns and error categorization
+- Job duration trends and anomalies
+- Dependency chain analysis
+- Incident correlation
+- Mean time to recovery (MTTR) analysis
+
+Analyze the Genie Space data and provide:
+1. Reliability metrics and failure patterns
+2. Root cause analysis for failures
+3. SLA compliance status
+4. Recommendations for improving reliability
+
+Prioritize by business impact.""",
+
+    "quality_analyst": """You are a Databricks Data Quality Analyst specializing in data governance and quality monitoring.
+
+Query: {query}
+
+Your expertise includes:
+- Data freshness and staleness detection
+- Schema drift monitoring
+- Null rate and completeness analysis
+- Data profiling and anomaly detection
+- Lakehouse monitoring metrics
+- Table health and maintenance
+- Data lineage tracking
+- Quality rule violations
+
+Analyze the Genie Space data and provide:
+1. Data quality metrics and issues
+2. Freshness and completeness assessment
+3. Schema or quality drift findings
+4. Recommendations for data quality improvement
+
+Include specific tables and metrics affected."""
 }
 
 
@@ -188,7 +304,22 @@ def register_prompts_to_uc_registry(catalog: str, schema: str, prompts: dict):
         prompt_name = f"{catalog}.{schema}.prompt_{name}"
         
         # Convert single-brace {var} to double-brace {{var}} for MLflow template format
-        converted_template = template.replace("{", "{{").replace("}", "}}")
+        # BUT preserve existing double-braces (used in JSON examples)
+        # Strategy: First protect existing {{...}}, then convert single braces, then restore
+        import re
+        
+        # Step 1: Find and protect existing double-brace patterns like {{...}}
+        # These are literal braces in Python that should remain as single braces in MLflow
+        protected = template
+        
+        # Step 2: Only convert single braces that look like variable placeholders {word}
+        # Pattern: single { followed by word characters, then single }
+        # Don't match {{ or }}
+        def convert_placeholder(match):
+            return "{{" + match.group(1) + "}}"
+        
+        # Match {word} but not {{word}} - only convert single-brace placeholders
+        converted_template = re.sub(r'(?<!\{)\{(\w+)\}(?!\})', convert_placeholder, protected)
         
         try:
             # Register the prompt - this creates the entry in Prompts UI
@@ -236,42 +367,29 @@ def register_prompts_to_uc_registry(catalog: str, schema: str, prompts: dict):
 
 def log_prompts_to_mlflow(prompts: dict):
     """
-    Log prompts as MLflow artifacts for tracking (backup/legacy method).
+    Print prompt summary (NO MLFLOW RUN).
+    
+    Prompt registration is configuration management, not experimentation.
+    Prompts are registered to MLflow Prompt Registry directly.
+    This function provides a summary without creating experiment runs.
     """
-    # Use consolidated experiment (single experiment for all agent runs)
-    experiment_path = "/Shared/health_monitor/agent"
-    mlflow.set_experiment(experiment_path)
+    print("\n" + "=" * 60)
+    print("PROMPT REGISTRATION SUMMARY (No MLflow Run)")
+    print("=" * 60)
+    print("\nNote: Prompt registration is config management, not experimentation")
+    print("Prompts are registered to MLflow Prompt Registry, not as experiment runs")
     
-    print(f"\nLogging prompts to MLflow experiment: {experiment_path}")
+    # Print summary of registered prompts
+    prompt_summary = {name: {"length": len(template), "variables": _extract_variables(template)} 
+                     for name, template in prompts.items()}
     
-    with mlflow.start_run(run_name="prompt_registration"):
-        # Tag this run as prompt_registry type for filtering in consolidated experiment
-        mlflow.set_tag("run_type", "prompt_registry")
-        # Log each prompt as a text file artifact
-        for name, template in prompts.items():
-            # Write prompt to a temp file and log
-            import tempfile
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-                f.write(template)
-                temp_path = f.name
-            
-            mlflow.log_artifact(temp_path, artifact_path=f"prompts/{name}")
-            os.remove(temp_path)
-            print(f"  ✓ Logged artifact: prompts/{name}")
-        
-        # Log summary as JSON
-        prompt_summary = {name: {"length": len(template), "variables": _extract_variables(template)} 
-                        for name, template in prompts.items()}
-        mlflow.log_dict(prompt_summary, "prompts/summary.json")
-        
-        # Log params
-        mlflow.log_params({
-            "prompt_count": len(prompts),
-            "prompt_names": ",".join(prompts.keys()),
-            "registration_timestamp": datetime.now().isoformat()
-        })
-        
-        print(f"  ✓ Logged summary and parameters")
+    print(f"\n📝 Prompts Registered: {len(prompts)}")
+    for name, info in prompt_summary.items():
+        print(f"  • {name}: {info['length']} chars, variables: {info['variables']}")
+    
+    print(f"\n✨ No MLflow run created (config management, not experimentation)")
+    print("   Prompts are in MLflow Prompt Registry: Models > Prompt Engineering")
+    print("=" * 60)
 
 
 def _extract_variables(template: str) -> list:

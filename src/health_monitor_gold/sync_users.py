@@ -207,8 +207,24 @@ def sync_service_principals(catalog: str, schema: str):
     if not sp_data:
         return 0
     
-    # Create DataFrame and merge
-    sp_df = spark.createDataFrame(sp_data)
+    # Create DataFrame with explicit schema to avoid type inference issues
+    sp_schema = StructType([
+        StructField("user_id", StringType(), False),
+        StructField("email", StringType(), True),
+        StructField("display_name", StringType(), True),
+        StructField("active", StringType(), True),  # Will convert to boolean
+        StructField("created_at", StringType(), True)  # String to avoid None type issues
+    ])
+    
+    # Convert dict to tuples for schema compatibility
+    sp_rows = [
+        (sp["user_id"], sp["email"], sp["display_name"], str(sp["active"]) if sp["active"] is not None else "true", None)
+        for sp in sp_data
+    ]
+    
+    sp_df = spark.createDataFrame(sp_rows, schema=sp_schema)
+    
+    # Add sync timestamp and cast types
     sp_df = sp_df.withColumn("synced_at", current_timestamp()) \
                  .withColumn("active", sp_df.active.cast("boolean"))
     
