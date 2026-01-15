@@ -37,10 +37,11 @@ resources:
               - openai
               - databricks-sdk
               - databricks-agents
-              # REQUIRED for GenieAgent - contains databricks_langchain.genie.GenieAgent
+              # REQUIRED for GenieAgent + Lakebase Memory
+              # Contains GenieAgent, CheckpointSaver, DatabricksStore
               # Without this, model evaluation will fail as Genie cannot be initialized
               # Reference: https://github.com/databricks/databricks-ai-bridge
-              - databricks-langchain
+              - "databricks-langchain[memory]"
       
       # Job parameters - REQUIRED for deployment job integration
       # Per: https://docs.databricks.com/aws/en/mlflow/deployment-job
@@ -78,6 +79,13 @@ resources:
               # Legacy params for backward compatibility
               catalog: ${var.catalog}
               agent_schema: ${var.agent_schema}
+              # Genie Space IDs from databricks.yml (override defaults in genie_spaces.py)
+              cost_genie_space_id: ${var.cost_genie_space_id}
+              reliability_genie_space_id: ${var.reliability_genie_space_id}
+              quality_genie_space_id: ${var.quality_genie_space_id}
+              performance_genie_space_id: ${var.performance_genie_space_id}
+              security_genie_space_id: ${var.security_genie_space_id}
+              unified_genie_space_id: ${var.unified_genie_space_id}
       
       # Timeout
       timeout_seconds: 1800  # 30 minutes

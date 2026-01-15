@@ -32,10 +32,16 @@ def get_parameters():
 
 def create_catalog_and_schema(spark: SparkSession, catalog: str, schema: str):
     """Ensures the Unity Catalog schema exists with proper configuration."""
-    print(f"Ensuring catalog '{catalog}' and schema '{schema}' exist...")
+    print(f"Verifying catalog '{catalog}' exists and creating schema '{schema}'...")
     
-    # Create catalog if it doesn't exist
-    spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
+    # Verify catalog exists (fail if not)
+    catalogs = [row.catalog for row in spark.sql("SHOW CATALOGS").collect()]
+    if catalog not in catalogs:
+        raise ValueError(
+            f"❌ Catalog '{catalog}' does not exist. "
+            f"Please create it manually before running setup.\n"
+            f"Available catalogs: {', '.join(catalogs)}"
+        )
     
     # Create schema with full properties
     spark.sql(f"""

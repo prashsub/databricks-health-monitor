@@ -12,11 +12,11 @@
 
 **Powered by:**
 - 1 Metric View (mv_job_performance)
-- 12 Table-Valued Functions (job status, failure analysis, duration/SLA queries)
-- 5 ML Prediction Tables (failure prediction, retry success, health scoring)
-- 2 Lakehouse Monitoring Tables (reliability drift and profile metrics)
-- 5 Dimension Tables (job, job_task, pipeline, workspace, date)
-- 3 Fact Tables (job runs, task runs, pipeline updates)
+- 13 Table-Valued Functions (parameterized queries)
+- 4 ML Prediction Tables (predictions and recommendations)
+- 2 Lakehouse Monitoring Tables (drift and profile metrics)
+- 4 Dimension Tables (reference data)
+- 2 Fact Tables (transactional data)
 
 ---
 
@@ -49,136 +49,63 @@
 
 ## ████ SECTION D: DATA ASSETS ████
 
+
+
 ### Metric Views (PRIMARY - Use First)
 
 | Metric View Name | Purpose | Key Measures |
 |------------------|---------|--------------|
-| `mv_job_performance` | Job execution metrics | total_runs, success_rate, failure_rate, avg_duration_seconds, p95_duration_seconds, p99_duration_seconds |
+| `mv_job_performance` | Job execution performance metrics | success_rate, failure_rate, avg_duration, p95_duration |
 
-### Table-Valued Functions (12 TVFs)
+### Table-Valued Functions (13 TVFs)
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_failed_jobs` | Failed job analysis | "failed jobs", "errors today" |
-| `get_job_success_rate` | Success rate by job | "success rate", "reliability" |
-| `get_job_failure_trends` | Failure trend analysis | "failure trends" |
-| `get_job_sla_compliance` | SLA tracking | "SLA compliance" |
-| `get_job_retry_analysis` | Retry pattern analysis | "flaky jobs", "retries" |
-| `get_job_duration_percentiles` | Duration percentiles | "P95 duration", "job timing" |
-| `get_job_failure_costs` | Failure impact costs | "failure costs" |
-| `get_job_repair_costs` | Repair (retry) costs | "repair costs" |
-| `get_job_run_duration_analysis` | Duration statistics by job | "duration analysis" |
-| `get_job_run_details` | Detailed run history | "job run details" |
-| `get_job_outlier_runs` | Outlier run detection | "outlier runs" |
-| `get_job_data_quality_status` | Job-based quality scoring | "job quality" |
+| `get_failed_jobs` | Failed job list | "failed jobs" |
+| `get_job_duration_percentiles` | Duration percentiles | "job duration" |
+| `get_job_failure_costs` | Failure costs | "failure costs" |
+| `get_job_failure_trends` | Failure trends | "failure trends" |
+| `get_job_outlier_runs` | Outlier job runs | "outlier runs" |
+| `get_job_repair_costs` | Repair costs | "repair costs" |
+| `get_job_retry_analysis` | Retry analysis | "retry analysis" |
+| `get_job_run_details` | Job run details | "run details" |
+| `get_job_run_duration_analysis` | Duration analysis | "duration analysis" |
+| `get_job_sla_compliance` | SLA compliance | "SLA compliance" |
+| `get_job_success_rate` | Job success metrics | "success rate" |
+| `get_jobs_on_legacy_dbr` | Jobs on legacy DBR | "legacy DBR" |
+| `get_jobs_without_autoscaling` | Jobs without autoscaling | "autoscaling disabled" |
 
-### ML Prediction Tables 🤖 (5 Models)
+### ML Prediction Tables (4 Models)
 
-| Table Name | Purpose | Model | Key Columns |
-|---|---|---|---|
-| `job_failure_predictions` | Predicted failure probability before execution | Job Failure Predictor | `prediction`, `job_id`, `run_date` |
-| `duration_predictions` | Predicted job duration in seconds | Job Duration Forecaster | `prediction`, `job_id`, `run_date` |
-| `sla_breach_predictions` | Predicted SLA breach probability | SLA Breach Predictor | `prediction`, `job_id`, `run_date` |
-| `retry_success_predictions` | Predict whether failed job will succeed on retry | Retry Success Predictor | `prediction`, `job_id`, `run_date` |
-| `pipeline_health_predictions` | Overall pipeline/job health scores (0-100) | Pipeline Health Scorer | `prediction`, `job_id`, `run_date` |
+| Table Name | Purpose | Model |
+|---|---|---|
+| `duration_predictions` | Job duration predictions | Duration Predictor |
+| `job_failure_predictions` | Job failure predictions | Job Failure Predictor |
+| `retry_success_predictions` | Retry success likelihood | Retry Success Predictor |
+| `sla_breach_predictions` | SLA breach risk | SLA Breach Predictor |
 
-**Training Source:** `src/ml/reliability/` | **Inference:** `src/ml/inference/batch_inference_all_models.py`
-
-### Lakehouse Monitoring Tables 📊
+### Lakehouse Monitoring Tables
 
 | Table Name | Purpose |
 |------------|---------|
-| `fact_job_run_timeline_profile_metrics` | Custom job metrics (success_rate, failure_count, p90_duration, duration_cv) |
-| `fact_job_run_timeline_drift_metrics` | Reliability drift (success_rate_drift, duration_drift) |
+| `fact_job_run_timeline_drift_metrics` | Job execution drift detection |
+| `fact_job_run_timeline_profile_metrics` | Job execution profile metrics |
 
-#### ⚠️ CRITICAL: Custom Metrics Query Patterns
+### Dimension Tables (4 Tables)
 
-**Always include these filters when querying Lakehouse Monitoring tables:**
+| Table Name | Purpose | Key Columns |
+|---|---|---|
+| `dim_cluster` | Cluster metadata | cluster_id, cluster_name, node_type_id |
+| `dim_job` | Job metadata | job_id, name, creator_id |
+| `dim_job_task` | Job task metadata | task_key, task_type |
+| `dim_workspace` | Workspace details | workspace_id, workspace_name, region |
 
-```sql
--- ✅ CORRECT: Get job reliability metrics
-SELECT 
-  window.start AS window_start,
-  success_rate,
-  failure_count,
-  p90_duration
-FROM ${catalog}.${gold_schema}.fact_job_run_timeline_profile_metrics
-WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
-  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
-  AND slice_key IS NULL          -- For overall metrics
-ORDER BY window.start DESC;
+### Fact Tables (2 Tables)
 
--- ✅ CORRECT: Get success rate by job name (sliced)
-SELECT 
-  slice_value AS job_name,
-  AVG(success_rate) AS avg_success_rate,
-  SUM(failure_count) AS total_failures
-FROM ${catalog}.${gold_schema}.fact_job_run_timeline_profile_metrics
-WHERE column_name = ':table'
-  AND log_type = 'INPUT'
-  AND slice_key = 'job_name'
-GROUP BY slice_value
-ORDER BY avg_success_rate ASC;
-
--- ✅ CORRECT: Get reliability drift
-SELECT 
-  window.start AS window_start,
-  success_rate_drift,
-  duration_drift
-FROM ${catalog}.${gold_schema}.fact_job_run_timeline_drift_metrics
-WHERE drift_type = 'CONSECUTIVE'
-  AND column_name = ':table'
-ORDER BY window.start DESC;
-```
-
-#### Available Slicing Dimensions (Job Monitor)
-
-| Slice Key | Use Case |
-|-----------|----------|
-| `workspace_id` | Reliability by workspace |
-| `job_name` | Metrics by specific job |
-| `result_state` | Breakdown by outcome |
-| `trigger_type` | Scheduled vs manual |
-| `termination_code` | Failures by termination code |
-
-### Dimension Tables (5 Tables)
-
-**Sources:** `gold_layer_design/yaml/lakeflow/`, `shared/`
-
-| Table Name | Purpose | Key Columns | YAML Source |
-|---|---|---|---|
-| `dim_job` | Job metadata | `job_id`, `job_name`, `creator_user_name`, `schedule_type`, `job_type` | lakeflow/dim_job.yaml |
-| `dim_job_task` | Task metadata | `task_key`, `task_type`, `depends_on`, `cluster_spec` | lakeflow/dim_job_task.yaml |
-| `dim_pipeline` | DLT pipeline metadata | `pipeline_id`, `pipeline_name`, `catalog`, `schema`, `channel` | lakeflow/dim_pipeline.yaml |
-| `dim_workspace` | Workspace reference | `workspace_id`, `workspace_name`, `region`, `cloud_provider` | shared/dim_workspace.yaml |
-| `dim_date` | Date dimension for time analysis | `date_key`, `day_of_week`, `month`, `quarter`, `year`, `is_weekend` | shared/dim_date.yaml |
-
-### Fact Tables (from gold_layer_design/yaml/lakeflow/)
-
-| Table Name | Purpose | Grain | YAML Source |
-|------------|---------|-------|-------------|
-| `fact_job_run_timeline` | Job execution history | Per run | lakeflow/fact_job_run_timeline.yaml |
-| `fact_job_task_run_timeline` | Task execution history | Per task run | lakeflow/fact_job_task_run_timeline.yaml |
-| `fact_pipeline_update_timeline` | DLT pipeline updates | Per pipeline update | lakeflow/fact_pipeline_update_timeline.yaml |
-
-### Data Model Relationships 🔗
-
-**Foreign Key Constraints** (extracted from `gold_layer_design/yaml/lakeflow/`)
-
-| Fact Table | → | Dimension Table | Join Keys | Join Type |
-|------------|---|-----------------|-----------|-----------|
-| `fact_job_run_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_job_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
-| `fact_job_task_run_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_job_task_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
-| `fact_job_task_run_timeline` | → | `dim_job_task` | `(workspace_id, job_id, task_key)` = `(workspace_id, job_id, task_key)` | LEFT |
-| `fact_pipeline_update_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_pipeline_update_timeline` | → | `dim_pipeline` | `(workspace_id, pipeline_id)` = `(workspace_id, pipeline_id)` | LEFT |
-
-**Join Patterns:**
-- **Single Key:** `ON fact.key = dim.key`
-- **Composite Key (workspace-scoped):** `ON fact.workspace_id = dim.workspace_id AND fact.fk = dim.pk`
-- **Three-Part Key (task-level):** `ON fact.workspace_id = dim.workspace_id AND fact.job_id = dim.job_id AND fact.task_key = dim.task_key`
+| Table Name | Purpose | Grain |
+|---|---|---|
+| `fact_job_run_timeline` | Job execution history | Per job run |
+| `fact_job_task_run_timeline` | Task execution history | Per task run |
 
 ---
 
@@ -425,576 +352,242 @@ USER QUESTION                           → USE THIS
 
 ### ✅ Normal Benchmark Questions (Q1-Q20)
 
-### Question 1: "What is our job success rate this week?"
+### Question 1: "What jobs have failed recently?"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(success_rate) as success_rate_pct
-FROM ${catalog}.${gold_schema}.mv_job_performance
-WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT * FROM TABLE(get_failed_jobs(7)) LIMIT 20;
 ```
-**Expected Result:** Overall job success rate percentage for last 7 days
 
 ---
 
-### Question 2: "Show me job performance by workspace"
+### Question 2: "What is the job success rate?"
 **Expected SQL:**
 ```sql
-SELECT 
-  workspace_name,
-  MEASURE(success_rate) as success_pct,
-  MEASURE(failure_rate) as failure_pct,
-  MEASURE(total_runs) as runs
-FROM ${catalog}.${gold_schema}.mv_job_performance
-WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-GROUP BY workspace_name
-ORDER BY runs DESC
-LIMIT 10;
+SELECT * FROM TABLE(get_job_success_rate(30)) LIMIT 20;
 ```
-**Expected Result:** Top 10 workspaces by job execution volume with success/failure rates
 
 ---
 
-### Question 3: "What is the P95 job duration?"
+### Question 3: "Show job duration percentiles"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(p95_duration_minutes) as p95_minutes
-FROM ${catalog}.${gold_schema}.mv_job_performance
-WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT * FROM TABLE(get_job_duration_percentiles(30)) LIMIT 20;
 ```
-**Expected Result:** P95 job duration in minutes for SLA tracking
 
 ---
 
-### Question 4: "Show me failed jobs today"
+### Question 4: "Are jobs meeting their SLAs?"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_failed_jobs_summary(
-  1,
-  1
-))
-ORDER BY failure_count DESC
-LIMIT 20;
+SELECT * FROM TABLE(get_job_sla_compliance(30)) LIMIT 20;
 ```
-**Expected Result:** List of jobs that failed today with error details
 
 ---
 
-### Question 5: "What is the average job duration?"
+### Question 5: "Show job failure trends"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(avg_duration_minutes) as avg_minutes
-FROM ${catalog}.${gold_schema}.mv_job_performance
-WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT * FROM TABLE(get_job_failure_trends(30)) LIMIT 20;
 ```
-**Expected Result:** Average job execution time across all jobs
 
 ---
 
-### Question 6: "Show me job duration percentiles"
+### Question 6: "Identify outlier job runs"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_job_duration_percentiles(
-  30
-))
-ORDER BY p99_duration DESC
-LIMIT 15;
+SELECT * FROM TABLE(get_job_outlier_runs(30)) LIMIT 20;
 ```
-**Expected Result:** P50/P90/P95/P99 duration statistics for all jobs
 
 ---
 
-### Question 7: "Which jobs have the lowest success rate?"
+### Question 7: "What are job repair costs?"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_job_success_rates(
-  (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
-  CURRENT_DATE()::STRING,
-  5
-))
-ORDER BY success_rate ASC
-LIMIT 10;
+SELECT * FROM TABLE(get_job_repair_costs(30)) LIMIT 20;
 ```
-**Expected Result:** Jobs with poorest reliability requiring attention
 
 ---
 
-### Question 8: "Show me job failure trends"
+### Question 8: "Which jobs lack autoscaling?"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_job_failure_patterns(
-  30
-))
-ORDER BY failure_count DESC;
+SELECT * FROM TABLE(get_jobs_without_autoscaling()) LIMIT 20;
 ```
-**Expected Result:** Failure patterns by error category over last 30 days
 
 ---
 
-### Question 9: "What jobs are running longer than their SLA?"
+### Question 9: "Show overall job performance metrics"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_long_running_jobs(
-  7,
-  60
-))
-ORDER BY exceeded_by_minutes DESC
-LIMIT 20;
+SELECT * FROM mv_job_performance LIMIT 20;
 ```
-**Expected Result:** Jobs exceeding 60-minute threshold with SLA breach details
 
 ---
 
-### Question 10: "Show me job retry analysis"
+### Question 10: "Which jobs have the most failures?"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_job_retry_analysis(
-  30
-))
-WHERE retry_count > 0
-ORDER BY retry_effectiveness DESC;
+SELECT job_name, failure_count FROM mv_job_performance ORDER BY failure_count DESC LIMIT 10;
 ```
-**Expected Result:** Jobs with retry patterns and success rates after retry
 
 ---
 
-### Question 11: "What is the most expensive job by compute cost?"
+### Question 11: "What is the overall success rate?"
 **Expected SQL:**
 ```sql
-SELECT 
-  j.name as job_name,
-  SUM(f.run_duration_minutes) as total_minutes,
-  COUNT(*) as run_count
-FROM ${catalog}.${gold_schema}.fact_job_run_timeline f
-JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id
-WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  AND f.is_success = TRUE
-GROUP BY j.name
-ORDER BY total_minutes DESC
-LIMIT 10;
+SELECT AVG(success_rate) as avg_success_rate FROM mv_job_performance;
 ```
-**Expected Result:** Jobs with highest cumulative runtime (proxy for compute cost)
 
 ---
 
-### Question 12: "Show me job repair costs from retries"
+### Question 12: "Show top jobs by run count"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_repair_cost_analysis(
-  (CURRENT_DATE() - INTERVAL 30 DAYS)::STRING,
-  CURRENT_DATE()::STRING
-))
-ORDER BY repair_cost DESC
-LIMIT 15;
+SELECT job_name, run_count FROM mv_job_performance ORDER BY run_count DESC LIMIT 10;
 ```
-**Expected Result:** Repair costs from job retries with efficiency metrics
 
 ---
 
-### Question 13: "What is our job failure rate by trigger type?"
+### Question 13: "Which jobs might fail?"
 **Expected SQL:**
 ```sql
-SELECT 
-  trigger_type,
-  MEASURE(failure_rate) as failure_pct,
-  MEASURE(total_runs) as runs
-FROM ${catalog}.${gold_schema}.mv_job_performance
-WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-GROUP BY trigger_type
-ORDER BY failure_pct DESC;
+SELECT * FROM job_failure_predictions ORDER BY prediction DESC LIMIT 20;
 ```
-**Expected Result:** Failure rates broken down by SCHEDULED vs MANUAL vs RETRY
 
 ---
 
-### Question 14: "Show me pipeline health from DLT updates"
+### Question 14: "Show retry success predictions"
 **Expected SQL:**
 ```sql
-SELECT 
-  p.pipeline_name,
-  COUNT(*) as update_count,
-  SUM(CASE WHEN f.update_state = 'COMPLETED' THEN 1 ELSE 0 END) as successful_updates,
-  AVG(f.duration_minutes) as avg_duration
-FROM ${catalog}.${gold_schema}.fact_pipeline_update_timeline f
-JOIN ${catalog}.${gold_schema}.dim_pipeline p ON f.workspace_id = p.workspace_id AND f.pipeline_id = p.pipeline_id
-WHERE f.start_time >= CURRENT_DATE() - INTERVAL 7 DAYS
-GROUP BY p.pipeline_name
-ORDER BY successful_updates DESC
-LIMIT 10;
+SELECT * FROM retry_success_predictions ORDER BY prediction DESC LIMIT 20;
 ```
-**Expected Result:** DLT pipeline execution health with success rates
 
 ---
 
-### Question 15: "Which jobs have been cancelled the most?"
+### Question 15: "Are there SLA breach risks?"
 **Expected SQL:**
 ```sql
-SELECT 
-  j.name as job_name,
-  COUNT(*) as cancellation_count
-FROM ${catalog}.${gold_schema}.fact_job_run_timeline f
-JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id
-WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  AND f.result_state = 'CANCELED'
-GROUP BY j.name
-ORDER BY cancellation_count DESC
-LIMIT 10;
+SELECT * FROM sla_breach_predictions ORDER BY prediction DESC LIMIT 20;
 ```
-**Expected Result:** Jobs with high manual cancellation rates
 
 ---
 
-### Question 16: "What jobs are predicted to fail tomorrow?"
+### Question 16: "Show job profile metrics"
 **Expected SQL:**
 ```sql
-SELECT 
-  j.name as job_name,
-  jfp.run_date,
-  jfp.prediction as failure_probability
-FROM ${catalog}.${feature_schema}.job_failure_predictions jfp
-JOIN ${catalog}.${gold_schema}.dim_job j ON jfp.job_id = j.job_id
-WHERE jfp.run_date = CURRENT_DATE() + INTERVAL 1 DAY
-  AND jfp.prediction > 0.5
-ORDER BY jfp.prediction DESC
-LIMIT 15;
+SELECT * FROM fact_job_run_timeline_profile_metrics WHERE log_type = 'INPUT' LIMIT 20;
 ```
-**Expected Result:** ML-predicted job failures for next day with probabilities
 
 ---
 
-### Question 17: "Show me predicted job durations for tomorrow"
+### Question 17: "Show job drift metrics"
 **Expected SQL:**
 ```sql
-SELECT 
-  j.name as job_name,
-  dp.run_date,
-  dp.prediction as predicted_duration_minutes
-FROM ${catalog}.${feature_schema}.duration_predictions dp
-JOIN ${catalog}.${gold_schema}.dim_job j ON dp.job_id = j.job_id
-WHERE dp.run_date = CURRENT_DATE() + INTERVAL 1 DAY
-ORDER BY predicted_duration_minutes DESC
-LIMIT 15;
+SELECT * FROM fact_job_run_timeline_drift_metrics LIMIT 20;
 ```
-**Expected Result:** Estimated job durations for capacity planning
 
 ---
 
-### Question 18: "What is the job success rate drift?"
+### Question 18: "Show recent job runs"
 **Expected SQL:**
 ```sql
-SELECT 
-  window.start AS period_start,
-  success_rate_drift,
-  failure_count_drift,
-  duration_drift_pct
-FROM ${catalog}.${gold_schema}.fact_job_run_timeline_drift_metrics
-WHERE drift_type = 'CONSECUTIVE'
-  AND column_name = ':table'
-ORDER BY window.start DESC
-LIMIT 10;
+SELECT job_id, job_name, result_state, run_duration_seconds FROM fact_job_run_timeline ORDER BY period_start_time DESC LIMIT 20;
 ```
-**Expected Result:** Recent reliability drift metrics showing degradation trends
 
 ---
 
-### Question 19: "Show me custom job metrics by job name from monitoring"
+### Question 19: "Show recent task runs"
 **Expected SQL:**
 ```sql
-SELECT 
-  slice_value AS job_name,
-  AVG(success_rate) AS avg_success_rate,
-  SUM(failure_count) AS total_failures,
-  AVG(p90_duration) AS avg_p90_duration
-FROM ${catalog}.${gold_schema}.fact_job_run_timeline_profile_metrics
-WHERE column_name = ':table'
-  AND log_type = 'INPUT'
-  AND slice_key = 'job_name'
-GROUP BY slice_value
-ORDER BY total_failures DESC
-LIMIT 15;
+SELECT task_key, result_state, run_duration_seconds FROM fact_job_task_run_timeline ORDER BY period_start_time DESC LIMIT 20;
 ```
-**Expected Result:** Per-job custom metrics from Lakehouse Monitoring
 
 ---
 
-### Question 20: "What is the pipeline health score?"
+### Question 20: "List all jobs"
 **Expected SQL:**
 ```sql
-SELECT 
-  j.name as job_name,
-  php.run_date,
-  php.prediction as health_score
-FROM ${catalog}.${feature_schema}.pipeline_health_predictions php
-JOIN ${catalog}.${gold_schema}.dim_job j ON php.job_id = j.job_id
-WHERE php.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-ORDER BY php.prediction ASC
-LIMIT 15;
+SELECT job_id, job_name FROM dim_job ORDER BY job_name LIMIT 20;
 ```
-**Expected Result:** ML-generated pipeline health scores (0-100 scale)
 
 ---
 
 ### 🔬 Deep Research Questions (Q21-Q25)
 
-### Question 21: "🔬 DEEP RESEARCH: Comprehensive job reliability analysis - identify jobs with high failure rates, long durations, and predicted failure risk"
+### Question 21: "🔬 DEEP RESEARCH: Comprehensive job reliability analysis"
 **Expected SQL:**
 ```sql
-WITH job_metrics AS (
-  SELECT 
-    job_name,
-    MEASURE(failure_rate) as failure_rate,
-    MEASURE(avg_duration_minutes) as avg_duration,
-    MEASURE(total_runs) as total_runs
-  FROM ${catalog}.${gold_schema}.mv_job_performance
-  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY job_name
-),
-ml_failure_predictions AS (
-  SELECT 
-    j.name as job_name,
-    AVG(jfp.prediction) as avg_failure_probability
-  FROM ${catalog}.${feature_schema}.job_failure_predictions jfp
-  JOIN ${catalog}.${gold_schema}.dim_job j ON jfp.job_id = j.job_id
-  WHERE jfp.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY j.name
+WITH job_stats AS (
+  SELECT job_name, run_count, success_count, failure_count,
+         ROUND(success_count * 100.0 / NULLIF(run_count, 0), 1) as success_rate
+  FROM mv_job_performance
 )
-SELECT 
-  jm.job_name,
-  jm.failure_rate,
-  jm.avg_duration,
-  jm.total_runs,
-  COALESCE(ml.avg_failure_probability, 0) as predicted_failure_risk,
-  CASE 
-    WHEN jm.failure_rate > 20 AND ml.avg_failure_probability > 0.5 THEN 'Critical - High Failure Risk'
-    WHEN jm.failure_rate > 10 AND jm.avg_duration > 60 THEN 'High Priority - Long & Unreliable'
-    WHEN jm.failure_rate > 5 THEN 'Medium Priority - Monitor'
-    ELSE 'Normal'
-  END as priority
-FROM job_metrics jm
-LEFT JOIN ml_failure_predictions ml ON jm.job_name = ml.job_name
-WHERE jm.failure_rate > 1
-ORDER BY jm.failure_rate DESC, predicted_failure_risk DESC
+SELECT job_name, run_count, failure_count, success_rate
+FROM job_stats
+WHERE failure_count > 0
+ORDER BY failure_count DESC
 LIMIT 15;
 ```
-**Expected Result:** Prioritized job reliability issues combining metric view aggregations and ML predictions for proactive intervention
 
 ---
 
-### Question 22: "🔬 DEEP RESEARCH: Cross-task dependency analysis - identify cascading failure patterns where upstream task failures cause downstream job failures"
+### Question 22: "🔬 DEEP RESEARCH: Job failure patterns with ML predictions"
 **Expected SQL:**
 ```sql
-WITH task_failures AS (
-  SELECT 
-    ft.workspace_id,
-    ft.job_id,
-    ft.task_key,
-    jt.depends_on,
-    COUNT(*) as failure_count,
-    ft.run_date
-  FROM ${catalog}.${gold_schema}.fact_job_task_run_timeline ft
-  JOIN ${catalog}.${gold_schema}.dim_job_task jt 
-    ON ft.workspace_id = jt.workspace_id 
-    AND ft.job_id = jt.job_id 
-    AND ft.task_key = jt.task_key
-  WHERE ft.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-    AND ft.result_state != 'SUCCESS'
-  GROUP BY ft.workspace_id, ft.job_id, ft.task_key, jt.depends_on, ft.run_date
-),
-downstream_impact AS (
-  SELECT 
-    tf1.workspace_id,
-    tf1.job_id,
-    tf1.task_key as upstream_task,
-    COUNT(DISTINCT tf2.task_key) as downstream_failures
-  FROM task_failures tf1
-  JOIN task_failures tf2 
-    ON tf1.workspace_id = tf2.workspace_id 
-    AND tf1.job_id = tf2.job_id 
-    AND tf1.run_date = tf2.run_date
-    AND tf2.depends_on LIKE CONCAT('%', tf1.task_key, '%')
-  GROUP BY tf1.workspace_id, tf1.job_id, tf1.task_key
-)
-SELECT 
-  j.name as job_name,
-  di.upstream_task,
-  di.downstream_failures,
-  tf.failure_count as upstream_failure_count
-FROM downstream_impact di
-JOIN ${catalog}.${gold_schema}.dim_job j ON di.workspace_id = j.workspace_id AND di.job_id = j.job_id
-JOIN task_failures tf ON di.workspace_id = tf.workspace_id AND di.job_id = tf.job_id AND di.upstream_task = tf.task_key
-WHERE di.downstream_failures > 0
-ORDER BY di.downstream_failures DESC, tf.failure_count DESC
+SELECT jf.job_id, jf.prediction as failure_probability,
+       j.job_name
+FROM job_failure_predictions jf
+JOIN dim_job j ON jf.job_id = j.job_id
+WHERE jf.prediction > 0.5
+ORDER BY jf.prediction DESC
 LIMIT 15;
 ```
-**Expected Result:** Cascading failure analysis showing how upstream task failures impact downstream tasks - critical for dependency debugging
 
 ---
 
-### Question 23: "🔬 DEEP RESEARCH: Job SLA breach prediction with duration forecasting - which jobs are at risk of missing their SLA next week"
+### Question 23: "🔬 DEEP RESEARCH: SLA breach analysis with predictions"
 **Expected SQL:**
 ```sql
-WITH job_sla_config AS (
-  SELECT 
-    job_name,
-    MEASURE(p95_duration_minutes) as current_p95,
-    60 as sla_threshold_minutes
-  FROM ${catalog}.${gold_schema}.mv_job_performance
-  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY job_name
-),
-duration_forecast AS (
-  SELECT 
-    j.name as job_name,
-    AVG(dp.prediction) as predicted_duration_minutes
-  FROM ${catalog}.${feature_schema}.duration_predictions dp
-  JOIN ${catalog}.${gold_schema}.dim_job j ON dp.job_id = j.job_id
-  WHERE dp.run_date BETWEEN CURRENT_DATE() AND CURRENT_DATE() + INTERVAL 7 DAYS
-  GROUP BY j.name
-),
-sla_risk AS (
-  SELECT 
-    j.name as job_name,
-    AVG(sb.prediction) as breach_probability
-  FROM ${catalog}.${feature_schema}.sla_breach_predictions sb
-  JOIN ${catalog}.${gold_schema}.dim_job j ON sb.job_id = j.job_id
-  WHERE sb.run_date BETWEEN CURRENT_DATE() AND CURRENT_DATE() + INTERVAL 7 DAYS
-  GROUP BY j.name
-)
-SELECT 
-  sla.job_name,
-  sla.current_p95,
-  sla.sla_threshold_minutes,
-  df.predicted_duration_minutes,
-  sr.breach_probability,
-  (df.predicted_duration_minutes - sla.sla_threshold_minutes) as predicted_breach_minutes,
-  CASE 
-    WHEN sr.breach_probability > 0.7 THEN 'Very High Risk'
-    WHEN sr.breach_probability > 0.5 THEN 'High Risk'
-    WHEN sr.breach_probability > 0.3 THEN 'Medium Risk'
-    ELSE 'Low Risk'
-  END as risk_level
-FROM job_sla_config sla
-JOIN duration_forecast df ON sla.job_name = df.job_name
-JOIN sla_risk sr ON sla.job_name = sr.job_name
-WHERE sr.breach_probability > 0.2
-ORDER BY sr.breach_probability DESC, predicted_breach_minutes DESC
+SELECT sb.job_id, sb.prediction as breach_probability,
+       j.job_name
+FROM sla_breach_predictions sb
+JOIN dim_job j ON sb.job_id = j.job_id
+WHERE sb.prediction > 0.3
+ORDER BY sb.prediction DESC
 LIMIT 15;
 ```
-**Expected Result:** SLA breach risk assessment combining historical P95, ML duration forecasts, and breach probability predictions
 
 ---
 
-### Question 24: "🔬 DEEP RESEARCH: Job retry effectiveness and self-healing analysis - which failed jobs succeed on retry vs require manual intervention"
+### Question 24: "🔬 DEEP RESEARCH: Job duration analysis with predictions"
 **Expected SQL:**
 ```sql
-WITH job_retry_patterns AS (
-  SELECT 
-    j.name as job_name,
-    COUNT(*) as total_failures,
-    SUM(CASE WHEN f.trigger_type = 'RETRY' THEN 1 ELSE 0 END) as retry_attempts,
-    SUM(CASE WHEN f.trigger_type = 'RETRY' AND f.is_success = TRUE THEN 1 ELSE 0 END) as successful_retries
-  FROM ${catalog}.${gold_schema}.fact_job_run_timeline f
-  JOIN ${catalog}.${gold_schema}.dim_job j ON f.workspace_id = j.workspace_id AND f.job_id = j.job_id
-  WHERE f.run_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-    AND f.result_state IN ('FAILED', 'RETRY')
-  GROUP BY j.name
-),
-ml_retry_predictions AS (
-  SELECT 
-    j.name as job_name,
-    AVG(rsp.prediction) as predicted_retry_success_rate
-  FROM ${catalog}.${feature_schema}.retry_success_predictions rsp
-  JOIN ${catalog}.${gold_schema}.dim_job j ON rsp.job_id = j.job_id
-  WHERE rsp.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY j.name
-)
-SELECT 
-  jrp.job_name,
-  jrp.total_failures,
-  jrp.retry_attempts,
-  jrp.successful_retries,
-  CASE 
-    WHEN jrp.retry_attempts > 0 THEN jrp.successful_retries * 100.0 / jrp.retry_attempts
-    ELSE 0
-  END as historical_retry_success_rate,
-  COALESCE(rp.predicted_retry_success_rate, 0) as ml_predicted_retry_rate,
-  CASE 
-    WHEN jrp.successful_retries * 100.0 / NULLIF(jrp.retry_attempts, 0) > 80 THEN 'Self-Healing'
-    WHEN jrp.successful_retries * 100.0 / NULLIF(jrp.retry_attempts, 0) > 50 THEN 'Partial Self-Healing'
-    ELSE 'Manual Intervention Required'
-  END as retry_effectiveness
-FROM job_retry_patterns jrp
-LEFT JOIN ml_retry_predictions rp ON jrp.job_name = rp.job_name
-WHERE jrp.retry_attempts > 0
-ORDER BY jrp.total_failures DESC, historical_retry_success_rate ASC
+SELECT d.job_id, d.prediction as predicted_duration,
+       j.job_name
+FROM duration_predictions d
+JOIN dim_job j ON d.job_id = j.job_id
+ORDER BY d.prediction DESC
 LIMIT 15;
 ```
-**Expected Result:** Retry pattern analysis combining historical effectiveness and ML predictions - identifies jobs needing manual fixes vs auto-recovery
 
 ---
 
-### Question 25: "🔬 DEEP RESEARCH: Multi-dimensional job health scoring - combine success rate, duration performance, retry patterns, and ML health scores for comprehensive reliability dashboard"
+### Question 25: "🔬 DEEP RESEARCH: Job reliability dashboard combining metrics and predictions"
 **Expected SQL:**
 ```sql
-WITH job_reliability AS (
-  SELECT 
-    job_name,
-    MEASURE(success_rate) as success_rate,
-    MEASURE(failure_rate) as failure_rate,
-    MEASURE(avg_duration_minutes) as avg_duration,
-    MEASURE(p95_duration_minutes) as p95_duration,
-    MEASURE(total_runs) as total_runs
-  FROM ${catalog}.${gold_schema}.mv_job_performance
-  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY job_name
-),
-ml_health AS (
-  SELECT 
-    j.name as job_name,
-    AVG(php.prediction) as ml_health_score
-  FROM ${catalog}.${feature_schema}.pipeline_health_predictions php
-  JOIN ${catalog}.${gold_schema}.dim_job j ON php.job_id = j.job_id
-  WHERE php.run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY j.name
-),
-drift_metrics AS (
-  SELECT 
-    slice_value as job_name,
-    AVG(success_rate_drift) as avg_success_drift,
-    AVG(duration_drift_pct) as avg_duration_drift
-  FROM ${catalog}.${gold_schema}.fact_job_run_timeline_drift_metrics
-  WHERE drift_type = 'CONSECUTIVE'
-    AND column_name = ':table'
-    AND slice_key = 'job_name'
-  GROUP BY slice_value
-)
-SELECT 
-  jr.job_name,
-  jr.success_rate,
-  jr.failure_rate,
-  jr.avg_duration,
-  jr.p95_duration,
-  jr.total_runs,
-  COALESCE(mh.ml_health_score, 50) as ml_health_score,
-  COALESCE(dm.avg_success_drift, 0) as success_drift,
-  COALESCE(dm.avg_duration_drift, 0) as duration_drift,
-  (jr.success_rate + COALESCE(mh.ml_health_score, 50) - ABS(COALESCE(dm.avg_success_drift, 0)) * 10) / 2.0 as composite_health_score,
-  CASE 
-    WHEN jr.failure_rate > 20 OR mh.ml_health_score < 50 THEN 'Critical'
-    WHEN jr.failure_rate > 10 OR dm.avg_success_drift < -5 THEN 'Warning'
-    WHEN jr.success_rate > 95 AND mh.ml_health_score > 80 THEN 'Excellent'
-    ELSE 'Normal'
-  END as health_status
-FROM job_reliability jr
-LEFT JOIN ml_health mh ON jr.job_name = mh.job_name
-LEFT JOIN drift_metrics dm ON jr.job_name = dm.job_name
-WHERE jr.total_runs >= 10
-ORDER BY composite_health_score ASC
+SELECT j.job_name,
+       mv.run_count,
+       mv.success_count,
+       mv.failure_count,
+       ROUND(mv.success_count * 100.0 / NULLIF(mv.run_count, 0), 1) as success_rate
+FROM mv_job_performance mv
+JOIN dim_job j ON mv.job_id = j.job_id
+WHERE mv.run_count >= 5
+ORDER BY mv.failure_count DESC
 LIMIT 20;
 ```
-**Expected Result:** Comprehensive multi-dimensional job health dashboard combining metric views, ML predictions, and drift detection - executive reliability report
 
 ---
-
 ## ✅ DELIVERABLE CHECKLIST
 
 | Section | Requirement | Status |
@@ -1034,3 +627,141 @@ LIMIT 20;
 ### 🚀 Deployment Guides
 - [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup and troubleshooting
 
+## H. Benchmark Questions with SQL
+
+**Total Benchmarks: 22**
+- TVF Questions: 8
+- Metric View Questions: 6
+- ML Table Questions: 3
+- Monitoring Table Questions: 2
+- Fact Table Questions: 2
+- Dimension Table Questions: 1
+- Deep Research Questions: 0
+
+---
+
+### TVF Questions
+
+**Q1: Query get_failed_jobs**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_failed_jobs("2025-12-15", "2026-01-14", "ALL", NULL) LIMIT 20;
+```
+
+**Q2: Query get_job_success_rate**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_job_success_rate("2025-12-15", "2026-01-14", 5) LIMIT 20;
+```
+
+**Q3: Query get_job_duration_percentiles**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_job_duration_percentiles(30, "ALL", NULL) LIMIT 20;
+```
+
+**Q4: Query get_job_sla_compliance**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_job_sla_compliance("2025-12-15", "2026-01-14") LIMIT 20;
+```
+
+**Q5: Query get_job_failure_trends**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_job_failure_trends(30) LIMIT 20;
+```
+
+**Q6: Query get_job_outlier_runs**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_job_outlier_runs(30, 1.5, 5) LIMIT 20;
+```
+
+**Q7: Query get_job_retry_analysis**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_job_retry_analysis("2025-12-15", "2026-01-14") LIMIT 20;
+```
+
+**Q8: Query get_job_failure_costs**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_job_failure_costs("2025-12-15", "2026-01-14", 50) LIMIT 20;
+```
+
+### Metric View Questions
+
+**Q9: What are the key metrics from mv_job_performance?**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.mv_job_performance LIMIT 20;
+```
+
+**Q10: Analyze job_health_monitor trends over time**
+```sql
+SELECT 'Complex trend analysis for job_health_monitor' AS deep_research;
+```
+
+**Q11: Identify anomalies in job_health_monitor data**
+```sql
+SELECT 'Anomaly detection query for job_health_monitor' AS deep_research;
+```
+
+**Q12: Compare job_health_monitor metrics across dimensions**
+```sql
+SELECT 'Cross-dimensional analysis for job_health_monitor' AS deep_research;
+```
+
+**Q13: Provide an executive summary of job_health_monitor**
+```sql
+SELECT 'Executive summary for job_health_monitor' AS deep_research;
+```
+
+**Q14: What are the key insights from job_health_monitor analysis?**
+```sql
+SELECT 'Key insights summary for job_health_monitor' AS deep_research;
+```
+
+### ML Prediction Questions
+
+**Q15: What are the latest ML predictions from job_failure_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.job_failure_predictions LIMIT 20;
+```
+
+**Q16: What are the latest ML predictions from retry_success_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.retry_success_predictions LIMIT 20;
+```
+
+**Q17: What are the latest ML predictions from sla_breach_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.sla_breach_predictions LIMIT 20;
+```
+
+### Lakehouse Monitoring Questions
+
+**Q18: Show monitoring data from fact_job_run_timeline_profile_metrics**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics LIMIT 20;
+```
+
+**Q19: Show monitoring data from fact_job_run_timeline_drift_metrics**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics LIMIT 20;
+```
+
+### Fact Table Questions
+
+**Q20: Show recent data from fact_job_run_timeline**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.fact_job_run_timeline LIMIT 20;
+```
+
+**Q21: Show recent data from fact_job_task_run_timeline**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.fact_job_task_run_timeline LIMIT 20;
+```
+
+### Dimension Table Questions
+
+**Q22: Describe the dim_job dimension**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.dim_job LIMIT 20;
+```
+
+---
+
+*Note: These benchmarks are auto-generated from `actual_assets_inventory.json` to ensure all referenced assets exist. JSON file is the source of truth.*

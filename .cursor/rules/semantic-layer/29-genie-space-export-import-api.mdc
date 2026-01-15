@@ -373,14 +373,63 @@ interface MetricView {
 }
 ```
 
-### ⚠️ CRITICAL: Tables vs Metric Views
 
-**A Genie Space should NOT have both tables AND metric views pointing to the same data.**
 
-**Recommended Pattern:**
-- Use **metric views** as primary data source (pre-aggregated, semantic)
-- Use **tables** only for dimension lookups or when metric views don't exist
-- Add **both** if metric views join to dimension tables
+### ⚠️ CRITICAL: column_configs Triggers Unity Catalog Validation
+
+**Discovery (Production Deployment)**:
+
+`column_configs` causes the Databricks API to perform Unity Catalog schema validation during Genie Space creation/update. For complex spaces with many tables or metric views, this validation can fail with:
+
+```
+INTERNAL_ERROR: Failed to retrieve schema from unity catalog
+```
+
+**Pattern Observed**:
+- Spaces with NO `column_configs` → ✅ Deployed successfully
+- Spaces with extensive `column_configs` (67-124 configs) → ❌ INTERNAL_ERROR
+
+**Recommendation**:
+
+**Start Simple:**
+```json
+{
+  "data_sources": {
+    "metric_views": [
+      {
+        "identifier": "catalog.schema.mv_sales",
+        // ✅ NO column_configs - deploys successfully
+      }
+    ]
+  }
+}
+```
+
+**Add Incrementally (Optional):**
+```json
+{
+  "data_sources": {
+    "metric_views": [
+      {
+        "identifier": "catalog.schema.mv_sales",
+        "column_configs": [
+          {
+            "column_name": "store_name",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Test after each addition** - If INTERNAL_ERROR occurs, remove the last added config.
+
+**Trade-off**:
+- **Without column_configs**: Reliable deployment, but LLM has less column-level context
+- **With column_configs**: More LLM context, but higher risk of Unity Catalog validation errors
 
 ---
 
@@ -808,112 +857,484 @@ api_body = json.dumps(payload)
 
 ---
 
+## ⚠️ CRITICAL: Exact Format Requirements (From Reference)
+
+### Reference File: `context/genie/genie_space_export.json`
+
+This is a **production Databricks Genie Space export**. All new Genie Spaces MUST match this exact structure.
+
+---
+
+### Field-Level Format Requirements
+
+#### config.sample_questions
+
+**✅ CORRECT (Reference Format):**
+```json
+{
+  "config": {
+    "sample_questions": [
+      {
+        "id": "01f0ad3bc23713a48b30c9fbe1792b64",
+        "question": ["What are the top 10 stores by revenue this month?"]
+      }
+    ]
+  }
+}
+```
+
+**❌ WRONG:**
+```json
+{
+  "config": {
+    "sample_questions": [
+      "What are the top 10 stores by revenue this month?"  // ❌ String instead of object
+    ]
+  }
+}
+```
+
+**❌ WRONG:**
+```json
+{
+  "config": {
+    "sample_questions": [
+      {
+        "question": "What is the revenue?"  // ❌ String instead of array
+      }
+    ]
+  }
+}
+```
+
+---
+
+#### data_sources.metric_views
+
+**✅ CORRECT (Reference Format):**
+```json
+{
+  "data_sources": {
+    "metric_views": [
+      {
+        "identifier": "catalog.schema.sales_performance_metrics",
+        "column_configs": [
+          {
+            "column_name": "total_revenue"
+          },
+          {
+            "column_name": "brand",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**❌ WRONG:**
+```json
+{
+  "data_sources": {
+    "metric_views": [
+      {
+        "id": "abc123",                    // ❌ Remove 'id' field
+        "name": "sales_metrics",           // ❌ Remove 'name' field
+        "full_name": "catalog.schema.mv",  // ❌ Should be 'identifier'
+        "description": "..."
+      }
+    ]
+  }
+}
+```
+
+**Valid Fields for metric_views**:
+- ✅ `identifier` (required) - Full 3-part UC name
+- ✅ `description` (optional) - Array of strings
+- ✅ `column_configs` (optional) - Array of column config objects
+- ❌ `id`, `name`, `full_name` - NOT allowed
+
+---
+
+#### data_sources.tables
+
+**✅ CORRECT (Reference Format):**
+```json
+{
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "catalog.schema.dim_store",
+        "column_configs": [
+          {
+            "column_name": "store_number",
+            "get_example_values": true,
+            "build_value_dictionary": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Valid Fields for tables**:
+- ✅ `identifier` (required) - Full 3-part UC name
+- ✅ `description` (optional) - Array of strings
+- ✅ `column_configs` (optional) - Array of column config objects
+- ❌ `id`, `name`, `full_name` - NOT allowed
+
+---
+
+#### instructions.sql_functions
+
+**✅ CORRECT (Reference Format):**
+```json
+{
+  "instructions": {
+    "sql_functions": [
+      {
+        "id": "01f0ad0f09081561ba6de2829ed2fa02",
+        "identifier": "catalog.schema.get_low_stock_items"
+      }
+    ]
+  }
+}
+```
+
+**❌ WRONG:**
+```json
+{
+  "instructions": {
+    "sql_functions": [
+      {
+        "identifier": "catalog.schema.get_function"  // ❌ Missing 'id' field
+      }
+    ]
+  }
+}
+```
+
+**❌ WRONG:**
+```json
+{
+  "instructions": {
+    "sql_functions": [
+      {
+        "id": "...",
+        "identifier": "catalog.schema.function",
+        "name": "function",              // ❌ Extra field
+        "signature": "function(x, y)",   // ❌ Extra field
+        "full_name": "...",              // ❌ Extra field
+        "description": "..."             // ❌ Extra field
+      }
+    ]
+  }
+}
+```
+
+**Required Fields for sql_functions**:
+- ✅ `id` (required) - 32 hex character UUID
+- ✅ `identifier` (required) - Full 3-part function name
+- ❌ NO other fields allowed
+
+---
+
+#### instructions.text_instructions
+
+**✅ CORRECT (Reference Format):**
+```json
+{
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "01f0ad1010c212a7a17001b551b71dec",
+        "content": [
+          "BUSINESS CONTEXT:\n",
+          "Description here.\n",
+          "\n",
+          "DATA ASSETS:\n",
+          "1. metric_view_1 - Purpose\n"
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Required Fields for text_instructions**:
+- ✅ `id` (required) - 32 hex character UUID
+- ✅ `content` (optional) - Array of strings (each string can have `\n`)
+- ❌ NO other fields allowed
+
+---
+
 ## Validation Checklist
 
-### Structure Validation
+### Structure Validation (MANDATORY)
 
-- [ ] `version` is set to `1`
-- [ ] All IDs are 32-character hex strings
+- [ ] `version` is set to `1` (integer)
+- [ ] All IDs are 32-character hex strings (no dashes)
 - [ ] All string arrays (question, content, sql) are arrays even for single values
 - [ ] All identifiers use full 3-part UC names (`catalog.schema.object`)
 
-### Data Sources
+### config.sample_questions
 
-- [ ] Tables or metric views included (not usually both for same data)
-- [ ] Column configs include `build_value_dictionary` for categorical columns
-- [ ] All referenced objects exist in Unity Catalog
+- [ ] Is an array of **objects** (not strings)
+- [ ] Each object has `id` field (32 hex chars)
+- [ ] Each object has `question` field (array of strings)
+- [ ] No other fields present
 
-### Instructions
+### data_sources.tables
 
-- [ ] Text instructions are concise but comprehensive
-- [ ] All TVFs listed in `sql_functions`
-- [ ] Join specs cover all FK relationships
-- [ ] Relationship type markers included in join SQL
+- [ ] Each table has `identifier` field (full 3-part name)
+- [ ] `identifier` contains no template variables (`${...}`) in final JSON
+- [ ] If `column_configs` present, it's an array
+- [ ] Each column_config has `column_name` field
+- [ ] NO `id`, `name`, or `full_name` fields present
 
-### Benchmarks
+### data_sources.metric_views
 
-- [ ] 15-30 benchmark questions
-- [ ] SQL is syntactically correct
-- [ ] SQL uses correct column names (not display names for MEASURE)
-- [ ] Full UC namespace in all table references
-- [ ] Variety of question types covered
+- [ ] Each metric view has `identifier` field (full 3-part name)
+- [ ] `identifier` contains no template variables in final JSON
+- [ ] If `column_configs` present, it's an array
+- [ ] NO `id`, `name`, or `full_name` fields present
 
----
+### instructions.sql_functions
 
-## Common Mistakes to Avoid
+- [ ] Each function has `id` field (32 hex chars)
+- [ ] Each function has `identifier` field (full 3-part function name)
+- [ ] NO other fields (`name`, `signature`, `full_name`, `description`)
 
-### ❌ WRONG: String instead of array
+### instructions.text_instructions
 
-```json
-{
-  "question": "What is the revenue?"
-}
-```
+- [ ] Each instruction has `id` field (32 hex chars)
+- [ ] If `content` present, it's an array of strings
+- [ ] NO other fields present
 
-### ✅ CORRECT: Array of strings
+### benchmarks.questions
 
-```json
-{
-  "question": ["What is the revenue?"]
-}
-```
-
----
-
-### ❌ WRONG: Missing relationship type marker
-
-```json
-{
-  "sql": ["`fact`.`key` = `dim`.`key`"]
-}
-```
-
-### ✅ CORRECT: Include relationship type
-
-```json
-{
-  "sql": [
-    "`fact`.`key` = `dim`.`key`",
-    "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
-  ]
-}
-```
+- [ ] Each question has `id` field (32 hex chars)
+- [ ] Each question has `question` field (array of strings)
+- [ ] Each question has `answer` array
+- [ ] Each answer has `format: "SQL"`
+- [ ] Each answer has `content` (array of strings)
 
 ---
 
-### ❌ WRONG: Partial identifiers
+## ⚠️ CRITICAL: Common Production Errors & Fixes
 
-```json
-{
-  "identifier": "sales_metrics"
-}
-```
+Based on production deployment failures, these are the most common format errors that cause `BAD_REQUEST`, `INVALID_PARAMETER_VALUE`, and `INTERNAL_ERROR` responses from the Databricks API.
 
-### ✅ CORRECT: Full 3-part names
+---
 
-```json
-{
-  "identifier": "catalog.schema.sales_metrics"
-}
+### Error 1: sample_questions as Plain Strings
+
+**Error**: `BAD_REQUEST: Invalid JSON in field 'serialized_space'`
+
+**Problem**: sample_questions are plain strings instead of objects with id/question
+
+```python
+# Fix script
+import json
+import uuid
+
+with open('genie_export.json', 'r') as f:
+    data = json.load(f)
+
+# Convert strings to objects
+if isinstance(data["config"]["sample_questions"][0], str):
+    new_sq = []
+    for q_text in data["config"]["sample_questions"]:
+        new_sq.append({
+            "id": uuid.uuid4().hex,
+            "question": [q_text]
+        })
+    data["config"]["sample_questions"] = new_sq
+
+with open('genie_export.json', 'w') as f:
+    json.dump(data, f, indent=2)
 ```
 
 ---
 
-### ❌ WRONG: IDs with dashes
+### Error 2: metric_views with full_name Instead of identifier
 
-```json
-{
-  "id": "01f0ad0d-629b-1187-9bb8-c06e03b919f8"
-}
+**Error**: `BAD_REQUEST: Invalid JSON in field 'serialized_space'`
+
+**Problem**: metric_views have `{id, name, full_name}` instead of `{identifier}`
+
+```python
+# Fix script
+for mv in data["data_sources"]["metric_views"]:
+    if "full_name" in mv:
+        # Transform to API format
+        new_mv = {"identifier": mv["full_name"]}
+        if "description" in mv:
+            new_mv["description"] = mv["description"]
+        if "column_configs" in mv:
+            new_mv["column_configs"] = mv["column_configs"]
+        
+        # Replace with fixed version
+        data["data_sources"]["metric_views"][i] = new_mv
 ```
 
-### ✅ CORRECT: IDs without dashes
+---
 
-```json
-{
-  "id": "01f0ad0d629b11879bb8c06e03b919f8"
-}
+### Error 3: sql_functions Missing id Field
+
+**Error**: `INTERNAL_ERROR: Failed to retrieve schema from unity catalog`
+
+**Problem**: sql_functions only have `{identifier}`, missing required `{id}` field
+
+```python
+# Fix script
+for func in data["instructions"]["sql_functions"]:
+    if "id" not in func:
+        func["id"] = uuid.uuid4().hex
 ```
+
+---
+
+### Error 4: sample_questions with String Instead of Array
+
+**Error**: `INVALID_PARAMETER_VALUE: Expected an array for question but found "string"`
+
+**Problem**: question field is a string instead of array
+
+```python
+# Fix script
+for sq in data["config"]["sample_questions"]:
+    if isinstance(sq["question"], str):
+        sq["question"] = [sq["question"]]
+```
+
+---
+
+### Error 5: config.name and config.description
+
+**Error**: `BAD_REQUEST: Invalid JSON in field 'serialized_space'`
+
+**Problem**: `config.name` and `config.description` should NOT be in the config section
+
+```python
+# Fix script
+if "config" in data:
+    if "name" in data["config"]:
+        del data["config"]["name"]
+    if "description" in data["config"]:
+        del data["config"]["description"]
+```
+
+**Note**: `title` and `description` belong at the top level of the API payload, not in `serialized_space.config`.
+
+---
+
+### Error 6: Missing data_sources.tables Array
+
+**Error**: `BAD_REQUEST: Invalid JSON in field 'serialized_space'`
+
+**Problem**: Missing `tables` array (must be present even if empty)
+
+```python
+# Fix script
+if "data_sources" not in data:
+    data["data_sources"] = {}
+if "tables" not in data["data_sources"]:
+    data["data_sources"]["tables"] = []
+```
+
+---
+
+### Error 7: sql_functions with Extra Fields
+
+**Error**: `BAD_REQUEST: Invalid JSON in field 'serialized_space'`
+
+**Problem**: sql_functions have extra fields like `name`, `signature`, `full_name`, `description`
+
+```python
+# Fix script
+new_sql_functions = []
+for func in data["instructions"]["sql_functions"]:
+    new_sql_functions.append({
+        "id": func["id"],
+        "identifier": func.get("full_name") or func.get("identifier")
+    })
+data["instructions"]["sql_functions"] = new_sql_functions
+```
+
+---
+
+### Error 8: text_instructions as Array of Strings
+
+**Error**: `BAD_REQUEST: Invalid JSON in field 'serialized_space'`
+
+**Problem**: text_instructions are plain strings instead of objects with id/content
+
+```python
+# Fix script
+if isinstance(data["instructions"]["text_instructions"][0], str):
+    new_ti = [{
+        "id": uuid.uuid4().hex,
+        "content": data["instructions"]["text_instructions"]
+    }]
+    data["instructions"]["text_instructions"] = new_ti
+```
+
+---
+
+## Validation Checklist
+
+### Structure Validation (MANDATORY)
+
+- [ ] `version` is set to `1` (integer)
+- [ ] All IDs are 32-character hex strings (no dashes)
+- [ ] All string arrays (question, content, sql) are arrays even for single values
+- [ ] All identifiers use full 3-part UC names (`catalog.schema.object`)
+
+### config.sample_questions (CRITICAL)
+
+- [ ] ✅ Is an array of **objects** (not strings)
+- [ ] ✅ Each object has `id` field (32 hex chars)
+- [ ] ✅ Each object has `question` field (array of strings, even if single string)
+- [ ] ✅ No other fields (no `name`, `description`)
+
+### data_sources.tables
+
+- [ ] ✅ Each table has `identifier` field (full 3-part name, no template variables after substitution)
+- [ ] ✅ NO `id`, `name`, or `full_name` fields present
+- [ ] ✅ If `column_configs` present, it's an array
+- [ ] ✅ Each column_config has `column_name` field
+- [ ] Optional: `description` field (array of strings)
+
+### data_sources.metric_views
+
+- [ ] ✅ Each metric view has `identifier` field (full 3-part name, no template variables after substitution)
+- [ ] ✅ NO `id`, `name`, or `full_name` fields present
+- [ ] ✅ If `column_configs` present, it's an array
+- [ ] Optional: `description` field (array of strings)
+
+### instructions.sql_functions (CRITICAL)
+
+- [ ] ✅ Each function has `id` field (32 hex chars) - REQUIRED
+- [ ] ✅ Each function has `identifier` field (full 3-part function name) - REQUIRED
+- [ ] ✅ NO other fields (`name`, `signature`, `full_name`, `description`) - Will cause errors
+
+### instructions.text_instructions
+
+- [ ] ✅ Each instruction has `id` field (32 hex chars)
+- [ ] ✅ If `content` present, it's an array of strings (each string can contain `\n`)
+- [ ] ✅ NO other fields present
+
+### benchmarks.questions
+
+- [ ] Each question has `id` field (32 hex chars)
+- [ ] Each question has `question` field (array of strings)
+- [ ] Each question has `answer` array with one element
+- [ ] Each answer has `format: "SQL"`
+- [ ] Each answer has `content` (array of strings split by lines)
 
 ---
 
@@ -1207,8 +1628,503 @@ if __name__ == "__main__":
 
 ---
 
+## Production Deployment Checklist
+
+Before deploying any Genie Space, run this comprehensive validation:
+
+### Step 1: Validate JSON Structure
+
+```bash
+python3 scripts/validate_against_reference.py
+```
+
+**Expected**: "✅ ALL FILES MATCH REFERENCE STRUCTURE!"
+
+**If errors found**: Run the appropriate fix scripts (see "Common Production Errors" section)
+
+---
+
+### Step 2: Validate SQL Queries
+
+```bash
+DATABRICKS_CONFIG_PROFILE=health-monitor databricks bundle run -t dev genie_benchmark_validation_job
+```
+
+**Expected**: 150/150 (100%) pass rate
+
+**If errors found**: Fix SQL queries in `answer.content` sections
+
+---
+
+### Step 3: Deploy Genie Spaces
+
+```bash
+DATABRICKS_CONFIG_PROFILE=health-monitor databricks bundle deploy -t dev
+DATABRICKS_CONFIG_PROFILE=health-monitor databricks bundle run -t dev genie_spaces_deployment_job
+```
+
+**Expected**: "✅ All Genie Spaces deployed successfully!"
+
+---
+
+### Step 4: Verify in UI
+
+1. Navigate to Genie Spaces in Databricks UI
+2. Test sample questions in each space
+3. Verify data sources load correctly
+4. Check that TVFs are accessible
+
+---
+
+### Common Deployment Errors
+
+| Error Code | Cause | Fix |
+|---|---|---|
+| `BAD_REQUEST: Invalid JSON in field 'serialized_space'` | JSON structure mismatch | Run fix scripts for sample_questions, metric_views, sql_functions |
+| `INVALID_PARAMETER_VALUE: Expected an array for question` | String instead of array | Fix sample_questions or benchmark questions format |
+| `INTERNAL_ERROR: Failed to retrieve schema from unity catalog` | Transient API error OR invalid column_configs | Retry deployment, or remove column_configs temporarily |
+| `TABLE_OR_VIEW_NOT_FOUND` in benchmark SQL | SQL query references non-existent table | Fix table names in benchmark queries |
+| `COLUMN_NOT_FOUND` in benchmark SQL | SQL query references non-existent column | Fix column names using ground truth |
+
+---
+
+---
+
+## ⚠️ CRITICAL: Asset Inventory-Driven Generation (Jan 2026)
+
+### The Core Problem
+
+**Manually editing JSON files leads to systematic deployment failures:**
+
+| Session | Error | Root Cause |
+|---------|-------|------------|
+| Session 21-22 | `INTERNAL_ERROR: Failed to retrieve schema` | 36+ non-existent tables in data_sources |
+| Session 23 | `Exceeded maximum number (50)` | 53 TVFs in unified_health_monitor |
+| Session 24 | Hardcoded paths break cross-workspace | `prashanth_` prefix hardcoded |
+
+### The Solution: Inventory-First Generation
+
+**NEVER manually edit `data_sources` in JSON files. Generate from a verified asset inventory.**
+
+---
+
+### Asset Inventory Structure
+
+**File: `src/genie/actual_assets_inventory.json`**
+
+```json
+{
+  "metadata": {
+    "generated_at": "2026-01-14T12:00:00Z",
+    "catalog": "prashanth_subrahmanyam_catalog",
+    "schemas_queried": [
+      "dev_prashanth_subrahmanyam_system_gold",
+      "dev_prashanth_subrahmanyam_system_gold_ml",
+      "dev_prashanth_subrahmanyam_system_gold_monitoring"
+    ]
+  },
+  "system_gold": {
+    "tables": [
+      {"identifier": "${catalog}.${gold_schema}.dim_workspace"},
+      {"identifier": "${catalog}.${gold_schema}.dim_sku"},
+      {"identifier": "${catalog}.${gold_schema}.fact_usage"}
+    ],
+    "metric_views": [
+      {"identifier": "${catalog}.${gold_schema}.mv_cost_analytics"}
+    ],
+    "sql_functions": [
+      {"identifier": "${catalog}.${gold_schema}.get_top_cost_contributors"}
+    ]
+  },
+  "system_gold_ml": {
+    "tables": [
+      {"identifier": "${catalog}.${feature_schema}.budget_forecast_predictions"}
+    ]
+  },
+  "system_gold_monitoring": {
+    "tables": [
+      {"identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics"}
+    ]
+  },
+  "genie_space_mappings": {
+    "cost_intelligence": {
+      "tables": ["${catalog}.${gold_schema}.dim_sku", "..."],
+      "metric_views": ["${catalog}.${gold_schema}.mv_cost_analytics"],
+      "sql_functions": ["${catalog}.${gold_schema}.get_top_cost_contributors"]
+    }
+  }
+}
+```
+
+---
+
+### Template Variable System
+
+**CRITICAL: NEVER hardcode schema paths in JSON files.**
+
+#### ❌ WRONG: Hardcoded Paths
+
+```json
+{
+  "data_sources": {
+    "tables": [
+      {"identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_workspace"}
+    ]
+  }
+}
+```
+
+**Problems:**
+- Breaks when deploying to different workspace
+- Requires find/replace for each environment
+- Error-prone manual process
+
+#### ✅ CORRECT: Template Variables
+
+```json
+{
+  "data_sources": {
+    "tables": [
+      {"identifier": "${catalog}.${gold_schema}.dim_workspace"}
+    ]
+  }
+}
+```
+
+**Variables defined in `databricks.yml`:**
+
+```yaml
+variables:
+  catalog:
+    description: Unity Catalog name
+    default: prashanth_subrahmanyam_catalog
+  gold_schema:
+    description: Gold layer schema
+    default: dev_prashanth_subrahmanyam_system_gold
+  feature_schema:
+    description: ML features schema (system_gold_ml)
+    default: dev_prashanth_subrahmanyam_system_gold_ml
+
+targets:
+  dev:
+    variables:
+      catalog: prashanth_subrahmanyam_catalog
+      gold_schema: dev_prashanth_subrahmanyam_system_gold
+  prod:
+    variables:
+      catalog: production_catalog
+      gold_schema: system_gold
+```
+
+---
+
+### Variable Substitution in Deployment Script
+
+**File: `src/genie/deploy_genie_space.py`**
+
+```python
+def substitute_variables(data: dict, variables: dict) -> dict:
+    """Replace template variables with actual values from databricks.yml."""
+    json_str = json.dumps(data)
+    
+    # Standard substitutions
+    json_str = json_str.replace("${catalog}", variables.get('catalog', ''))
+    json_str = json_str.replace("${gold_schema}", variables.get('gold_schema', ''))
+    json_str = json_str.replace("${feature_schema}", variables.get('feature_schema', ''))
+    
+    # Monitoring schema pattern
+    monitoring_schema = f"{variables.get('gold_schema', '')}_monitoring"
+    json_str = json_str.replace("${gold_schema}_monitoring", monitoring_schema)
+    
+    return json.loads(json_str)
+
+
+def deploy_genie_space(space_name: str, genie_config: dict):
+    """Deploy with variable substitution."""
+    
+    # Get variables from dbutils widgets (passed from Asset Bundle)
+    variables = {
+        'catalog': dbutils.widgets.get('catalog'),
+        'gold_schema': dbutils.widgets.get('gold_schema'),
+        'feature_schema': dbutils.widgets.get('feature_schema'),
+    }
+    
+    # Substitute BEFORE API call
+    substituted_config = substitute_variables(genie_config, variables)
+    
+    # Now deploy with actual paths
+    api_response = requests.post(
+        f"{host}/api/2.0/genie/spaces",
+        json={
+            "title": space_name,
+            "serialized_space": json.dumps(substituted_config)
+        }
+    )
+```
+
+---
+
+### Programmatic JSON Generation
+
+**Script: `scripts/regenerate_all_genie_spaces.py`**
+
+```python
+#!/usr/bin/env python3
+"""Regenerate ALL Genie Space JSON files from asset inventory."""
+
+import json
+import uuid
+from pathlib import Path
+
+INVENTORY_PATH = Path("src/genie/actual_assets_inventory.json")
+GENIE_DIR = Path("src/genie")
+
+def generate_id():
+    return uuid.uuid4().hex
+
+def regenerate_genie_space(space_name: str, inventory: dict):
+    """Regenerate one Genie Space from inventory."""
+    
+    json_path = GENIE_DIR / f"{space_name}_genie_export.json"
+    
+    with open(json_path) as f:
+        genie_data = json.load(f)
+    
+    mappings = inventory['genie_space_mappings'].get(space_name, {})
+    
+    # === UPDATE DATA SOURCES FROM INVENTORY ===
+    
+    # Tables (dimension, fact, ML, monitoring)
+    genie_data['data_sources']['tables'] = [
+        {"identifier": table_id}
+        for table_id in mappings.get('tables', [])
+    ]
+    
+    # Metric views
+    genie_data['data_sources']['metric_views'] = [
+        {"identifier": mv_id}
+        for mv_id in mappings.get('metric_views', [])
+    ]
+    
+    # TVFs (with ID generation and limit enforcement)
+    tvfs = [
+        {"id": generate_id(), "identifier": tvf_id}
+        for tvf_id in mappings.get('sql_functions', [])
+    ]
+    
+    # API LIMIT: Max 50 sql_functions
+    if len(tvfs) > 50:
+        print(f"  ⚠️ Truncating {space_name} TVFs: {len(tvfs)} → 50")
+        tvfs = tvfs[:50]
+    genie_data['instructions']['sql_functions'] = tvfs
+    
+    # === FIX JSON FORMAT ISSUES ===
+    
+    # Fix sample_questions: ensure question is array
+    for sq in genie_data.get('config', {}).get('sample_questions', []):
+        if isinstance(sq.get('question'), str):
+            sq['question'] = [sq['question']]
+        if 'id' not in sq or not sq['id']:
+            sq['id'] = generate_id()
+    
+    # Fix benchmarks: ensure question is array
+    for bq in genie_data.get('benchmarks', {}).get('questions', []):
+        if isinstance(bq.get('question'), str):
+            bq['question'] = [bq['question']]
+    
+    # API LIMIT: Max 50 benchmarks
+    benchmarks = genie_data.get('benchmarks', {}).get('questions', [])
+    if len(benchmarks) > 50:
+        print(f"  ⚠️ Truncating {space_name} benchmarks: {len(benchmarks)} → 50")
+        genie_data['benchmarks']['questions'] = benchmarks[:50]
+    
+    # Write back
+    with open(json_path, 'w') as f:
+        json.dump(genie_data, f, indent=2)
+    
+    print(f"✅ Regenerated {space_name}")
+    return True
+
+
+def main():
+    with open(INVENTORY_PATH) as f:
+        inventory = json.load(f)
+    
+    spaces = [
+        "cost_intelligence",
+        "job_health_monitor",
+        "performance",
+        "security_auditor",
+        "data_quality_monitor",
+        "unified_health_monitor"
+    ]
+    
+    for space in spaces:
+        regenerate_genie_space(space, inventory)
+    
+    print("\n✅ All Genie Spaces regenerated!")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+### Spec File Synchronization
+
+**Keep `.md` spec files aligned with JSON and inventory:**
+
+```python
+#!/usr/bin/env python3
+"""Update spec files from inventory."""
+
+def update_spec_data_assets(space_name: str, inventory: dict):
+    """Update Data Assets section in spec .md file."""
+    
+    md_path = Path(f"src/genie/{space_name}_genie.md")
+    mappings = inventory['genie_space_mappings'].get(space_name, {})
+    
+    # Extract short names
+    mvs = [id.split('.')[-1] for id in mappings.get('metric_views', [])]
+    tables = [id.split('.')[-1] for id in mappings.get('tables', [])]
+    tvfs = [id.split('.')[-1] for id in mappings.get('sql_functions', [])]
+    
+    # Generate markdown
+    mv_md = "### Metric Views\n| Metric View | Purpose | Key Measures |\n|---|---|---|\n"
+    for mv in mvs:
+        mv_md += f"| `{mv}` | TBD | TBD |\n"
+    
+    tables_md = "### Tables\n| Table | Purpose |\n|---|---|\n"
+    for t in tables:
+        tables_md += f"| `{t}` | TBD |\n"
+    
+    tvfs_md = "### Table-Valued Functions (TVFs)\n| TVF | Purpose |\n|---|---|\n"
+    for tvf in tvfs:
+        tvfs_md += f"| `{tvf}` | TBD |\n"
+    
+    # Update file with regex replacement...
+```
+
+---
+
+### Complete Generation Workflow
+
+```bash
+# 1. Query Unity Catalog (manual SQL in Databricks notebook)
+#    - Get all tables, views, functions
+#    - Update actual_assets_inventory.json
+
+# 2. Regenerate ALL JSON files
+python scripts/regenerate_all_genie_spaces.py
+
+# 3. Update ALL spec files
+python scripts/update_spec_data_assets.py
+python scripts/update_spec_descriptions.py
+
+# 4. Verify alignment
+python scripts/align_genie_spec_files.py
+
+# 5. Validate JSON structure
+python scripts/validate_against_reference.py
+
+# 6. Deploy (variables substituted at runtime)
+databricks bundle run -t dev genie_spaces_deployment_job
+```
+
+---
+
+### API Limits Reference
+
+| Resource | Limit | Enforcement |
+|----------|-------|-------------|
+| `instructions.sql_functions` | **Max 50** | Truncate in generation script |
+| `benchmarks.questions` | **Max 50** | Truncate in generation script |
+| `data_sources.tables` | No hard limit | Keep ~25-30 for performance |
+| `data_sources.metric_views` | No hard limit | Keep ~5-10 per space |
+| `serialized_space` size | ~1MB suggested | Monitor payload size |
+
+---
+
+### Error Recovery Patterns
+
+#### Error: `TABLE_OR_VIEW_NOT_FOUND`
+
+**Cause:** Table referenced in `data_sources` doesn't exist.
+
+**Fix:**
+1. Query Unity Catalog to verify table existence
+2. Update `actual_assets_inventory.json` 
+3. Regenerate JSON: `python scripts/regenerate_all_genie_spaces.py`
+
+#### Error: `Exceeded maximum number (50) of certified answer inputs`
+
+**Cause:** More than 50 TVFs in `sql_functions`.
+
+**Fix:** Generation script enforces limit automatically. If manual edit, truncate to 50.
+
+#### Error: `INTERNAL_ERROR: Failed to retrieve schema from unity catalog`
+
+**Cause:** Could be column_configs OR non-existent tables.
+
+**Fix:**
+1. Remove `column_configs` from data_sources
+2. Verify all tables exist via UC query
+3. Regenerate from inventory
+
+#### Error: Genie Space shows wrong tables in UI
+
+**Cause:** Template variables not substituted.
+
+**Fix:** Check `substitute_variables()` is called BEFORE API call.
+
+---
+
 ## Version History
 
+- **v3.0** (January 14, 2026) - Inventory-driven programmatic generation
+  - **Achieved**: 100% deployment success with automated generation (6/6 Genie Spaces)
+  - Added asset inventory schema and best practices
+  - Added template variable system for cross-workspace deployment
+  - Added variable substitution patterns for deployment script
+  - Added programmatic JSON generation script template
+  - Added spec file synchronization patterns
+  - Added complete generation workflow (6-step process)
+  - Added API limits reference table with enforcement patterns
+  - Added error recovery patterns with specific fixes
+  - **Critical Discovery**: Manual JSON editing caused 36+ non-existent table errors
+  - **Critical Discovery**: Hardcoded paths break cross-workspace deployment
+  - **Key Learning**: Inventory-first approach eliminates "table doesn't exist" errors
+  - **Key Learning**: Template variables + runtime substitution = workspace portability
+  - **Impact**: 
+    - 0 non-existent table errors (vs 36+ in manual approach)
+    - 0 API limit violations (enforced in generation)
+    - 100% spec file alignment with JSON
+    - Single command regeneration for all 6 Genie Spaces
+  - Based on: Session 24 production deployment - complete inventory-driven workflow
+
+- **v2.0** (January 13, 2026) - Production deployment patterns from Health Monitor project
+  - **Achieved**: 100% deployment success (6/6 Genie Spaces) after format fixes
+  - **Key Discovery**: `column_configs` triggers Unity Catalog validation that fails for complex spaces
+  - Added exact format requirements from reference file (`context/genie/genie_space_export.json`)
+  - Added 8 common production errors with Python fix scripts
+  - Added field-level validation patterns (what's required, what's forbidden)
+  - Added comprehensive deployment checklist (4-step validation workflow)
+  - Created `scripts/validate_against_reference.py` for structural validation
+  - **Critical Fixes Applied**:
+    - `cost_intelligence`: Fixed sample_questions (strings → objects), metric_views (full_name → identifier)
+    - `security_auditor`: Fixed sql_functions (added missing id field)
+    - All 3 failing spaces: Removed column_configs (124 configs removed)
+  - **Impact**: Deployment success rate improved from 33% (2/6) → 50% (3/6) → 100% (6/6)
+  - **Deployment Journey**: 22 sessions, 200+ SQL fixes, 26 format corrections, 150 benchmark questions validated
+  - **Validation Results**: 88.7% pass rate (133/150 queries) - 17 failures due to schema mismatches, not deployment issues
+    - ✅ 3 spaces: Job Health (25/25), Performance (25/25), Cost Intelligence (25/25)
+    - 🔧 3 spaces need fixes: Unified Health (21/25), Security Auditor (20/25), Data Quality (17/25)
+    - Root cause: Benchmark questions reference non-existent columns/tables in Gold layer
+    - **Next**: Session 23+ to fix schema mismatches and reach 150/150
+  - Key learning: Reference-based validation is essential - compare against working examples, not just documentation
+  - Key learning: Deployment success ≠ Query success - validate both structure AND schema
+  
 - **v1.0** (January 2026) - Initial rule based on API export/import analysis
   - Complete GenieSpaceExport schema documentation
   - TypeScript interface reference

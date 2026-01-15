@@ -7,28 +7,38 @@ alwaysApply: false
 
 ## Pattern Origin
 
-**Date:** December 2025 (Updated: January 4, 2026)  
-**Source:** Production ML pipeline implementation with 25 models, 70+ errors across multiple development iterations  
+**Date:** December 2025 (Updated: January 14, 2026 - v4.0)  
+**Source:** Production ML pipeline implementation with 25 models across 5 domains (Cost, Security, Performance, Reliability, Quality)  
 **Impact:** 96% inference success rate (23/24 models), 93% reduction in debugging time  
+**Key Artifacts:**
+- Feature Registry pattern for dynamic schema querying
+- Standardized training utilities (`training_base.py`)
+- Custom inference pattern for TF-IDF models (`tag_recommender`)
+- NaN/Inf handling at feature table source
+
 **Reference:** [Post-Mortem Documentation](../../docs/reference/rule-improvement-mlflow-mlmodels-patterns.md)
 
 ---
 
-## Quick Reference: 11 Non-Negotiable Rules
+## Quick Reference: 15 Non-Negotiable Rules
 
-| Rule | Pattern | Why It Fails Otherwise |
-|------|---------|----------------------|
-| 1. Experiment Path | `/Shared/{project}_ml_{model_name}` | `/Users/...` fails silently if subfolder doesn't exist |
-| 2. Dataset Logging | Inside `mlflow.start_run()` context | Won't associate with run, invisible in UI |
-| 3. Helper Functions | ALWAYS inline (no imports) | `ModuleNotFoundError` in serverless |
-| 4. Exit Signal | `dbutils.notebook.exit("SUCCESS")` | Job status unclear, may show SUCCESS on failure |
-| 5. UC Model Logging | Use `fe.log_model()` with `output_schema` | Unity Catalog rejects models without output spec |
-| 6. Feature Store | Use `FeatureEngineeringClient` for feature tables | Manual joins lose lineage, inference breaks |
-| 7. Pin MLflow Version | `mlflow==3.7.0` (exact version) | Version mismatch warnings during inference |
-| 8. **NaN Handling** | Clean NaN/Inf at **feature table creation** | sklearn GradientBoosting fails; XGBoost handles NaN but sklearn doesn't |
-| 9. **Label Binarization** | Convert 0-1 rates to binary for classifiers | `XGBoostError: base_score must be in (0,1)` |
-| 10. **Single-Class Check** | Verify label distribution before training | Classifier can't train on all-same labels |
-| 11. **Exclude Labels** | Use `exclude_columns=[LABEL_COLUMN]` | Label included as feature causes inference failure |
+| # | Rule | Pattern | Why It Fails Otherwise |
+|---|------|---------|----------------------|
+| 1 | **Experiment Path** | `/Shared/{project}_ml_{model_name}` | `/Users/...` fails silently if subfolder doesn't exist |
+| 2 | **Dataset Logging** | Inside `mlflow.start_run()` context | Won't associate with run, invisible in UI |
+| 3 | **Exit Signal** | `dbutils.notebook.exit("SUCCESS")` | Job status unclear, may show SUCCESS on failure |
+| 4 | **UC Model Logging** | Use `fe.log_model()` with `output_schema` | Unity Catalog rejects models without output spec |
+| 5 | **Feature Store** | Use `FeatureEngineeringClient` for feature tables | Manual joins lose lineage, inference breaks |
+| 6 | **Pin MLflow Version** | `mlflow==3.7.0` (exact version) | Version mismatch warnings during inference |
+| 7 | **NaN Handling** | Clean NaN/Inf at **feature table creation** | sklearn GradientBoosting fails; XGBoost handles NaN but sklearn doesn't |
+| 8 | **Label Binarization** | Convert 0-1 rates to binary for classifiers | `XGBoostError: base_score must be in (0,1)` |
+| 9 | **Single-Class Check** | Verify label distribution before training | Classifier can't train on all-same labels |
+| 10 | **Exclude Labels** | Use `exclude_columns=[LABEL_COLUMN]` | Label included as feature causes inference failure |
+| 11 | **Feature Registry** | Query feature table schemas dynamically | Hardcoded feature lists drift out of sync |
+| 12 | **Standardized Utils** | Import from `training_base.py` | Custom implementations have inconsistent patterns |
+| 13 | **Double Type Casting** | Cast ALL numeric features to DOUBLE in feature tables | MLflow signatures reject DecimalType |
+| 14 | **Custom Inference** | Separate task for TF-IDF/NLP models | `fe.score_batch()` can't compute runtime features |
+| 15 | **Bundle Path Setup** | Use `sys.path.insert(0, _bundle_root)` pattern | Module imports fail in serverless |
 
 ---
 

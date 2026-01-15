@@ -1018,7 +1018,7 @@
     {
       "name": "ds_health_issues",
       "displayName": "Health Issues",
-      "query": "WITH job_issues AS (\n  SELECT \n    '🔧 Reliability' AS category,\n    COALESCE(job_id, 'Unknown') AS asset_id,\n    COALESCE(run_name, job_id, 'Unknown Job') AS asset_name,\n    COUNT(*) AS issue_count,\n    CONCAT(COUNT(*), ' job failures') AS reason,\n    MAX(run_date) AS last_occurrence,\n    CASE WHEN COUNT(*) > 10 THEN 'High' WHEN COUNT(*) > 5 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline\n  WHERE run_date >= :time_range.min AND run_date <= :time_range.max\n    AND result_state NOT IN ('SUCCESS', 'SUCCEEDED') AND result_state IS NOT NULL\n  GROUP BY job_id, run_name\n  HAVING COUNT(*) > 0\n),\nquery_issues AS (\n  SELECT \n    '⚡ Performance' AS category,\n    COALESCE(statement_id, 'Unknown') AS asset_id,\n    COALESCE(LEFT(statement_text, 50), 'Unknown Query') AS asset_name,\n    COUNT(*) AS issue_count,\n    CONCAT(COUNT(*), ' query failures') AS reason,\n    MAX(DATE(start_time)) AS last_occurrence,\n    CASE WHEN COUNT(*) > 20 THEN 'High' WHEN COUNT(*) > 10 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_query_history\n  WHERE start_time >= :time_range.min AND start_time <= :time_range.max\n    AND execution_status != 'FINISHED'\n  GROUP BY statement_id, LEFT(statement_text, 50)\n  HAVING COUNT(*) > 0\n),\ncost_issues AS (\n  SELECT \n    '💰 Cost' AS category,\n    workspace_id AS asset_id,\n    COALESCE(workspace_id, 'Unknown Workspace') AS asset_name,\n    ROUND(SUM(list_cost), 2) AS issue_count,\n    CONCAT('$', ROUND(SUM(list_cost), 0), ' untagged spend') AS reason,\n    MAX(usage_date) AS last_occurrence,\n    CASE WHEN SUM(list_cost) > 10000 THEN 'High' WHEN SUM(list_cost) > 1000 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_usage\n  WHERE usage_date >= :time_range.min AND usage_date <= :time_range.max\n    AND NOT COALESCE(is_tagged, false)\n  GROUP BY workspace_id\n  HAVING SUM(list_cost) > 100\n),\nsecurity_issues AS (\n  SELECT \n    '🔒 Security' AS category,\n    COALESCE(user_identity_email, 'Unknown User') AS asset_id,\n    COALESCE(user_identity_email, 'Unknown User') AS asset_name,\n    COUNT(*) AS issue_count,\n    CONCAT(COUNT(*), ' high-risk actions') AS reason,\n    MAX(event_date) AS last_occurrence,\n    CASE WHEN COUNT(*) > 50 THEN 'High' WHEN COUNT(*) > 20 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_audit_logs\n  WHERE event_date >= :time_range.min AND event_date <= :time_range.max\n    AND (response_result = 'denied' OR action_name IN ('deleteTable', 'deleteSchema', 'deleteCatalog', 'dropUser', 'addUserToGroup', 'removeUserFromGroup'))\n  GROUP BY user_identity_email\n  HAVING COUNT(*) > 5\n),\nquality_issues AS (\n  SELECT \n    '📊 Quality' AS category,\n    COALESCE(target_table_full_name, 'Unknown Table') AS asset_id,\n    COALESCE(SPLIT(target_table_full_name, '.')[2], target_table_full_name) AS asset_name,\n    COUNT(*) AS issue_count,\n    CONCAT('Low lineage activity (', COUNT(*), ' events)') AS reason,\n    MAX(DATE(event_time)) AS last_occurrence,\n    'Medium' AS severity\n  FROM ${catalog}.${gold_schema}.fact_table_lineage\n  WHERE event_time >= :time_range.min AND event_time <= :time_range.max\n  GROUP BY target_table_full_name\n  HAVING COUNT(*) < 5\n)\nSELECT * FROM (\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM job_issues\n  UNION ALL\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM query_issues\n  UNION ALL\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM cost_issues\n  UNION ALL\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM security_issues\n  UNION ALL\n  SELECT category, asset_id, asset_name, issue_count, reason, last_occurrence, severity FROM quality_issues\n) combined\nORDER BY \n  CASE severity WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,\n  issue_count DESC\nLIMIT 20",
+      "query": "-- Top Health Issues with Asset Metadata and Blast Radius\n-- Comprehensive view of platform health issues across all domains\n\nWITH job_issues AS (\n  SELECT \n    '🔧 Reliability' AS category,\n    COALESCE(CAST(j.job_id AS STRING), 'Unknown') AS asset_id,\n    COALESCE(j.name, CAST(j.job_id AS STRING), 'Unknown Job') AS asset_name,\n    'Job' AS asset_type,\n    COALESCE(u.email, j.run_as, j.creator_id, 'Unknown') AS asset_owner,\n    COALESCE(w.workspace_name, CAST(f.workspace_id AS STRING)) AS workspace_name,\n    COUNT(*) AS issue_count,\n    CONCAT(COUNT(*), ' job failures') AS reason,\n    MAX(f.run_date) AS last_occurrence,\n    CASE WHEN COUNT(*) > 10 THEN 'High' WHEN COUNT(*) > 5 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_job_run_timeline f\n  LEFT JOIN ${catalog}.${gold_schema}.dim_job j ON f.job_id = j.job_id AND f.workspace_id = j.workspace_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON f.workspace_id = w.workspace_id\n  LEFT JOIN ${catalog}.${gold_schema}.dim_user u ON CAST(COALESCE(j.run_as, j.creator_id) AS STRING) = u.user_id\n  WHERE f.run_date >= :time_range.min AND f.run_date <= :time_range.max\n    AND f.result_state NOT IN ('SUCCESS', 'SUCCEEDED') AND f.result_state IS NOT NULL\n  GROUP BY j.job_id, j.name, j.run_as, j.creator_id, u.email, f.workspace_id, w.workspace_name\n  HAVING COUNT(*) > 0\n),\nquery_issues AS (\n  SELECT \n    '⚡ Performance' AS category,\n    COALESCE(q.statement_id, 'Unknown') AS asset_id,\n    COALESCE(LEFT(q.statement_text, 50), 'Unknown Query') AS asset_name,\n    'Query' AS asset_type,\n    COALESCE(u.email, CAST(q.executed_by_user_id AS STRING), 'Unknown') AS asset_owner,\n    COALESCE(q.compute_type, 'Unknown') AS workspace_name,\n    COUNT(*) AS issue_count,\n    CONCAT(COUNT(*), ' query failures') AS reason,\n    MAX(DATE(q.start_time)) AS last_occurrence,\n    CASE WHEN COUNT(*) > 20 THEN 'High' WHEN COUNT(*) > 10 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_query_history q\n  LEFT JOIN ${catalog}.${gold_schema}.dim_user u ON CAST(q.executed_by_user_id AS STRING) = u.user_id\n  WHERE q.start_time >= :time_range.min AND q.start_time <= :time_range.max\n    AND q.execution_status != 'FINISHED'\n  GROUP BY q.statement_id, LEFT(q.statement_text, 50), q.executed_by_user_id, u.email, q.compute_type\n  HAVING COUNT(*) > 0\n),\ncost_issues AS (\n  SELECT \n    '💰 Cost' AS category,\n    c.workspace_id AS asset_id,\n    COALESCE(w.workspace_name, c.workspace_id, 'Unknown Workspace') AS asset_name,\n    'Workspace' AS asset_type,\n    'Unknown' AS asset_owner,\n    COALESCE(w.workspace_name, c.workspace_id) AS workspace_name,\n    ROUND(SUM(c.list_cost), 2) AS issue_count,\n    CONCAT('$', ROUND(SUM(c.list_cost), 0), ' untagged spend') AS reason,\n    MAX(c.usage_date) AS last_occurrence,\n    CASE WHEN SUM(c.list_cost) > 10000 THEN 'High' WHEN SUM(c.list_cost) > 1000 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_usage c\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON c.workspace_id = w.workspace_id\n  WHERE c.usage_date >= :time_range.min AND c.usage_date <= :time_range.max\n    AND NOT COALESCE(c.is_tagged, false)\n  GROUP BY c.workspace_id, w.workspace_name\n  HAVING SUM(c.list_cost) > 100\n),\nsecurity_issues AS (\n  SELECT \n    '🔒 Security' AS category,\n    COALESCE(a.user_identity_email, 'Unknown User') AS asset_id,\n    COALESCE(a.user_identity_email, 'Unknown User') AS asset_name,\n    'User' AS asset_type,\n    COALESCE(a.user_identity_email, 'Unknown') AS asset_owner,\n    COALESCE(w.workspace_name, 'Multiple Workspaces') AS workspace_name,\n    COUNT(*) AS issue_count,\n    CONCAT(COUNT(*), ' high-risk actions') AS reason,\n    MAX(a.event_date) AS last_occurrence,\n    CASE WHEN COUNT(*) > 50 THEN 'High' WHEN COUNT(*) > 20 THEN 'Medium' ELSE 'Low' END AS severity\n  FROM ${catalog}.${gold_schema}.fact_audit_logs a\n  LEFT JOIN ${catalog}.${gold_schema}.dim_workspace w ON a.workspace_id = w.workspace_id\n  WHERE a.event_date >= :time_range.min AND a.event_date <= :time_range.max\n    AND (a.response_result = 'denied' OR a.action_name IN ('deleteTable', 'deleteSchema', 'deleteCatalog', 'dropUser', 'addUserToGroup', 'removeUserFromGroup'))\n  GROUP BY a.user_identity_email, w.workspace_name\n  HAVING COUNT(*) > 5\n),\nquality_issues AS (\n  SELECT \n    '📊 Quality' AS category,\n    COALESCE(l.target_table_full_name, 'Unknown Table') AS asset_id,\n    COALESCE(SPLIT(l.target_table_full_name, '.')[2], l.target_table_full_name) AS asset_name,\n    'Table' AS asset_type,\n    COALESCE(t.table_owner, 'Unknown') AS asset_owner,\n    COALESCE(t.table_catalog, 'Unknown') AS workspace_name,\n    COUNT(*) AS issue_count,\n    CONCAT('Low lineage activity (', COUNT(*), ' events)') AS reason,\n    MAX(DATE(l.event_time)) AS last_occurrence,\n    'Medium' AS severity\n  FROM ${catalog}.${gold_schema}.fact_table_lineage l\n  LEFT JOIN system.information_schema.tables t ON l.target_table_full_name = CONCAT(t.table_catalog, '.', t.table_schema, '.', t.table_name)\n  WHERE l.event_time >= :time_range.min AND l.event_time <= :time_range.max\n  GROUP BY l.target_table_full_name, t.table_owner, t.table_catalog\n  HAVING COUNT(*) < 5\n),\n-- Blast Radius: Get lineage data for all issues\nlineage_data AS (\n  SELECT \n    COALESCE(target_table_full_name, source_table_full_name, entity_id) AS related_asset_id,\n    COLLECT_LIST(DISTINCT CASE WHEN source_table_full_name IS NOT NULL THEN source_table_full_name END) AS upstream_tables,\n    COLLECT_LIST(DISTINCT CASE WHEN target_table_full_name IS NOT NULL THEN target_table_full_name END) AS downstream_tables,\n    COLLECT_LIST(DISTINCT entity_type) AS affected_entity_types,\n    COLLECT_LIST(DISTINCT entity_id) AS affected_entities,\n    COUNT(DISTINCT CASE WHEN entity_type IN ('JOB', 'PIPELINE') THEN entity_id END) AS affected_pipelines_count,\n    COUNT(DISTINCT CASE WHEN entity_type IN ('DASHBOARD_V3', 'DBSQL_DASHBOARD') THEN entity_id END) AS affected_dashboards_count,\n    COUNT(DISTINCT target_table_full_name) + COUNT(DISTINCT source_table_full_name) AS total_dependencies\n  FROM system.access.table_lineage\n  WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n  GROUP BY COALESCE(target_table_full_name, source_table_full_name, entity_id)\n),\ncombined_issues AS (\n  SELECT \n    category,\n    asset_id,\n    asset_name,\n    asset_type,\n    asset_owner,\n    workspace_name,\n    issue_count,\n    reason,\n    last_occurrence,\n    severity\n  FROM job_issues\n  UNION ALL\n  SELECT * FROM query_issues\n  UNION ALL\n  SELECT * FROM cost_issues\n  UNION ALL\n  SELECT * FROM security_issues\n  UNION ALL\n  SELECT * FROM quality_issues\n)\nSELECT \n  c.category,\n  c.asset_id,\n  c.asset_name,\n  c.asset_type,\n  c.asset_owner,\n  c.workspace_name,\n  c.issue_count,\n  c.reason,\n  c.last_occurrence,\n  c.severity,\n  -- Blast Radius Columns\n  COALESCE(ARRAY_JOIN(ARRAY_DISTINCT(FILTER(l.upstream_tables, x -> x IS NOT NULL)), ', '), 'None') AS upstream_dependencies,\n  COALESCE(ARRAY_JOIN(ARRAY_DISTINCT(FILTER(l.downstream_tables, x -> x IS NOT NULL)), ', '), 'None') AS downstream_dependencies,\n  COALESCE(l.affected_pipelines_count, 0) AS affected_pipelines,\n  COALESCE(l.affected_dashboards_count, 0) AS affected_dashboards,\n  COALESCE(l.total_dependencies, 0) AS total_dependencies,\n  -- Impact Score (0-100): Based on issue severity, count, and blast radius\n  LEAST(100, \n    (CASE c.severity WHEN 'High' THEN 50 WHEN 'Medium' THEN 30 ELSE 10 END) +\n    (LEAST(c.issue_count, 20) * 1.5) +\n    (COALESCE(l.total_dependencies, 0) * 0.5)\n  ) AS impact_score\nFROM combined_issues c\nLEFT JOIN lineage_data l ON c.asset_id = l.related_asset_id OR c.asset_name = l.related_asset_id\nORDER BY \n  CASE c.severity WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,\n  c.issue_count DESC,\n  impact_score DESC\nLIMIT 20",
       "parameters": [
         {
           "displayName": "time_range",
@@ -2068,20 +2068,28 @@
                   "datasetName": "ds_health_issues",
                   "fields": [
                     {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    },
+                    {
                       "name": "category",
                       "expression": "`category`"
                     },
                     {
-                      "name": "asset_id",
-                      "expression": "`asset_id`"
+                      "name": "asset_type",
+                      "expression": "`asset_type`"
                     },
                     {
                       "name": "asset_name",
                       "expression": "`asset_name`"
                     },
                     {
-                      "name": "issue_count",
-                      "expression": "`issue_count`"
+                      "name": "asset_owner",
+                      "expression": "`asset_owner`"
+                    },
+                    {
+                      "name": "workspace_name",
+                      "expression": "`workspace_name`"
                     },
                     {
                       "name": "reason",
@@ -2092,8 +2100,24 @@
                       "expression": "`last_occurrence`"
                     },
                     {
-                      "name": "severity",
-                      "expression": "`severity`"
+                      "name": "upstream_dependencies",
+                      "expression": "`upstream_dependencies`"
+                    },
+                    {
+                      "name": "downstream_dependencies",
+                      "expression": "`downstream_dependencies`"
+                    },
+                    {
+                      "name": "affected_pipelines",
+                      "expression": "`affected_pipelines`"
+                    },
+                    {
+                      "name": "affected_dashboards",
+                      "expression": "`affected_dashboards`"
+                    },
+                    {
+                      "name": "impact_score",
+                      "expression": "`impact_score`"
                     }
                   ],
                   "disaggregated": true
@@ -2107,29 +2131,74 @@
                 "columns": [
                   {
                     "fieldName": "severity",
-                    "displayName": "Severity"
+                    "displayName": "Severity",
+                    "type": "string"
                   },
                   {
                     "fieldName": "category",
-                    "displayName": "Category"
+                    "displayName": "Category",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "asset_type",
+                    "displayName": "Asset Type",
+                    "type": "string"
                   },
                   {
                     "fieldName": "asset_name",
-                    "displayName": "Asset"
+                    "displayName": "Asset Name",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "asset_owner",
+                    "displayName": "Owner",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "workspace_name",
+                    "displayName": "Workspace",
+                    "type": "string"
                   },
                   {
                     "fieldName": "reason",
-                    "displayName": "Issue"
+                    "displayName": "Issue",
+                    "type": "string"
                   },
                   {
                     "fieldName": "last_occurrence",
-                    "displayName": "Last Seen"
+                    "displayName": "Last Seen",
+                    "type": "date"
+                  },
+                  {
+                    "fieldName": "upstream_dependencies",
+                    "displayName": "Upstream (Reads From)",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "downstream_dependencies",
+                    "displayName": "Downstream (Writes To)",
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "affected_pipelines",
+                    "displayName": "# Pipelines",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "affected_dashboards",
+                    "displayName": "# Dashboards",
+                    "type": "number"
+                  },
+                  {
+                    "fieldName": "impact_score",
+                    "displayName": "Impact Score",
+                    "type": "number"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "⚠️ Top Health Issues (Jobs, Queries, Costs)"
+                "title": "⚠️ Top Health Issues (Jobs, Queries, Costs) with Blast Radius"
               }
             }
           },

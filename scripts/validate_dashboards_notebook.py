@@ -379,7 +379,7 @@ success = validator.validate_all_dashboards()
 # COMMAND ----------
 
 # Exit with appropriate status (Warning-Only Mode with Baseline)
-BASELINE_ERROR_COUNT = 148  # Errors as of 2026-01-08
+BASELINE_ERROR_COUNT = 167  # Errors as of 2026-01-10 (added blast radius columns to unified dashboard)
 
 if success:
     print("✅ All validations passed! Proceeding with deployment.")

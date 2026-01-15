@@ -27,11 +27,27 @@ dbutils.widgets.text("feature_schema", "", "Feature Schema Name (for ML tables)"
 dbutils.widgets.text("warehouse_id", "", "SQL Warehouse ID")
 dbutils.widgets.text("genie_space_json", "", "JSON Export File Path (optional)")
 
+# Genie Space ID parameters (from databricks.yml variables)
+dbutils.widgets.text("cost_genie_space_id", "", "Cost Intelligence Genie Space ID")
+dbutils.widgets.text("reliability_genie_space_id", "", "Reliability Genie Space ID")
+dbutils.widgets.text("quality_genie_space_id", "", "Quality Genie Space ID")
+dbutils.widgets.text("performance_genie_space_id", "", "Performance Genie Space ID")
+dbutils.widgets.text("security_genie_space_id", "", "Security Genie Space ID")
+dbutils.widgets.text("unified_genie_space_id", "", "Unified Health Monitor Genie Space ID")
+
 catalog = dbutils.widgets.get("catalog")
 gold_schema = dbutils.widgets.get("gold_schema")
 feature_schema = dbutils.widgets.get("feature_schema") or f"{gold_schema}_ml"
 warehouse_id = dbutils.widgets.get("warehouse_id")
 genie_space_json = dbutils.widgets.get("genie_space_json")
+
+# Read Genie Space IDs from parameters (override defaults)
+cost_id = dbutils.widgets.get("cost_genie_space_id")
+reliability_id = dbutils.widgets.get("reliability_genie_space_id")
+quality_id = dbutils.widgets.get("quality_genie_space_id")
+performance_id = dbutils.widgets.get("performance_genie_space_id")
+security_id = dbutils.widgets.get("security_genie_space_id")
+unified_id = dbutils.widgets.get("unified_genie_space_id")
 
 print(f"Catalog: {catalog}")
 print(f"Gold Schema: {gold_schema}")
@@ -39,31 +55,99 @@ print(f"Feature Schema: {feature_schema}")
 print(f"Warehouse ID: {warehouse_id}")
 print(f"JSON File: {genie_space_json or 'All spaces'}")
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SET GENIE SPACE IDS AS ENVIRONMENT VARIABLES
+# ═══════════════════════════════════════════════════════════════════════════════
+# These override the defaults in src/agents/config/genie_spaces.py
+# If blank, new spaces will be created automatically
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if cost_id:
+    os.environ["COST_GENIE_SPACE_ID"] = cost_id
+    print(f"✓ COST_GENIE_SPACE_ID: {cost_id}")
+if reliability_id:
+    os.environ["RELIABILITY_GENIE_SPACE_ID"] = reliability_id
+    print(f"✓ RELIABILITY_GENIE_SPACE_ID: {reliability_id}")
+if quality_id:
+    os.environ["QUALITY_GENIE_SPACE_ID"] = quality_id
+    print(f"✓ QUALITY_GENIE_SPACE_ID: {quality_id}")
+if performance_id:
+    os.environ["PERFORMANCE_GENIE_SPACE_ID"] = performance_id
+    print(f"✓ PERFORMANCE_GENIE_SPACE_ID: {performance_id}")
+if security_id:
+    os.environ["SECURITY_GENIE_SPACE_ID"] = security_id
+    print(f"✓ SECURITY_GENIE_SPACE_ID: {security_id}")
+if unified_id:
+    os.environ["UNIFIED_GENIE_SPACE_ID"] = unified_id
+    print(f"✓ UNIFIED_GENIE_SPACE_ID: {unified_id}")
+
+print("=" * 80)
+
 # COMMAND ----------
 
-# Genie Space metadata mapping (JSON file -> display name, description)
+# ═══════════════════════════════════════════════════════════════════════════════
+# GENIE SPACE IDS - CENTRALIZED CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+# Space IDs from databricks.yml (passed as parameters) or environment variables
+# If blank, new spaces will be created automatically via API
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Build CONFIGURED_SPACE_IDS from parameters (may be empty strings)
+CONFIGURED_SPACE_IDS = {
+    "cost": cost_id or os.environ.get("COST_GENIE_SPACE_ID", ""),
+    "reliability": reliability_id or os.environ.get("RELIABILITY_GENIE_SPACE_ID", ""),
+    "quality": quality_id or os.environ.get("QUALITY_GENIE_SPACE_ID", ""),
+    "performance": performance_id or os.environ.get("PERFORMANCE_GENIE_SPACE_ID", ""),
+    "security": security_id or os.environ.get("SECURITY_GENIE_SPACE_ID", ""),
+    "unified": unified_id or os.environ.get("UNIFIED_GENIE_SPACE_ID", ""),
+}
+
+print("=" * 80)
+print("✓ Genie Space IDs Configuration")
+print("=" * 80)
+for domain, space_id in CONFIGURED_SPACE_IDS.items():
+    if space_id:
+        print(f"  {domain:15s}: {space_id} (will update)")
+    else:
+        print(f"  {domain:15s}: <blank> (will create new)")
+print("=" * 80)
+print()
+
+GENIE_SPACES_CONFIGURED = any(CONFIGURED_SPACE_IDS.values())
+GENIE_SPACE_REGISTRY = {domain: {"id": space_id} for domain, space_id in CONFIGURED_SPACE_IDS.items()}
+
+# COMMAND ----------
+
+# Genie Space metadata mapping (JSON file -> display name, description, domain)
+# NOTE: Space IDs come from genie_spaces.py (single source of truth)
 GENIE_SPACE_METADATA = {
     "job_health_monitor_genie_export.json": {
+        "domain": "reliability",  # Maps to DOMAINS.RELIABILITY
         "title": "Health Monitor Job Reliability Space",
         "description": "Natural language interface for Databricks job reliability and execution analytics. Enables DevOps, data engineers, and SREs to query job success rates, failure patterns, and performance metrics without SQL."
     },
     "cost_intelligence_genie_export.json": {
+        "domain": "cost",  # Maps to DOMAINS.COST
         "title": "Health Monitor Cost Intelligence Space",
         "description": "Natural language interface for Databricks cost analytics and FinOps. Enables finance teams, platform administrators, and executives to query billing, usage, and cost optimization insights without SQL."
     },
     "performance_genie_export.json": {
+        "domain": "performance",  # Maps to DOMAINS.PERFORMANCE
         "title": "Health Monitor Performance Space",
         "description": "Natural language interface for Databricks query and cluster performance analytics. Enables DBAs, platform engineers, and FinOps to query execution metrics, warehouse utilization, and cluster efficiency without SQL."
     },
     "security_auditor_genie_export.json": {
+        "domain": "security",  # Maps to DOMAINS.SECURITY
         "title": "Health Monitor Security Auditor Space",
         "description": "Natural language interface for Databricks security, audit, and compliance analytics. Enables security teams, compliance officers, and administrators to query access patterns, audit trails, and security events without SQL."
     },
     "data_quality_monitor_genie_export.json": {
+        "domain": "quality",  # Maps to DOMAINS.QUALITY
         "title": "Health Monitor Data Quality Space",
         "description": "Natural language interface for data quality, freshness, and governance analytics. Enables data stewards, governance teams, and data engineers to query table health, lineage, and quality metrics without SQL."
     },
     "unified_health_monitor_genie_export.json": {
+        "domain": "unified",  # Maps to DOMAINS.UNIFIED
         "title": "Databricks Health Monitor Space",
         "description": "Comprehensive natural language interface for Databricks platform health monitoring. Enables leadership, platform administrators, and SREs to query costs, job reliability, query performance, cluster efficiency, security audit, and data quality."
     }
@@ -146,6 +230,9 @@ def load_genie_space_export(json_path: str, catalog: str, gold_schema: str, feat
     # Substitute variables
     processed = process_json_values(export_data, catalog, gold_schema, feature_schema)
     
+    # ✅ Transform custom format to API format BEFORE sorting
+    processed = transform_custom_format_to_api(processed)
+    
     # Sort data_sources.tables by identifier (API requires sorted tables)
     if 'data_sources' in processed:
         if 'tables' in processed['data_sources']:
@@ -185,16 +272,101 @@ def load_genie_space_export(json_path: str, catalog: str, gold_schema: str, feat
     return processed
 
 
+def transform_custom_format_to_api(custom_data: dict) -> dict:
+    """
+    Transform custom simplified Genie Space format to Databricks API format.
+    
+    Args:
+        custom_data: Custom format with simplified structure
+    
+    Returns:
+        Databricks API compatible GenieSpaceExport format
+    """
+    import uuid
+    
+    api_data = {"version": custom_data.get("version", 1)}
+    
+    # Transform config section
+    if "config" in custom_data:
+        config = custom_data["config"]
+        api_config = {}
+        
+        # Transform sample_questions: array of strings → array of objects with id/question
+        if "sample_questions" in config:
+            sample_qs = config["sample_questions"]
+            if sample_qs and isinstance(sample_qs[0], str):
+                # Custom format: array of strings
+                api_config["sample_questions"] = [
+                    {
+                        "id": uuid.uuid4().hex,
+                        "question": [q]
+                    }
+                    for q in sample_qs
+                ]
+            else:
+                # Already in API format
+                api_config["sample_questions"] = sample_qs
+        
+        # Don't include name/description in config (they go in outer wrapper)
+        api_data["config"] = api_config
+    
+    # Transform data_sources section
+    if "data_sources" in custom_data:
+        ds = custom_data["data_sources"]
+        api_ds = {}
+        
+        # Transform metric_views: {id, name, full_name} → {identifier}
+        if "metric_views" in ds:
+            api_ds["metric_views"] = []
+            for mv in ds["metric_views"]:
+                if "identifier" in mv:
+                    # Already API format
+                    api_ds["metric_views"].append(mv)
+                elif "full_name" in mv:
+                    # Custom format: full_name → identifier
+                    api_mv = {"identifier": mv["full_name"]}
+                    if "description" in mv:
+                        api_mv["description"] = mv["description"] if isinstance(mv["description"], list) else [mv["description"]]
+                    if "column_configs" in mv:
+                        api_mv["column_configs"] = mv["column_configs"]
+                    api_ds["metric_views"].append(api_mv)
+        
+        # Transform tables similarly
+        if "tables" in ds:
+            api_ds["tables"] = []
+            for tbl in ds["tables"]:
+                if "identifier" in tbl:
+                    api_ds["tables"].append(tbl)
+                elif "full_name" in tbl:
+                    api_tbl = {"identifier": tbl["full_name"]}
+                    if "description" in tbl:
+                        api_tbl["description"] = tbl["description"] if isinstance(tbl["description"], list) else [tbl["description"]]
+                    if "column_configs" in tbl:
+                        api_tbl["column_configs"] = tbl["column_configs"]
+                    api_ds["tables"].append(api_tbl)
+        
+        api_data["data_sources"] = api_ds
+    
+    # Copy instructions and benchmarks as-is (already correct format)
+    if "instructions" in custom_data:
+        api_data["instructions"] = custom_data["instructions"]
+    if "benchmarks" in custom_data:
+        api_data["benchmarks"] = custom_data["benchmarks"]
+    
+    return api_data
+
+
 def serialize_genie_space(export_data: dict) -> str:
     """
     Serialize GenieSpaceExport to JSON string for API.
     
     Args:
-        export_data: GenieSpaceExport dictionary
+        export_data: GenieSpaceExport dictionary (already in API format)
     
     Returns:
         JSON string for serialized_space field
     """
+    # Data is already in API format (transformed in load_genie_space_export)
     return json.dumps(export_data, indent=2)
 
 # COMMAND ----------
@@ -400,6 +572,9 @@ def deploy_genie_space(
     """
     Deploy a Genie Space from JSON export file.
     
+    PRIORITY: Uses space IDs from genie_spaces.py (single source of truth).
+    If space ID is configured, updates that space. Otherwise creates new.
+    
     Args:
         json_file: Path to JSON export file
         catalog: Unity Catalog name
@@ -428,9 +603,11 @@ def deploy_genie_space(
     
     title = metadata["title"]
     description = metadata["description"]
+    domain = metadata.get("domain")  # e.g., "cost", "security", "reliability"
     
     print(f"\n{'='*80}")
     print(f"Deploying Genie Space: {title}")
+    print(f"  Domain: {domain}")
     print(f"{'='*80}")
     
     # Load and process JSON
@@ -438,11 +615,29 @@ def deploy_genie_space(
     export_data = load_genie_space_export(json_file, catalog, gold_schema, feature_schema)
     serialized_space = serialize_genie_space(export_data)
     
-    # Check for existing space
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PRIORITY 1: Use configured space ID from databricks.yml (centralized config)
+    # ═══════════════════════════════════════════════════════════════════════════
+    configured_space_id = None
+    if domain and domain in CONFIGURED_SPACE_IDS:
+        configured_space_id = CONFIGURED_SPACE_IDS[domain]
+        
+        # Check if space ID is blank/null (indicates new space should be created)
+        if configured_space_id and configured_space_id.strip():
+            print(f"✓ Found configured space ID: {configured_space_id}")
+            print(f"  Domain: {domain}")
+            print(f"  Deployment: UPDATING existing space (NOT creating new)")
+        else:
+            print(f"⚠ Space ID is blank for domain '{domain}'")
+            print(f"  Deployment: CREATING NEW space via API")
+            configured_space_id = None  # Reset to None to trigger creation
+    
+    # Check for existing space (use configured ID if available, else search by title)
     if not force_recreate:
-        existing_space_id = find_existing_genie_space(host, token, title)
+        existing_space_id = configured_space_id if configured_space_id else find_existing_genie_space(host, token, title)
+        
         if existing_space_id:
-            print(f"Found existing space with ID: {existing_space_id}")
+            print(f"Updating existing space with ID: {existing_space_id}")
             # preserve_title=True to avoid RESOURCE_ALREADY_EXISTS error
             # when updating a space that has a numbered suffix like "(3)"
             update_genie_space_via_api(
@@ -451,12 +646,38 @@ def deploy_genie_space(
             )
             return existing_space_id
     
-    # Create new space
+    # ═══════════════════════════════════════════════════════════════════════════
+    # CREATE NEW SPACE: Triggered when space ID is blank/null or force_recreate=True
+    # ═══════════════════════════════════════════════════════════════════════════
+    print(f"⚠ Creating NEW Genie Space via API")
+    print(f"  Reason: {'Forced recreation' if force_recreate else 'No space ID configured'}")
+    print(f"  ✅ New space ID will be returned for databricks.yml update")
     result = create_genie_space_via_api(
         host, token, title, description, warehouse_id, serialized_space
     )
     
-    return result.get("space_id")
+    new_space_id = result.get("space_id")
+    print(f"\n{'='*80}")
+    print(f"✅ CREATED NEW GENIE SPACE")
+    print(f"{'='*80}")
+    print(f"  Space ID: {new_space_id}")
+    print(f"  Domain: {domain}")
+    print(f"  Title: {title}")
+    print(f"\n⚠️  ACTION REQUIRED - Update databricks.yml:")
+    print(f"{'='*80}")
+    print(f"  File: databricks.yml")
+    print(f"  Variable: {domain}_genie_space_id")
+    print(f"  New Value: {new_space_id}")
+    print(f"")
+    print(f"  Example:")
+    print(f"    {domain}_genie_space_id:")
+    print(f"      description: {title}")
+    print(f"      default: \"{new_space_id}\"")
+    print(f"")
+    print(f"  Then redeploy: databricks bundle deploy -t dev")
+    print(f"{'='*80}\n")
+    
+    return new_space_id
 
 # COMMAND ----------
 
@@ -584,11 +805,12 @@ def main():
         raise RuntimeError(f"Failed to deploy {len(failed_spaces)} Genie Space(s):\n{error_summary}")
     
     print("\n✅ All Genie Spaces deployed successfully!")
-    dbutils.notebook.exit("SUCCESS")
 
-# COMMAND ----------
-
-# Execute
+# Execute main function
 if __name__ == "__main__":
     main()
 
+# COMMAND ----------
+
+# Exit message in separate cell to allow seeing debug messages
+dbutils.notebook.exit("SUCCESS")

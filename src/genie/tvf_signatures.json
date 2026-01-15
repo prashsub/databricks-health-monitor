@@ -1,0 +1,1442 @@
+{
+  "generated_at": "2026-01-14T17:38:45.463316",
+  "tvf_count": 60,
+  "sample_date_range": {
+    "start_date": "2025-12-15",
+    "end_date": "2026-01-14"
+  },
+  "tvfs": {
+    "get_cluster_utilization": {
+      "name": "get_cluster_utilization",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "min_hours",
+          "type": "INT",
+          "default": "1",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "compute_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cluster_utilization(\"2025-12-15\", \"2026-01-14\", 1) LIMIT 20;"
+    },
+    "get_cluster_resource_metrics": {
+      "name": "get_cluster_resource_metrics",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "50",
+          "has_default": true
+        }
+      ],
+      "param_count": 2,
+      "required_params": 1,
+      "source_file": "compute_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cluster_resource_metrics(30, 50) LIMIT 20;"
+    },
+    "get_underutilized_clusters": {
+      "name": "get_underutilized_clusters",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "cpu_threshold",
+          "type": "DOUBLE",
+          "default": "30.0",
+          "has_default": true
+        },
+        {
+          "name": "min_hours",
+          "type": "INT",
+          "default": "10",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 1,
+      "source_file": "compute_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_underutilized_clusters(30, 30.0, 10) LIMIT 20;"
+    },
+    "get_jobs_without_autoscaling": {
+      "name": "get_jobs_without_autoscaling",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 1,
+      "required_params": 1,
+      "source_file": "compute_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_jobs_without_autoscaling(30) LIMIT 20;"
+    },
+    "get_jobs_on_legacy_dbr": {
+      "name": "get_jobs_on_legacy_dbr",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 1,
+      "required_params": 1,
+      "source_file": "compute_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_jobs_on_legacy_dbr(30) LIMIT 20;"
+    },
+    "get_cluster_right_sizing_recommendations": {
+      "name": "get_cluster_right_sizing_recommendations",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "min_observation_hours",
+          "type": "INT",
+          "default": "10",
+          "has_default": true
+        }
+      ],
+      "param_count": 2,
+      "required_params": 1,
+      "source_file": "compute_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cluster_right_sizing_recommendations(30, 10) LIMIT 20;"
+    },
+    "get_top_cost_contributors": {
+      "name": "get_top_cost_contributors",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "10",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_top_cost_contributors(\"2025-12-15\", \"2026-01-14\", 10) LIMIT 20;"
+    },
+    "get_cost_trend_by_sku": {
+      "name": "get_cost_trend_by_sku",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "sku_filter",
+          "type": "STRING",
+          "default": "'ALL'",
+          "has_default": true
+        },
+        {
+          "name": "or",
+          "type": "ALL",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 4,
+      "required_params": 3,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cost_trend_by_sku(\"2025-12-15\", \"2026-01-14\", \"ALL\", NULL) LIMIT 20;"
+    },
+    "get_cost_by_owner": {
+      "name": "get_cost_by_owner",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "20",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cost_by_owner(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
+    },
+    "get_cost_by_tag": {
+      "name": "get_cost_by_tag",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "tag_key",
+          "type": "STRING",
+          "default": "'team'",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cost_by_tag(\"2025-12-15\", \"2026-01-14\", \"team\") LIMIT 20;"
+    },
+    "get_untagged_resources": {
+      "name": "get_untagged_resources",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "resource_type",
+          "type": "STRING",
+          "default": "'ALL'",
+          "has_default": true
+        },
+        {
+          "name": "or",
+          "type": "ALL",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 4,
+      "required_params": 3,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_untagged_resources(\"2025-12-15\", \"2026-01-14\", \"ALL\", NULL) LIMIT 20;"
+    },
+    "get_tag_coverage": {
+      "name": "get_tag_coverage",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 2,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_tag_coverage(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+    },
+    "get_cost_week_over_week": {
+      "name": "get_cost_week_over_week",
+      "params": [
+        {
+          "name": "weeks_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 1,
+      "required_params": 1,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cost_week_over_week(20) LIMIT 20;"
+    },
+    "get_cost_anomalies": {
+      "name": "get_cost_anomalies",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "z_score_threshold",
+          "type": "DOUBLE",
+          "default": "2.0",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cost_anomalies(\"2025-12-15\", \"2026-01-14\", 2.0) LIMIT 20;"
+    },
+    "get_cost_forecast_summary": {
+      "name": "get_cost_forecast_summary",
+      "params": [
+        {
+          "name": "forecast_months",
+          "type": "INT",
+          "default": "3",
+          "has_default": true
+        }
+      ],
+      "param_count": 1,
+      "required_params": 0,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cost_forecast_summary(3) LIMIT 20;"
+    },
+    "get_cost_mtd_summary": {
+      "name": "get_cost_mtd_summary",
+      "params": [],
+      "param_count": 0,
+      "required_params": 0,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cost_mtd_summary() LIMIT 20;"
+    },
+    "get_commit_vs_actual": {
+      "name": "get_commit_vs_actual",
+      "params": [
+        {
+          "name": "commit_year",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "annual_commit_amount",
+          "type": "DOUBLE",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "as_of_date",
+          "type": "STRING",
+          "default": "NULL",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_commit_vs_actual(20, 2.0, NULL) LIMIT 20;"
+    },
+    "get_spend_by_custom_tags": {
+      "name": "get_spend_by_custom_tags",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "tag_keys",
+          "type": "STRING",
+          "default": "'team,project,cost_center'",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_spend_by_custom_tags(\"2025-12-15\", \"2026-01-14\", \"team,project,cost_center\") LIMIT 20;"
+    },
+    "get_cost_growth_analysis": {
+      "name": "get_cost_growth_analysis",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "entity_type",
+          "type": "STRING",
+          "default": "'WORKSPACE'",
+          "has_default": true
+        },
+        {
+          "name": "or",
+          "type": "SKU",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "20",
+          "has_default": true
+        }
+      ],
+      "param_count": 4,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cost_growth_analysis(30, \"WORKSPACE\", NULL, 20) LIMIT 20;"
+    },
+    "get_cost_growth_by_period": {
+      "name": "get_cost_growth_by_period",
+      "params": [
+        {
+          "name": "entity_type",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "or",
+          "type": "SKU",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "20",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_cost_growth_by_period(\"ALL\", NULL, 20) LIMIT 20;"
+    },
+    "get_all_purpose_cluster_cost": {
+      "name": "get_all_purpose_cluster_cost",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "20",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "cost_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_all_purpose_cluster_cost(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
+    },
+    "get_slow_queries": {
+      "name": "get_slow_queries",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "duration_threshold_seconds",
+          "type": "INT",
+          "default": "300",
+          "has_default": true
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "50",
+          "has_default": true
+        }
+      ],
+      "param_count": 4,
+      "required_params": 2,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_slow_queries(\"2025-12-15\", \"2026-01-14\", 300, 50) LIMIT 20;"
+    },
+    "get_warehouse_utilization": {
+      "name": "get_warehouse_utilization",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 2,
+      "required_params": 2,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_warehouse_utilization(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+    },
+    "get_query_efficiency": {
+      "name": "get_query_efficiency",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "min_duration_seconds",
+          "type": "INT",
+          "default": "60",
+          "has_default": true
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "100",
+          "has_default": true
+        }
+      ],
+      "param_count": 4,
+      "required_params": 2,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_query_efficiency(\"2025-12-15\", \"2026-01-14\", 60, 100) LIMIT 20;"
+    },
+    "get_high_spill_queries": {
+      "name": "get_high_spill_queries",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "min_spill_gb",
+          "type": "DOUBLE",
+          "default": "1.0",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_high_spill_queries(\"2025-12-15\", \"2026-01-14\", 1.0) LIMIT 20;"
+    },
+    "get_query_volume_trends": {
+      "name": "get_query_volume_trends",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "granularity",
+          "type": "STRING",
+          "default": "'DAY'",
+          "has_default": true
+        }
+      ],
+      "param_count": 2,
+      "required_params": 1,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_query_volume_trends(30, \"DAY\") LIMIT 20;"
+    },
+    "get_user_query_summary": {
+      "name": "get_user_query_summary",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "50",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_user_query_summary(\"2025-12-15\", \"2026-01-14\", 50) LIMIT 20;"
+    },
+    "get_query_latency_percentiles": {
+      "name": "get_query_latency_percentiles",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 2,
+      "required_params": 2,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_query_latency_percentiles(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+    },
+    "get_failed_queries": {
+      "name": "get_failed_queries",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "100",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_failed_queries(\"2025-12-15\", \"2026-01-14\", 100) LIMIT 20;"
+    },
+    "get_query_efficiency_analysis": {
+      "name": "get_query_efficiency_analysis",
+      "params": [
+        {
+          "name": "hours_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "warehouse_filter",
+          "type": "STRING",
+          "default": "'ALL'",
+          "has_default": true
+        }
+      ],
+      "param_count": 2,
+      "required_params": 1,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_query_efficiency_analysis(20, \"ALL\") LIMIT 20;"
+    },
+    "get_job_outlier_runs": {
+      "name": "get_job_outlier_runs",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "deviation_threshold",
+          "type": "DOUBLE",
+          "default": "1.5",
+          "has_default": true
+        },
+        {
+          "name": "min_baseline_runs",
+          "type": "INT",
+          "default": "5",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 1,
+      "source_file": "performance_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_outlier_runs(30, 1.5, 5) LIMIT 20;"
+    },
+    "get_table_freshness": {
+      "name": "get_table_freshness",
+      "params": [
+        {
+          "name": "freshness_threshold_hours",
+          "type": "INT",
+          "default": "24",
+          "has_default": true
+        }
+      ],
+      "param_count": 1,
+      "required_params": 0,
+      "source_file": "quality_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_table_freshness(24) LIMIT 20;"
+    },
+    "get_job_data_quality_status": {
+      "name": "get_job_data_quality_status",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 1,
+      "required_params": 1,
+      "source_file": "quality_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_data_quality_status(30) LIMIT 20;"
+    },
+    "get_data_freshness_by_domain": {
+      "name": "get_data_freshness_by_domain",
+      "params": [
+        {
+          "name": "freshness_threshold_hours",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 1,
+      "required_params": 1,
+      "source_file": "quality_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_data_freshness_by_domain(20) LIMIT 20;"
+    },
+    "get_data_quality_summary": {
+      "name": "get_data_quality_summary",
+      "params": [],
+      "param_count": 0,
+      "required_params": 0,
+      "source_file": "quality_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_data_quality_summary() LIMIT 20;"
+    },
+    "get_tables_failing_quality": {
+      "name": "get_tables_failing_quality",
+      "params": [
+        {
+          "name": "freshness_threshold_hours",
+          "type": "INT",
+          "default": "24",
+          "has_default": true
+        }
+      ],
+      "param_count": 1,
+      "required_params": 0,
+      "source_file": "quality_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_tables_failing_quality(24) LIMIT 20;"
+    },
+    "get_table_activity_status": {
+      "name": "get_table_activity_status",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "inactive_threshold_days",
+          "type": "INT",
+          "default": "14",
+          "has_default": true
+        }
+      ],
+      "param_count": 2,
+      "required_params": 1,
+      "source_file": "quality_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_table_activity_status(30, 14) LIMIT 20;"
+    },
+    "get_pipeline_data_lineage": {
+      "name": "get_pipeline_data_lineage",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "entity_filter",
+          "type": "STRING",
+          "default": "'ALL'",
+          "has_default": true
+        },
+        {
+          "name": "or",
+          "type": "ALL",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "quality_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_pipeline_data_lineage(30, \"ALL\", NULL) LIMIT 20;"
+    },
+    "get_failed_jobs": {
+      "name": "get_failed_jobs",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "workspace_filter",
+          "type": "STRING",
+          "default": "'ALL'",
+          "has_default": true
+        },
+        {
+          "name": "or",
+          "type": "ALL",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 4,
+      "required_params": 3,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_failed_jobs(\"2025-12-15\", \"2026-01-14\", \"ALL\", NULL) LIMIT 20;"
+    },
+    "get_job_success_rate": {
+      "name": "get_job_success_rate",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "min_runs",
+          "type": "INT",
+          "default": "5",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_success_rate(\"2025-12-15\", \"2026-01-14\", 5) LIMIT 20;"
+    },
+    "get_job_duration_percentiles": {
+      "name": "get_job_duration_percentiles",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "job_name_filter",
+          "type": "STRING",
+          "default": "'ALL'",
+          "has_default": true
+        },
+        {
+          "name": "or",
+          "type": "ALL",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_duration_percentiles(30, \"ALL\", NULL) LIMIT 20;"
+    },
+    "get_job_failure_trends": {
+      "name": "get_job_failure_trends",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 1,
+      "required_params": 1,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_failure_trends(30) LIMIT 20;"
+    },
+    "get_job_sla_compliance": {
+      "name": "get_job_sla_compliance",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 2,
+      "required_params": 2,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_sla_compliance(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+    },
+    "get_job_run_details": {
+      "name": "get_job_run_details",
+      "params": [
+        {
+          "name": "job_id_filter",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": "7",
+          "has_default": true
+        }
+      ],
+      "param_count": 2,
+      "required_params": 1,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_run_details(\"ALL\", 7) LIMIT 20;"
+    },
+    "get_most_expensive_jobs": {
+      "name": "get_most_expensive_jobs",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "25",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_most_expensive_jobs(\"2025-12-15\", \"2026-01-14\", 25) LIMIT 20;"
+    },
+    "get_job_retry_analysis": {
+      "name": "get_job_retry_analysis",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 2,
+      "required_params": 2,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_retry_analysis(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+    },
+    "get_job_repair_costs": {
+      "name": "get_job_repair_costs",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "20",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_repair_costs(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
+    },
+    "get_job_spend_trend_analysis": {
+      "name": "get_job_spend_trend_analysis",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "50",
+          "has_default": true
+        }
+      ],
+      "param_count": 2,
+      "required_params": 1,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_spend_trend_analysis(30, 50) LIMIT 20;"
+    },
+    "get_job_failure_costs": {
+      "name": "get_job_failure_costs",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "50",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_failure_costs(\"2025-12-15\", \"2026-01-14\", 50) LIMIT 20;"
+    },
+    "get_job_run_duration_analysis": {
+      "name": "get_job_run_duration_analysis",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "min_runs",
+          "type": "INT",
+          "default": "5",
+          "has_default": true
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "100",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 1,
+      "source_file": "reliability_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_job_run_duration_analysis(30, 5, 100) LIMIT 20;"
+    },
+    "get_user_activity_summary": {
+      "name": "get_user_activity_summary",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "top_n",
+          "type": "INT",
+          "default": "50",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_user_activity_summary(\"2025-12-15\", \"2026-01-14\", 50) LIMIT 20;"
+    },
+    "get_sensitive_table_access": {
+      "name": "get_sensitive_table_access",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "table_pattern",
+          "type": "STRING",
+          "default": "'%'",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_sensitive_table_access(\"2025-12-15\", \"2026-01-14\", \"%\") LIMIT 20;"
+    },
+    "get_failed_actions": {
+      "name": "get_failed_actions",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "user_filter",
+          "type": "STRING",
+          "default": "'ALL'",
+          "has_default": true
+        },
+        {
+          "name": "or",
+          "type": "ALL",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 4,
+      "required_params": 3,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_failed_actions(\"2025-12-15\", \"2026-01-14\", \"ALL\", NULL) LIMIT 20;"
+    },
+    "get_permission_changes": {
+      "name": "get_permission_changes",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 2,
+      "required_params": 2,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_permission_changes(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+    },
+    "get_off_hours_activity": {
+      "name": "get_off_hours_activity",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "business_hours_start",
+          "type": "INT",
+          "default": "7",
+          "has_default": true
+        },
+        {
+          "name": "business_hours_end",
+          "type": "INT",
+          "default": "19",
+          "has_default": true
+        }
+      ],
+      "param_count": 4,
+      "required_params": 2,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_off_hours_activity(\"2025-12-15\", \"2026-01-14\", 7, 19) LIMIT 20;"
+    },
+    "get_security_events_timeline": {
+      "name": "get_security_events_timeline",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "user_filter",
+          "type": "STRING",
+          "default": "'ALL'",
+          "has_default": true
+        },
+        {
+          "name": "or",
+          "type": "ALL",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 4,
+      "required_params": 3,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_security_events_timeline(\"2025-12-15\", \"2026-01-14\", \"ALL\", NULL) LIMIT 20;"
+    },
+    "get_ip_address_analysis": {
+      "name": "get_ip_address_analysis",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 2,
+      "required_params": 2,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_ip_address_analysis(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+    },
+    "get_table_access_audit": {
+      "name": "get_table_access_audit",
+      "params": [
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "table_pattern",
+          "type": "STRING",
+          "default": "'%'",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 2,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_table_access_audit(\"2025-12-15\", \"2026-01-14\", \"%\") LIMIT 20;"
+    },
+    "get_user_activity_patterns": {
+      "name": "get_user_activity_patterns",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        },
+        {
+          "name": "burst_threshold",
+          "type": "INT",
+          "default": "50",
+          "has_default": true
+        },
+        {
+          "name": "exclude_system_accounts",
+          "type": "BOOLEAN",
+          "default": "TRUE",
+          "has_default": true
+        }
+      ],
+      "param_count": 3,
+      "required_params": 1,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_user_activity_patterns(30, 50, TRUE) LIMIT 20;"
+    },
+    "get_service_account_audit": {
+      "name": "get_service_account_audit",
+      "params": [
+        {
+          "name": "days_back",
+          "type": "INT",
+          "default": null,
+          "has_default": false
+        }
+      ],
+      "param_count": 1,
+      "required_params": 1,
+      "source_file": "security_tvfs.sql",
+      "sample_sql": "SELECT * FROM ${catalog}.${gold_schema}.get_service_account_audit(30) LIMIT 20;"
+    }
+  }
+}

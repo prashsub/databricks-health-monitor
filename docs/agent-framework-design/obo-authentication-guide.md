@@ -473,5 +473,127 @@ print(model_info.signature)  # Should show OBO configuration
 
 ---
 
+## Lakebase Memory Integration
+
+**Official References:**
+- [Stateful agents with memory](https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/stateful-agents)
+- [Short-term memory example](https://docs.databricks.com/aws/en/notebooks/source/generative-ai/short-term-memory-agent-lakebase.html)
+- [Long-term memory example](https://docs.databricks.com/aws/en/notebooks/source/generative-ai/long-term-memory-agent-lakebase.html)
+
+### Memory Types
+
+| Type | Description | Use Case | Persistence |
+|------|-------------|----------|-------------|
+| **Short-term memory** | Conversation context within a session | Follow-up questions, context retention | Per thread_id, ~24 hours |
+| **Long-term memory** | User preferences and insights | Personalization, pattern recognition | Per user_id, ~365 days |
+
+### Implementation in Health Monitor Agent
+
+The Health Monitor Agent uses Lakebase for both short-term and long-term memory:
+
+**Configuration:**
+```python
+# Environment variables (can be set in deployment)
+LAKEBASE_INSTANCE_NAME = "health_monitor_lakebase"
+EMBEDDING_ENDPOINT = "databricks-gte-large-en"
+EMBEDDING_DIMS = 1024
+SHORT_TERM_MEMORY_TTL_HOURS = 24
+LONG_TERM_MEMORY_TTL_DAYS = 365
+```
+
+**Resource Declaration:**
+```python
+from mlflow.models.resources import DatabricksServingEndpoint, DatabricksLakebase
+
+resources = [
+    DatabricksServingEndpoint(LLM_ENDPOINT),
+    DatabricksLakebase(database_instance_name=LAKEBASE_INSTANCE_NAME)
+]
+```
+
+### Client-Side Usage
+
+To enable stateful conversations, clients must pass `thread_id` in `custom_inputs`:
+
+```python
+# First message in a conversation
+response = client.responses.create(
+    model=endpoint,
+    input=[{"role": "user", "content": "What were costs yesterday?"}],
+    extra_body={
+        "custom_inputs": {
+            "user_id": "user@company.com",  # For long-term memory
+            # No thread_id = new conversation
+        }
+    }
+)
+
+# Get thread_id from response for follow-ups
+thread_id = response.custom_outputs.get("thread_id")
+
+# Follow-up message - pass thread_id back
+response2 = client.responses.create(
+    model=endpoint,
+    input=[{"role": "user", "content": "How does that compare to last week?"}],
+    extra_body={
+        "custom_inputs": {
+            "user_id": "user@company.com",
+            "thread_id": thread_id,  # Enables context retention
+            "genie_conversation_ids": response.custom_outputs.get("genie_conversation_ids", {})
+        }
+    }
+)
+```
+
+### Memory Methods
+
+**Short-term memory (conversation context):**
+- `_resolve_thread_id(custom_inputs)` - Resolve or generate thread_id
+- `_get_conversation_history(thread_id)` - Load previous messages
+- `_save_to_short_term_memory(thread_id, query, response, domain)` - Save conversation turn
+
+**Long-term memory (user preferences):**
+- `_get_user_preferences(user_id, query)` - Load relevant user context
+- `_save_user_insight(user_id, insight_key, insight_data)` - Save user insight
+- `_extract_and_save_insights(user_id, query, response, domain)` - Auto-extract insights
+
+### Custom Outputs (Response)
+
+The agent returns memory state in `custom_outputs`:
+
+```json
+{
+  "domain": "cost",
+  "source": "genie",
+  "thread_id": "abc-123-def-456",
+  "genie_conversation_ids": {
+    "cost": "conv-xyz-789"
+  },
+  "memory_status": "saved"
+}
+```
+
+### Requirements
+
+1. **Lakebase instance** - Create via Databricks workspace
+2. **`databricks-langchain` package** - Provides `CheckpointSaver` and `DatabricksStore`
+3. **Embedding endpoint** - For semantic search in long-term memory
+
+### Creating Lakebase Instance
+
+```bash
+# Via Databricks CLI (requires workspace admin)
+databricks lakebase instances create \
+  --name health_monitor_lakebase \
+  --size small
+```
+
+Or via the Databricks workspace UI:
+1. Go to Compute → Lakebase
+2. Click "Create Instance"
+3. Name it `health_monitor_lakebase`
+
+---
+
 **Last Updated:** 2026-01-08
 

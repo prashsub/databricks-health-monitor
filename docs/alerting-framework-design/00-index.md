@@ -26,6 +26,7 @@ This documentation suite provides **comprehensive architecture, implementation, 
 | 10 | [Alert Templates](10-alert-templates.md) | Pre-built templates and customization |
 | 11 | [Implementation Guide](11-implementation-guide.md) | Step-by-step implementation phases |
 | 12 | [Deployment and Operations](12-deployment-and-operations.md) | Production deployment and monitoring |
+| 13 | [Frontend Alert Management](13-frontend-alert-management.md) | UI design for alert CRUD via Delta table |
 
 ## Appendices
 

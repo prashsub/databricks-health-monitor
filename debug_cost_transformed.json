@@ -1,0 +1,190 @@
+{
+  "version": 1,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "c3c13b0bb6a44e83ad117ba6501dab7c",
+        "question": [
+          "What is our total spend this month?"
+        ]
+      },
+      {
+        "id": "cb7a7d09bf3e4c60ab3f40cae6a2855d",
+        "question": [
+          "Show me the top 10 workspaces by cost"
+        ]
+      },
+      {
+        "id": "82b72b40cc1d4913a559693b8170116c",
+        "question": [
+          "What was our daily cost trend for the last 30 days?"
+        ]
+      },
+      {
+        "id": "f2e2780e6e944d77bbdc4577dc942544",
+        "question": [
+          "What percentage of our spend is tagged?"
+        ]
+      },
+      {
+        "id": "f0a628ab84da4d92a6416e171d8f6b84",
+        "question": [
+          "Which SKU costs the most?"
+        ]
+      },
+      {
+        "id": "2921dac7650049eaaaa2f1df2cd0241a",
+        "question": [
+          "Show me cost by owner"
+        ]
+      },
+      {
+        "id": "39519384f9874e07bbfcf4aec952be23",
+        "question": [
+          "What is our serverless vs non-serverless spend?"
+        ]
+      },
+      {
+        "id": "4ecfaf74cb81436d97607430c440e015",
+        "question": [
+          "Break down cost by team tag"
+        ]
+      },
+      {
+        "id": "02fda1c84b674682bce0d6bbcfa35279",
+        "question": [
+          "Which ALL_PURPOSE clusters could be migrated to JOBS clusters?"
+        ]
+      },
+      {
+        "id": "d22f132213e545f492aef4a48b493529",
+        "question": [
+          "What are our cost anomalies?"
+        ]
+      },
+      {
+        "id": "8c36cec2872e43c885b4e18ed2549225",
+        "question": [
+          "Show me week-over-week cost growth"
+        ]
+      },
+      {
+        "id": "a80e74e184bc40fdb9a6c7811bc9435d",
+        "question": [
+          "What is the cost forecast for next month?"
+        ]
+      },
+      {
+        "id": "be9e771412734cb8a0bb95632ea1dd41",
+        "question": [
+          "Are there any cost anomalies today?"
+        ]
+      },
+      {
+        "id": "c0870d479c71430e8fc14cfed1824cf0",
+        "question": [
+          "Which resources need tags?"
+        ]
+      },
+      {
+        "id": "923fe00143d441149b8629a123279485",
+        "question": [
+          "What's the predicted cost for next week?"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "metric_views": [
+      {
+        "identifier": "${catalog}.${gold_schema}.mv_cost_analytics",
+        "column_configs": []
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.mv_commit_tracking",
+        "column_configs": []
+      }
+    ],
+    "tables": []
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "1d7ef217e0a84298bfb39e94603c4f37",
+        "content": [
+          "You are a Databricks FinOps analyst. Follow these rules:\n\n1. **Asset Selection:** Use Metric View for current state, TVFs for lists/investigation, Custom Metrics for trends\n2. **Primary Source:** Use mv_cost_analytics metric view for dashboard KPIs\n3. **TVFs for Lists:** Use TVFs for \"top N\", \"which\", \"list\" queries with TABLE() wrapper\n4. **Trends:** For \"is X increasing?\" check _drift_metrics tables\n5. **Date Default:** If no date specified, default to last 30 days\n6. **Aggregation:** Use SUM for totals, AVG for averages\n7. **Sorting:** Sort by cost DESC unless specified\n8. **Limits:** Top 10-20 for ranking queries\n9. **Currency:** Format as USD with 2 decimals ($1,234.56)\n10. **Percentages:** Show as % with 1 decimal (45.3%)\n11. **Synonyms:** cost=spend=billing, workspace=environment\n12. **ML Anomalies:** For \"anomalies\" \u2192 query ${catalog}.${feature_schema}.cost_anomaly_predictions\n13. **ML Forecast:** For \"forecast/predict\" \u2192 query ${catalog}.${feature_schema}.budget_forecast_predictions\n14. **Tag Questions:** For \"untagged\" \u2192 use get_untagged_resources TVF\n15. **Commit:** For budget tracking \u2192 use mv_commit_tracking metric view\n16. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')\n17. **ML Tables Schema:** Always use ${catalog}.${feature_schema} (NOT hardcoded!)\n18. **Performance:** Never scan Bronze/Silver tables"
+        ]
+      }
+    ],
+    "sql_functions": [
+      {
+        "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+        "identifier": "get_top_cost_contributors"
+      },
+      {
+        "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+        "identifier": "get_cost_trend_by_sku"
+      },
+      {
+        "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+        "identifier": "get_cost_by_owner"
+      },
+      {
+        "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+        "identifier": "get_cost_by_tag"
+      },
+      {
+        "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+        "identifier": "get_untagged_resources"
+      },
+      {
+        "id": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+        "identifier": "get_cost_anomalies"
+      },
+      {
+        "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+        "identifier": "get_cost_mtd_summary"
+      },
+      {
+        "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+        "identifier": "get_cost_week_over_week"
+      },
+      {
+        "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+        "identifier": "get_spend_by_custom_tags"
+      },
+      {
+        "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
+        "identifier": "get_most_expensive_jobs"
+      },
+      {
+        "id": "a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8",
+        "identifier": "get_warehouse_utilization"
+      },
+      {
+        "id": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+        "identifier": "get_cost_forecast_summary"
+      },
+      {
+        "id": "c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+        "identifier": "get_cost_growth_analysis"
+      },
+      {
+        "id": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+        "identifier": "get_tag_coverage"
+      },
+      {
+        "id": "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+        "identifier": "get_commit_vs_actual"
+      },
+      {
+        "id": "f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c4",
+        "identifier": "get_all_purpose_cluster_cost"
+      },
+      {
+        "id": "a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d5",
+        "identifier": "get_cost_growth_by_period"
+      }
+    ]
+  }
+}

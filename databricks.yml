@@ -56,8 +56,8 @@ variables:
     default: "i3.xlarge"
   
   lakebase_instance_name:
-    description: Lakebase instance name for agent memory (used by agent_deployment.yml)
-    default: "health_monitor_lakebase"
+    description: Lakebase instance name for agent memory (shared workspace instance)
+    default: "vibe-coding-workshop-lakebase"
   
   llm_endpoint:
     description: LLM endpoint for agent inference (used by agent_deployment.yml)
@@ -66,6 +66,32 @@ variables:
   dashboard_folder:
     description: Workspace folder path where dashboards will be published
     default: "/Shared/health_monitor/dashboards"
+  
+  # Genie Space IDs (Single Source of Truth for deployment)
+  # These override the defaults in src/agents/config/genie_spaces.py
+  cost_genie_space_id:
+    description: Health Monitor Cost Intelligence Space
+    default: "01f0f1a3c2dc1c8897de11d27ca2cb6f"
+  
+  reliability_genie_space_id:
+    description: Health Monitor Job Reliability Space
+    default: "01f0f1a3c33b19848c856518eac91dee"
+  
+  quality_genie_space_id:
+    description: Health Monitor Data Quality Space
+    default: "01f0f1a3c39517ffbe190f38956d8dd1"
+  
+  performance_genie_space_id:
+    description: Health Monitor Performance Space
+    default: "01f0f1a3c3e31a8e8e6dee3eddf5d61f"
+  
+  security_genie_space_id:
+    description: Health Monitor Security Auditor Space
+    default: "01f0f1a3c44117acada010638189392f"
+  
+  unified_genie_space_id:
+    description: Databricks Health Monitor Space
+    default: "01f0f1a3c4981080b61e224ecd465817"
 
 targets:
   dev:

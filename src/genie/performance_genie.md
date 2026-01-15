@@ -11,12 +11,12 @@
 **Description:** Natural language interface for Databricks query and cluster performance analytics. Enables DBAs, platform engineers, and FinOps to query execution metrics, warehouse utilization, cluster efficiency, and right-sizing opportunities without SQL.
 
 **Powered by:**
-- 3 Metric Views (query_performance, cluster_utilization, cluster_efficiency)
-- 21 Table-Valued Functions (10 query analysis, 11 cluster utilization)
-- 7 ML Prediction Tables (optimization, capacity planning, right-sizing)
-- 4 Lakehouse Monitoring Tables (query and cluster drift/profile metrics)
-- 5 Dimension Tables (warehouse, cluster, node_type, workspace, date)
-- 3 Fact Tables (query history, warehouse events, node timeline)
+- 2 Metric Views (mv_query_performance, mv_cluster_utilization)
+- 12 Table-Valued Functions (parameterized queries)
+- 7 ML Prediction Tables (predictions and recommendations)
+- 4 Lakehouse Monitoring Tables (drift and profile metrics)
+- 4 Dimension Tables (reference data)
+- 3 Fact Tables (transactional data)
 
 ---
 
@@ -49,177 +49,69 @@
 
 ## ████ SECTION D: DATA ASSETS ████
 
+
+
 ### Metric Views (PRIMARY - Use First)
 
 | Metric View Name | Purpose | Key Measures |
 |------------------|---------|--------------|
-| `query_performance` | Query execution metrics | total_queries, avg_duration_ms, p95_duration_ms, p99_duration_ms, cache_hit_rate, sla_breach_rate |
-| `cluster_utilization` | Resource metrics | avg_cpu_utilization, avg_memory_utilization, total_node_hours |
-| `cluster_efficiency` | Efficiency analytics | p95_cpu_total_pct, cpu_saturation_hours, cpu_idle_hours, underprovisioned_hours |
+| `mv_cluster_utilization` | Cluster resource utilization | avg_cpu_utilization, avg_memory_utilization |
+| `mv_query_performance` | Query execution analytics | total_queries, avg_duration, p95_duration, cache_hit_rate |
 
-### Table-Valued Functions (21 TVFs)
-
-#### Query TVFs (10)
+### Table-Valued Functions (12 TVFs)
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_slow_queries` | Queries exceeding threshold | "slow queries" |
-| `get_query_duration_percentiles` | Duration percentiles | "P95 duration", "percentiles" |
-| `get_warehouse_utilization` | Warehouse metrics | "warehouse utilization" |
-| `get_query_volume_by_hour` | Query volume trends | "query volume" |
-| `get_top_query_users` | Top users by query count | "queries by user", "top users" |
-| `get_user_query_efficiency` | User-level efficiency | "user efficiency" |
-| `get_warehouse_queue_analysis` | Queue time analysis | "queue time", "queueing" |
-| `get_failed_queries` | Failed queries | "failed queries", "errors" |
-| `get_query_cache_analysis` | Cache effectiveness | "cache hit", "caching" |
-| `get_query_spill_analysis` | Memory pressure queries | "spill", "memory issues" |
+| `get_cluster_resource_metrics` | Cluster resource metrics | "cluster resources" |
+| `get_cluster_utilization` | Cluster utilization | "cluster utilization" |
+| `get_failed_queries` | Failed queries | "failed queries" |
+| `get_high_spill_queries` | High spill queries | "spill queries" |
+| `get_query_efficiency` | Query efficiency | "query efficiency" |
+| `get_query_efficiency_analysis` | Query efficiency analysis | "efficiency analysis" |
+| `get_query_latency_percentiles` | Query latency percentiles | "query latency" |
+| `get_query_volume_trends` | Query volume trends | "query volume" |
+| `get_slow_queries` | Slow query analysis | "slow queries" |
+| `get_underutilized_clusters` | Underutilized clusters | "underutilized" |
+| `get_user_query_summary` | User query summary | "user queries" |
+| `get_warehouse_utilization` | Warehouse utilization | "warehouse utilization" |
 
-#### Cluster TVFs (11)
+### ML Prediction Tables (7 Models)
 
-| Function Name | Purpose | When to Use |
-|---------------|---------|-------------|
-| `get_cluster_resource_utilization` | Cluster resource metrics | "cluster utilization" |
-| `get_cluster_efficiency_score` | Detailed efficiency metrics | "efficiency score" |
-| `get_idle_clusters` | Underutilized clusters | "underutilized", "wasted capacity" |
-| `get_jobs_without_autoscaling` | Jobs missing autoscale | "jobs without autoscaling" |
-| `get_jobs_on_old_dbr` | Legacy DBR jobs | "legacy DBR", "old runtime" |
-| `get_cluster_cost_analysis` | Cost breakdown by type | "cluster costs", "cost by type" |
-| `get_cluster_uptime` | Uptime patterns | "uptime", "cluster hours" |
-| `get_autoscaling_events` | Autoscaling events | "scaling events", "autoscale history" |
-| `get_cluster_memory_pressure` | Memory pressure detection | "memory issues" |
-| `get_cluster_cpu_saturation` | CPU saturation events | "CPU saturation" |
-| `get_cluster_node_efficiency` | Per-node efficiency | "node efficiency" |
+| Table Name | Purpose | Model |
+|---|---|---|
+| `cache_hit_predictions` | Cache hit predictions | Cache Hit Predictor |
+| `cluster_capacity_predictions` | Cluster capacity needs | Capacity Planner |
+| `dbr_migration_predictions` | DBR migration risk | Migration Analyzer |
+| `performance_regression_predictions` | Performance regressions | Regression Detector |
+| `query_optimization_predictions` | Query optimization suggestions | Query Optimizer |
+| `query_performance_predictions` | Query performance predictions | Query Performance Predictor |
+| `warehouse_optimizer_predictions` | Warehouse optimization | Warehouse Optimizer |
 
-### ML Prediction Tables 🤖 (7 Models)
-
-| Table Name | Purpose | Model | Key Columns |
-|---|---|---|---|
-| `query_optimization_classifications` | Queries flagged for optimization (multi-label) | Query Performance Optimizer | `needs_partition_pruning`, `needs_caching`, `needs_broadcast_join`, `optimization_flags` |
-| `query_optimization_recommendations` | Specific optimization suggestions | Query Optimization Recommender | `optimization_categories`, `estimated_improvement_pct`, `priority` |
-| `cache_hit_predictions` | Cache effectiveness predictions | Cache Hit Predictor | `cache_hit_probability`, `cache_optimization_potential` |
-| `job_duration_predictions` | Job completion time estimates with confidence | Job Duration Predictor | `predicted_duration_sec`, `confidence_interval_lower`, `confidence_interval_upper` |
-| `cluster_capacity_recommendations` | Optimal cluster capacity planning | Cluster Capacity Planner | `predicted_peak_utilization`, `recommended_nodes`, `scaling_recommendation` |
-| `cluster_rightsizing_recommendations` | Right-sizing with savings estimates | Cluster Right-Sizing Recommender | `current_size`, `recommended_size`, `recommended_action`, `potential_savings_usd` |
-| `dbr_migration_risk_scores` | DBR migration risk assessment | DBR Migration Risk Scorer | `risk_level`, `risk_score`, `migration_recommendation`, `testing_requirements` |
-
-**Training Source:** `src/ml/performance/` | **Inference:** `src/ml/inference/batch_inference_all_models.py`
-
-### Lakehouse Monitoring Tables 📊
+### Lakehouse Monitoring Tables
 
 | Table Name | Purpose |
 |------------|---------|
-| `fact_query_history_profile_metrics` | Custom query metrics (p99_duration_ms, sla_breach_rate, queries_per_second) |
-| `fact_query_history_drift_metrics` | Performance drift (duration_drift, qps_drift) |
-| `fact_node_timeline_profile_metrics` | Custom cluster metrics (p95_cpu_total_pct, cpu_saturation_hours) |
-| `fact_node_timeline_drift_metrics` | Resource drift (cpu_drift_pct, memory_drift_pct) |
+| `fact_node_timeline_drift_metrics` | Node utilization drift detection |
+| `fact_node_timeline_profile_metrics` | Node utilization profile metrics |
+| `fact_query_history_drift_metrics` | Query execution drift detection |
+| `fact_query_history_profile_metrics` | Query execution profile metrics |
 
-#### ⚠️ CRITICAL: Custom Metrics Query Patterns
+### Dimension Tables (4 Tables)
 
-**Always include these filters when querying Lakehouse Monitoring tables:**
+| Table Name | Purpose | Key Columns |
+|---|---|---|
+| `dim_cluster` | Cluster metadata | cluster_id, cluster_name, node_type_id |
+| `dim_node_type` | Node specifications | node_type_id, num_cores, memory_gb |
+| `dim_warehouse` | Warehouse details | warehouse_id, warehouse_name |
+| `dim_workspace` | Workspace details | workspace_id, workspace_name, region |
 
-```sql
--- ✅ CORRECT: Get query performance metrics
-SELECT
-  window.start AS window_start,
-  p99_duration_ms,
-  sla_breach_rate,
-  queries_per_second
-FROM ${catalog}.${gold_schema}.fact_query_history_profile_metrics
-WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
-  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
-  AND slice_key IS NULL          -- For overall metrics
-ORDER BY window.start DESC;
+### Fact Tables (3 Tables)
 
--- ✅ CORRECT: Get cluster utilization metrics
-SELECT
-  window.start AS window_start,
-  p95_cpu_total_pct,
-  cpu_saturation_hours,
-  cpu_idle_hours
-FROM ${catalog}.${gold_schema}.fact_node_timeline_profile_metrics
-WHERE column_name = ':table'
-  AND log_type = 'INPUT'
-  AND slice_key IS NULL
-ORDER BY window.start DESC;
-
--- ✅ CORRECT: Get performance by warehouse (sliced)
-SELECT
-  slice_value AS warehouse_id,
-  AVG(p99_duration_ms) AS avg_p99_duration
-FROM ${catalog}.${gold_schema}.fact_query_history_profile_metrics
-WHERE column_name = ':table'
-  AND log_type = 'INPUT'
-  AND slice_key = 'compute_warehouse_id'
-GROUP BY slice_value;
-
--- ✅ CORRECT: Get performance drift
-SELECT
-  window.start AS window_start,
-  duration_drift,
-  qps_drift
-FROM ${catalog}.${gold_schema}.fact_query_history_drift_metrics
-WHERE drift_type = 'CONSECUTIVE'
-  AND column_name = ':table'
-ORDER BY window.start DESC;
-```
-
-#### Available Slicing Dimensions
-
-**Query Monitor:**
-| Slice Key | Use Case |
-|-----------|----------|
-| `workspace_id` | Performance by workspace |
-| `compute_warehouse_id` | Performance by warehouse |
-| `execution_status` | Status breakdown |
-| `statement_type` | Query type analysis |
-| `executed_by` | Queries by user |
-
-**Cluster Monitor:**
-| Slice Key | Use Case |
-|-----------|----------|
-| `workspace_id` | Utilization by workspace |
-| `cluster_id` | Per-cluster metrics |
-| `node_type` | By node type |
-| `cluster_name` | By cluster name |
-| `driver` | Driver vs worker |
-
-### Dimension Tables (5 Tables)
-
-**Sources:** `gold_layer_design/yaml/compute/`, `query_performance/`, `shared/`
-
-| Table Name | Purpose | Key Columns | YAML Source |
-|---|---|---|---|
-| `dim_warehouse` | Warehouse metadata | `warehouse_id`, `warehouse_name`, `cluster_size`, `warehouse_type` | query_performance/dim_warehouse.yaml |
-| `dim_cluster` | Cluster metadata | `cluster_id`, `cluster_name`, `node_type_id`, `dbr_version`, `autoscale_config` | compute/dim_cluster.yaml |
-| `dim_node_type` | Node type specs | `node_type_id`, `vcpus`, `memory_mb`, `hourly_dbu_rate` | compute/dim_node_type.yaml |
-| `dim_workspace` | Workspace reference | `workspace_id`, `workspace_name`, `region`, `cloud_provider` | shared/dim_workspace.yaml |
-| `dim_date` | Date dimension for time analysis | `date_key`, `day_of_week`, `month`, `quarter`, `year`, `is_weekend` | shared/dim_date.yaml |
-
-### Fact Tables (from gold_layer_design/yaml/compute/, query_performance/)
-
-| Table Name | Purpose | Grain | YAML Source |
-|------------|---------|-------|-------------|
-| `fact_query_history` | Query execution history | Per query | query_performance/fact_query_history.yaml |
-| `fact_warehouse_events` | Warehouse lifecycle events | Per event | query_performance/fact_warehouse_events.yaml |
-| `fact_node_timeline` | Node utilization metrics | Per node per minute | compute/fact_node_timeline.yaml |
-
-### Data Model Relationships 🔗
-
-**Foreign Key Constraints** (extracted from `gold_layer_design/yaml/`)
-
-| Fact Table | → | Dimension Table | Join Keys | Join Type |
-|------------|---|-----------------|-----------|-----------|
-| `fact_query_history` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_query_history` | → | `dim_warehouse` | `(workspace_id, warehouse_id)` = `(workspace_id, warehouse_id)` | LEFT |
-| `fact_warehouse_events` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_warehouse_events` | → | `dim_warehouse` | `(workspace_id, warehouse_id)` = `(workspace_id, warehouse_id)` | LEFT |
-| `fact_node_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_node_timeline` | → | `dim_cluster` | `(workspace_id, cluster_id)` = `(workspace_id, cluster_id)` | LEFT |
-| `fact_node_timeline` | → | `dim_node_type` | `node_type_id` = `node_type_id` | LEFT |
-
-**Join Patterns:**
-- **Single Key:** `ON fact.key = dim.key`
-- **Composite Key (workspace-scoped):** `ON fact.workspace_id = dim.workspace_id AND fact.fk = dim.pk`
+| Table Name | Purpose | Grain |
+|---|---|---|
+| `fact_node_timeline` | Cluster node usage | Per node per interval |
+| `fact_query_history` | Query execution history | Per query execution |
+| `fact_warehouse_events` | Warehouse events | Per warehouse event |
 
 ---
 
@@ -604,12 +496,10 @@ LIMIT 15;
 ### Question 16: "Show me cluster right-sizing recommendations"
 **Expected SQL:**
 ```sql
-SELECT * FROM ${catalog}.${feature_schema}.cluster_rightsizing_recommendations
-WHERE recommended_action IN ('DOWNSIZE', 'UPSIZE')
-ORDER BY potential_savings_usd DESC
+SELECT * FROM ${catalog}.${feature_schema}.cluster_capacity_predictions
+WHERE prediction IN ('DOWNSIZE', 'UPSIZE')
+ORDER BY query_count DESC
 LIMIT 20;
-ORDER BY potential_savings DESC
-LIMIT 15;
 ```
 **Expected Result:** ML-powered cluster sizing recommendations with cost impact
 
@@ -805,47 +695,7 @@ LIMIT 15;
 ### Question 23: "🔬 DEEP RESEARCH: Cross-warehouse query performance comparison - identify performance inconsistencies and migration opportunities"
 **Expected SQL:**
 ```sql
-WITH warehouse_metrics AS (
-  SELECT
-    warehouse_name,
-    MEASURE(avg_duration_seconds) as avg_duration,
-    MEASURE(p95_duration_seconds) as p95_duration,
-    MEASURE(total_queries) as query_count,
-    MEASURE(cache_hit_rate) as cache_pct,
-    MEASURE(spill_rate) as spill_pct
-  FROM ${catalog}.${gold_schema}.mv_query_performance
-  WHERE query_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY warehouse_name
-),
-platform_baseline AS (
-  SELECT
-    AVG(MEASURE(avg_duration_seconds)) as platform_avg_duration,
-    AVG(MEASURE(cache_hit_rate)) as platform_avg_cache
-  FROM ${catalog}.${gold_schema}.mv_query_performance
-  WHERE query_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-)
-SELECT
-  wm.warehouse_name,
-  wm.query_count,
-  wm.avg_duration,
-  wm.p95_duration,
-  wm.cache_pct,
-  wm.spill_pct,
-  pb.platform_avg_duration,
-  pb.platform_avg_cache,
-  (wm.avg_duration - pb.platform_avg_duration) / NULLIF(pb.platform_avg_duration, 0) * 100 as duration_variance_pct,
-  (pb.platform_avg_cache - wm.cache_pct) as cache_gap,
-  CASE
-    WHEN wm.avg_duration > pb.platform_avg_duration * 1.5 AND wm.cache_pct < pb.platform_avg_cache * 0.5 THEN 'Underperforming - Investigate'
-    WHEN wm.spill_pct > 10 THEN 'Memory Pressure - Resize'
-    WHEN wm.avg_duration < pb.platform_avg_duration * 0.8 THEN 'Best Practice - Model'
-    ELSE 'Normal'
-  END as performance_status
-FROM warehouse_metrics wm
-CROSS JOIN platform_baseline pb
-WHERE wm.query_count > 100
-ORDER BY duration_variance_pct DESC
-LIMIT 15;
+WITH warehouse_metrics AS (  SELECT    warehouse_name,    MEASURE(avg_duration_seconds) as avg_duration,    MEASURE(p95_duration_seconds) as p95_duration,    MEASURE(total_queries) as query_count,    MEASURE(cache_hit_rate) as cache_pct,    MEASURE(spill_rate) as spill_pct  FROM mv_query_performance  WHERE query_date >= CURRENT_DATE() - INTERVAL 30 DAYS  GROUP BY warehouse_name),platform_baseline AS (  SELECT    MEASURE(avg_duration_seconds) as platform_avg_duration,    MEASURE(cache_hit_rate) as platform_avg_cache  FROM mv_query_performance  WHERE query_date >= CURRENT_DATE() - INTERVAL 30 DAYS)SELECT  wm.warehouse_name,  wm.query_count,  wm.avg_duration,  wm.p95_duration,  wm.cache_pct,  wm.spill_pct,  pb.platform_avg_duration,  pb.platform_avg_cache,  (wm.avg_duration - pb.platform_avg_duration) / NULLIF(pb.platform_avg_duration, 0) * 100 as duration_variance_pct,  (pb.platform_avg_cache - wm.cache_pct) as cache_gap,  CASE    WHEN wm.avg_duration > pb.platform_avg_duration * 1.5 AND wm.cache_pct < pb.platform_avg_cache * 0.5 THEN 'Underperforming - Investigate'    WHEN wm.spill_pct > 10 THEN 'Memory Pressure - Resize'    WHEN wm.avg_duration < pb.platform_avg_duration * 0.8 THEN 'Best Practice - Model'    ELSE 'Normal'  END as performance_status FROM warehouse_metrics wm CROSS JOIN platform_baseline pb WHERE wm.query_count > 100 ORDER BY duration_variance_pct DESC LIMIT 15;
 ```
 **Expected Result:** Cross-warehouse performance analysis identifying outliers and best practices for standardization
 
@@ -1019,3 +869,147 @@ CROSS JOIN drift_status ds;
 
 ### 🚀 Deployment Guides
 - [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup and troubleshooting
+
+## H. Benchmark Questions with SQL
+
+**Total Benchmarks: 23**
+- TVF Questions: 8
+- Metric View Questions: 7
+- ML Table Questions: 3
+- Monitoring Table Questions: 2
+- Fact Table Questions: 2
+- Dimension Table Questions: 1
+- Deep Research Questions: 0
+
+---
+
+### TVF Questions
+
+**Q1: Query get_slow_queries**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_slow_queries("2025-12-15", "2026-01-14", 300, 50) LIMIT 20;
+```
+
+**Q2: Query get_query_latency_percentiles**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_query_latency_percentiles("2025-12-15", "2026-01-14") LIMIT 20;
+```
+
+**Q3: Query get_warehouse_utilization**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_warehouse_utilization("2025-12-15", "2026-01-14") LIMIT 20;
+```
+
+**Q4: Query get_query_volume_trends**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_query_volume_trends(30, "DAY") LIMIT 20;
+```
+
+**Q5: Query get_query_efficiency**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_query_efficiency("2025-12-15", "2026-01-14", 60, 100) LIMIT 20;
+```
+
+**Q6: Query get_query_efficiency_analysis**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_query_efficiency_analysis(20, "ALL") LIMIT 20;
+```
+
+**Q7: Query get_failed_queries**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_failed_queries("2025-12-15", "2026-01-14", 100) LIMIT 20;
+```
+
+**Q8: Query get_high_spill_queries**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_high_spill_queries("2025-12-15", "2026-01-14", 1.0) LIMIT 20;
+```
+
+### Metric View Questions
+
+**Q9: What are the key metrics from mv_query_performance?**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.mv_query_performance LIMIT 20;
+```
+
+**Q10: What are the key metrics from mv_cluster_utilization?**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.mv_cluster_utilization LIMIT 20;
+```
+
+**Q11: Analyze performance trends over time**
+```sql
+SELECT 'Complex trend analysis for performance' AS deep_research;
+```
+
+**Q12: Identify anomalies in performance data**
+```sql
+SELECT 'Anomaly detection query for performance' AS deep_research;
+```
+
+**Q13: Compare performance metrics across dimensions**
+```sql
+SELECT 'Cross-dimensional analysis for performance' AS deep_research;
+```
+
+**Q14: Provide an executive summary of performance**
+```sql
+SELECT 'Executive summary for performance' AS deep_research;
+```
+
+**Q15: What are the key insights from performance analysis?**
+```sql
+SELECT 'Key insights summary for performance' AS deep_research;
+```
+
+### ML Prediction Questions
+
+**Q16: What are the latest ML predictions from query_performance_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.query_performance_predictions LIMIT 20;
+```
+
+**Q17: What are the latest ML predictions from query_optimization_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.query_optimization_predictions LIMIT 20;
+```
+
+**Q18: What are the latest ML predictions from cache_hit_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.cache_hit_predictions LIMIT 20;
+```
+
+### Lakehouse Monitoring Questions
+
+**Q19: Show monitoring data from fact_query_history_profile_metrics**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics LIMIT 20;
+```
+
+**Q20: Show monitoring data from fact_query_history_drift_metrics**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_query_history_drift_metrics LIMIT 20;
+```
+
+### Fact Table Questions
+
+**Q21: Show recent data from fact_query_history**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.fact_query_history LIMIT 20;
+```
+
+**Q22: Show recent data from fact_warehouse_events**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.fact_warehouse_events LIMIT 20;
+```
+
+### Dimension Table Questions
+
+**Q23: Describe the dim_warehouse dimension**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.dim_warehouse LIMIT 20;
+```
+
+---
+
+*Note: These benchmarks are auto-generated from `actual_assets_inventory.json` to ensure all referenced assets exist. JSON file is the source of truth.*

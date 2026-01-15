@@ -59,6 +59,7 @@ resources:
               - langchain-core
               - langgraph
               - databricks-sdk
+              - "databricks-langchain[memory]"  # For Lakebase memory (CheckpointSaver, DatabricksStore)
         
         # Databricks Agents env for synthetic dataset generation
         - environment_key: agents_env
@@ -139,6 +140,13 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               agent_schema: ${var.agent_schema}
+              # Genie Space IDs from databricks.yml (override defaults in genie_spaces.py)
+              cost_genie_space_id: ${var.cost_genie_space_id}
+              reliability_genie_space_id: ${var.reliability_genie_space_id}
+              quality_genie_space_id: ${var.quality_genie_space_id}
+              performance_genie_space_id: ${var.performance_genie_space_id}
+              security_genie_space_id: ${var.security_genie_space_id}
+              unified_genie_space_id: ${var.unified_genie_space_id}
         
         # ==================================================================
         # Task 4: Run Initial Evaluation (Pre-deployment validation)
@@ -155,6 +163,13 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               agent_schema: ${var.agent_schema}
+              # Genie Space IDs from databricks.yml (override defaults in genie_spaces.py)
+              cost_genie_space_id: ${var.cost_genie_space_id}
+              reliability_genie_space_id: ${var.reliability_genie_space_id}
+              quality_genie_space_id: ${var.quality_genie_space_id}
+              performance_genie_space_id: ${var.performance_genie_space_id}
+              security_genie_space_id: ${var.security_genie_space_id}
+              unified_genie_space_id: ${var.unified_genie_space_id}
         
         # ==================================================================
         # NOTE: Serving endpoint is NOT created here!

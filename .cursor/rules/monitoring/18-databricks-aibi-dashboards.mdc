@@ -1172,7 +1172,396 @@ docs/dashboards/
 
 ---
 
+## 22. Dashboard Deployment Patterns (PRODUCTION)
+
+### No Hardcoding - Always Use Variable Substitution
+
+**Critical Rule:** NEVER hardcode catalog, schema, or warehouse values in dashboard JSON.
+
+#### ✅ CORRECT: Variable Placeholders
+```sql
+-- In dashboard JSON
+FROM ${catalog}.${gold_schema}.fact_usage
+FROM ${catalog}.${feature_schema}.ml_predictions
+WHERE warehouse_id = '${warehouse_id}'
+```
+
+#### ❌ WRONG: Hardcoded Values
+```sql
+-- DON'T DO THIS!
+FROM prashanth_catalog.gold.fact_usage
+FROM dev_user_system_gold_ml.predictions
+```
+
+### Variable Substitution Reference
+
+| Variable | Purpose | Example Value |
+|---|---|---|
+| `${catalog}` | Unity Catalog name | `health_monitor` |
+| `${gold_schema}` | Gold layer schema | `system_gold` |
+| `${feature_schema}` | ML/Feature schema | `system_gold_ml` |
+| `${warehouse_id}` | SQL Warehouse ID | `abc123xyz` |
+
+### Python Variable Substitution Pattern
+
+```python
+def substitute_variables(json_str: str, catalog: str, gold_schema: str, warehouse_id: str) -> str:
+    """Replace variable placeholders with actual values."""
+    json_str = json_str.replace('${catalog}', catalog)
+    json_str = json_str.replace('${gold_schema}', gold_schema)
+    json_str = json_str.replace('${warehouse_id}', warehouse_id)
+    
+    # ML/Feature schema - derives from gold_schema pattern
+    # dev_user_system_gold -> dev_user_system_gold_ml
+    feature_schema = gold_schema.replace('_system_gold', '_system_gold_ml')
+    json_str = json_str.replace('${feature_schema}', feature_schema)
+    
+    return json_str
+```
+
+### Widget Parameters with dbutils.widgets
+
+```python
+# Always use widgets for deployment parameters
+dbutils.widgets.text("catalog", "health_monitor", "Target Catalog")
+dbutils.widgets.text("gold_schema", "gold", "Gold Schema")
+dbutils.widgets.text("warehouse_id", "", "SQL Warehouse ID")
+dbutils.widgets.text("dashboard_folder", "/Shared/health_monitor/dashboards", "Dashboard Folder")
+
+catalog = dbutils.widgets.get("catalog")
+gold_schema = dbutils.widgets.get("gold_schema")
+warehouse_id = dbutils.widgets.get("warehouse_id")
+dashboard_folder = dbutils.widgets.get("dashboard_folder")
+```
+
+**Benefits:**
+- ✅ Same dashboard JSON works in dev, staging, prod
+- ✅ No manual find-replace before deployment
+- ✅ Parameters passed from Asset Bundle job
+- ✅ Easy to test with different catalogs/schemas
+
+---
+
+## 23. UPDATE-or-CREATE Deployment Pattern (RECOMMENDED)
+
+### Why This Pattern?
+
+**Problem with CREATE-only:**
+- Creates new dashboard each time
+- Breaks URLs and permissions
+- Clutters workspace with duplicates
+
+**Problem with UPDATE-only:**
+- Fails if dashboard doesn't exist
+- Requires manual creation first
+
+**Solution: Workspace Import API with overwrite=true**
+- If dashboard exists → UPDATE (preserves URL, permissions)
+- If dashboard doesn't exist → CREATE
+- Single code path for both scenarios
+
+### Implementation Pattern
+
+```python
+def deploy_dashboard_via_workspace_import(
+    workspace_client, 
+    dashboard_config: dict, 
+    display_name: str, 
+    parent_path: str, 
+    source_filename: str
+) -> tuple:
+    """
+    Deploy dashboard using Workspace Import API (Microsoft recommended).
+    
+    Reference: https://learn.microsoft.com/en-us/azure/databricks/dashboards/tutorials/workspace-dashboard-api
+    
+    Returns: (dashboard_id, "CREATED" or "UPDATED")
+    """
+    import base64
+    
+    # Set display name
+    dashboard_config['displayName'] = display_name
+    
+    # Serialize and encode
+    serialized_dashboard = json.dumps(dashboard_config)
+    content_base64 = base64.b64encode(serialized_dashboard.encode('utf-8')).decode('utf-8')
+    
+    # Use source filename directly (clean paths)
+    file_path = f"{parent_path}/{source_filename}"  # e.g., cost.lvdash.json
+    
+    # Check if exists
+    existing = False
+    try:
+        result = workspace_client.api_client.do(
+            method="GET",
+            path="/api/2.0/workspace/get-status",
+            query={"path": file_path}
+        )
+        existing = result.get("object_type") == "DASHBOARD"
+    except:
+        pass
+    
+    # Import with overwrite (UPDATE if exists, CREATE if new)
+    workspace_client.api_client.do(
+        method="POST",
+        path="/api/2.0/workspace/import",
+        body={
+            "path": file_path,
+            "content": content_base64,
+            "format": "AUTO",
+            "overwrite": True  # ✅ KEY: Enables UPDATE-or-CREATE
+        }
+    )
+    
+    action = "UPDATED" if existing else "CREATED"
+    return file_path, action
+```
+
+### Cleanup Pattern - Prevent Duplicates
+
+```python
+def cleanup_old_dashboards(workspace_client, folder_path: str, keep_filenames: list):
+    """
+    Delete old dashboards NOT in keep_filenames list.
+    Prevents duplicates when changing naming conventions.
+    """
+    items = workspace_client.workspace.list(folder_path)
+    
+    for item in items:
+        item_name = item.path.split('/')[-1]
+        
+        if item_name.endswith('.lvdash.json') and item_name not in keep_filenames:
+            workspace_client.workspace.delete(item.path)
+            print(f"  🗑️ Deleted old dashboard: {item_name}")
+```
+
+---
+
+## 24. Professional Naming Conventions
+
+### File Naming Pattern
+
+**Use simple, descriptive names - NOT branded prefixes**
+
+| ✅ GOOD | ❌ BAD |
+|---------|--------|
+| `cost.lvdash.json` | `Health_Monitor_Cost_and_Commitment.lvdash.json` |
+| `performance.lvdash.json` | `DBX_Performance_Dashboard_v2.lvdash.json` |
+| `reliability.lvdash.json` | `[Health Monitor] Reliability 2026.lvdash.json` |
+
+**Why simple names:**
+- Clean workspace paths: `/Shared/dashboards/cost.lvdash.json`
+- Easy to reference in code: `dashboard_dir / "cost.lvdash.json"`
+- Git-friendly (no spaces, no special characters)
+- Professional appearance in file listings
+
+### Display Name Pattern
+
+**Use branded, user-friendly display names**
+
+```python
+DASHBOARDS = [
+    ("cost.lvdash.json", "Databricks Cost Intelligence"),
+    ("performance.lvdash.json", "Databricks Performance Analytics"),
+    ("reliability.lvdash.json", "Databricks Reliability Monitor"),
+    ("security.lvdash.json", "Databricks Security & Compliance"),
+    ("quality.lvdash.json", "Databricks Data Quality Hub"),
+    ("unified.lvdash.json", "Databricks Health Monitor"),
+]
+```
+
+**Pattern:**
+- `Databricks {Domain} {Type}`
+- Examples: "Databricks Cost Intelligence", "Databricks Security & Compliance"
+- Consistent branding across all dashboards
+- Domain-specific keywords for discoverability
+
+---
+
+## 25. Pre-Deployment Validation Strategy (90% Time Reduction)
+
+### The Problem with Deploy-First
+
+**Without validation:**
+1. Make change in JSON
+2. Deploy (2-5 minutes)
+3. Open dashboard
+4. See error
+5. Fix error
+6. Redeploy (2-5 minutes)
+7. Repeat 10+ times
+
+**Total time:** 20-50 minutes per development cycle
+
+### The Solution: Validate First
+
+**With validation:**
+1. Make changes in JSON
+2. Run validator (30-60 seconds)
+3. See ALL errors at once
+4. Fix all errors
+5. Deploy once (2-5 minutes)
+
+**Total time:** 3-7 minutes per development cycle
+**Savings:** 90% reduction in dev loop time
+
+### SELECT LIMIT 1 vs EXPLAIN
+
+**Why SELECT LIMIT 1?**
+
+| Error Type | EXPLAIN Catches? | SELECT LIMIT 1 Catches? |
+|---|---|---|
+| Syntax errors | ✅ Yes | ✅ Yes |
+| Column doesn't exist | ❌ Sometimes | ✅ Always |
+| Table doesn't exist | ✅ Yes | ✅ Yes |
+| Type mismatches | ❌ No | ✅ Yes |
+| Ambiguous references | ❌ No | ✅ Yes |
+| Runtime errors | ❌ No | ✅ Yes |
+
+**Pattern:**
+```python
+def validate_query(spark, query: str) -> bool:
+    """Validate query by executing with LIMIT 1."""
+    try:
+        # Wrap query in LIMIT 1 for efficiency
+        validation_query = f"SELECT * FROM ({query}) LIMIT 1"
+        spark.sql(validation_query).collect()
+        return True
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+```
+
+### Error Categorization Pattern
+
+```python
+def categorize_error(error_str: str) -> dict:
+    """Extract structured info from SQL errors."""
+    result = {'error_type': 'OTHER'}
+    
+    if 'UNRESOLVED_COLUMN' in error_str:
+        result['error_type'] = 'COLUMN_NOT_FOUND'
+        # Extract column name
+        match = re.search(r"name `([^`]+)`", error_str)
+        if match:
+            result['column'] = match.group(1)
+        # Extract suggestions
+        match = re.search(r"Did you mean one of the following\? \[([^\]]+)\]", error_str)
+        if match:
+            result['suggestions'] = match.group(1)
+    
+    elif 'AMBIGUOUS_REFERENCE' in error_str:
+        result['error_type'] = 'AMBIGUOUS_COLUMN'
+        match = re.search(r"Reference `([^`]+)`", error_str)
+        if match:
+            result['column'] = match.group(1)
+    
+    elif 'TABLE_OR_VIEW_NOT_FOUND' in error_str:
+        result['error_type'] = 'TABLE_NOT_FOUND'
+        match = re.search(r"table or view `([^`]+)`", error_str)
+        if match:
+            result['table'] = match.group(1)
+    
+    return result
+```
+
+---
+
+## 26. Avoiding Whack-a-Mole: Root Cause Analysis Pattern
+
+### Today's Example: workspace_owner Error
+
+**What Happened:**
+- Dashboard showed: `UNRESOLVED_COLUMN: w.workspace_owner cannot be resolved`
+- Error suggested: `Did you mean one of [w.workspace_name, w.workspace_id, ...]`
+
+**❌ WRONG Response (Whack-a-Mole):**
+```python
+# Just change the query blindly
+COALESCE(w.workspace_owner, 'Unknown') AS asset_owner
+# becomes
+COALESCE(w.workspace_name, 'Unknown') AS asset_owner  # May not be correct!
+```
+
+**✅ CORRECT Response (Root Cause Analysis):**
+1. **Check actual schema:** What columns DOES `dim_workspace` have?
+2. **Understand intent:** What was `workspace_owner` supposed to represent?
+3. **Targeted fix:** Remove non-existent column reference
+4. **Verify no side effects:** Check if column used elsewhere
+
+**Solution:**
+```python
+# After checking schema, dim_workspace has:
+# - workspace_id
+# - workspace_name
+# - workspace_url
+# - create_time
+# (NO workspace_owner column)
+
+# Fixed: Remove reference to non-existent column
+'Unknown' AS asset_owner  # Cost issues don't have a single owner
+COALESCE(w.workspace_name, c.workspace_id) AS workspace_name  # This is valid
+```
+
+### Root Cause Checklist
+
+Before fixing ANY dashboard error:
+- [ ] Reproduce the error (don't rely on screenshot alone)
+- [ ] Check actual table schema (DESCRIBE TABLE or Gold YAML)
+- [ ] Understand what the query intends to do
+- [ ] Identify the root cause (column doesn't exist vs wrong alias vs wrong table)
+- [ ] Fix ONLY the root cause
+- [ ] Verify the fix doesn't break other widgets/queries
+- [ ] Run full validation to catch any new issues
+
+---
+
+## 27. Production Dashboard Organization
+
+### File Structure (Implemented)
+
+```
+src/dashboards/
+├── deploy_dashboards.py              # Deployment script (UPDATE-or-CREATE)
+├── validate_dashboard_queries.py     # SQL validation (SELECT LIMIT 1)
+├── validate_widget_encodings.py      # Widget-query alignment
+│
+├── cost.lvdash.json                  # 253 KB, 7175 lines
+├── performance.lvdash.json           # 320 KB, 8576 lines
+├── reliability.lvdash.json           # 234 KB, 6596 lines
+├── security.lvdash.json              # 146 KB, 4153 lines
+├── quality.lvdash.json               # 94 KB, 2855 lines
+└── unified.lvdash.json               # 212 KB, 6151 lines
+```
+
+### Dashboard Inventory
+
+| Dashboard | File Size | Datasets | Pages | Purpose |
+|---|---|---|---|---|
+| Cost Intelligence | 253 KB | ~30 | 5 | Cost tracking, commit tracking, DBU usage |
+| Performance Analytics | 320 KB | ~40 | 6 | Query performance, warehouse utilization |
+| Reliability Monitor | 234 KB | ~35 | 5 | Job success rates, failure analysis |
+| Security & Compliance | 146 KB | ~25 | 4 | Audit logs, access denials, compliance |
+| Data Quality Hub | 94 KB | ~20 | 3 | Lineage, data quality metrics |
+| Health Monitor (Unified) | 212 KB | ~35 | 7 | Executive summary across all domains |
+
+---
+
 ## Version History
+
+- **v4.0** (January 2026) - Production deployment patterns from actual implementation
+  - **NEW Section 22:** No hardcoding - variable substitution patterns
+  - **NEW Section 23:** UPDATE-or-CREATE deployment pattern
+  - **NEW Section 24:** Professional naming conventions
+  - **NEW Section 25:** Pre-deployment validation strategy (90% time reduction)
+  - **NEW Section 26:** Avoiding whack-a-mole with root cause analysis
+  - **NEW Section 27:** Production dashboard organization
+  - Added actual deployment script patterns (Workspace Import API)
+  - Added cleanup patterns for duplicate dashboards
+  - Added SELECT LIMIT 1 validation rationale
+  - Added error categorization patterns
+  - **Key insight:** Variable substitution + validation + UPDATE-or-CREATE = production-grade deployment
+  - **Real example:** workspace_owner error fix demonstrates root cause analysis over blind fixes
 
 - **v3.1** (January 2026) - Added pre-deployment SQL validation patterns
   - **NEW Section 16:** Comprehensive SQL validation guide

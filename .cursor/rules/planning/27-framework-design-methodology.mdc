@@ -1,0 +1,1731 @@
+# Framework Design Documentation Methodology
+
+## Pattern Recognition
+
+This rule documents the comprehensive methodology for transforming **project plans** (from `26-project-plan-methodology.mdc`) into **detailed framework design documentation**. The patterns are extracted from 8 complete framework design suites totaling ~80,000 lines of documentation.
+
+**Key Assumption:** Framework design documentation is created AFTER the project plan is finalized. The plan defines WHAT to build; the framework design defines HOW to build it.
+
+---
+
+## When to Apply This Rule
+
+Apply this methodology when:
+- Converting a Phase 3 addendum (ML Models, TVFs, Metric Views, Dashboards, etc.) into implementation documentation
+- Creating agent framework architecture from Phase 4 plans
+- Documenting frontend application architecture from Phase 5 plans
+- Building comprehensive training/implementation guides for complex systems
+- Establishing patterns that can be reused in future projects
+
+**Do NOT apply this rule for:**
+- Simple scripts or utilities (use inline comments instead)
+- Exploratory/prototype code (use README.md)
+- One-off analyses (use notebooks with markdown cells)
+
+---
+
+## Framework Design Structure
+
+### Standard Directory Layout
+
+```
+docs/<framework-name>-design/
+├── 00-index.md                        # Navigation hub (MANDATORY)
+├── 01-introduction.md                 # Purpose, scope, prerequisites
+├── 02-architecture-overview.md        # System architecture, data flows
+├── 03-<topic-1>.md                    # Core concept 1
+├── 04-<topic-2>.md                    # Core concept 2
+├── 05-<topic-3>.md                    # Core concept 3
+│   ...                                # Continue numbered chapters
+├── XX-implementation-guide.md         # Step-by-step implementation
+├── YY-deployment-operations.md        # Production deployment
+├── ZZ-frontend-integration.md         # Frontend guide (if applicable)
+├── actual-implementation/             # Real implementation details (optional)
+│   ├── 00-index.md
+│   ├── 01-<implementation-aspect>.md
+│   └── ...
+└── appendices/                        # Supporting materials
+    ├── A-code-examples.md
+    ├── B-cursor-rule-reference.md
+    ├── C-official-documentation.md
+    └── D-troubleshooting.md
+```
+
+### Document Naming Conventions
+
+| Pattern | Use For | Example |
+|---|---|---|
+| `00-index.md` | Navigation hub | Always first, always named `00-index.md` |
+| `01-introduction.md` | Purpose, scope | Always second |
+| `02-architecture-overview.md` | Architecture | Always third |
+| `03-19-*.md` | Core chapters | Numbered by logical sequence |
+| `XX-implementation-guide.md` | Step-by-step | Near end of sequence |
+| `YY-deployment-operations.md` | Production | Near end |
+| `ZZ-frontend-*.md` | Frontend guides | Last in main sequence |
+
+---
+
+## Document Templates
+
+### Template 1: Index Document (00-index.md)
+
+**Purpose:** Navigation hub, quick reference, architecture summary
+
+**Required Sections:**
+1. **Overview** - One-paragraph description of the framework
+2. **Design Principle** - Core architectural principle (highlighted box)
+3. **Document Index** - Table with document number, name, description
+4. **Architecture Summary** - ASCII diagram or bullet points
+5. **Quick Start** - 4-5 steps to get started
+6. **Best Practices Showcased** - Table of patterns demonstrated
+7. **Related Documentation** - Links to plans, cursor rules, other frameworks
+8. **Version History** - Optional, for major frameworks only
+
+**Template:**
+
+````markdown
+# <Framework Name> Design Documentation
+
+## Overview
+
+<One paragraph describing the framework, its purpose, and scope. Include implementation status if complete.>
+
+> **✅ Implementation Status: [COMPLETE|IN PROGRESS|PLANNED]**
+>
+> <Brief status summary with key achievements>
+
+## Design Principle
+
+> **<Core Architectural Principle>**
+> <1-2 sentences explaining the principle>
+
+## Document Index
+
+| # | Document | Description |
+|---|----------|-------------|
+| 01 | [Introduction](01-introduction.md) | Purpose, scope, prerequisites, best practices matrix |
+| 02 | [Architecture Overview](02-architecture-overview.md) | System architecture, data flows, technology stack |
+| 03 | [<Topic 1>](03-<topic-1>.md) | <Description> |
+| ... | ... | ... |
+
+## Appendices
+
+| # | Document | Description |
+|---|----------|-------------|
+| A | [Code Examples](appendices/A-code-examples.md) | Complete working code snippets |
+| B | [<Topic>](appendices/B-<topic>.md) | <Description> |
+| C | [References](appendices/C-references.md) | Official documentation links |
+
+## Architecture Summary
+
+```
+<ASCII diagram or structured bullet points showing major components and data flow>
+```
+
+## Quick Start
+
+1. **<Step 1>**: <Description with link>
+2. **<Step 2>**: <Description with link>
+3. **<Step 3>**: <Description with link>
+4. **<Step 4>**: <Description with link>
+
+## Best Practices Showcased
+
+| # | Best Practice | Implementation |
+|---|---------------|----------------|
+| 1 | **<Practice 1>** | <How it's implemented> |
+| 2 | **<Practice 2>** | <How it's implemented> |
+| ... | ... | ... |
+
+## Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| <Component 1> | <Tech> | <Purpose> |
+| <Component 2> | <Tech> | <Purpose> |
+
+## Related Documentation
+
+- [<Plan Name>](../../plans/<plan-file>.md)
+- [<Cursor Rule>](../../.cursor/rules/<category>/<rule-file>.mdc)
+- [<Related Framework>](../<framework>-design/)
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| X.Y | YYYY-MM-DD | <Major changes> |
+````
+
+---
+
+### Template 2: Introduction Document (01-introduction.md)
+
+**Purpose:** Set context, define scope, list prerequisites, showcase best practices
+
+**Required Sections:**
+1. **Purpose** - Why this framework exists
+2. **Scope** - What's included and what's NOT included
+3. **Prerequisites** - What must be in place first
+4. **Key Concepts** - 5-10 fundamental concepts with definitions
+5. **Best Practices Matrix** - Table showing patterns by category
+6. **Document Structure** - How to navigate the rest of the documentation
+7. **Assumptions** - Explicitly state assumptions
+
+**Template:**
+
+````markdown
+# Introduction
+
+## Purpose
+
+<2-3 paragraphs explaining:>
+- **What problem does this framework solve?**
+- **Who is this framework for?** (data engineers, ML engineers, analysts, etc.)
+- **What are the key outcomes?** (metrics, capabilities, deliverables)
+
+## Scope
+
+### In Scope
+
+| Category | Items Covered |
+|---|---|
+| **<Category 1>** | <What's included> |
+| **<Category 2>** | <What's included> |
+
+### Out of Scope
+
+| Category | Not Covered (Use Instead) |
+|---|---|
+| **<Category 1>** | <What's NOT included and where to find it> |
+| **<Category 2>** | <What's NOT included and where to find it> |
+
+## Prerequisites
+
+Before implementing this framework, ensure:
+
+1. **<Prerequisite 1>**
+   - <Details>
+   - **Status Check:** `<command or query to verify>`
+
+2. **<Prerequisite 2>**
+   - <Details>
+   - **Status Check:** `<command or query to verify>`
+
+## Key Concepts
+
+### <Concept 1>
+
+<Definition with example>
+
+**Example:**
+```<language>
+<code example>
+```
+
+### <Concept 2>
+
+<Definition with example>
+
+## Best Practices Matrix
+
+This framework showcases the following Databricks best practices:
+
+| Category | Best Practice | Implementation Chapter |
+|---|---|---|
+| **Architecture** | <Practice> | [Chapter XX](XX-<chapter>.md) |
+| **Data Quality** | <Practice> | [Chapter XX](XX-<chapter>.md) |
+| **Governance** | <Practice> | [Chapter XX](XX-<chapter>.md) |
+| **Performance** | <Practice> | [Chapter XX](XX-<chapter>.md) |
+| **Security** | <Practice> | [Chapter XX](XX-<chapter>.md) |
+
+## Document Structure
+
+This documentation is organized as follows:
+
+```
+<Quick tree view of documentation>
+```
+
+**Recommended Reading Order:**
+
+1. **For Architects**: Start with [Architecture Overview](02-architecture-overview.md)
+2. **For Implementers**: Jump to [Implementation Guide](XX-implementation-guide.md)
+3. **For Operators**: Focus on [Deployment and Operations](YY-deployment-operations.md)
+
+## Assumptions
+
+This documentation assumes:
+
+- [ ] <Assumption 1>
+- [ ] <Assumption 2>
+- [ ] <Assumption 3>
+````
+
+---
+
+### Template 3: Architecture Overview (02-architecture-overview.md)
+
+**Purpose:** Comprehensive system architecture, data flows, component interactions
+
+**Required Sections:**
+1. **Architecture Principle** - Core design principle
+2. **System Architecture** - High-level diagram with components
+3. **Component Breakdown** - Detailed description of each component
+4. **Data Flow** - Step-by-step data flow with diagrams
+5. **Technology Stack** - Tools, libraries, services used
+6. **Integration Points** - How components communicate
+7. **Scalability Considerations** - How the system scales
+8. **Security Model** - Authentication, authorization, data protection
+
+**Template:**
+
+````markdown
+# Architecture Overview
+
+## Architecture Principle
+
+> **<Core Principle>**
+>
+> <2-3 sentences explaining the principle and why it matters>
+
+## System Architecture
+
+### High-Level Architecture
+
+```
+<ASCII or Mermaid diagram showing major components and data flow>
+```
+
+### Component Layers
+
+| Layer | Purpose | Components | Technologies |
+|---|---|---|---|
+| **<Layer 1>** | <Purpose> | <List> | <Tech stack> |
+| **<Layer 2>** | <Purpose> | <List> | <Tech stack> |
+| **<Layer 3>** | <Purpose> | <List> | <Tech stack> |
+
+## Component Breakdown
+
+### <Component 1>
+
+**Purpose:** <What it does>
+
+**Key Features:**
+- <Feature 1>
+- <Feature 2>
+- <Feature 3>
+
+**Technologies:**
+- <Tech 1>
+- <Tech 2>
+
+**Configuration:**
+```<language>
+<configuration example>
+```
+
+**Integration:**
+- **Inputs:** <What data/events it receives>
+- **Outputs:** <What data/events it produces>
+- **Dependencies:** <What it depends on>
+
+### <Component 2>
+
+<Same structure as Component 1>
+
+## Data Flow
+
+### End-to-End Data Flow
+
+```
+<Detailed flow diagram with numbered steps>
+```
+
+**Step-by-Step:**
+
+1. **<Step 1>**: <Description>
+   - **Input:** <Data format>
+   - **Process:** <What happens>
+   - **Output:** <Result>
+
+2. **<Step 2>**: <Description>
+   - **Input:** <Data format>
+   - **Process:** <What happens>
+   - **Output:** <Result>
+
+## Technology Stack
+
+### Core Technologies
+
+| Category | Technology | Version | Purpose |
+|---|---|---|---|
+| **Compute** | <Technology> | <Version> | <Purpose> |
+| **Storage** | <Technology> | <Version> | <Purpose> |
+| **Orchestration** | <Technology> | <Version> | <Purpose> |
+| **Monitoring** | <Technology> | <Version> | <Purpose> |
+
+### Libraries and Dependencies
+
+```<language>
+# requirements.txt or similar
+<dependency-1>==<version>
+<dependency-2>==<version>
+```
+
+## Integration Points
+
+### External Systems
+
+| System | Integration Type | Protocol | Authentication |
+|---|---|---|---|
+| **<System 1>** | <Type> | <Protocol> | <Auth method> |
+| **<System 2>** | <Type> | <Protocol> | <Auth method> |
+
+### Internal APIs
+
+| API | Endpoint | Purpose | Authentication |
+|---|---|---|---|
+| **<API 1>** | `<endpoint>` | <Purpose> | <Auth method> |
+| **<API 2>** | `<endpoint>` | <Purpose> | <Auth method> |
+
+## Scalability Considerations
+
+### Horizontal Scaling
+
+<How the system scales horizontally>
+
+**Scaling Triggers:**
+- <Metric 1> > <threshold>
+- <Metric 2> > <threshold>
+
+### Vertical Scaling
+
+<How the system scales vertically>
+
+### Performance Characteristics
+
+| Metric | Target | Current | Notes |
+|---|---|---|---|
+| **<Metric 1>** | <Target> | <Current> | <Notes> |
+| **<Metric 2>** | <Target> | <Current> | <Notes> |
+
+## Security Model
+
+### Authentication
+
+<How users/systems authenticate>
+
+**Supported Methods:**
+- <Method 1>
+- <Method 2>
+
+### Authorization
+
+<How permissions are managed>
+
+**Access Control Model:**
+```
+<Diagram or table showing roles and permissions>
+```
+
+### Data Protection
+
+| Aspect | Implementation |
+|---|---|
+| **Data at Rest** | <Encryption method> |
+| **Data in Transit** | <Encryption method> |
+| **PII Handling** | <Strategy> |
+| **Audit Logging** | <Approach> |
+````
+
+---
+
+### Template 4: Core Concept Chapter (03-XX.md)
+
+**Purpose:** Deep dive into a specific aspect of the framework
+
+**Required Sections:**
+1. **Concept Overview** - What this chapter covers
+2. **Design Principles** - Principles guiding this concept
+3. **Implementation Pattern** - How to implement
+4. **Code Examples** - Complete, working examples
+5. **Common Patterns** - Reusable patterns for this concept
+6. **Best Practices** - Do's and Don'ts
+7. **Troubleshooting** - Common issues and solutions
+8. **References** - Official documentation links
+
+**Template:**
+
+````markdown
+# <Concept Name>
+
+## Overview
+
+<2-3 paragraphs explaining:>
+- **What is this concept?**
+- **Why is it important?**
+- **When should you use it?**
+
+## Design Principles
+
+> **<Principle 1>**
+> <Explanation>
+
+> **<Principle 2>**
+> <Explanation>
+
+## Implementation Pattern
+
+### Basic Pattern
+
+**Purpose:** <What this pattern accomplishes>
+
+**When to Use:**
+- <Scenario 1>
+- <Scenario 2>
+
+**Implementation:**
+
+```<language>
+<complete code example with comments>
+```
+
+**Explanation:**
+1. **<Step 1>**: <What this code does and why>
+2. **<Step 2>**: <What this code does and why>
+3. **<Step 3>**: <What this code does and why>
+
+### Advanced Pattern
+
+**Purpose:** <What this pattern accomplishes>
+
+**When to Use:**
+- <Scenario 1>
+- <Scenario 2>
+
+**Implementation:**
+
+```<language>
+<complete code example with comments>
+```
+
+## Common Patterns
+
+### Pattern 1: <Name>
+
+**Scenario:** <When to use this>
+
+**Template:**
+
+```<language>
+<reusable template>
+```
+
+**Example:**
+
+```<language>
+<concrete example>
+```
+
+### Pattern 2: <Name>
+
+<Same structure>
+
+## Best Practices
+
+### ✅ DO: <Practice 1>
+
+<Explanation with example>
+
+**Example:**
+```<language>
+# GOOD
+<good example>
+```
+
+### ❌ DON'T: <Anti-Pattern 1>
+
+<Explanation with example>
+
+**Example:**
+```<language>
+# BAD
+<bad example>
+```
+
+**Why:** <Explanation of why this is bad>
+
+**Instead, do this:**
+```<language>
+# CORRECT
+<correct example>
+```
+
+## Integration with Other Components
+
+| Component | Integration Point | How to Use |
+|---|---|---|
+| **<Component 1>** | <Interface> | <Description> |
+| **<Component 2>** | <Interface> | <Description> |
+
+## Troubleshooting
+
+### Issue: <Common Problem 1>
+
+**Symptoms:**
+- <Symptom 1>
+- <Symptom 2>
+
+**Cause:** <Root cause>
+
+**Solution:**
+```<language>
+<solution code>
+```
+
+### Issue: <Common Problem 2>
+
+<Same structure>
+
+## Performance Considerations
+
+| Consideration | Impact | Recommendation |
+|---|---|---|
+| **<Consideration 1>** | <Impact> | <Recommendation> |
+| **<Consideration 2>** | <Impact> | <Recommendation> |
+
+## References
+
+- [<Official Doc 1>](<URL>)
+- [<Official Doc 2>](<URL>)
+- [<Related Chapter>](XX-<chapter>.md)
+````
+
+---
+
+### Template 5: Implementation Guide (XX-implementation-guide.md)
+
+**Purpose:** Step-by-step instructions to build the framework
+
+**Required Sections:**
+1. **Implementation Overview** - Phases and timeline
+2. **Phase Breakdown** - Detailed steps for each phase
+3. **Validation Checklist** - How to verify each phase
+4. **Testing Strategy** - How to test the implementation
+5. **Rollback Plan** - How to undo if needed
+6. **Success Criteria** - How to know you're done
+
+**Template:**
+
+````markdown
+# Implementation Guide
+
+## Implementation Overview
+
+This guide walks through building the <framework name> in **<N> phases**.
+
+### Implementation Phases
+
+| Phase | Duration | Focus | Prerequisites |
+|---|---|---|---|
+| **Phase 1** | <Time> | <Focus> | <Prerequisites> |
+| **Phase 2** | <Time> | <Focus> | <Prerequisites> |
+| **Phase 3** | <Time> | <Focus> | <Prerequisites> |
+
+### Dependencies
+
+```
+<Dependency diagram or tree>
+```
+
+## Phase 1: <Phase Name>
+
+### Objective
+
+<What this phase accomplishes>
+
+### Prerequisites
+
+- [ ] <Prerequisite 1>
+- [ ] <Prerequisite 2>
+
+### Steps
+
+#### Step 1.1: <Task>
+
+**Purpose:** <Why this step matters>
+
+**Actions:**
+
+1. <Action 1>
+   ```<language>
+   <command or code>
+   ```
+
+2. <Action 2>
+   ```<language>
+   <command or code>
+   ```
+
+**Expected Outcome:** <What should happen>
+
+**Verification:**
+```<language>
+<command to verify>
+```
+
+**Expected Output:**
+```
+<sample output>
+```
+
+#### Step 1.2: <Task>
+
+<Same structure>
+
+### Phase 1 Validation Checklist
+
+- [ ] <Check 1>
+  - **Command:** `<validation command>`
+  - **Expected:** <expected result>
+
+- [ ] <Check 2>
+  - **Command:** `<validation command>`
+  - **Expected:** <expected result>
+
+### Troubleshooting Phase 1
+
+| Issue | Cause | Solution |
+|---|---|---|
+| **<Issue 1>** | <Cause> | <Solution> |
+| **<Issue 2>** | <Cause> | <Solution> |
+
+## Phase 2: <Phase Name>
+
+<Same structure as Phase 1>
+
+## Testing Strategy
+
+### Unit Testing
+
+**Scope:** <What to unit test>
+
+**Example Test:**
+```<language>
+<unit test example>
+```
+
+### Integration Testing
+
+**Scope:** <What to integration test>
+
+**Test Scenarios:**
+
+1. **Scenario 1:** <Description>
+   - **Setup:** <How to set up>
+   - **Execute:** <How to run test>
+   - **Verify:** <What to check>
+
+2. **Scenario 2:** <Description>
+   <Same structure>
+
+### End-to-End Testing
+
+**Scope:** <What to test end-to-end>
+
+**Test Flow:**
+```
+<Flow diagram or numbered steps>
+```
+
+## Rollback Plan
+
+### Rollback Triggers
+
+Initiate rollback if:
+- <Condition 1>
+- <Condition 2>
+- <Condition 3>
+
+### Rollback Procedure
+
+#### Phase 3 Rollback
+
+1. <Step 1>
+   ```<language>
+   <rollback command>
+   ```
+
+2. <Step 2>
+   ```<language>
+   <rollback command>
+   ```
+
+#### Phase 2 Rollback
+
+<Same structure>
+
+### Rollback Verification
+
+- [ ] <Check 1>
+- [ ] <Check 2>
+
+## Success Criteria
+
+### Technical Criteria
+
+- [ ] **<Criterion 1>**
+  - Metric: <metric>
+  - Target: <target value>
+  - Current: <measurement command>
+
+- [ ] **<Criterion 2>**
+  - Metric: <metric>
+  - Target: <target value>
+  - Current: <measurement command>
+
+### Business Criteria
+
+- [ ] **<Criterion 1>**: <Description>
+- [ ] **<Criterion 2>**: <Description>
+
+## Post-Implementation
+
+### Documentation Updates
+
+- [ ] Update [<Document>](../path/to/doc.md)
+- [ ] Update [<Document>](../path/to/doc.md)
+
+### Knowledge Transfer
+
+**Training Materials:**
+- <Material 1>
+- <Material 2>
+
+**Handoff Checklist:**
+- [ ] <Item 1>
+- [ ] <Item 2>
+
+### Monitoring Setup
+
+**Metrics to Track:**
+
+| Metric | Threshold | Alert |
+|---|---|---|
+| **<Metric 1>** | <Threshold> | <Alert channel> |
+| **<Metric 2>** | <Threshold> | <Alert channel> |
+````
+
+---
+
+### Template 6: Deployment and Operations (YY-deployment-operations.md)
+
+**Purpose:** Production deployment and ongoing operations
+
+**Required Sections:**
+1. **Deployment Strategy** - How to deploy to production
+2. **Configuration Management** - Environment-specific config
+3. **Monitoring and Alerting** - Operational observability
+4. **Maintenance Procedures** - Routine operations
+5. **Disaster Recovery** - Backup and restore
+6. **Troubleshooting Guide** - Production issue resolution
+
+**Template:**
+
+````markdown
+# Deployment and Operations
+
+## Deployment Strategy
+
+### Environments
+
+| Environment | Purpose | URL/Endpoint | Access |
+|---|---|---|---|
+| **Development** | <Purpose> | <URL> | <Who has access> |
+| **Staging** | <Purpose> | <URL> | <Who has access> |
+| **Production** | <Purpose> | <URL> | <Who has access> |
+
+### Deployment Process
+
+#### Pre-Deployment Checklist
+
+- [ ] **Code Quality**
+  - [ ] All tests passing
+  - [ ] Code review approved
+  - [ ] Linter checks passed
+
+- [ ] **Documentation**
+  - [ ] README updated
+  - [ ] CHANGELOG updated
+  - [ ] API docs current
+
+- [ ] **Configuration**
+  - [ ] Environment variables set
+  - [ ] Secrets rotated
+  - [ ] Permissions verified
+
+#### Deployment Steps
+
+##### Step 1: Deploy to Staging
+
+```bash
+<deployment commands>
+```
+
+**Validation:**
+```bash
+<validation commands>
+```
+
+##### Step 2: Smoke Testing
+
+**Critical Paths:**
+
+1. **<Path 1>**: <Description>
+   - **Test:** `<test command>`
+   - **Expected:** <expected result>
+
+2. **<Path 2>**: <Description>
+   - **Test:** `<test command>`
+   - **Expected:** <expected result>
+
+##### Step 3: Deploy to Production
+
+```bash
+<deployment commands>
+```
+
+**Validation:**
+```bash
+<validation commands>
+```
+
+### Rollback Procedure
+
+**Rollback Decision Criteria:**
+- <Criterion 1>
+- <Criterion 2>
+
+**Rollback Steps:**
+
+1. <Step 1>
+   ```bash
+   <rollback command>
+   ```
+
+2. <Step 2>
+   ```bash
+   <rollback command>
+   ```
+
+## Configuration Management
+
+### Environment Variables
+
+| Variable | Development | Staging | Production | Purpose |
+|---|---|---|---|---|
+| `<VAR_1>` | <Value> | <Value> | <Value> | <Purpose> |
+| `<VAR_2>` | <Value> | <Value> | <Value> | <Purpose> |
+
+### Secrets Management
+
+**Storage:** <Where secrets are stored (e.g., Databricks Secrets, AWS Secrets Manager)>
+
+**Rotation Policy:** <How often secrets are rotated>
+
+**Access:**
+```bash
+<command to access secrets>
+```
+
+### Configuration Files
+
+**Location:** `<path/to/config>`
+
+**Format:**
+```<format>
+<configuration example>
+```
+
+## Monitoring and Alerting
+
+### Key Metrics
+
+| Metric | Normal Range | Warning Threshold | Critical Threshold | Alert Channel |
+|---|---|---|---|---|
+| **<Metric 1>** | <Range> | <Warning> | <Critical> | <Channel> |
+| **<Metric 2>** | <Range> | <Warning> | <Critical> | <Channel> |
+
+### Monitoring Dashboards
+
+**Dashboard URL:** `<dashboard-url>`
+
+**Key Panels:**
+1. **<Panel 1>**: <What it shows>
+2. **<Panel 2>**: <What it shows>
+
+### Alert Configuration
+
+```<format>
+<alert configuration example>
+```
+
+### On-Call Procedures
+
+**Escalation Path:**
+1. **Primary:** <Contact>
+2. **Secondary:** <Contact>
+3. **Manager:** <Contact>
+
+**Response Time SLAs:**
+
+| Severity | Response Time | Resolution Time |
+|---|---|---|
+| **Critical** | <Time> | <Time> |
+| **High** | <Time> | <Time> |
+| **Medium** | <Time> | <Time> |
+
+## Maintenance Procedures
+
+### Daily Operations
+
+| Task | Frequency | Command | Owner |
+|---|---|---|---|
+| **<Task 1>** | Daily | `<command>` | <Owner> |
+| **<Task 2>** | Daily | `<command>` | <Owner> |
+
+### Weekly Operations
+
+| Task | Frequency | Command | Owner |
+|---|---|---|---|
+| **<Task 1>** | Weekly | `<command>` | <Owner> |
+| **<Task 2>** | Weekly | `<command>` | <Owner> |
+
+### Monthly Operations
+
+| Task | Frequency | Command | Owner |
+|---|---|---|---|
+| **<Task 1>** | Monthly | `<command>` | <Owner> |
+| **<Task 2>** | Monthly | `<command>` | <Owner> |
+
+## Disaster Recovery
+
+### Backup Strategy
+
+**What's Backed Up:**
+- <Item 1>
+- <Item 2>
+- <Item 3>
+
+**Backup Frequency:** <Frequency>
+
+**Backup Retention:** <Retention policy>
+
+**Backup Location:** <Where backups are stored>
+
+### Recovery Procedures
+
+#### Scenario 1: <Failure Type>
+
+**Detection:**
+- <How to detect this failure>
+
+**Recovery Steps:**
+
+1. <Step 1>
+   ```bash
+   <recovery command>
+   ```
+
+2. <Step 2>
+   ```bash
+   <recovery command>
+   ```
+
+**RTO:** <Recovery Time Objective>
+
+**RPO:** <Recovery Point Objective>
+
+#### Scenario 2: <Failure Type>
+
+<Same structure>
+
+### Recovery Testing
+
+**Test Schedule:** <How often recovery is tested>
+
+**Test Procedure:**
+1. <Step 1>
+2. <Step 2>
+3. <Step 3>
+
+## Troubleshooting Guide
+
+### Common Issues
+
+#### Issue: <Problem Description>
+
+**Symptoms:**
+- <Symptom 1>
+- <Symptom 2>
+
+**Diagnosis:**
+```bash
+<diagnostic commands>
+```
+
+**Resolution:**
+```bash
+<resolution commands>
+```
+
+**Prevention:**
+- <Prevention measure 1>
+- <Prevention measure 2>
+
+#### Issue: <Problem Description>
+
+<Same structure>
+
+### Debug Commands
+
+**Useful Commands:**
+
+```bash
+# Check system status
+<status command>
+
+# View logs
+<log command>
+
+# Test connectivity
+<connectivity test>
+```
+
+### Log Analysis
+
+**Log Locations:**
+- **<Log Type 1>**: `<path>`
+- **<Log Type 2>**: `<path>`
+
+**Common Error Patterns:**
+
+| Error Pattern | Meaning | Action |
+|---|---|---|
+| `<error pattern 1>` | <Meaning> | <Action> |
+| `<error pattern 2>` | <Meaning> | <Action> |
+
+## Performance Tuning
+
+### Performance Baselines
+
+| Metric | Baseline | Current | Target |
+|---|---|---|---|
+| **<Metric 1>** | <Value> | <Value> | <Value> |
+| **<Metric 2>** | <Value> | <Value> | <Value> |
+
+### Optimization Opportunities
+
+1. **<Optimization 1>**
+   - **Current:** <Current state>
+   - **Improvement:** <What to change>
+   - **Expected Gain:** <Expected improvement>
+
+2. **<Optimization 2>**
+   <Same structure>
+````
+
+---
+
+## Framework-Specific Adaptations
+
+### Agent Framework Design
+
+**Additional Chapters:**
+- Orchestrator Agent (supervisor pattern)
+- Worker Agents (domain specialists)
+- Genie Integration (data interface)
+- Utility Tools (web search, dashboard linker, etc.)
+- Memory Management (short-term + long-term)
+- Prompt Registry (versioning, aliases)
+- Evaluation and Judges (LLM judges, scorers)
+- Frontend Integration (multiple guides)
+
+**Special Considerations:**
+- Multi-agent orchestration patterns
+- LangGraph state management
+- MLflow 3.0 tracing and evaluation
+- On-behalf-of-user authentication
+- Streaming responses
+- Visualization hints
+
+---
+
+### Alerting Framework Design
+
+**Additional Chapters:**
+- Config-Driven Alerting (Delta table schema)
+- Alert Query Patterns (SQL templates)
+- Databricks SDK Integration (WorkspaceClient)
+- Notification Destinations (Email, Slack, Webhook, etc.)
+- Query Validation (EXPLAIN-based)
+- Hierarchical Job Architecture (atomic + composite jobs)
+- Partial Success Patterns (resilience)
+- Alert Templates (pre-built alerts)
+- Frontend Alert Management (CRUD UI)
+
+**Special Considerations:**
+- DataFrame seeding for alert configurations
+- REST API v2 endpoint patterns
+- Update mask requirements
+- Resource conflict handling
+- Domain organization (COST, SEC, PERF, RELI, QUAL)
+
+---
+
+### Dashboard Framework Design
+
+**Additional Chapters:**
+- Asset Inventory (dashboard catalog)
+- Rationalization Plan (deduplication strategy)
+- Domain-Specific Dashboards (Cost, Security, Performance, Reliability, Quality, Unified)
+- Implementation Guide (deployment patterns)
+- Variable Substitution (${catalog}/${schema})
+- UPDATE-or-CREATE Pattern (Workspace Import API)
+- Validation Strategy (SELECT LIMIT 1)
+
+**Special Considerations:**
+- No hardcoding (all env-specific values as variables)
+- Professional naming conventions
+- Root cause analysis patterns
+- Production organization
+
+---
+
+### ML Framework Design
+
+**Additional Chapters:**
+- Feature Engineering (feature tables)
+- Model Training (MLflow experiment patterns)
+- Model Registry (Unity Catalog integration)
+- Batch Inference (fe.score_batch patterns)
+- Model Catalog (all 25 models organized)
+- MLflow Best Practices (tracing, logging, versioning)
+- Model Monitoring (production quality tracking)
+- Troubleshooting (70+ documented errors)
+
+**Special Considerations:**
+- NaN handling at source
+- Label binarization for XGBoost
+- output_schema requirements
+- flavor parameter patterns
+- Single-class detection
+
+---
+
+### Semantic Framework Design
+
+**Additional Chapters:**
+- Table-Valued Functions (TVF patterns by domain)
+- Metric Views (YAML specification v1.1)
+- Usage Examples (common query patterns)
+- Deployment Guide (validation, creation, testing)
+- Domain-Specific Guides (Cost, Security, Performance, Reliability, Quality)
+
+**Special Considerations:**
+- Genie optimization (comments, synonyms, display names)
+- Source table selection (FACT vs DIMENSION)
+- Snowflake schema joins (nested joins)
+- Schema validation before creation
+- Transitive join limitations
+
+---
+
+### Lakehouse Monitoring Design
+
+**Additional Chapters:**
+- Custom Metrics (AGGREGATE, DERIVED, DRIFT)
+- Monitor Catalog (all 8 monitors)
+- Genie Integration (table/column documentation)
+- Operations Guide (refresh, troubleshooting)
+
+**Special Considerations:**
+- input_columns pattern for table-level KPIs
+- Custom metrics storage by input_columns value
+- Async wait patterns for table creation
+- Metric documentation for Genie understanding
+- Silent success patterns
+
+---
+
+### Frontend Framework Design
+
+**Additional Chapters:**
+- Figma Design System (official Databricks tokens)
+- Component Library (reusable UI components)
+- Product Requirements Document (complete PRD)
+- API Integration (backend connection)
+- State Management (React patterns)
+- Deployment (Databricks Apps, standalone)
+
+**Special Considerations:**
+- Official Databricks design tokens
+- DM Sans typography
+- ResponsesAgent API conventions
+- Streaming SSE patterns
+- Memory integration (short-term + long-term)
+
+---
+
+## Documentation Quality Standards
+
+### Completeness Checklist
+
+For each framework design:
+
+- [ ] **Index Document (00-index.md)**
+  - [ ] Overview paragraph
+  - [ ] Design principle (highlighted)
+  - [ ] Complete document index table
+  - [ ] Architecture summary (diagram or bullets)
+  - [ ] Quick start (4-5 steps)
+  - [ ] Best practices table (10+ items)
+  - [ ] Technology stack table
+  - [ ] Related documentation links
+  - [ ] Version history (if major framework)
+
+- [ ] **Introduction (01-introduction.md)**
+  - [ ] Purpose (2-3 paragraphs)
+  - [ ] Scope (in/out tables)
+  - [ ] Prerequisites (checklist with verification commands)
+  - [ ] Key concepts (5-10 definitions with examples)
+  - [ ] Best practices matrix
+  - [ ] Document structure overview
+  - [ ] Assumptions (explicit)
+
+- [ ] **Architecture Overview (02-architecture-overview.md)**
+  - [ ] Architecture principle (highlighted)
+  - [ ] High-level architecture diagram
+  - [ ] Component breakdown (all major components)
+  - [ ] Data flow (step-by-step with diagrams)
+  - [ ] Technology stack (complete)
+  - [ ] Integration points (external + internal)
+  - [ ] Scalability considerations
+  - [ ] Security model
+
+- [ ] **Core Chapters (03-XX.md)** (3-10 chapters minimum)
+  - [ ] Concept overview
+  - [ ] Design principles
+  - [ ] Implementation patterns (basic + advanced)
+  - [ ] Code examples (complete, working)
+  - [ ] Common patterns (reusable templates)
+  - [ ] Best practices (do's and don'ts with examples)
+  - [ ] Integration with other components
+  - [ ] Troubleshooting (common issues + solutions)
+  - [ ] Performance considerations
+  - [ ] References (official docs)
+
+- [ ] **Implementation Guide (XX-implementation-guide.md)**
+  - [ ] Implementation overview (phases + timeline)
+  - [ ] Phase breakdown (detailed steps for each phase)
+  - [ ] Validation checklist (per phase)
+  - [ ] Testing strategy (unit, integration, e2e)
+  - [ ] Rollback plan
+  - [ ] Success criteria (technical + business)
+  - [ ] Post-implementation (docs, training, monitoring)
+
+- [ ] **Deployment and Operations (YY-deployment-operations.md)**
+  - [ ] Deployment strategy (environments, process, rollback)
+  - [ ] Configuration management (env vars, secrets, files)
+  - [ ] Monitoring and alerting (metrics, dashboards, alerts)
+  - [ ] Maintenance procedures (daily, weekly, monthly)
+  - [ ] Disaster recovery (backup, restore, testing)
+  - [ ] Troubleshooting guide (common issues, debug commands, log analysis)
+  - [ ] Performance tuning (baselines, optimizations)
+
+- [ ] **Appendices** (3-5 minimum)
+  - [ ] Code Examples (complete snippets)
+  - [ ] Cursor Rule Reference (link to relevant rules)
+  - [ ] Official Documentation (comprehensive links)
+  - [ ] Troubleshooting (extended guide)
+  - [ ] Implementation Reference (file structure) - optional
+
+### Length Guidelines
+
+| Document Type | Target Length | Minimum | Maximum |
+|---|---|---|---|
+| **Index** | 100-200 lines | 80 | 300 |
+| **Introduction** | 200-400 lines | 150 | 500 |
+| **Architecture Overview** | 400-800 lines | 300 | 1000 |
+| **Core Chapter** | 500-1000 lines | 300 | 1500 |
+| **Implementation Guide** | 700-1200 lines | 500 | 1500 |
+| **Deployment & Operations** | 600-1000 lines | 400 | 1200 |
+| **Appendix** | 100-500 lines | 50 | 800 |
+
+**Total Framework:** 3,000-10,000 lines minimum for a complete framework design
+
+### Code Example Standards
+
+**Every code example must:**
+- [ ] Be **complete** (can be copied and run as-is)
+- [ ] Include **comments** explaining key lines
+- [ ] Show **input** and **expected output**
+- [ ] Follow **best practices** from cursor rules
+- [ ] Be **tested** (verified working)
+- [ ] Use **consistent formatting** (language-specific linters)
+
+**Example Format:**
+
+````markdown
+**Example: <Description>**
+
+```<language>
+# <Brief description of what this does>
+
+# Step 1: <What this does>
+<code line 1>
+<code line 2>
+
+# Step 2: <What this does>
+<code line 3>
+<code line 4>
+
+# Expected output:
+# <sample output>
+```
+
+**Explanation:**
+1. **Line X-Y**: <Why this is important>
+2. **Line Z**: <Why this is important>
+````
+
+### Diagram Standards
+
+**Every diagram must:**
+- [ ] Have a **clear purpose** (what it's explaining)
+- [ ] Use **consistent notation** (symbols, arrows, labels)
+- [ ] Be **readable** (not too cluttered)
+- [ ] Have a **legend** (if symbols need explanation)
+- [ ] Flow **top-to-bottom** or **left-to-right** (standard directions)
+
+**Preferred Formats:**
+1. **ASCII art** (for simple diagrams)
+2. **Mermaid** (for flowcharts, sequence diagrams)
+3. **Structured bullets** (for simple hierarchies)
+
+**Example ASCII Diagram:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    COMPONENT NAME                        │
+│                                                          │
+│   ┌────────────┐  ┌────────────┐  ┌────────────┐       │
+│   │ Subcomp 1  │  │ Subcomp 2  │  │ Subcomp 3  │       │
+│   └────────────┘  └────────────┘  └────────────┘       │
+│          │               │               │              │
+└──────────┼───────────────┼───────────────┼──────────────┘
+           │               │               │
+           ▼               ▼               ▼
+     ┌─────────┐     ┌─────────┐     ┌─────────┐
+     │ Output1 │     │ Output2 │     │ Output3 │
+     └─────────┘     └─────────┘     └─────────┘
+```
+
+---
+
+## Workflow: Plan to Framework Design
+
+### Step 1: Identify Framework Scope
+
+**Input:** Phase 3 addendum or Phase 4/5 plan
+
+**Questions to Answer:**
+- What are the major components?
+- What are the key technical challenges?
+- What best practices does this showcase?
+- Who is the target audience?
+- What are the success criteria?
+
+**Output:** 1-page framework scope document
+
+---
+
+### Step 2: Create Document Outline
+
+**Template:**
+
+```markdown
+# <Framework Name> Design Documentation
+
+## Planned Documents
+
+### Core Documents (MANDATORY)
+- [ ] 00-index.md
+- [ ] 01-introduction.md
+- [ ] 02-architecture-overview.md
+
+### Core Chapters (3-10 chapters)
+- [ ] 03-<topic-1>.md
+- [ ] 04-<topic-2>.md
+- [ ] 05-<topic-3>.md
+- [ ] ...
+
+### Implementation & Operations
+- [ ] XX-implementation-guide.md
+- [ ] YY-deployment-operations.md
+
+### Appendices
+- [ ] appendices/A-code-examples.md
+- [ ] appendices/B-cursor-rule-reference.md
+- [ ] appendices/C-references.md
+
+### Optional
+- [ ] actual-implementation/ (subdirectory)
+- [ ] ZZ-frontend-integration.md (if applicable)
+
+## Chapter Topics Breakdown
+
+### 03-<Topic 1>
+- Overview
+- Design principles
+- Implementation patterns
+- Code examples
+- Best practices
+
+<Repeat for each chapter>
+```
+
+---
+
+### Step 3: Draft Index Document First
+
+**Why Start with Index:**
+- Forces you to define scope clearly
+- Creates navigation structure
+- Identifies gaps in planning
+- Provides quick reference for reviewers
+
+**Approach:**
+1. Write overview paragraph
+2. List all planned documents with 1-sentence descriptions
+3. Create architecture summary (can be rough)
+4. Draft best practices table (10-15 items)
+5. Add quick start steps (even if high-level)
+
+---
+
+### Step 4: Write Architecture Overview
+
+**Approach:**
+1. Draw high-level architecture diagram (on paper or ASCII)
+2. List all major components
+3. Document data flow step-by-step
+4. Identify integration points
+5. Document technology stack
+6. Define security model
+
+**Review Criteria:**
+- Can a developer understand the system from this document alone?
+- Are all major components explained?
+- Is the data flow clear?
+- Are integration points explicit?
+
+---
+
+### Step 5: Write Core Chapters
+
+**Recommended Order:**
+1. Start with foundational concepts (components that others depend on)
+2. Move to integration patterns (how components work together)
+3. End with advanced topics (optimizations, edge cases)
+
+**Per Chapter:**
+1. Write concept overview (what + why)
+2. Document design principles
+3. Create basic implementation pattern with complete code example
+4. Create advanced pattern (if needed)
+5. Document common patterns (reusable templates)
+6. Write best practices (3-5 do's and don'ts)
+7. Add troubleshooting section (2-3 common issues)
+8. Link to official documentation
+
+---
+
+### Step 6: Write Implementation Guide
+
+**Approach:**
+1. Define phases (3-5 phases typical)
+2. For each phase:
+   - Define objective
+   - List prerequisites
+   - Write detailed steps with commands
+   - Create validation checklist
+   - Add troubleshooting section
+3. Document testing strategy
+4. Create rollback plan
+5. Define success criteria
+
+**Review Criteria:**
+- Can someone follow this guide without prior knowledge?
+- Are all commands complete and tested?
+- Are validation steps clear?
+- Is rollback plan comprehensive?
+
+---
+
+### Step 7: Write Deployment & Operations
+
+**Approach:**
+1. Define environments and deployment process
+2. Document configuration management
+3. Create monitoring and alerting section
+4. Define maintenance procedures
+5. Document disaster recovery
+6. Create troubleshooting guide with common issues
+
+**Review Criteria:**
+- Are all operational scenarios covered?
+- Are monitoring metrics defined?
+- Are alert thresholds set?
+- Is disaster recovery tested?
+
+---
+
+### Step 8: Create Appendices
+
+**Appendix A: Code Examples**
+- Extract all code examples from core chapters
+- Organize by topic
+- Ensure each is complete and tested
+- Add inline comments
+- Show expected output
+
+**Appendix B: Cursor Rule Reference**
+- Link to relevant cursor rules
+- Explain how each rule applies
+- Show examples of rule patterns in this framework
+
+**Appendix C: Official Documentation**
+- Comprehensive list of Databricks documentation links
+- Organize by category (SDK, API, UI, etc.)
+- Add brief description for each link
+
+**Appendix D: Implementation Reference** (Optional)
+- Complete file tree of actual implementation
+- Brief description of each file's purpose
+- Links to source code
+
+---
+
+### Step 9: Write Introduction Last
+
+**Why Last:**
+- You now understand the full framework
+- Can write accurate scope (in/out)
+- Can identify all prerequisites
+- Can list all key concepts
+- Can create accurate best practices matrix
+
+**Approach:**
+1. Write purpose (reference architecture overview)
+2. Define scope (what's covered in all chapters)
+3. List prerequisites (what's needed to follow the framework)
+4. Extract key concepts (5-10 fundamental concepts from core chapters)
+5. Create best practices matrix (extract from all best practice sections)
+6. Document structure (reference the index)
+7. State assumptions explicitly
+
+---
+
+### Step 10: Final Review and Polish
+
+**Completeness Check:**
+- [ ] Every document has all required sections
+- [ ] Every code example is complete and tested
+- [ ] Every diagram is clear and labeled
+- [ ] Every link is valid
+- [ ] Every chapter cross-references related chapters
+- [ ] Index accurately reflects all documents
+
+**Quality Check:**
+- [ ] Grammar and spelling correct
+- [ ] Consistent terminology throughout
+- [ ] Code formatting consistent
+- [ ] Diagrams use consistent notation
+- [ ] Tables properly formatted
+- [ ] Headers properly nested
+
+**Length Check:**
+- [ ] Index: 100-200 lines
+- [ ] Introduction: 200-400 lines
+- [ ] Architecture: 400-800 lines
+- [ ] Core chapters: 500-1000 lines each
+- [ ] Implementation: 700-1200 lines
+- [ ] Deployment: 600-1000 lines
+- [ ] Appendices: 100-500 lines each
+- [ ] **Total: 3,000-10,000 lines minimum**
+
+---
+
+## Success Metrics
+
+### Documentation Quality Metrics
+
+| Metric | Target | How to Measure |
+|---|---|---|
+| **Completeness** | 100% of required sections | Checklist verification |
+| **Accuracy** | 0 factual errors | Technical review |
+| **Clarity** | 90%+ developer comprehension | User testing |
+| **Code Quality** | All examples tested and working | Execution verification |
+| **Cross-Referencing** | Every document links to 3+ others | Link audit |
+| **Length** | 3,000-10,000 lines total | Line count |
+
+### Framework Adoption Metrics
+
+| Metric | Target | How to Measure |
+|---|---|---|
+| **Implementation Time** | <50% of without docs | Compare project timelines |
+| **Bugs** | 50% reduction | Bug tracking |
+| **Onboarding Time** | <2 days for new developer | Time to first contribution |
+| **Documentation Usage** | 80%+ developers refer to docs weekly | Analytics |
+| **Best Practices Adoption** | 90%+ patterns followed | Code review metrics |
+
+---
+
+## References
+
+### Example Framework Designs
+
+| Framework | Lines | Highlights |
+|---|---|---|
+| **Agent Framework** | ~10,000 | Multi-agent orchestration, MLflow 3.0, Genie integration, frontend guides |
+| **Alerting Framework** | ~8,000 | Config-driven, SDK integration, hierarchical jobs, partial success |
+| **Dashboard Framework** | ~5,000 | Asset rationalization, variable substitution, validation patterns |
+| **Lakehouse Monitoring** | ~6,000 | Custom metrics, Genie integration, async patterns |
+| **ML Framework** | ~9,000 | Feature engineering, model registry, batch inference, 70+ errors documented |
+| **Semantic Framework** | ~7,000 | TVFs, metric views, domain organization, Genie optimization |
+| **Frontend Framework** | ~12,000 | Design system, component library, complete PRD, API integration |
+| **Project Architecture** | ~15,000 | Complete architecture evolution (base → ML → agentic → closed-loop) |
+
+### Related Cursor Rules
+
+- [26-project-plan-methodology.mdc](26-project-plan-methodology.mdc) - Project planning patterns
+- [02-databricks-asset-bundles.mdc](../common/02-databricks-asset-bundles.mdc) - Asset Bundle patterns
+- [19-sql-alerting-patterns.mdc](../monitoring/19-sql-alerting-patterns.mdc) - SQL alerting patterns
+- [28-mlflow-genai-patterns.mdc](../ml/28-mlflow-genai-patterns.mdc) - MLflow GenAI patterns
+- [14-metric-views-patterns.mdc](../semantic-layer/14-metric-views-patterns.mdc) - Metric Views patterns
+
+### Official Documentation
+
+- [Databricks Documentation](https://docs.databricks.com/)
+- [MLflow Documentation](https://mlflow.org/docs/latest/index.html)
+- [Unity Catalog Documentation](https://docs.databricks.com/en/data-governance/unity-catalog/)
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | 2026-01-14 | Initial release - comprehensive framework design methodology |

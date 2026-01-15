@@ -1,0 +1,28 @@
+# Lakebase Database Instance for Agent Memory
+# Reference: https://learn.microsoft.com/en-us/azure/databricks/dev-tools/bundles/resources#database_instances
+# 
+# This provides:
+# - Short-term memory: Conversation context via CheckpointSaver
+# - Long-term memory: User preferences/insights via DatabricksStore
+#
+# ============================================================================
+# USING SHARED WORKSPACE INSTANCE
+# ============================================================================
+# Currently using existing shared Lakebase instance:
+#   Name: vibe-coding-workshop-lakebase
+#   ID:   63ab005a-918e-4605-8fc5-b06e5479d8c1
+#
+# This avoids creating a new instance (workspace quota limit).
+# The agent accesses this via environment variable LAKEBASE_INSTANCE_NAME.
+#
+# To create a dedicated instance (if quota allows), uncomment below:
+# ============================================================================
+
+# resources:
+#   database_instances:
+#     health_monitor_lakebase:
+#       name: health-monitor-lakebase  # Must be DNS-compliant (alphanumeric + hyphens only)
+#       capacity: CU_1  # Smallest capacity unit for dev
+#       lifecycle:
+#         prevent_destroy: true
+

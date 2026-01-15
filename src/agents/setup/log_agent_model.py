@@ -18,19 +18,29 @@ import mlflow
 import mlflow.pyfunc
 from mlflow import MlflowClient
 # Note: Schema/ColSpec/ModelSignature NOT needed - ResponsesAgent auto-infers signature
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Generator, Optional
 import os
+import json
+import uuid
 
 # Enable MLflow 3 tracing (if available)
 try:
-    mlflow.langchain.autolog(
-        log_models=False,  # We log manually
-        log_input_examples=True,
-        log_model_signatures=True,
-    )
-    print("MLflow LangChain autolog enabled")
+    # Try new MLflow 3.x API first (no log_models parameter)
+    mlflow.langchain.autolog()
+    print("✓ MLflow LangChain autolog enabled")
+except TypeError:
+    # Fallback for older MLflow versions
+    try:
+        mlflow.langchain.autolog(
+            log_models=False,
+            log_input_examples=True,
+            log_model_signatures=True,
+        )
+        print("✓ MLflow LangChain autolog enabled (legacy API)")
+    except Exception as e:
+        print(f"⚠ MLflow autolog not available: {e}")
 except Exception as e:
-    print(f"MLflow LangChain autolog not available: {e}")
+    print(f"⚠ MLflow LangChain autolog not available: {e}")
 
 # COMMAND ----------
 
@@ -62,24 +72,75 @@ DEFAULT_GENIE_SPACES = {
     "unified": "01f0ea9368801e019e681aa3abaa0089",
 }
 
-LLM_ENDPOINT = "databricks-claude-3-7-sonnet"
+LLM_ENDPOINT = "databricks-claude-sonnet-4-5"
+
+# ===========================================================================
+# LAKEBASE MEMORY CONFIGURATION
+# ===========================================================================
+# Short-term memory: Persists conversation context within a session (thread_id)
+# Long-term memory: Persists user preferences and insights across sessions
+#
+# Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/stateful-agents
+# Reference: https://docs.databricks.com/aws/en/notebooks/source/generative-ai/short-term-memory-agent-lakebase.html
+# Reference: https://docs.databricks.com/aws/en/notebooks/source/generative-ai/long-term-memory-agent-lakebase.html
+# ===========================================================================
+LAKEBASE_INSTANCE_NAME = os.environ.get("LAKEBASE_INSTANCE_NAME", "vibe-coding-workshop-lakebase")
+
+# Embedding model for long-term memory semantic search
+EMBEDDING_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT", "databricks-gte-large-en")
+EMBEDDING_DIMS = int(os.environ.get("EMBEDDING_DIMS", "1024"))
+
+# Memory TTL settings
+SHORT_TERM_MEMORY_TTL_HOURS = int(os.environ.get("SHORT_TERM_MEMORY_TTL_HOURS", "24"))
+LONG_TERM_MEMORY_TTL_DAYS = int(os.environ.get("LONG_TERM_MEMORY_TTL_DAYS", "365"))
+
+# ===========================================================================
+# HELPER: Safe trace update (suppresses warnings when no active trace)
+# ===========================================================================
+def _safe_update_trace(metadata: dict = None, tags: dict = None) -> bool:
+    """
+    Safely update the current MLflow trace without triggering warnings.
+    
+    During evaluation testing, there may not be an active trace context.
+    This helper checks for an active trace before attempting updates.
+    
+    Returns:
+        True if update succeeded, False if no active trace.
+    """
+    try:
+        # Check if there's an active trace by trying to get current span
+        current_span = mlflow.get_current_active_span()
+        if current_span is None:
+            return False
+        
+        # Safe to update
+        mlflow.update_current_trace(metadata=metadata, tags=tags)
+        return True
+    except Exception:
+        return False
 
 # COMMAND ----------
 
 class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
     """
-    Health Monitor Agent implementing MLflow 3.0 ResponsesAgent pattern.
+    Health Monitor Agent implementing MLflow 3.0 ResponsesAgent pattern with Streaming.
     
     ResponsesAgent is the recommended interface for Databricks AI Playground
     compatibility. It provides:
     - Automatic signature inference (no manual schema needed)
     - AI Playground compatibility
-    - Streaming support
+    - **Streaming support** via predict_stream() with delta events
     - Multi-agent and tool-calling support
     - MLflow tracing integration
     
+    Streaming Implementation (per official docs):
+    - predict_stream() yields ResponsesAgentStreamEvent objects
+    - predict() delegates to predict_stream() (code reuse pattern)
+    - Delta events sent with same item_id for text chunks
+    - Final response.output_item.done event signals completion
+    
     Reference: https://mlflow.org/docs/latest/genai/serving/responses-agent
-    Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/author-agent
+    Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/author-agent#streaming-responses
     
     Domains:
     - Cost: DBU usage, billing, spend analysis
@@ -106,16 +167,40 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
         self._genie_agents = None
         
         # ================================================================
-        # GENIE CONVERSATION TRACKING FOR FOLLOW-UP QUESTIONS
-        # Per Databricks Genie API best practices:
-        # - Start a new conversation for each SESSION
-        # - Use create_message() for follow-ups within same session
+        # LAKEBASE MEMORY CONFIGURATION
+        # 
+        # Short-term memory: CheckpointSaver for conversation context
+        # Long-term memory: DatabricksStore for user preferences/insights
+        #
+        # Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/stateful-agents
+        # ================================================================
+        self.lakebase_instance_name = os.environ.get("LAKEBASE_INSTANCE_NAME", LAKEBASE_INSTANCE_NAME)
+        self.embedding_endpoint = os.environ.get("EMBEDDING_ENDPOINT", EMBEDDING_ENDPOINT)
+        self.embedding_dims = int(os.environ.get("EMBEDDING_DIMS", str(EMBEDDING_DIMS)))
+        
+        # Lazy-loaded memory stores (initialized on first use in predict)
+        self._short_term_memory = None
+        self._long_term_memory = None
+        
+        # Track if Lakebase memory is available (tables may not exist)
+        # Once set to False, we skip memory operations silently
+        self._short_term_memory_available = True  # Assume available until proven otherwise
+        self._long_term_memory_available = True
+        
+        # ================================================================
+        # GENIE CONVERSATION TRACKING: STATELESS PATTERN
+        # 
+        # IMPORTANT: In Model Serving, replicas don't share state!
+        # Per Databricks docs: "don't assume the same replica handles all requests"
+        # 
+        # Solution: conversation_id is passed via custom_inputs/custom_outputs.
+        # Clients must track genie_conversation_ids and pass them back.
+        # See _query_genie() for implementation details.
         # Reference: https://learn.microsoft.com/en-us/azure/databricks/genie/conversation-api
         # ================================================================
-        # Dict: {session_id: {domain: conversation_id}}
-        self._genie_conversations = {}
         
         print(f"Agent initialized. LLM: {self.llm_endpoint}")
+        print(f"Memory: Lakebase '{self.lakebase_instance_name}' (optional, requires tables)")
     
     def load_context(self, context):
         """Initialize agent with lazy loading for serving efficiency."""
@@ -132,9 +217,379 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
         }
         self._llm = None
         self._genie_agents = None
-        # Genie conversation tracking for follow-ups
-        self._genie_conversations = {}
+        
+        # Lakebase memory configuration (lazy-loaded)
+        self.lakebase_instance_name = os.environ.get("LAKEBASE_INSTANCE_NAME", LAKEBASE_INSTANCE_NAME)
+        self.embedding_endpoint = os.environ.get("EMBEDDING_ENDPOINT", EMBEDDING_ENDPOINT)
+        self.embedding_dims = int(os.environ.get("EMBEDDING_DIMS", str(EMBEDDING_DIMS)))
+        self._short_term_memory = None
+        self._long_term_memory = None
+        self._short_term_memory_available = True  # Assume available until proven otherwise
+        self._long_term_memory_available = True
+        
+        # Note: Genie conversation tracking is stateless (via custom_inputs/outputs)
         print(f"Agent loaded. LLM: {self.llm_endpoint}")
+        print(f"Memory: Lakebase '{self.lakebase_instance_name}' (optional, requires tables)")
+    
+    # ========================================================================
+    # SHORT-TERM MEMORY: CheckpointSaver for conversation context
+    # ========================================================================
+    # Persists conversation state across turns within a session (thread_id).
+    # This allows the agent to remember previous messages in the same conversation.
+    #
+    # Usage Pattern (per official docs):
+    # - thread_id passed via custom_inputs["thread_id"]
+    # - If not provided, a new thread_id is generated
+    # - thread_id returned in custom_outputs for client to track
+    #
+    # Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/stateful-agents
+    # ========================================================================
+    
+    def _resolve_thread_id(self, custom_inputs: Optional[Dict] = None) -> str:
+        """
+        Resolve thread ID from custom_inputs or generate a new one.
+        
+        Priority:
+        1. custom_inputs["thread_id"] - Explicit from client
+        2. New UUID - Fresh conversation
+        
+        Args:
+            custom_inputs: Custom inputs dict from request
+            
+        Returns:
+            Thread ID string for checkpoint configuration.
+        """
+        if custom_inputs and isinstance(custom_inputs, dict):
+            thread_id = custom_inputs.get("thread_id")
+            if thread_id:
+                return str(thread_id)
+        
+        # Generate new thread ID
+        return str(uuid.uuid4())
+    
+    def _get_conversation_history(self, thread_id: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve conversation history from short-term memory.
+        
+        Uses Lakebase CheckpointSaver to get previous messages in this thread.
+        
+        Args:
+            thread_id: The conversation thread identifier
+            
+        Returns:
+            List of previous messages in the conversation.
+        """
+        # Skip if memory was previously marked unavailable
+        if not self._short_term_memory_available:
+            return []
+            
+        try:
+            from databricks_langchain import CheckpointSaver
+            
+            with CheckpointSaver(instance_name=self.lakebase_instance_name) as checkpointer:
+                config = {"configurable": {"thread_id": thread_id}}
+                
+                # Get the latest checkpoint for this thread
+                checkpoint_tuple = checkpointer.get_tuple(config)
+                
+                if checkpoint_tuple and checkpoint_tuple.checkpoint:
+                    messages = checkpoint_tuple.checkpoint.get("channel_values", {}).get("messages", [])
+                    
+                    # Convert to serializable format
+                    history = []
+                    for msg in messages:
+                        if hasattr(msg, "content") and hasattr(msg, "type"):
+                            history.append({
+                                "role": "assistant" if msg.type == "ai" else "user",
+                                "content": msg.content
+                            })
+                        elif isinstance(msg, dict):
+                            history.append(msg)
+                    
+                    return history
+                    
+        except ImportError as ie:
+            # Mark as unavailable and log once
+            self._short_term_memory_available = False
+            print(f"⚠ Short-term memory disabled: {ie}")
+        except Exception as e:
+            # Check if this is a "table does not exist" error
+            if "does not exist" in str(e) or "checkpoints" in str(e).lower():
+                self._short_term_memory_available = False
+                print(f"⚠ Short-term memory disabled (Lakebase tables not initialized)")
+            # Don't log other transient errors
+        
+        return []
+    
+    def _save_to_short_term_memory(
+        self, 
+        thread_id: str, 
+        user_message: str, 
+        assistant_response: str,
+        domain: str
+    ) -> bool:
+        """
+        Save conversation turn to short-term memory.
+        
+        Uses Lakebase CheckpointSaver to persist the conversation state.
+        
+        Args:
+            thread_id: The conversation thread identifier
+            user_message: The user's query
+            assistant_response: The agent's response
+            domain: The domain classification
+            
+        Returns:
+            True if saved successfully, False otherwise.
+        """
+        # Skip if memory was previously marked unavailable
+        if not self._short_term_memory_available:
+            return False
+            
+        try:
+            from databricks_langchain import CheckpointSaver
+            from langchain_core.messages import HumanMessage, AIMessage
+            
+            with CheckpointSaver(instance_name=self.lakebase_instance_name) as checkpointer:
+                config = {"configurable": {"thread_id": thread_id}}
+                
+                # Get existing checkpoint or create new
+                checkpoint_tuple = checkpointer.get_tuple(config)
+                
+                existing_messages = []
+                if checkpoint_tuple and checkpoint_tuple.checkpoint:
+                    existing_messages = checkpoint_tuple.checkpoint.get("channel_values", {}).get("messages", [])
+                
+                # Add new messages
+                new_messages = existing_messages + [
+                    HumanMessage(content=user_message),
+                    AIMessage(content=assistant_response, additional_kwargs={"domain": domain})
+                ]
+                
+                # Create checkpoint with updated messages
+                checkpoint = {
+                    "v": 1,
+                    "ts": str(uuid.uuid4()),  # Unique timestamp ID
+                    "channel_values": {
+                        "messages": new_messages
+                    }
+                }
+                
+                # Save checkpoint
+                checkpoint_config = {
+                    "configurable": {
+                        "thread_id": thread_id,
+                        "checkpoint_ns": "",
+                        "checkpoint_id": str(uuid.uuid4())
+                    }
+                }
+                
+                checkpointer.put(
+                    config=checkpoint_config,
+                    checkpoint=checkpoint,
+                    metadata={"domain": domain, "source": "health_monitor_agent"}
+                )
+                
+                return True
+                
+        except ImportError as ie:
+            self._short_term_memory_available = False
+            print(f"⚠ Short-term memory disabled: {ie}")
+        except Exception as e:
+            # Check if this is a "table does not exist" error
+            if "does not exist" in str(e) or "checkpoints" in str(e).lower():
+                self._short_term_memory_available = False
+                # Only log once when disabling
+                print(f"⚠ Short-term memory disabled (Lakebase tables not initialized)")
+        
+        return False
+    
+    # ========================================================================
+    # LONG-TERM MEMORY: DatabricksStore for user preferences and insights
+    # ========================================================================
+    # Persists user-specific information across sessions:
+    # - User preferences (preferred domains, alert thresholds)
+    # - Learned insights (common queries, patterns)
+    # - Historical context (recent analysis topics)
+    #
+    # Uses vector embeddings for semantic retrieval.
+    #
+    # Reference: https://docs.databricks.com/aws/en/notebooks/source/generative-ai/long-term-memory-agent-lakebase.html
+    # ========================================================================
+    
+    def _get_user_namespace(self, user_id: str) -> tuple:
+        """
+        Get namespace tuple for user memory isolation.
+        
+        Args:
+            user_id: User identifier (e.g., email)
+            
+        Returns:
+            Namespace tuple for DatabricksStore operations.
+        """
+        # Sanitize user_id for namespace (replace special chars)
+        sanitized = user_id.replace(".", "-").replace("@", "-at-").replace("/", "-")
+        return ("health_monitor_users", sanitized)
+    
+    def _get_user_preferences(self, user_id: str, query: str) -> Dict[str, Any]:
+        """
+        Retrieve relevant user preferences and context from long-term memory.
+        
+        Uses semantic search to find memories relevant to the current query.
+        
+        Args:
+            user_id: User identifier
+            query: Current query for semantic matching
+            
+        Returns:
+            Dict with user preferences and relevant context.
+        """
+        # Skip if memory was previously marked unavailable
+        if not self._long_term_memory_available:
+            return {}
+            
+        try:
+            from databricks_langchain import DatabricksStore
+            
+            store = DatabricksStore(
+                instance_name=self.lakebase_instance_name,
+                embedding_endpoint=self.embedding_endpoint,
+                embedding_dims=self.embedding_dims
+            )
+            
+            namespace = self._get_user_namespace(user_id)
+            
+            # Search for relevant memories
+            results = store.search(namespace, query=query, limit=5)
+            
+            preferences = {
+                "preferred_domains": [],
+                "alert_thresholds": {},
+                "recent_topics": [],
+                "custom_settings": {}
+            }
+            
+            for item in results:
+                key = item.key
+                value = item.value
+                
+                if key.startswith("preference_"):
+                    pref_type = key.replace("preference_", "")
+                    preferences["custom_settings"][pref_type] = value
+                elif key.startswith("domain_"):
+                    preferences["preferred_domains"].append(value.get("domain"))
+                elif key.startswith("threshold_"):
+                    threshold_name = key.replace("threshold_", "")
+                    preferences["alert_thresholds"][threshold_name] = value
+                elif key.startswith("topic_"):
+                    preferences["recent_topics"].append(value)
+            
+            return preferences
+            
+        except ImportError as ie:
+            self._long_term_memory_available = False
+            print(f"⚠ Long-term memory disabled: {ie}")
+        except Exception as e:
+            # Check if this is a "table does not exist" error
+            if "does not exist" in str(e) or "store" in str(e).lower():
+                self._long_term_memory_available = False
+                print(f"⚠ Long-term memory disabled (Lakebase tables not initialized)")
+        
+        return {}
+    
+    def _save_user_insight(
+        self, 
+        user_id: str, 
+        insight_key: str, 
+        insight_data: Dict[str, Any]
+    ) -> bool:
+        """
+        Save an insight or preference to long-term memory.
+        
+        Args:
+            user_id: User identifier
+            insight_key: Unique key for this insight (e.g., "topic_cost_analysis")
+            insight_data: Data to store
+            
+        Returns:
+            True if saved successfully, False otherwise.
+        """
+        # Skip if memory was previously marked unavailable
+        if not self._long_term_memory_available:
+            return False
+            
+        try:
+            from databricks_langchain import DatabricksStore
+            
+            store = DatabricksStore(
+                instance_name=self.lakebase_instance_name,
+                embedding_endpoint=self.embedding_endpoint,
+                embedding_dims=self.embedding_dims
+            )
+            
+            namespace = self._get_user_namespace(user_id)
+            
+            # Add timestamp to insight
+            from datetime import datetime, timezone
+            insight_data["saved_at"] = datetime.now(timezone.utc).isoformat()
+            
+            store.put(namespace, insight_key, insight_data)
+            
+            return True
+            
+        except ImportError as ie:
+            self._long_term_memory_available = False
+            print(f"⚠ Long-term memory disabled: {ie}")
+        except Exception as e:
+            # Check if this is a "table does not exist" error
+            if "does not exist" in str(e) or "store" in str(e).lower():
+                self._long_term_memory_available = False
+                print(f"⚠ Long-term memory disabled (Lakebase tables not initialized)")
+        
+        return False
+    
+    def _extract_and_save_insights(
+        self, 
+        user_id: str, 
+        query: str, 
+        response: str, 
+        domain: str
+    ) -> None:
+        """
+        Extract insights from the conversation and save to long-term memory.
+        
+        This is called after each successful query to build user context.
+        
+        Args:
+            user_id: User identifier
+            query: The user's query
+            response: The agent's response
+            domain: The domain classification
+        """
+        # Save the query topic for future reference
+        topic_key = f"topic_{domain}_{hash(query) % 10000}"
+        self._save_user_insight(
+            user_id=user_id,
+            insight_key=topic_key,
+            insight_data={
+                "domain": domain,
+                "query_summary": query[:200] if len(query) > 200 else query,
+                "response_length": len(response),
+                "type": "query_history"
+            }
+        )
+        
+        # Track domain preference (increments usage)
+        domain_key = f"domain_{domain}"
+        self._save_user_insight(
+            user_id=user_id,
+            insight_key=domain_key,
+            insight_data={
+                "domain": domain,
+                "query_count": 1,  # In practice, would increment
+                "type": "domain_preference"
+            }
+        )
     
     def _call_llm(self, prompt: str, system_prompt: str = "") -> str:
         """
@@ -213,7 +668,7 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
             print(f"  Falling back to default auth")
             return client
     
-    def _query_genie(self, domain: str, query: str, session_id: str = None) -> str:
+    def _query_genie(self, domain: str, query: str, session_id: str = None, conversation_id: str = None) -> tuple:
         """
         Query Genie Space using Databricks SDK Genie API.
         
@@ -232,10 +687,22 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
         - Use create_message() for follow-up questions within same session
         - Query results limited to 5,000 rows
         
+        IMPORTANT (Model Serving Statelessness):
+        Per Databricks docs: "don't assume the same replica handles all requests"
+        Therefore, conversation_id MUST be passed in custom_inputs, NOT stored
+        in instance state. This method now RETURNS the conversation_id so the
+        client can track it and pass it back for follow-ups.
+        
         Args:
             domain: Domain to query (cost, security, etc.)
             query: User's question
-            session_id: Optional session ID for conversation continuity
+            session_id: Optional session ID (legacy, not used in stateless mode)
+            conversation_id: Existing conversation ID for follow-up questions
+                            (passed via custom_inputs from client)
+        
+        Returns:
+            tuple: (response_text, conversation_id) - The response and conversation ID
+                   for tracking follow-ups
         """
         import time
         
@@ -246,23 +713,24 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
         client = self._get_genie_client(domain)
         
         # ================================================================
-        # GENIE CONVERSATION CONTINUITY
-        # Per Databricks docs: "Start a new conversation for each session"
-        # Within a session, reuse conversation_id for follow-up context
+        # GENIE CONVERSATION CONTINUITY (Stateless Pattern)
+        # 
+        # CRITICAL: In Model Serving, replicas don't share state!
+        # Per docs: "don't assume the same replica handles all requests"
+        # 
+        # Solution: conversation_id is passed IN via custom_inputs and
+        # returned OUT via custom_outputs. Client tracks the state.
+        #
         # Reference: https://learn.microsoft.com/en-us/azure/databricks/genie/conversation-api
         # ================================================================
-        existing_conversation_id = None
-        if session_id:
-            if session_id not in self._genie_conversations:
-                self._genie_conversations[session_id] = {}
-            existing_conversation_id = self._genie_conversations[session_id].get(domain)
         
-        # Use existing conversation for follow-ups within same session
-        if existing_conversation_id:
-            print(f"→ Follow-up Genie query for {domain} (conversation: {existing_conversation_id[:8]}...)")
-            return self._follow_up_genie_internal(
-                client, space_id, existing_conversation_id, query, domain
+        # Use conversation_id from custom_inputs for follow-up questions
+        if conversation_id:
+            print(f"→ Follow-up Genie query for {domain} (conversation: {conversation_id[:8]}...)")
+            response_text = self._follow_up_genie_internal(
+                client, space_id, conversation_id, query, domain
             )
+            return (response_text, conversation_id)  # Return same conversation_id
         
         # Start new conversation
         print(f"→ Starting new Genie conversation for {domain} (space_id: {space_id[:8]}...)")
@@ -279,16 +747,11 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
             )
             
             # Extract IDs needed for query result retrieval
-            conversation_id = getattr(response, 'conversation_id', None)
+            new_conversation_id = getattr(response, 'conversation_id', None)
             message_id = getattr(response, 'id', None) or getattr(response, 'message_id', None)
             
-            # Store conversation_id for follow-ups within this session
-            if session_id and conversation_id:
-                self._genie_conversations[session_id][domain] = conversation_id
-                print(f"  → Stored conversation_id for session {session_id[:8]}...")
-            
             # Debug: Print response structure
-            print(f"  → Conversation: {conversation_id[:8] if conversation_id else 'N/A'}...")
+            print(f"  → Conversation: {new_conversation_id[:8] if new_conversation_id else 'N/A'}...")
             print(f"  → Message: {message_id[:8] if message_id else 'N/A'}...")
             
             # ================================================================
@@ -303,7 +766,7 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
             
             if not response or not hasattr(response, 'attachments') or not response.attachments:
                 print(f"⚠ No attachments in Genie response")
-                return f"Genie returned no results for: {query}"
+                return (f"Genie returned no results for: {query}", new_conversation_id)
             
             for attachment in response.attachments:
                 # Try multiple attribute names for attachment ID
@@ -313,28 +776,73 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
                     getattr(attachment, 'id', None)
                 )
                 
-                # Debug: Print available attributes to diagnose
-                if not attachment_id:
-                    attachment_attrs = [a for a in dir(attachment) if not a.startswith('_')]
-                    print(f"  → Attachment attributes: {attachment_attrs[:10]}...")
+                # ================================================================
+                # DEBUG: Print ALL attachment attributes to understand structure
+                # This helps diagnose why text/analysis might be missing
+                # ================================================================
+                attachment_attrs = [a for a in dir(attachment) if not a.startswith('_')]
+                print(f"  → Attachment attributes: {attachment_attrs}")
+                
+                # Check for type field (attachments can be 'text' or 'query' type)
+                attachment_type = getattr(attachment, 'type', None)
+                print(f"  → Attachment type: {attachment_type}")
                 
                 print(f"  → Processing attachment: {attachment_id[:8] if attachment_id else 'unknown'}...")
                 
-                # Extract text response (natural language explanation)
+                # ================================================================
+                # EXTRACT TEXT RESPONSE (multiple strategies)
+                # The Genie API can return text in different ways:
+                # 1. attachment.text.content (TextAttachment object)
+                # 2. attachment.text (string directly)
+                # 3. attachment.content (sometimes used)
+                # 4. attachment.query.description (query explanation)
+                # ================================================================
+                
+                # Strategy 1: attachment.text.content
                 if hasattr(attachment, 'text') and attachment.text:
                     text_content = ""
-                    if hasattr(attachment.text, 'content'):
-                        text_content = attachment.text.content
+                    text_obj = attachment.text
+                    print(f"    → Found text attribute, type: {type(text_obj)}")
+                    
+                    if hasattr(text_obj, 'content') and text_obj.content:
+                        text_content = text_obj.content
+                        print(f"    → Text.content: {len(text_content)} chars")
+                    elif isinstance(text_obj, str):
+                        text_content = text_obj
+                        print(f"    → Text (string): {len(text_content)} chars")
                     else:
-                        text_content = str(attachment.text)
-                    if text_content:
+                        # Try to extract from object
+                        text_content = str(text_obj) if text_obj else ""
+                        if text_content and text_content != "None":
+                            print(f"    → Text (str()): {len(text_content)} chars")
+                    
+                    if text_content and text_content not in ["None", "", "null"]:
                         result_text += text_content + "\n"
-                        print(f"    → Text: {len(text_content)} chars")
+                        print(f"    ✓ Text extracted: {len(text_content)} chars")
+                
+                # Strategy 2: attachment.content (fallback)
+                if not result_text and hasattr(attachment, 'content') and attachment.content:
+                    content = attachment.content
+                    if isinstance(content, str):
+                        result_text += content + "\n"
+                        print(f"    → Content (direct): {len(content)} chars")
+                    elif hasattr(content, 'text'):
+                        result_text += str(content.text) + "\n"
+                        print(f"    → Content.text: {len(content.text)} chars")
                 
                 # Extract generated SQL and get query RESULTS
                 if hasattr(attachment, 'query') and attachment.query:
-                    if hasattr(attachment.query, 'query'):
-                        generated_sql = attachment.query.query
+                    query_obj = attachment.query
+                    
+                    # Check for description in query attachment (analysis text)
+                    if hasattr(query_obj, 'description') and query_obj.description:
+                        desc = query_obj.description
+                        if desc and desc not in ["None", "", "null"]:
+                            result_text += f"{desc}\n"
+                            print(f"    → Query description: {len(desc)} chars")
+                    
+                    if hasattr(query_obj, 'query'):
+                        generated_sql = query_obj.query
                         print(f"    → SQL: {len(generated_sql)} chars")
                         
                         # ================================================================
@@ -345,12 +853,12 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
                         # This is the CRITICAL step that returns actual data rows!
                         # Without this, you only get the SQL text.
                         # ================================================================
-                        if conversation_id and message_id and attachment_id:
+                        if new_conversation_id and message_id and attachment_id:
                             try:
                                 print(f"    → Fetching query results...")
                                 query_result = client.genie.get_message_attachment_query_result(
                                     space_id=space_id,
-                                    conversation_id=conversation_id,
+                                    conversation_id=new_conversation_id,
                                     message_id=message_id,
                                     attachment_id=attachment_id
                                 )
@@ -374,23 +882,135 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
                                     query_results_text = f"(Query execution error: {error_msg[:100]})"
             
             # ================================================================
-            # STEP 4: Format final response with results, SQL, and explanation
-            # Priority: Data > Explanation > SQL (so users see results first)
+            # STEP 4: Format final response with ANALYSIS, results, and SQL
+            # 
+            # CRITICAL: Genie's API returns "rephrasing" text (e.g., "You want to
+            # see the percentage change...") but NOT the rich analysis that the
+            # Genie UI shows (e.g., "Yesterday, costs increased by 105.7%...").
+            # 
+            # The Genie UI generates that analysis CLIENT-SIDE using the query
+            # results. We must do the same - use our LLM to generate analysis!
+            # 
+            # Priority: Analysis > Data > SQL (analysis FIRST for insights!)
             # ================================================================
             final_response = ""
             
-            # Include query results FIRST (the actual DATA - most important!)
-            if query_results_text and not query_results_text.startswith("("):
-                final_response += "**Query Results:**\n" + query_results_text + "\n\n"
-            elif query_results_text.startswith("("):
-                # Error message - still include it
-                final_response += f"**Note:** {query_results_text}\n\n"
+            # ================================================================
+            # SMART ANALYSIS DETECTION
+            # Detect if result_text is just "rephrasing/clarification" vs actual
+            # data-driven analysis. Rephrasing typically:
+            # - Asks clarifying questions ("Would you prefer...", "Do you mean...")
+            # - Restates the question ("You want to see...")
+            # - Doesn't contain specific numbers from results
+            # 
+            # If we only have rephrasing, we MUST generate real analysis!
+            # ================================================================
+            is_just_rephrasing = False
+            rephrasing_text = ""
             
-            # Include natural language explanation
+            if result_text.strip():
+                text_lower = result_text.lower()
+                # Patterns that indicate rephrasing, not analysis
+                rephrasing_patterns = [
+                    "you want to see",
+                    "would you prefer",
+                    "do you mean",
+                    "did you mean",
+                    "would you like",
+                    "are you looking for",
+                    "could you clarify",
+                    "please clarify",
+                    "instead of just",
+                    "i understand you",
+                    "let me clarify"
+                ]
+                
+                # Check if text matches rephrasing patterns
+                for pattern in rephrasing_patterns:
+                    if pattern in text_lower:
+                        is_just_rephrasing = True
+                        rephrasing_text = result_text.strip()
+                        print(f"  → Detected rephrasing text (not analysis): '{pattern}' found")
+                        break
+                
+                # Also check: if we have query results with numbers, but the text
+                # doesn't contain those numbers, it's probably not analysis
+                if not is_just_rephrasing and query_results_text:
+                    # Extract numbers from query results
+                    import re
+                    result_numbers = set(re.findall(r'\d+\.?\d*', query_results_text))
+                    text_numbers = set(re.findall(r'\d+\.?\d*', result_text))
+                    # If text has no numbers from results, likely not analysis
+                    if result_numbers and not (result_numbers & text_numbers):
+                        # Text doesn't reference any numbers from results
+                        if len(result_text) < 300:  # Short text without data reference
+                            is_just_rephrasing = True
+                            rephrasing_text = result_text.strip()
+                            print(f"  → Text doesn't reference result data, treating as rephrasing")
+            
+            # Generate LLM analysis if:
+            # 1. No text at all, OR
+            # 2. Text is just rephrasing (not data-driven analysis)
+            should_generate_analysis = (
+                (not result_text.strip() or is_just_rephrasing) and 
+                query_results_text and 
+                not query_results_text.startswith("(")
+            )
+            
+            if should_generate_analysis:
+                reason = "rephrasing only" if is_just_rephrasing else "no text"
+                print(f"  → Generating LLM analysis ({reason})...")
+                try:
+                    # Build context-aware prompt
+                    context_section = ""
+                    if rephrasing_text:
+                        context_section = f"\n**Genie's Understanding:** {rephrasing_text}\n"
+                    
+                    analysis_prompt = f"""You are a Databricks data analyst. Analyze the query results and provide a clear, actionable interpretation.
+
+**User Question:** {query}
+{context_section}
+**Query Results:**
+{query_results_text}
+
+Provide analysis (2-4 sentences) that:
+1. DIRECTLY answers the user's question using SPECIFIC numbers from the data
+2. Highlights the most important finding first (lead with the insight!)
+3. References actual values, percentages, or trends from the results
+4. Notes any concerns or patterns that need attention
+
+IMPORTANT: Start with the main insight/answer. Use specific numbers from the data.
+Example format: "Yesterday, costs increased by X% compared to the previous day, driven by Y..."
+
+Your analysis:"""
+
+                    analysis_text = self._call_llm(
+                        analysis_prompt, 
+                        "You are a senior Databricks data analyst providing clear, data-driven insights. Always reference specific numbers from the results."
+                    )
+                    print(f"  ✓ Generated LLM analysis: {len(analysis_text)} chars")
+                    
+                    # Use the generated analysis as result_text
+                    result_text = analysis_text
+                    
+                except Exception as llm_err:
+                    print(f"  ⚠ LLM analysis generation failed: {llm_err}")
+                    # Fall back to rephrasing text if available
+                    if rephrasing_text:
+                        result_text = rephrasing_text
+            
+            # Include natural language analysis FIRST (insights are most important!)
             if result_text.strip():
                 final_response += "**Analysis:**\n" + result_text.strip() + "\n\n"
             
-            # Include the generated SQL for transparency
+            # Include query results (the actual DATA)
+            if query_results_text and not query_results_text.startswith("("):
+                final_response += "**Query Results:**\n" + query_results_text + "\n\n"
+            elif query_results_text and query_results_text.startswith("("):
+                # Error message - still include it
+                final_response += f"**Note:** {query_results_text}\n\n"
+            
+            # Include the generated SQL for transparency (at the end)
             if generated_sql:
                 final_response += f"**Generated SQL:**\n```sql\n{generated_sql}\n```\n"
             
@@ -402,21 +1022,23 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
                     final_response = f"Genie processed your query but returned no structured response."
             
             print(f"✓ Genie response for {domain} ({len(final_response)} chars)")
-            return final_response.strip()
+            # Return tuple: (response_text, conversation_id) for stateless tracking
+            return (final_response.strip(), new_conversation_id)
             
         except Exception as e:
             error_msg = str(e)
             print(f"✗ Genie query failed for {domain}: {error_msg}")
             
             # Provide helpful error messages with actual error details
+            # Return tuple: (error_text, None) - no conversation_id on error
             if "PERMISSION" in error_msg.upper() or "authorized" in error_msg.lower():
-                return f"**Permission Error**\n\nUnable to access the Genie Space for {domain}. Please ensure you have CAN USE permissions on the SQL warehouse and the Genie Space.\n\n**Debug Info:** {error_msg[:200]}"
+                return (f"**Permission Error**\n\nUnable to access the Genie Space for {domain}. Please ensure you have CAN USE permissions on the SQL warehouse and the Genie Space.\n\n**Debug Info:** {error_msg[:200]}", None)
             elif "RATE_LIMIT" in error_msg.upper() or "429" in error_msg:
-                return f"**Rate Limit**\n\nGenie API rate limit reached (5 queries/minute). Please wait and try again."
+                return (f"**Rate Limit**\n\nGenie API rate limit reached (5 queries/minute). Please wait and try again.", None)
             elif "NOT_FOUND" in error_msg.upper() or "404" in error_msg:
-                return f"**Not Found**\n\nGenie Space for {domain} not found. Please check the configuration."
+                return (f"**Not Found**\n\nGenie Space for {domain} not found. Please check the configuration.", None)
             else:
-                return f"**Error**\n\nFailed to query Genie for {domain}: {error_msg}"
+                return (f"**Error**\n\nFailed to query Genie for {domain}: {error_msg}", None)
     
     def _count_result_rows(self, query_result) -> int:
         """Count the number of rows in a query result."""
@@ -532,6 +1154,268 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
             print(f"⚠ Error formatting query results: {e}")
             return f"(Error formatting results: {str(e)[:100]})"
     
+    # ===========================================================================
+    # VISUALIZATION HINTS: Suggest appropriate charts for tabular data
+    # ===========================================================================
+    # Reference: docs/agent-framework-design/14-visualization-hints-backend.md
+    # ===========================================================================
+    
+    def _extract_tabular_data(self, response_text: str) -> Optional[List[Dict[str, Any]]]:
+        """
+        Extract tabular data from Genie response markdown.
+        
+        Genie returns markdown tables like:
+        | Column1 | Column2 |
+        |---------|---------|
+        | Value1  | Value2  |
+        
+        This method parses them into: [{"Column1": "Value1", "Column2": "Value2"}]
+        
+        Args:
+            response_text: Raw Genie response text with markdown table
+        
+        Returns:
+            List of dictionaries (one per row) or None if no table detected
+        """
+        if not response_text or "|" not in response_text:
+            return None
+        
+        lines = response_text.strip().split("\n")
+        
+        # Find table start (header row with pipes)
+        table_start = None
+        for i, line in enumerate(lines):
+            if "|" in line and i < len(lines) - 1 and "|" in lines[i + 1]:
+                # Check if next line is separator (contains dashes)
+                if "-" in lines[i + 1]:
+                    table_start = i
+                    break
+        
+        if table_start is None:
+            return None
+        
+        # Parse header
+        header_line = lines[table_start].strip()
+        headers = [h.strip() for h in header_line.split("|") if h.strip()]
+        
+        if not headers:
+            return None
+        
+        # Skip separator line
+        data_start = table_start + 2
+        
+        # Parse rows
+        data = []
+        for line in lines[data_start:]:
+            line = line.strip()
+            if not line or "|" not in line:
+                break
+            
+            # Stop if we hit another markdown element
+            if line.startswith("#") or line.startswith("*") or line.startswith("```"):
+                break
+            
+            values = [v.strip() for v in line.split("|") if v.strip() != ""]
+            
+            # Only add row if column count matches
+            if len(values) == len(headers):
+                row = dict(zip(headers, values))
+                data.append(row)
+        
+        return data if data else None
+    
+    def _suggest_visualization(
+        self,
+        data: List[Dict[str, Any]],
+        query: str,
+        domain: str
+    ) -> Dict[str, Any]:
+        """
+        Suggest appropriate visualization for tabular data.
+        
+        Args:
+            data: List of dictionaries representing table rows
+            query: Original user query (for pattern matching)
+            domain: Domain name (cost, security, performance, reliability, quality)
+        
+        Returns:
+            Dictionary with visualization hint:
+            {
+                "type": "bar_chart|line_chart|pie_chart|table|text",
+                "x_axis": "column_name",
+                "y_axis": ["column1", "column2"],
+                "title": "Chart title",
+                "reason": "Why this visualization was chosen",
+                "domain_preferences": {...}
+            }
+        """
+        if not data or len(data) == 0:
+            return {
+                "type": "text", 
+                "reason": "No tabular data to visualize",
+                "domain_preferences": self._get_domain_preferences(domain, query)
+            }
+        
+        # Analyze column types
+        headers = list(data[0].keys())
+        numeric_cols = []
+        categorical_cols = []
+        datetime_cols = []
+        
+        for col in headers:
+            # Sample first row to infer type
+            sample_val = data[0].get(col, "")
+            if self._is_datetime_value(str(sample_val)):
+                datetime_cols.append(col)
+            elif self._is_numeric_value(str(sample_val)):
+                numeric_cols.append(col)
+            else:
+                categorical_cols.append(col)
+        
+        row_count = len(data)
+        query_lower = query.lower() if query else ""
+        
+        # RULE 1: Time series pattern - datetime column with numeric metrics
+        if datetime_cols and numeric_cols:
+            return {
+                "type": "line_chart",
+                "x_axis": datetime_cols[0],
+                "y_axis": numeric_cols[:3],  # Up to 3 metrics
+                "title": f"{', '.join(numeric_cols[:2])} Over Time",
+                "reason": "Time series data with numeric metrics",
+                "row_count": row_count,
+                "domain_preferences": self._get_domain_preferences(domain, query)
+            }
+        
+        # RULE 2: Top N pattern (cost queries, job performance, etc.)
+        if categorical_cols and numeric_cols and row_count <= 20:
+            top_n_keywords = ['top', 'highest', 'most', 'expensive', 'slowest', 'worst', 'best', 'largest', 'biggest']
+            if any(word in query_lower for word in top_n_keywords):
+                return {
+                    "type": "bar_chart",
+                    "x_axis": categorical_cols[0],
+                    "y_axis": numeric_cols[0],
+                    "title": f"Top {row_count} {categorical_cols[0].replace('_', ' ').title()} by {numeric_cols[0].replace('_', ' ').title()}",
+                    "reason": "Top N comparison query",
+                    "row_count": row_count,
+                    "domain_preferences": self._get_domain_preferences(domain, query)
+                }
+        
+        # RULE 3: Distribution pattern (percentages, breakdowns)
+        if categorical_cols and numeric_cols and row_count <= 10:
+            distribution_keywords = ['breakdown', 'distribution', 'percentage', 'share', 'split', 'by type', 'by category']
+            if any(word in query_lower for word in distribution_keywords):
+                return {
+                    "type": "pie_chart",
+                    "label": categorical_cols[0],
+                    "value": numeric_cols[0],
+                    "title": f"Distribution of {numeric_cols[0].replace('_', ' ').title()}",
+                    "reason": "Distribution/breakdown query",
+                    "row_count": row_count,
+                    "domain_preferences": self._get_domain_preferences(domain, query)
+                }
+        
+        # RULE 4: Comparison pattern for small datasets
+        if row_count <= 15 and numeric_cols and categorical_cols:
+            return {
+                "type": "bar_chart",
+                "x_axis": categorical_cols[0],
+                "y_axis": numeric_cols[0],
+                "title": f"{numeric_cols[0].replace('_', ' ').title()} by {categorical_cols[0].replace('_', ' ').title()}",
+                "reason": "Comparison across categories",
+                "row_count": row_count,
+                "domain_preferences": self._get_domain_preferences(domain, query)
+            }
+        
+        # RULE 5: Default to table for complex/large data
+        return {
+            "type": "table",
+            "columns": headers,
+            "reason": f"Complex data ({row_count} rows, {len(headers)} columns) - table view recommended",
+            "row_count": row_count,
+            "domain_preferences": self._get_domain_preferences(domain, query)
+        }
+    
+    def _is_datetime_value(self, value: str) -> bool:
+        """Check if a string value looks like a datetime."""
+        import re
+        date_patterns = [
+            r'\d{4}-\d{2}-\d{2}',  # YYYY-MM-DD
+            r'\d{2}/\d{2}/\d{4}',  # MM/DD/YYYY
+            r'\d{4}/\d{2}/\d{2}',  # YYYY/MM/DD
+            r'\d{4}-\d{2}-\d{2}T',  # ISO datetime
+        ]
+        for pattern in date_patterns:
+            if re.match(pattern, value):
+                return True
+        return False
+    
+    def _is_numeric_value(self, value: str) -> bool:
+        """Check if a string value looks numeric."""
+        import re
+        # Remove currency symbols and commas
+        cleaned = re.sub(r'[\$,]', '', value.strip())
+        try:
+            float(cleaned)
+            return True
+        except (ValueError, TypeError):
+            return False
+    
+    def _get_domain_preferences(self, domain: str, query: str) -> Dict[str, Any]:
+        """
+        Get domain-specific visualization preferences.
+        
+        Args:
+            domain: Domain name
+            query: User query
+        
+        Returns:
+            Dictionary with domain-specific preferences
+        """
+        domain_rules = {
+            "cost": {
+                "prefer_currency_format": True,
+                "color_scheme": "red_amber_green",
+                "default_sort": "descending",
+                "highlight_threshold": "high values",
+                "suggested_formats": {"currency": "USD", "decimals": 2}
+            },
+            "performance": {
+                "highlight_outliers": True,
+                "color_scheme": "sequential",
+                "default_sort": "descending",
+                "suggested_formats": {"duration": "seconds", "percentage": True}
+            },
+            "security": {
+                "highlight_critical": True,
+                "color_scheme": "red_amber_green",
+                "default_sort": "severity",
+                "severity_levels": ["critical", "high", "medium", "low"]
+            },
+            "reliability": {
+                "show_thresholds": True,
+                "color_scheme": "red_amber_green",
+                "default_sort": "descending",
+                "suggested_formats": {"rate": "percentage", "count": True}
+            },
+            "quality": {
+                "show_percentages": True,
+                "color_scheme": "red_amber_green",
+                "default_sort": "quality_score",
+                "suggested_formats": {"score": "percentage"}
+            },
+            "unified": {
+                "color_scheme": "categorical",
+                "default_sort": "relevance",
+                "multi_domain": True
+            }
+        }
+        
+        return domain_rules.get(domain, {
+            "color_scheme": "default",
+            "default_sort": "ascending"
+        })
+    
     def _follow_up_genie_internal(self, client, space_id: str, conversation_id: str, query: str, domain: str) -> str:
         """
         Internal method: Send a follow-up question to an existing Genie conversation.
@@ -601,12 +1485,87 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
                                 error_msg = str(qr_err)
                                 print(f"    ⚠ Could not get query results: {error_msg}")
             
-            # Format final response
+            # ================================================================
+            # SMART ANALYSIS DETECTION (same logic as _query_genie)
+            # Detect if result_text is just "rephrasing" vs actual analysis
+            # ================================================================
+            is_just_rephrasing = False
+            rephrasing_text = ""
+            
+            if result_text.strip():
+                text_lower = result_text.lower()
+                rephrasing_patterns = [
+                    "you want to see", "would you prefer", "do you mean",
+                    "did you mean", "would you like", "are you looking for",
+                    "could you clarify", "please clarify", "instead of just",
+                    "i understand you", "let me clarify"
+                ]
+                
+                for pattern in rephrasing_patterns:
+                    if pattern in text_lower:
+                        is_just_rephrasing = True
+                        rephrasing_text = result_text.strip()
+                        print(f"  → Detected rephrasing in follow-up response")
+                        break
+                
+                # Check if text references numbers from results
+                if not is_just_rephrasing and query_results_text:
+                    import re
+                    result_numbers = set(re.findall(r'\d+\.?\d*', query_results_text))
+                    text_numbers = set(re.findall(r'\d+\.?\d*', result_text))
+                    if result_numbers and not (result_numbers & text_numbers):
+                        if len(result_text) < 300:
+                            is_just_rephrasing = True
+                            rephrasing_text = result_text.strip()
+                            print(f"  → Follow-up text doesn't reference result data")
+            
+            # Generate LLM analysis if needed
+            should_generate_analysis = (
+                (not result_text.strip() or is_just_rephrasing) and 
+                query_results_text and 
+                not query_results_text.startswith("(")
+            )
+            
+            if should_generate_analysis:
+                reason = "rephrasing only" if is_just_rephrasing else "no text"
+                print(f"  → Generating LLM analysis for follow-up ({reason})...")
+                try:
+                    context_section = f"\n**Genie's Understanding:** {rephrasing_text}\n" if rephrasing_text else ""
+                    
+                    analysis_prompt = f"""You are a Databricks data analyst. Analyze the query results for this follow-up question.
+
+**User Follow-up Question:** {query}
+{context_section}
+**Query Results:**
+{query_results_text}
+
+Provide analysis (2-4 sentences) that:
+1. DIRECTLY answers the follow-up question using SPECIFIC numbers from the data
+2. Leads with the main insight
+3. References actual values from the results
+4. Notes any concerns or patterns
+
+Start with the main insight. Use specific numbers from the data.
+
+Your analysis:"""
+
+                    analysis_text = self._call_llm(
+                        analysis_prompt, 
+                        "You are a senior Databricks data analyst providing clear, data-driven insights."
+                    )
+                    result_text = analysis_text
+                    print(f"  ✓ Generated LLM analysis: {len(result_text)} chars")
+                except Exception as llm_err:
+                    print(f"  ⚠ LLM analysis generation failed: {llm_err}")
+                    if rephrasing_text:
+                        result_text = rephrasing_text
+            
+            # Format final response (Analysis FIRST, then data, then SQL)
             final_response = ""
-            if query_results_text and not query_results_text.startswith("("):
-                final_response += "**Query Results:**\n" + query_results_text + "\n\n"
             if result_text.strip():
                 final_response += "**Analysis:**\n" + result_text.strip() + "\n\n"
+            if query_results_text and not query_results_text.startswith("("):
+                final_response += "**Query Results:**\n" + query_results_text + "\n\n"
             if generated_sql:
                 final_response += f"**Generated SQL:**\n```sql\n{generated_sql}\n```\n"
             
@@ -874,6 +1833,40 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
             else:
                 session_id = os.environ.get("SESSION_ID", "single-turn")
             
+            # 2b. Extract Genie Conversation IDs for follow-up questions
+            # Per Databricks docs: "don't assume the same replica handles all requests"
+            # Client must track and pass conversation_ids for follow-ups
+            # Format: {"genie_conversation_ids": {"cost": "conv_abc123", "security": "conv_def456"}}
+            # Reference: https://learn.microsoft.com/en-us/azure/databricks/genie/conversation-api
+            genie_conversation_ids = {}
+            if isinstance(custom_inputs, dict):
+                genie_conversation_ids = custom_inputs.get("genie_conversation_ids", {})
+            
+            # ================================================================
+            # LAKEBASE MEMORY: Load conversation context and user preferences
+            # ================================================================
+            # Short-term: Conversation history within this thread
+            # Long-term: User preferences and insights across sessions
+            # Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/stateful-agents
+            # ================================================================
+            
+            # 2c. Resolve thread_id for short-term memory
+            thread_id = self._resolve_thread_id(custom_inputs)
+            
+            # 2d. Load conversation history from short-term memory
+            conversation_history = []
+            try:
+                conversation_history = self._get_conversation_history(thread_id)
+            except Exception as mem_err:
+                print(f"⚠ Short-term memory load failed (non-fatal): {mem_err}")
+            
+            # 2e. Load user preferences from long-term memory
+            user_preferences = {}
+            try:
+                user_preferences = self._get_user_preferences(user_id, query)
+            except Exception as pref_err:
+                print(f"⚠ Long-term memory load failed (non-fatal): {pref_err}")
+            
             # 3. Generate Client Request ID (with safe dict access)
             client_request_id = custom_inputs.get("request_id", str(uuid.uuid4())[:8]) if isinstance(custom_inputs, dict) else str(uuid.uuid4())[:8]
             
@@ -886,36 +1879,33 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
             endpoint_name = os.environ.get("ENDPOINT_NAME", 
                             os.environ.get("DATABRICKS_SERVING_ENDPOINT_NAME", "local"))
             
-            # Update trace with context
-            try:
-                mlflow.update_current_trace(
-                    metadata={
-                        "mlflow.trace.user": user_id,
-                        "mlflow.trace.session": session_id,
-                        "mlflow.source.type": app_environment.upper(),
-                        "mlflow.modelId": app_version,
-                        "client_request_id": client_request_id,
-                        "deployment_region": deployment_region,
-                        "endpoint_name": endpoint_name,
-                        "query_length": str(len(query) if query else 0),
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    },
-                    tags={
-                        "user_id": user_id,
-                        "session_id": session_id,
-                        "request_id": client_request_id,
-                        "environment": app_environment,
-                        "app_version": app_version,
-                        "prompts_loaded": ",".join(prompt_names),
-                        "prompt_catalog": _catalog,
-                        "prompt_schema": _schema,
-                        "query_category": "pending",
-                        "agent_name": "health_monitor_agent",
-                        "agent_type": "multi-domain-genie",
-                    }
-                )
-            except Exception as trace_err:
-                print(f"Trace context update failed (non-fatal): {trace_err}")
+            # Update trace with context (safely, to avoid warnings during evaluation)
+            _safe_update_trace(
+                metadata={
+                    "mlflow.trace.user": user_id,
+                    "mlflow.trace.session": session_id,
+                    "mlflow.source.type": app_environment.upper(),
+                    "mlflow.modelId": app_version,
+                    "client_request_id": client_request_id,
+                    "deployment_region": deployment_region,
+                    "endpoint_name": endpoint_name,
+                    "query_length": str(len(query) if query else 0),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                tags={
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "request_id": client_request_id,
+                    "environment": app_environment,
+                    "app_version": app_version,
+                    "prompts_loaded": ",".join(prompt_names),
+                    "prompt_catalog": _catalog,
+                    "prompt_schema": _schema,
+                    "query_category": "pending",
+                    "agent_name": "health_monitor_agent",
+                    "agent_type": "multi-domain-genie",
+                }
+            )
                 
         except Exception as parse_error:
             error_msg = f"Error parsing input: {str(parse_error)}. Request type: {type(request)}"
@@ -932,14 +1922,11 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
             domain = self._classify_domain(query)
             cls_span.set_outputs({"domain": domain})
             
-            # Update trace tag with actual domain (tags are mutable)
-            try:
-                mlflow.update_current_trace(tags={
-                    "query_category": domain,
-                    "domain": domain,
-                })
-            except Exception:
-                pass
+            # Update trace tag with actual domain (safely, to avoid warnings during evaluation)
+            _safe_update_trace(tags={
+                "query_category": domain,
+                "domain": domain,
+            })
             
         # Try Genie tool - GENIE IS REQUIRED, NO LLM FALLBACK
         # LLM fallback causes hallucination of fake data - NEVER fall back to LLM for data queries
@@ -952,18 +1939,106 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
                     # Use Databricks SDK Genie API directly (not GenieAgent.invoke())
                     # GenieAgent.invoke() returns "Please provide chat history" for single queries
                     # Reference: https://learn.microsoft.com/en-us/azure/databricks/genie/conversation-api
-                    # Pass session_id for conversation continuity (follow-ups within same session)
-                    response = self._query_genie(domain, query, session_id=session_id)
+                    # 
+                    # STATELESS FOLLOW-UP PATTERN:
+                    # Pass conversation_id from custom_inputs for follow-ups.
+                    # Model Serving doesn't share state between replicas, so clients
+                    # must track and pass genie_conversation_ids back.
+                    existing_conv_id = genie_conversation_ids.get(domain) if genie_conversation_ids else None
+                    response_text, new_conv_id = self._query_genie(
+                        domain=domain, 
+                        query=query, 
+                        session_id=session_id,
+                        conversation_id=existing_conv_id  # From custom_inputs for follow-ups
+                    )
                     
-                    tool_span.set_outputs({"response": response[:200] + "..." if len(response) > 200 else response, "source": "genie"})
+                    tool_span.set_outputs({
+                        "response": response_text[:200] + "..." if len(response_text) > 200 else response_text, 
+                        "source": "genie",
+                        "conversation_id": new_conv_id[:8] + "..." if new_conv_id else "none"
+                    })
+                    
+                    # Build updated conversation IDs for client to track
+                    updated_conv_ids = dict(genie_conversation_ids) if genie_conversation_ids else {}
+                    if new_conv_id:
+                        updated_conv_ids[domain] = new_conv_id
+                    
+                    # ================================================================
+                    # LAKEBASE MEMORY: Save conversation and extract insights
+                    # ================================================================
+                    # Save to short-term memory (conversation context)
+                    try:
+                        self._save_to_short_term_memory(
+                            thread_id=thread_id,
+                            user_message=query,
+                            assistant_response=response_text,
+                            domain=domain
+                        )
+                    except Exception as save_err:
+                        print(f"⚠ Short-term memory save failed (non-fatal): {save_err}")
+                    
+                    # Save to long-term memory (user insights)
+                    try:
+                        self._extract_and_save_insights(
+                            user_id=user_id,
+                            query=query,
+                            response=response_text,
+                            domain=domain
+                        )
+                    except Exception as insight_err:
+                        print(f"⚠ Long-term memory save failed (non-fatal): {insight_err}")
+                    
+                    # ================================================================
+                    # VISUALIZATION HINTS: Analyze data and suggest charts
+                    # Reference: docs/agent-framework-design/14-visualization-hints-backend.md
+                    # ================================================================
+                    visualization_hint = None
+                    tabular_data = None
+                    
+                    try:
+                        # Extract tabular data from the response
+                        tabular_data = self._extract_tabular_data(response_text)
+                        
+                        if tabular_data and len(tabular_data) > 0:
+                            # Generate visualization hint based on the data
+                            visualization_hint = self._suggest_visualization(
+                                data=tabular_data,
+                                query=query,
+                                domain=domain
+                            )
+                            print(f"  ✓ Visualization hint: {visualization_hint.get('type', 'none')} ({len(tabular_data)} rows)")
+                        else:
+                            visualization_hint = {
+                                "type": "text",
+                                "reason": "Response contains no tabular data",
+                                "domain_preferences": self._get_domain_preferences(domain, query)
+                            }
+                    except Exception as viz_err:
+                        print(f"⚠ Visualization hint generation failed (non-fatal): {viz_err}")
+                        visualization_hint = {
+                            "type": "text",
+                            "reason": f"Hint generation error: {str(viz_err)[:100]}",
+                            "domain_preferences": self._get_domain_preferences(domain, query)
+                        }
                     
                     return ResponsesAgentResponse(
                         id=f"resp_{uuid.uuid4().hex[:12]}",  # Required for AI Playground
                         output=[self.create_text_output_item(
-                            text=response,
+                            text=response_text,
                             id=str(uuid.uuid4())
                         )],
-                        custom_outputs={"domain": domain, "source": "genie"}
+                        # IMPORTANT: Return thread_id and conversation IDs for stateful conversations
+                        # NEW: Include visualization hints for frontend rendering
+                        custom_outputs={
+                            "domain": domain, 
+                            "source": "genie",
+                            "thread_id": thread_id,  # For short-term memory continuity
+                            "genie_conversation_ids": updated_conv_ids,  # For Genie follow-ups
+                            "memory_status": "saved",  # Indicates memory operations succeeded
+                            # Visualization hints for frontend chart rendering
+                            "visualization_hint": visualization_hint,
+                            "data": tabular_data,  # Parsed tabular data (or None)
+                        }
                     )
                 except Exception as e:
                     # Genie invocation failed - return error, DO NOT hallucinate with LLM
@@ -995,7 +2070,15 @@ I was unable to retrieve real data from the Databricks Genie Space for the **{do
                             text=error_msg,
                             id=str(uuid.uuid4())
                         )],
-                        custom_outputs={"domain": domain, "source": "error", "error": str(e)}
+                        custom_outputs={
+                            "domain": domain, 
+                            "source": "error", 
+                            "error": str(e),
+                            "thread_id": thread_id,  # For memory continuity even on errors
+                            # Empty visualization hints for error cases
+                            "visualization_hint": {"type": "error", "reason": "Query failed"},
+                            "data": None,
+                        }
                     )
             else:
                 # Genie Space ID not configured for this domain - return clear error
@@ -1026,14 +2109,371 @@ No Genie Space ID is configured for the **{domain}** domain.
                         text=error_msg,
                         id=str(uuid.uuid4())
                     )],
-                    custom_outputs={"domain": domain, "source": "error", "error": "genie_not_available"}
+                    custom_outputs={
+                        "domain": domain, 
+                        "source": "error", 
+                        "error": "genie_not_available",
+                        "thread_id": thread_id,  # For memory continuity even on errors
+                        # Empty visualization hints for error cases
+                        "visualization_hint": {"type": "error", "reason": "Genie Space not configured"},
+                        "data": None,
+                    }
                 )
+    
+    def predict_stream(self, request) -> Generator:
+        """
+        Streaming inference for ResponsesAgent.
+        
+        Streaming allows the agent to send responses in real-time chunks instead of
+        waiting for the complete response. This is the recommended pattern per
+        Databricks official documentation.
+        
+        Implementation:
+        1. Emit delta events: Send multiple output_text.delta events with same item_id
+        2. Finish with done event: Send response.output_item.done with complete text
+        
+        The final done event signals Databricks to:
+        - Trace your agent's output with MLflow tracing
+        - Aggregate streamed responses in AI Gateway inference tables
+        - Show the complete output in the AI Playground UI
+        
+        Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/author-agent#streaming-responses
+        
+        Yields:
+            ResponsesAgentStreamEvent: Streaming events (deltas and final done)
+        """
+        import uuid
+        from mlflow.types.responses import (
+            ResponsesAgentRequest, 
+            ResponsesAgentResponse,
+            ResponsesAgentStreamEvent
+        )
+        
+        # ================================================================
+        # STEP 1: Parse request and get query (same as predict)
+        # ================================================================
+        try:
+            query = ""
+            input_messages = []
+            
+            if hasattr(request, 'input'):
+                input_messages = [msg.model_dump() if hasattr(msg, 'model_dump') else dict(msg) 
+                                 for msg in request.input]
+            elif isinstance(request, dict):
+                if 'input' in request:
+                    raw_input = request.get('input', [])
+                    if isinstance(raw_input, list):
+                        input_messages = raw_input
+                    elif isinstance(raw_input, str):
+                        input_messages = [{"role": "user", "content": raw_input}]
+                elif 'messages' in request:
+                    input_messages = request.get('messages', [])
+                else:
+                    content = request.get("content") or request.get("query") or request.get("text") or ""
+                    input_messages = [{"role": "user", "content": str(content)}] if content else []
+            else:
+                input_messages = [{"role": "user", "content": str(request)}]
+            
+            # Extract query from last user message
+            for msg in reversed(input_messages):
+                if isinstance(msg, dict):
+                    role = msg.get("role", "user")
+                    if role == "user":
+                        query = str(msg.get("content", "") or msg.get("text", "") or "")
+                        break
+                else:
+                    query = str(msg)
+                    break
+            
+            if not query:
+                query = str(input_messages[-1].get("content", "")) if input_messages else ""
+            
+        except Exception as parse_error:
+            # Emit error as final done event
+            item_id = str(uuid.uuid4())
+            error_msg = f"Error parsing input: {str(parse_error)}"
+            yield ResponsesAgentStreamEvent(
+                type="response.output_item.done",
+                item=self.create_text_output_item(text=error_msg, id=item_id)
+            )
+            return
+        
+        if not query:
+            item_id = str(uuid.uuid4())
+            yield ResponsesAgentStreamEvent(
+                type="response.output_item.done",
+                item=self.create_text_output_item(text="No query provided.", id=item_id)
+            )
+            return
+        
+        # ================================================================
+        # STEP 2: Extract session_id from custom_inputs
+        # ================================================================
+        import os
+        custom_inputs = {}
+        try:
+            if hasattr(request, 'custom_inputs') and request.custom_inputs:
+                ci = request.custom_inputs
+                if isinstance(ci, dict):
+                    custom_inputs = ci
+                elif hasattr(ci, '__dict__'):
+                    custom_inputs = vars(ci)
+            elif isinstance(request, dict):
+                ci = request.get("custom_inputs", {})
+                if isinstance(ci, dict):
+                    custom_inputs = ci
+        except Exception:
+            custom_inputs = {}
+        
+        session_id = custom_inputs.get("session_id", 
+                     custom_inputs.get("conversation_id",
+                     os.environ.get("SESSION_ID", "single-turn"))) if isinstance(custom_inputs, dict) else "single-turn"
+        
+        # Extract Genie Conversation IDs for follow-up questions
+        # Per Databricks docs: "don't assume the same replica handles all requests"
+        genie_conversation_ids = custom_inputs.get("genie_conversation_ids", {}) if isinstance(custom_inputs, dict) else {}
+        
+        # ================================================================
+        # LAKEBASE MEMORY: Load conversation context and user preferences
+        # ================================================================
+        user_id = custom_inputs.get("user_id", os.environ.get("USER_ID", "anonymous")) if isinstance(custom_inputs, dict) else "anonymous"
+        thread_id = self._resolve_thread_id(custom_inputs)
+        
+        # Load conversation history from short-term memory (non-blocking)
+        conversation_history = []
+        try:
+            conversation_history = self._get_conversation_history(thread_id)
+        except Exception as mem_err:
+            print(f"⚠ Short-term memory load failed (non-fatal): {mem_err}")
+        
+        # Load user preferences from long-term memory (non-blocking)
+        user_preferences = {}
+        try:
+            user_preferences = self._get_user_preferences(user_id, query)
+        except Exception as pref_err:
+            print(f"⚠ Long-term memory load failed (non-fatal): {pref_err}")
+        
+        # ================================================================
+        # STEP 3: Classify domain and query Genie
+        # ================================================================
+        domain = self._classify_domain(query)
+        space_id = self._get_genie_space_id(domain)
+        
+        # Generate unique item_id for this response stream
+        item_id = str(uuid.uuid4())
+        
+        # ================================================================
+        # STEP 4: Stream the response in chunks
+        # ================================================================
+        if space_id:
+            try:
+                # Emit "thinking" delta to show progress immediately
+                yield self.create_text_delta(
+                    delta=f"🔍 Querying {domain.title()} Genie Space...\n\n",
+                    item_id=item_id
+                )
+                
+                # Query Genie (this is the slow operation)
+                # STATELESS FOLLOW-UP PATTERN: Pass conversation_id for follow-ups
+                existing_conv_id = genie_conversation_ids.get(domain) if genie_conversation_ids else None
+                response_text, new_conv_id = self._query_genie(
+                    domain=domain, 
+                    query=query, 
+                    session_id=session_id,
+                    conversation_id=existing_conv_id
+                )
+                
+                # ================================================================
+                # STEP 5: Stream the response in chunks for real-time display
+                # Split response into paragraphs/sections for natural streaming
+                # ================================================================
+                if response_text:
+                    # Stream the actual content in chunks
+                    # We split by double newlines (paragraphs) for natural streaming
+                    chunks = response_text.split('\n\n')
+                    
+                    for i, chunk in enumerate(chunks):
+                        if chunk.strip():
+                            # Add back the paragraph separator (except for first chunk)
+                            text_to_emit = chunk + ('\n\n' if i < len(chunks) - 1 else '')
+                            yield self.create_text_delta(
+                                delta=text_to_emit,
+                                item_id=item_id
+                            )
+                    
+                    # Reconstruct full response for the done event
+                    full_response = f"🔍 Querying {domain.title()} Genie Space...\n\n" + response_text
+                else:
+                    full_response = f"🔍 Querying {domain.title()} Genie Space...\n\nNo results returned from Genie."
+                    yield self.create_text_delta(
+                        delta="No results returned from Genie.",
+                        item_id=item_id
+                    )
+                
+                # ================================================================
+                # LAKEBASE MEMORY: Save conversation and extract insights
+                # ================================================================
+                try:
+                    self._save_to_short_term_memory(
+                        thread_id=thread_id,
+                        user_message=query,
+                        assistant_response=response_text or "No results",
+                        domain=domain
+                    )
+                except Exception as save_err:
+                    print(f"⚠ Short-term memory save failed (non-fatal): {save_err}")
+                
+                try:
+                    self._extract_and_save_insights(
+                        user_id=user_id,
+                        query=query,
+                        response=response_text or "No results",
+                        domain=domain
+                    )
+                except Exception as insight_err:
+                    print(f"⚠ Long-term memory save failed (non-fatal): {insight_err}")
+                
+                # ================================================================
+                # STEP 6: Generate visualization hints for the response data
+                # Reference: docs/agent-framework-design/14-visualization-hints-backend.md
+                # ================================================================
+                visualization_hint = None
+                tabular_data = None
+                
+                try:
+                    tabular_data = self._extract_tabular_data(response_text or "")
+                    if tabular_data and len(tabular_data) > 0:
+                        visualization_hint = self._suggest_visualization(
+                            data=tabular_data,
+                            query=query,
+                            domain=domain
+                        )
+                        print(f"  ✓ Stream viz hint: {visualization_hint.get('type', 'none')} ({len(tabular_data)} rows)")
+                    else:
+                        visualization_hint = {
+                            "type": "text",
+                            "reason": "Response contains no tabular data",
+                            "domain_preferences": self._get_domain_preferences(domain, query)
+                        }
+                except Exception as viz_err:
+                    print(f"⚠ Stream visualization hint failed (non-fatal): {viz_err}")
+                    visualization_hint = {
+                        "type": "text",
+                        "reason": f"Hint generation error",
+                        "domain_preferences": self._get_domain_preferences(domain, query)
+                    }
+                
+                # ================================================================
+                # STEP 7: Emit final done event with aggregated text
+                # This is REQUIRED for:
+                # - MLflow tracing
+                # - AI Gateway inference tables
+                # - AI Playground UI display
+                # ================================================================
+                yield ResponsesAgentStreamEvent(
+                    type="response.output_item.done",
+                    item=self.create_text_output_item(text=full_response, id=item_id)
+                )
+                
+                # ================================================================
+                # STEP 8: Yield final ResponsesAgentResponse with custom_outputs
+                # This ensures visualization hints and data are available to clients
+                # in both streaming and non-streaming modes
+                # ================================================================
+                # Build updated conversation IDs for client to track
+                updated_conv_ids = dict(genie_conversation_ids) if genie_conversation_ids else {}
+                if new_conv_id:
+                    updated_conv_ids[domain] = new_conv_id
+                
+                yield ResponsesAgentResponse(
+                    id=f"resp_{uuid.uuid4().hex[:12]}",
+                    output=[self.create_text_output_item(text=full_response, id=item_id)],
+                    custom_outputs={
+                        "domain": domain,
+                        "source": "genie",
+                        "thread_id": thread_id,
+                        "genie_conversation_ids": updated_conv_ids,
+                        "memory_status": "saved",
+                        "visualization_hint": visualization_hint,
+                        "data": tabular_data,
+                    }
+                )
+                
+            except Exception as e:
+                # Emit error as streamed chunks then done event
+                error_msg = f"""## Genie Query Failed
+
+**Domain:** {domain}
+**Query:** {query}
+**Error:** {str(e)}
+
+I was unable to retrieve real data from the Databricks Genie Space.
+
+**Note:** I will NOT generate fake data. All responses must come from real system tables via Genie."""
+                
+                yield self.create_text_delta(
+                    delta=error_msg,
+                    item_id=item_id
+                )
+                
+                full_response = f"🔍 Querying {domain.title()} Genie Space...\n\n" + error_msg
+                yield ResponsesAgentStreamEvent(
+                    type="response.output_item.done",
+                    item=self.create_text_output_item(text=full_response, id=item_id)
+                )
+                
+                # Yield final response with custom_outputs (error case)
+                yield ResponsesAgentResponse(
+                    id=f"resp_{uuid.uuid4().hex[:12]}",
+                    output=[self.create_text_output_item(text=full_response, id=item_id)],
+                    custom_outputs={
+                        "domain": domain,
+                        "source": "error",
+                        "error": str(e),
+                        "thread_id": thread_id,
+                        "visualization_hint": {"type": "error", "reason": "Query failed"},
+                        "data": None,
+                    }
+                )
+        else:
+            # No Genie Space configured
+            error_msg = f"""## Genie Space Not Configured
+
+**Domain:** {domain}
+
+No Genie Space ID is configured for the **{domain}** domain.
+
+**Note:** I will NOT generate fake data. All responses must come from real system tables via Genie."""
+            
+            yield self.create_text_delta(
+                delta=error_msg,
+                item_id=item_id
+            )
+            
+            yield ResponsesAgentStreamEvent(
+                type="response.output_item.done",
+                item=self.create_text_output_item(text=error_msg, id=item_id)
+            )
+            
+            # Yield final response with custom_outputs (error case)
+            yield ResponsesAgentResponse(
+                id=f"resp_{uuid.uuid4().hex[:12]}",
+                output=[self.create_text_output_item(text=error_msg, id=item_id)],
+                custom_outputs={
+                    "domain": domain,
+                    "source": "error",
+                    "error": "genie_not_configured",
+                    "thread_id": thread_id,
+                    "visualization_hint": {"type": "error", "reason": "Genie Space not configured"},
+                    "data": None,
+                }
+            )
 
 # COMMAND ----------
 
 def get_mlflow_resources() -> List:
     """
-    Get resources for SYSTEM authentication (LLM endpoint only).
+    Get resources for SYSTEM authentication (LLM endpoint and Lakebase memory).
     
     Genie Spaces use OBO authentication (on-behalf-of-user), so they are NOT
     included here. They are declared in the UserAuthPolicy with api_scopes.
@@ -1048,6 +2488,17 @@ def get_mlflow_resources() -> List:
         resources.append(DatabricksServingEndpoint(LLM_ENDPOINT))
     except ImportError:
         pass
+    
+    # Lakebase memory storage (short-term and long-term)
+    # Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/stateful-agents
+    try:
+        from mlflow.models.resources import DatabricksLakebase
+        resources.append(DatabricksLakebase(database_instance_name=LAKEBASE_INSTANCE_NAME))
+        print(f"✓ Added DatabricksLakebase resource: {LAKEBASE_INSTANCE_NAME}")
+    except ImportError as ie:
+        print(f"⚠ DatabricksLakebase resource not available: {ie}")
+    except Exception as e:
+        print(f"⚠ Could not add DatabricksLakebase resource: {e}")
     
     # NOTE: Genie Spaces NOT included here - they use OBO auth via UserAuthPolicy
     # The agent uses ModelServingUserCredentials() at runtime for Genie access
@@ -1310,7 +2761,7 @@ def log_agent():
                 # =========================================================
                 "mlflow>=3.0.0",  # Required for mlflow.genai and ResponsesAgent
                 "databricks-sdk>=0.28.0",  # For WorkspaceClient
-                "databricks-langchain",  # Contains GenieAgent
+                "databricks-langchain[memory]",  # Contains GenieAgent + Lakebase memory (CheckpointSaver, DatabricksStore)
                 "databricks-agents>=1.2.0",  # For agent framework utilities
                 "databricks-ai-bridge",  # EXPLICIT: Required for ModelServingUserCredentials
             ],

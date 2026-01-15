@@ -11,12 +11,12 @@
 **Description:** Natural language interface for Databricks security, audit, and compliance analytics. Enables security teams, compliance officers, and administrators to query access patterns, audit trails, and security events without SQL.
 
 **Powered by:**
-- 2 Metric Views (security_events, governance_analytics)
-- 10 Table-Valued Functions (user activity, sensitive access, audit queries)
-- 4 ML Prediction Tables (threat detection, risk scoring, access classification)
-- 2 Lakehouse Monitoring Tables (security drift and profile metrics)
-- 3 Dimension Tables (workspace, user, date)
-- 6 Fact Tables (audit logs, lineage, network traffic, clean rooms)
+- 2 Metric Views (mv_security_events, mv_governance_analytics)
+- 10 Table-Valued Functions (parameterized queries)
+- 4 ML Prediction Tables (predictions and recommendations)
+- 2 Lakehouse Monitoring Tables (drift and profile metrics)
+- 2 Dimension Tables (reference data)
+- 4 Fact Tables (transactional data)
 
 ---
 
@@ -49,136 +49,61 @@
 
 ## ████ SECTION D: DATA ASSETS ████
 
+
+
 ### Metric Views (PRIMARY - Use First)
 
 | Metric View Name | Purpose | Key Measures |
 |------------------|---------|--------------|
-| `mv_security_events` | Audit event metrics | total_events, failed_events, success_rate, unique_users, high_risk_events |
-| `mv_governance_analytics` | Data lineage metrics | read_events, write_events, active_table_count, unique_data_consumers |
+| `mv_governance_analytics` | Data governance analytics | table_count, lineage_coverage, classification_coverage |
+| `mv_security_events` | Security event monitoring | total_events, failed_events, risk_score |
 
 ### Table-Valued Functions (10 TVFs)
 
 | Function Name | Purpose | When to Use |
 |---------------|---------|-------------|
-| `get_user_activity` | User activity with risk scoring | "user activity" |
-| `get_table_access_audit` | Table access audit trail | "table access" |
-| `get_permission_change_events` | Permission modifications | "permission changes" |
-| `get_service_account_audit` | Service account activity | "service accounts" |
-| `get_failed_authentication_events` | Failed operations | "failed actions" |
-| `get_pii_access_events` | Sensitive data access | "sensitive data access" |
-| `get_anomalous_access_events` | Anomalous behavior | "unusual patterns" |
-| `get_off_hours_activity` | Temporal patterns | "activity patterns" |
-| `get_data_exfiltration_events` | Data export tracking | "data exports" |
-| `user_risk_scores` | User risk assessment | "risk scores" |
+| `get_failed_actions` | Failed actions | "failed actions" |
+| `get_ip_address_analysis` | IP address analysis | "IP analysis" |
+| `get_off_hours_activity` | Off-hours activity | "off hours" |
+| `get_permission_changes` | Permission changes | "permission changes" |
+| `get_security_events_timeline` | Security events timeline | "security events" |
+| `get_sensitive_table_access` | Sensitive table access | "sensitive access" |
+| `get_service_account_audit` | Service account audit | "service accounts" |
+| `get_table_access_audit` | Table access audit | "access audit" |
+| `get_user_activity_patterns` | User activity patterns | "activity patterns" |
+| `get_user_activity_summary` | User activity summary | "user activity" |
 
 ### ML Prediction Tables (4 Models)
 
-| Table Name | Purpose | Model | Key Columns |
-|---|---|---|---|
-| `security_anomaly_predictions` | Unusual access pattern detection | Security Threat Detector | `prediction`, `user_identity`, `event_date` |
-| `user_risk_scores` | User risk assessment (0-5 scale) | Compliance Risk Classifier | `prediction`, `user_identity`, `evaluation_date` |
-| `access_classifications` | Normal vs suspicious access classification | Access Pattern Analyzer | `prediction`, `pattern_class`, `user_identity` |
-| `off_hours_baseline_predictions` | Expected off-hours activity baseline | Off-Hours Baseline Predictor | `prediction`, `user_identity`, `event_date` |
-
-**Schema:** `${catalog}.${feature_schema}`
-
-**Training Source:** `src/ml/security/` | **Inference:** `src/ml/inference/batch_inference_all_models.py`
+| Table Name | Purpose | Model |
+|---|---|---|
+| `exfiltration_predictions` | Data exfiltration risk | Exfiltration Detector |
+| `privilege_escalation_predictions` | Privilege escalation risk | Privilege Analyzer |
+| `security_threat_predictions` | Security threats | Threat Detector |
+| `user_behavior_predictions` | User behavior anomalies | Behavior Analyzer |
 
 ### Lakehouse Monitoring Tables
 
 | Table Name | Purpose |
 |------------|---------|
-| `fact_audit_logs_profile_metrics` | Custom security metrics (sensitive_access_rate, failure_rate, off_hours_rate) |
-| `fact_audit_logs_drift_metrics` | Security drift (event_volume_drift, sensitive_action_drift) |
+| `fact_audit_logs_drift_metrics` | Security event drift detection |
+| `fact_audit_logs_profile_metrics` | Security event profile metrics |
 
-#### Critical: Custom Metrics Query Patterns
+### Dimension Tables (2 Tables)
 
-**Always include these filters when querying Lakehouse Monitoring tables:**
+| Table Name | Purpose | Key Columns |
+|---|---|---|
+| `dim_user` | User details | user_id, user_name, email |
+| `dim_workspace` | Workspace details | workspace_id, workspace_name, region |
 
-```sql
--- Correct: Get security metrics
-SELECT
-  window.start AS window_start,
-  total_events,
-  sensitive_access_rate,
-  failure_rate,
-  off_hours_rate
-FROM ${catalog}.${gold_schema}.fact_audit_logs_profile_metrics
-WHERE column_name = ':table'     -- REQUIRED: Table-level custom metrics
-  AND log_type = 'INPUT'         -- REQUIRED: Input data statistics
-  AND slice_key IS NULL          -- For overall metrics
-ORDER BY window.start DESC;
+### Fact Tables (4 Tables)
 
--- Correct: Get events by user (sliced)
-SELECT
-  slice_value AS user_identity,
-  SUM(total_events) AS event_count
-FROM ${catalog}.${gold_schema}.fact_audit_logs_profile_metrics
-WHERE column_name = ':table'
-  AND log_type = 'INPUT'
-  AND slice_key = 'user_identity_email'
-GROUP BY slice_value
-ORDER BY event_count DESC;
-
--- Correct: Get security drift
-SELECT
-  window.start AS window_start,
-  event_volume_drift,
-  sensitive_action_drift
-FROM ${catalog}.${gold_schema}.fact_audit_logs_drift_metrics
-WHERE drift_type = 'CONSECUTIVE'
-  AND column_name = ':table'
-ORDER BY window.start DESC;
-```
-
-#### Available Slicing Dimensions (Security Monitor)
-
-| Slice Key | Use Case |
-|-----------|----------|
-| `workspace_id` | Events by workspace |
-| `service_name` | Events by service |
-| `audit_level` | By audit level |
-| `action_name` | By action type |
-| `user_identity_email` | Events by user |
-
-### Dimension Tables (3 Tables)
-
-**Sources:** `gold_layer_design/yaml/shared/`
-
-| Table Name | Purpose | Key Columns | YAML Source |
-|---|---|---|---|
-| `dim_workspace` | Workspace reference | `workspace_id`, `workspace_name`, `region`, `cloud_provider` | shared/dim_workspace.yaml |
-| `dim_user` | User information for access analysis | `user_id`, `user_name`, `email`, `department_tag`, `is_service_principal` | shared/dim_user.yaml |
-| `dim_date` | Date dimension for time analysis | `date_key`, `day_of_week`, `month`, `quarter`, `year`, `is_weekend`, `is_business_hours` | shared/dim_date.yaml |
-
-### Fact Tables (from gold_layer_design/yaml/security/, governance/)
-
-| Table Name | Purpose | Grain | YAML Source |
-|------------|---------|-------|-------------|
-| `fact_audit_logs` | Audit event log | Per event | security/fact_audit_logs.yaml |
-| `fact_table_lineage` | Data lineage | Per access event | governance/fact_table_lineage.yaml |
-| `fact_assistant_events` | AI assistant interactions | Per assistant call | security/fact_assistant_events.yaml |
-| `fact_clean_room_events` | Clean room operations | Per operation | security/fact_clean_room_events.yaml |
-| `fact_inbound_network` | Inbound network traffic | Per connection | security/fact_inbound_network.yaml |
-| `fact_outbound_network` | Outbound network traffic | Per connection | security/fact_outbound_network.yaml |
-
-### Data Model Relationships
-
-**Foreign Key Constraints** (extracted from `gold_layer_design/yaml/security/`)
-
-| Fact Table | → | Dimension Table | Join Keys | Join Type |
-|------------|---|-----------------|-----------|-----------|
-| `fact_audit_logs` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_audit_logs` | → | `dim_user` | `user_identity_email` = `email` | LEFT |
-| `fact_table_lineage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_assistant_events` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_clean_room_events` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_inbound_network` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_outbound_network` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-
-**Join Patterns:**
-- **Workspace scope:** All security facts join to `dim_workspace` on `workspace_id`
-- **User identity:** `fact_audit_logs` joins to `dim_user` on email for user details
+| Table Name | Purpose | Grain |
+|---|---|---|
+| `fact_audit_logs` | Security audit logs | Per audit event |
+| `fact_inbound_network` | Inbound network traffic | Per network event |
+| `fact_outbound_network` | Outbound network traffic | Per network event |
+| `fact_table_lineage` | Table lineage | Per lineage relationship |
 
 ---
 
@@ -1128,3 +1053,147 @@ CROSS JOIN governance_metrics gm;
 
 ### Deployment Guides
 - [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md) - Comprehensive setup and troubleshooting
+
+## H. Benchmark Questions with SQL
+
+**Total Benchmarks: 23**
+- TVF Questions: 8
+- Metric View Questions: 7
+- ML Table Questions: 3
+- Monitoring Table Questions: 2
+- Fact Table Questions: 2
+- Dimension Table Questions: 1
+- Deep Research Questions: 0
+
+---
+
+### TVF Questions
+
+**Q1: Query get_user_activity_summary**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_user_activity_summary("2025-12-15", "2026-01-14", 50) LIMIT 20;
+```
+
+**Q2: Query get_sensitive_table_access**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_sensitive_table_access("2025-12-15", "2026-01-14", "%") LIMIT 20;
+```
+
+**Q3: Query get_permission_changes**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_permission_changes("2025-12-15", "2026-01-14") LIMIT 20;
+```
+
+**Q4: Query get_security_events_timeline**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_security_events_timeline("2025-12-15", "2026-01-14", "ALL", NULL) LIMIT 20;
+```
+
+**Q5: Query get_off_hours_activity**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_off_hours_activity("2025-12-15", "2026-01-14", 7, 19) LIMIT 20;
+```
+
+**Q6: Query get_failed_actions**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_failed_actions("2025-12-15", "2026-01-14", "ALL", NULL) LIMIT 20;
+```
+
+**Q7: Query get_table_access_audit**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_table_access_audit("2025-12-15", "2026-01-14", "%") LIMIT 20;
+```
+
+**Q8: Query get_ip_address_analysis**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_ip_address_analysis("2025-12-15", "2026-01-14") LIMIT 20;
+```
+
+### Metric View Questions
+
+**Q9: What are the key metrics from mv_security_events?**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.mv_security_events LIMIT 20;
+```
+
+**Q10: What are the key metrics from mv_governance_analytics?**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.mv_governance_analytics LIMIT 20;
+```
+
+**Q11: Analyze security_auditor trends over time**
+```sql
+SELECT 'Complex trend analysis for security_auditor' AS deep_research;
+```
+
+**Q12: Identify anomalies in security_auditor data**
+```sql
+SELECT 'Anomaly detection query for security_auditor' AS deep_research;
+```
+
+**Q13: Compare security_auditor metrics across dimensions**
+```sql
+SELECT 'Cross-dimensional analysis for security_auditor' AS deep_research;
+```
+
+**Q14: Provide an executive summary of security_auditor**
+```sql
+SELECT 'Executive summary for security_auditor' AS deep_research;
+```
+
+**Q15: What are the key insights from security_auditor analysis?**
+```sql
+SELECT 'Key insights summary for security_auditor' AS deep_research;
+```
+
+### ML Prediction Questions
+
+**Q16: What are the latest ML predictions from security_threat_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.security_threat_predictions LIMIT 20;
+```
+
+**Q17: What are the latest ML predictions from user_behavior_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.user_behavior_predictions LIMIT 20;
+```
+
+**Q18: What are the latest ML predictions from privilege_escalation_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.privilege_escalation_predictions LIMIT 20;
+```
+
+### Lakehouse Monitoring Questions
+
+**Q19: Show monitoring data from fact_audit_logs_profile_metrics**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics LIMIT 20;
+```
+
+**Q20: Show monitoring data from fact_audit_logs_drift_metrics**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_drift_metrics LIMIT 20;
+```
+
+### Fact Table Questions
+
+**Q21: Show recent data from fact_audit_logs**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.fact_audit_logs LIMIT 20;
+```
+
+**Q22: Show recent data from fact_table_lineage**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.fact_table_lineage LIMIT 20;
+```
+
+### Dimension Table Questions
+
+**Q23: Describe the dim_user dimension**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.dim_user LIMIT 20;
+```
+
+---
+
+*Note: These benchmarks are auto-generated from `actual_assets_inventory.json` to ensure all referenced assets exist. JSON file is the source of truth.*

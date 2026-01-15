@@ -10,13 +10,13 @@
 
 **Description:** Comprehensive natural language interface for Databricks platform health monitoring. Enables leadership, platform administrators, and SREs to query costs, job reliability, query performance, cluster efficiency, security audit, and data quality - all in one unified space.
 
-**Powered by (25 tables max, curated for executive view):**
-- 5 Metric Views (1 per domain - cost, job, query, security, quality)
-- 60 Table-Valued Functions (full access across all domains)
-- 5 ML Prediction Tables (anomaly detection per domain)
-- 5 Lakehouse Monitoring Tables (profile metrics per domain)
+**Powered by:**
+- 5 Metric Views (mv_cost_analytics, mv_job_performance, mv_query_performance, mv_security_events, mv_data_quality)
+- 41 Table-Valued Functions (comprehensive queries across all domains)
+- 2 ML Prediction Tables (cross-domain predictions)
+- 3 Lakehouse Monitoring Tables (profile and drift metrics)
 - 4 Dimension Tables (core shared dimensions)
-- 6 Fact Tables (primary fact per domain)
+- 6 Fact Tables (transactional data)
 
 **⚠️ For detailed domain analysis, use domain-specific Genie Spaces.**
 
@@ -54,279 +54,98 @@
 
 ## ████ SECTION D: DATA ASSETS ████
 
-### Metric Views (5 - One per Domain)
 
-| Metric View | Domain | Purpose | Key Measures |
-|-------------|--------|---------|--------------|
-| `cost_analytics` | 💰 Cost | Comprehensive cost metrics | total_cost, total_dbus, tag_coverage_percentage |
-| `job_performance` | 🔄 Reliability | Job execution metrics | success_rate, failure_rate, p95_duration |
-| `query_performance` | ⚡ Performance | Query execution metrics | avg_duration, p95_duration, sla_breach_rate |
-| `security_events` | 🔒 Security | Audit event metrics | total_events, failed_events, high_risk_events |
-| `data_quality` | ✅ Quality | Data quality metrics | quality_score, completeness, validity |
 
-**📌 Additional metric views available in domain-specific spaces:** `commit_tracking`, `cluster_utilization`, `cluster_efficiency`, `governance_analytics`, `ml_intelligence`
+### Metric Views (PRIMARY - Use First)
 
-### Table-Valued Functions (60 Total: 15 Cost + 12 Reliability + 21 Performance + 7 Security + 5 Quality)
+| Metric View Name | Purpose | Key Measures |
+|------------------|---------|--------------|
+| `mv_cost_analytics` | Comprehensive cost analytics | total_cost, total_dbus, cost_7d, cost_30d, serverless_percentage |
+| `mv_data_quality` | Data quality metrics | quality_score, freshness_score, completeness_score |
+| `mv_job_performance` | Job execution performance metrics | success_rate, failure_rate, avg_duration, p95_duration |
+| `mv_query_performance` | Query execution analytics | total_queries, avg_duration, p95_duration, cache_hit_rate |
+| `mv_security_events` | Security event monitoring | total_events, failed_events, risk_score |
 
-#### Cost TVFs (15)
-| Function | Purpose |
-|----------|---------|
-| `get_top_cost_contributors` | Top N by cost |
-| `get_cost_trend_by_sku` | Cost trend |
-| `get_cost_by_owner` | Chargeback |
-| `get_spend_by_custom_tags` | Tag allocation |
-| `get_tag_coverage` | Tag gaps |
-| `get_cost_week_over_week` | WoW comparison |
-| `get_cost_anomaly_analysis` | Anomaly detection |
-| `get_cost_forecast_summary` | Forecasting |
-| `get_cost_mtd_summary` | MTD summary |
-| `get_commit_vs_actual` | Commit tracking |
-| `get_cost_growth_analysis` | Growth drivers |
-| `get_cost_growth_by_period` | Period comparison |
-| `get_cost_efficiency_metrics` | Cost efficiency |
-| `get_cluster_cost_efficiency` | Cluster cost efficiency |
-| `get_storage_cost_analysis` | Storage costs |
+### Table-Valued Functions (41 TVFs)
 
-#### Reliability TVFs (12)
-| Function | Purpose |
-|----------|---------|
-| `get_failed_jobs` | Failed jobs |
-| `get_job_success_rate` | Success rates |
-| `get_job_duration_trends` | Duration trends |
-| `get_job_sla_compliance` | SLA tracking |
-| `get_job_failure_patterns` | Failure patterns |
-| `get_long_running_jobs` | Long running jobs |
-| `get_job_retry_analysis` | Retry patterns |
-| `get_job_duration_percentiles` | Duration percentiles |
-| `get_job_failure_cost` | Failure costs |
-| `get_pipeline_data_lineage` | Pipeline health |
-| `get_job_schedule_drift` | Schedule drift |
-| `get_repair_cost_analysis` | Repair costs |
+| Function Name | Purpose | When to Use |
+|---------------|---------|-------------|
+| `get_cluster_resource_metrics` | Cluster resource metrics | "cluster resources" |
+| `get_cluster_utilization` | Cluster utilization | "cluster utilization" |
+| `get_commit_vs_actual` | Commit tracking | "commit status" |
+| `get_cost_anomalies` | Cost anomaly detection | "cost anomalies" |
+| `get_cost_by_owner` | Cost allocation by owner | "cost by owner", "chargeback" |
+| `get_cost_forecast_summary` | Cost forecasting | "forecast", "predict" |
+| `get_cost_growth_analysis` | Cost growth analysis | "cost growth" |
+| `get_cost_growth_by_period` | Period-over-period growth | "period comparison" |
+| `get_cost_mtd_summary` | Month-to-date summary | "MTD cost" |
+| `get_cost_trend_by_sku` | Daily cost by SKU | "cost trend by SKU" |
+| `get_cost_week_over_week` | Weekly cost trends | "week over week" |
+| `get_data_quality_summary` | Data quality summary | "quality summary" |
+| `get_failed_jobs` | Failed job list | "failed jobs" |
+| `get_failed_queries` | Failed queries | "failed queries" |
+| `get_ip_address_analysis` | IP address analysis | "IP analysis" |
+| `get_job_duration_percentiles` | Duration percentiles | "job duration" |
+| `get_job_failure_costs` | Failure costs | "failure costs" |
+| `get_job_failure_trends` | Failure trends | "failure trends" |
+| `get_job_outlier_runs` | Outlier job runs | "outlier runs" |
+| `get_job_repair_costs` | Repair costs | "repair costs" |
+| `get_job_retry_analysis` | Retry analysis | "retry analysis" |
+| `get_job_sla_compliance` | SLA compliance | "SLA compliance" |
+| `get_job_success_rate` | Job success metrics | "success rate" |
+| `get_jobs_on_legacy_dbr` | Jobs on legacy DBR | "legacy DBR" |
+| `get_jobs_without_autoscaling` | Jobs without autoscaling | "autoscaling disabled" |
+| `get_permission_changes` | Permission changes | "permission changes" |
+| `get_pipeline_data_lineage` | Pipeline data lineage | "data lineage" |
+| `get_query_efficiency` | Query efficiency | "query efficiency" |
+| `get_query_latency_percentiles` | Query latency percentiles | "query latency" |
+| `get_query_volume_trends` | Query volume trends | "query volume" |
+| `get_security_events_timeline` | Security events timeline | "security events" |
+| `get_sensitive_table_access` | Sensitive table access | "sensitive access" |
+| `get_service_account_audit` | Service account audit | "service accounts" |
+| `get_slow_queries` | Slow query analysis | "slow queries" |
+| `get_spend_by_custom_tags` | Multi-tag cost analysis | "cost by tags" |
+| `get_table_freshness` | Table freshness | "table freshness" |
+| `get_tag_coverage` | Tag coverage metrics | "tag coverage" |
+| `get_top_cost_contributors` | Top N cost contributors | "top workspaces by cost" |
+| `get_underutilized_clusters` | Underutilized clusters | "underutilized" |
+| `get_user_activity_summary` | User activity summary | "user activity" |
+| `get_warehouse_utilization` | Warehouse utilization | "warehouse utilization" |
 
-#### Performance TVFs (21 - Query: 10, Cluster: 11)
-| Function | Purpose |
-|----------|---------|
-| **Query TVFs (10)** | |
-| `get_slow_queries` | Slow queries |
-| `get_query_latency_percentiles` | Latency stats |
-| `get_warehouse_utilization` | Warehouse metrics |
-| `get_query_volume_trends` | Volume trends |
-| `get_top_users_by_query_count` | User activity |
-| `get_query_efficiency_by_user` | User efficiency |
-| `get_query_queue_analysis` | Queue analysis |
-| `get_failed_queries_summary` | Failed queries |
-| `get_cache_hit_analysis` | Cache hits |
-| `get_spill_analysis` | Spill analysis |
-| **Cluster TVFs (11)** | |
-| `get_cluster_utilization` | Cluster metrics |
-| `get_cluster_resource_metrics` | Resource details |
-| `get_idle_clusters` | Underutilized |
-| `get_cluster_rightsizing_recommendations` | Right-sizing |
-| `get_autoscaling_disabled_jobs` | No autoscale |
-| `get_jobs_on_legacy_dbr` | Legacy DBR |
-| `get_cluster_cost_by_type` | Cluster costs |
-| `get_cluster_uptime_analysis` | Uptime |
-| `get_cluster_scaling_events` | Scaling events |
-| `get_cluster_efficiency_metrics` | Efficiency |
-| `get_node_utilization_by_cluster` | Node utilization |
+### ML Prediction Tables (2 Models)
 
-#### Security TVFs (7)
-| Function | Purpose |
-|----------|---------|
-| `get_user_activity` | User activity |
-| `get_pii_access_events` | Sensitive access |
-| `get_failed_access_attempts` | Failed access |
-| `get_permission_change_history` | Perm changes |
-| `get_off_hours_access` | Off-hours |
-| `get_ip_location_analysis` | IP analysis |
-| `get_service_account_activity` | Service accounts |
+| Table Name | Purpose | Model |
+|---|---|---|
+| `data_drift_predictions` | Data drift detection | Drift Detector |
+| `pipeline_health_predictions` | Pipeline health | Pipeline Health Monitor |
 
-#### Quality TVFs (5)
-| Function | Purpose |
-|----------|---------|
-| `get_table_freshness` | Stale tables |
-| `get_table_lineage` | Table lineage |
-| `get_table_activity_status` | Activity summary |
-| `get_data_lineage_summary` | Data lineage |
-| `get_pipeline_data_lineage` | Pipeline impact |
+### Lakehouse Monitoring Tables
 
-### ML Prediction Tables (5 - Key Anomaly & Health Tables)
+| Table Name | Purpose |
+|------------|---------|
+| `fact_audit_logs_profile_metrics` | Security event profile metrics |
+| `fact_job_run_timeline_profile_metrics` | Job execution profile metrics |
+| `fact_query_history_profile_metrics` | Query execution profile metrics |
 
-| Table Name | Domain | Purpose | Key Columns |
-|---|---|---|---|
-| `cost_anomaly_predictions` | 💰 Cost | Detect unusual spending patterns | `anomaly_score`, `is_anomaly`, `workspace_id` |
-| `job_failure_predictions` | 🔄 Reliability | Predict job failure probability | `failure_probability`, `will_fail`, `risk_factors` |
-| `pipeline_health_predictions` | 🔄 Reliability | Overall pipeline health (0-100) | `prediction`, `job_id`, `run_date` |
-| `security_anomaly_predictions` | 🔒 Security | Detect unusual access patterns | `threat_score`, `is_threat`, `user_identity` |
-| `data_drift_predictions` | ✅ Quality | Detect data drift/quality issues | `drift_score`, `is_drifted`, `table_name` |
+### Dimension Tables (4 Tables)
 
-**📌 Full ML model catalog (24 models) available in domain-specific spaces:**
-- **Cost (6):** cost_anomaly, budget_forecast, job_cost_optimizer, chargeback, commitment, tag_recommendations
-- **Reliability (5):** job_failure, duration, sla_breach, retry_success, pipeline_health
-- **Performance (7):** query_optimization (2 tables), cache_hit, job_duration, cluster_capacity, cluster_rightsizing, dbr_migration
-- **Security (4):** access_anomaly, user_risk_scores, access_classifications, off_hours_baseline
-- **Quality (2):** quality_anomaly, freshness_alert
+| Table Name | Purpose | Key Columns |
+|---|---|---|
+| `dim_job` | Job metadata | job_id, name, creator_id |
+| `dim_sku` | SKU reference | sku_name, sku_category, is_serverless |
+| `dim_user` | User details | user_id, user_name, email |
+| `dim_workspace` | Workspace details | workspace_id, workspace_name, region |
 
-### Lakehouse Monitoring Tables (5 - Profile Metrics Only)
+### Fact Tables (6 Tables)
 
-| Table | Domain | Key Custom Metrics |
-|-------|--------|---------|
-| `fact_usage_profile_metrics` | 💰 Cost | total_daily_cost, serverless_ratio, tag_coverage_pct |
-| `fact_job_run_timeline_profile_metrics` | 🔄 Reliability | success_rate, failure_count, p90_duration |
-| `fact_query_history_profile_metrics` | ⚡ Performance | p99_duration_ms, sla_breach_rate, queries_per_second |
-| `fact_audit_logs_profile_metrics` | 🔒 Security | sensitive_access_rate, failure_rate, off_hours_rate |
-| `fact_table_quality_profile_metrics` | ✅ Quality | quality_score, completeness_rate, validity_rate |
-
-**📌 Drift metrics (_drift_metrics) available in domain-specific spaces for trend analysis.**
-
-#### ⚠️ CRITICAL: Custom Metrics Query Patterns
-
-**ALL Lakehouse Monitoring tables require these filters:**
-
-```sql
--- ✅ REQUIRED for ALL _profile_metrics tables
-WHERE column_name = ':table'     -- Table-level custom metrics
-  AND log_type = 'INPUT'         -- Input data statistics
-  AND slice_key IS NULL          -- For overall metrics (or specify for slicing)
-
--- ✅ REQUIRED for ALL _drift_metrics tables  
-WHERE drift_type = 'CONSECUTIVE' -- Period-over-period comparison
-  AND column_name = ':table'     -- Table-level drift
-```
-
-#### Slicing Dimensions by Monitor
-
-| Monitor | Slice Keys |
-|---------|------------|
-| **Cost** | `workspace_id`, `sku_name`, `cloud`, `is_tagged`, `product_features_is_serverless` |
-| **Job** | `workspace_id`, `job_name`, `result_state`, `trigger_type`, `termination_code` |
-| **Query** | `workspace_id`, `compute_warehouse_id`, `execution_status`, `statement_type`, `executed_by` |
-| **Cluster** | `workspace_id`, `cluster_id`, `node_type`, `cluster_name`, `driver` |
-| **Security** | `workspace_id`, `service_name`, `audit_level`, `action_name`, `user_identity_email` |
-| **Quality** | `catalog_name`, `schema_name`, `table_name`, `has_critical_violations` |
-| **Governance** | `workspace_id`, `entity_type`, `created_by`, `source_catalog_name` |
-| **Inference** | `workspace_id`, `is_anomaly`, `anomaly_category` |
-
-### Gold Layer Tables (38 Total - from gold_layer_design/yaml/)
-
-#### 💰 Cost Tables (billing/)
-| Table | Purpose | YAML Source |
-|-------|---------|-------------|
-| `dim_sku` | SKU reference | billing/dim_sku.yaml |
-| `fact_usage` | Billing usage | billing/fact_usage.yaml |
-| `fact_account_prices` | Account pricing | billing/fact_account_prices.yaml |
-| `fact_list_prices` | List prices | billing/fact_list_prices.yaml |
-
-#### ⚡ Performance Tables (compute/, query_performance/)
-| Table | Purpose | YAML Source |
-|-------|---------|-------------|
-| `dim_cluster` | Cluster metadata | compute/dim_cluster.yaml |
-| `dim_node_type` | Node type specs | compute/dim_node_type.yaml |
-| `fact_node_timeline` | Node utilization | compute/fact_node_timeline.yaml |
-| `dim_warehouse` | Warehouse metadata | query_performance/dim_warehouse.yaml |
-| `fact_query_history` | Query history | query_performance/fact_query_history.yaml |
-| `fact_warehouse_events` | Warehouse events | query_performance/fact_warehouse_events.yaml |
-
-#### 🔄 Reliability Tables (lakeflow/)
-| Table | Purpose | YAML Source |
-|-------|---------|-------------|
-| `dim_job` | Job metadata | lakeflow/dim_job.yaml |
-| `dim_job_task` | Task metadata | lakeflow/dim_job_task.yaml |
-| `dim_pipeline` | Pipeline metadata | lakeflow/dim_pipeline.yaml |
-| `fact_job_run_timeline` | Job runs | lakeflow/fact_job_run_timeline.yaml |
-| `fact_job_task_run_timeline` | Task runs | lakeflow/fact_job_task_run_timeline.yaml |
-| `fact_pipeline_update_timeline` | Pipeline updates | lakeflow/fact_pipeline_update_timeline.yaml |
-
-#### 🔒 Security Tables (security/, governance/)
-| Table | Purpose | YAML Source |
-|-------|---------|-------------|
-| `fact_audit_logs` | Audit events | security/fact_audit_logs.yaml |
-| `fact_assistant_events` | AI assistant | security/fact_assistant_events.yaml |
-| `fact_clean_room_events` | Clean room ops | security/fact_clean_room_events.yaml |
-| `fact_inbound_network` | Inbound traffic | security/fact_inbound_network.yaml |
-| `fact_outbound_network` | Outbound traffic | security/fact_outbound_network.yaml |
-| `fact_table_lineage` | Data lineage | governance/fact_table_lineage.yaml |
-| `fact_column_lineage` | Column lineage | governance/fact_column_lineage.yaml |
-
-#### ✅ Quality Tables (data_classification/, data_quality_monitoring/, storage/, mlflow/, model_serving/, marketplace/)
-| Table | Purpose | YAML Source |
-|-------|---------|-------------|
-| `fact_data_classification` | Data classification | data_classification/fact_data_classification.yaml |
-| `fact_data_classification_results` | Classification results | data_classification/fact_data_classification_results.yaml |
-| `fact_dq_monitoring` | DQ monitoring | data_quality_monitoring/fact_dq_monitoring.yaml |
-| `fact_data_quality_monitoring_table_results` | Table DQ results | data_quality_monitoring/fact_data_quality_monitoring_table_results.yaml |
-| `fact_predictive_optimization` | Predictive opt | storage/fact_predictive_optimization.yaml |
-| `dim_experiment` | MLflow experiments | mlflow/dim_experiment.yaml |
-| `fact_mlflow_runs` | MLflow runs | mlflow/fact_mlflow_runs.yaml |
-| `fact_mlflow_run_metrics_history` | MLflow metrics | mlflow/fact_mlflow_run_metrics_history.yaml |
-| `dim_served_entities` | Model serving | model_serving/dim_served_entities.yaml |
-| `fact_endpoint_usage` | Endpoint usage | model_serving/fact_endpoint_usage.yaml |
-| `fact_payload_logs` | Payload logs | model_serving/fact_payload_logs.yaml |
-| `fact_listing_access` | Marketplace access | marketplace/fact_listing_access.yaml |
-| `fact_listing_funnel` | Marketplace funnel | marketplace/fact_listing_funnel.yaml |
-
-#### 🌐 Shared Tables (shared/)
-| Table | Purpose | YAML Source |
-|-------|---------|-------------|
-| `dim_workspace` | Workspace reference | shared/dim_workspace.yaml |
-| `dim_user` | User information | shared/dim_user.yaml |
-| `dim_date` | Date dimension for time analysis | shared/dim_date.yaml |
-
-### Data Model Relationships 🔗
-
-**Cross-Domain Foreign Key Constraints** (extracted from `gold_layer_design/yaml/`)
-
-#### 💰 Cost Domain Relationships
-| Fact Table | → | Dimension Table | Join Keys | Join Type |
-|------------|---|-----------------|-----------|-----------|
-| `fact_usage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_usage` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
-| `fact_usage` | → | `dim_cluster` | `(workspace_id, usage_metadata_cluster_id)` = `(workspace_id, cluster_id)` | LEFT |
-| `fact_usage` | → | `dim_job` | `(workspace_id, usage_metadata_job_id)` = `(workspace_id, job_id)` | LEFT |
-| `fact_account_prices` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
-| `fact_list_prices` | → | `dim_sku` | `sku_name` = `sku_name` | LEFT |
-
-#### 🔄 Reliability Domain Relationships
-| Fact Table | → | Dimension Table | Join Keys | Join Type |
-|------------|---|-----------------|-----------|-----------|
-| `fact_job_run_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_job_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
-| `fact_job_task_run_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_job_task_run_timeline` | → | `dim_job` | `(workspace_id, job_id)` = `(workspace_id, job_id)` | LEFT |
-| `fact_job_task_run_timeline` | → | `dim_job_task` | `(workspace_id, job_id, task_key)` = `(workspace_id, job_id, task_key)` | LEFT |
-| `fact_pipeline_update_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_pipeline_update_timeline` | → | `dim_pipeline` | `(workspace_id, pipeline_id)` = `(workspace_id, pipeline_id)` | LEFT |
-
-#### ⚡ Performance Domain Relationships
-| Fact Table | → | Dimension Table | Join Keys | Join Type |
-|------------|---|-----------------|-----------|-----------|
-| `fact_query_history` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_query_history` | → | `dim_warehouse` | `(workspace_id, warehouse_id)` = `(workspace_id, warehouse_id)` | LEFT |
-| `fact_warehouse_events` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_warehouse_events` | → | `dim_warehouse` | `(workspace_id, warehouse_id)` = `(workspace_id, warehouse_id)` | LEFT |
-| `fact_node_timeline` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_node_timeline` | → | `dim_cluster` | `(workspace_id, cluster_id)` = `(workspace_id, cluster_id)` | LEFT |
-| `fact_node_timeline` | → | `dim_node_type` | `node_type_id` = `node_type_id` | LEFT |
-
-#### 🔒 Security Domain Relationships
-| Fact Table | → | Dimension Table | Join Keys | Join Type |
-|------------|---|-----------------|-----------|-----------|
-| `fact_audit_logs` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_audit_logs` | → | `dim_user` | `user_identity_email` = `email` | LEFT |
-| `fact_table_lineage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-
-#### ✅ Quality Domain Relationships
-| Fact Table | → | Dimension Table | Join Keys | Join Type |
-|------------|---|-----------------|-----------|-----------|
-| `fact_mlflow_runs` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_mlflow_runs` | → | `dim_experiment` | `(workspace_id, experiment_id)` = `(workspace_id, experiment_id)` | LEFT |
-| `fact_endpoint_usage` | → | `dim_workspace` | `workspace_id` = `workspace_id` | LEFT |
-| `fact_endpoint_usage` | → | `dim_served_entities` | `(workspace_id, endpoint_id)` = `(workspace_id, endpoint_id)` | LEFT |
-
-**Join Patterns:**
-- **Single Key:** `ON fact.key = dim.key`
-- **Composite Key (workspace-scoped):** `ON fact.workspace_id = dim.workspace_id AND fact.fk = dim.pk`
-- **Three-Part Key (task-level):** `ON fact.workspace_id = dim.workspace_id AND fact.job_id = dim.job_id AND fact.task_key = dim.task_key`
+| Table Name | Purpose | Grain |
+|---|---|---|
+| `fact_audit_logs` | Security audit logs | Per audit event |
+| `fact_job_run_timeline` | Job execution history | Per job run |
+| `fact_node_timeline` | Cluster node usage | Per node per interval |
+| `fact_query_history` | Query execution history | Per query execution |
+| `fact_table_lineage` | Table lineage | Per lineage relationship |
+| `fact_usage` | Primary billing usage | Daily usage by workspace/SKU |
 
 ---
 
@@ -591,730 +410,374 @@ QUERY DOMAIN                    ML MODEL                    TRIGGER WORDS
 ## ████ SECTION H: BENCHMARK QUESTIONS WITH SQL ████
 
 > **TOTAL: 25 Questions (20 Normal + 5 Deep Research)**
-> **Grounded in:** All 11 Metric Views, TVFs across all domains, ML Tables
 
 ### ✅ Normal Benchmark Questions (Q1-Q20)
 
-### Question 1: "What is our total spend this month?"
+### Question 1: "Show platform health summary"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(total_cost) as mtd_cost
-FROM ${catalog}.${gold_schema}.mv_cost_analytics
-WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE());
+SELECT * FROM TABLE(get_platform_health_summary()) LIMIT 20;
 ```
-**Expected Result:** Month-to-date cost across all workspaces and SKUs
 
 ---
 
-### Question 2: "What is our job success rate?"
+### Question 2: "List critical alerts"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(success_rate) as success_pct
-FROM ${catalog}.${gold_schema}.mv_job_performance
-WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT * FROM TABLE(get_critical_alerts(7)) LIMIT 20;
 ```
-**Expected Result:** Overall job execution success rate
 
 ---
 
-### Question 3: "What is the P95 query duration?"
+### Question 3: "Show cost anomalies"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(p95_duration_seconds) as p95_sec
-FROM ${catalog}.${gold_schema}.mv_query_performance
-WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT * FROM TABLE(get_cost_anomalies(7)) LIMIT 20;
 ```
-**Expected Result:** 95th percentile query latency for performance SLA
 
 ---
 
-### Question 4: "What is the security event success rate?"
+### Question 4: "Show performance issues"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(success_rate) as auth_success_pct
-FROM ${catalog}.${gold_schema}.mv_security_events
-WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT * FROM TABLE(get_performance_issues(7)) LIMIT 20;
 ```
-**Expected Result:** Authentication/authorization success rate
 
 ---
 
-### Question 5: "What is our data quality score?"
+### Question 5: "List security alerts"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(quality_score) as overall_quality
-FROM ${catalog}.${gold_schema}.mv_data_quality
-WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT * FROM TABLE(get_security_alerts(7)) LIMIT 20;
 ```
-**Expected Result:** Overall data quality health score (0-100)
 
 ---
 
-### Question 6: "Show me top cost drivers"
+### Question 6: "Show job failures"
 **Expected SQL:**
 ```sql
-SELECT 
-  sku_name,
-  MEASURE(total_cost) as cost
-FROM ${catalog}.${gold_schema}.mv_cost_analytics
-WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-GROUP BY sku_name
-ORDER BY cost DESC
-LIMIT 10;
+SELECT * FROM TABLE(get_failed_jobs(7)) LIMIT 20;
 ```
-**Expected Result:** Top 10 SKUs by spend for optimization focus
 
 ---
 
-### Question 7: "Show me failed jobs today"
+### Question 7: "List quality issues"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_failed_jobs(
-  1
-))
-ORDER BY failure_rate DESC
-LIMIT 20;
+SELECT * FROM TABLE(get_data_quality_issues(7)) LIMIT 20;
 ```
-**Expected Result:** Today's failed jobs with failure details
 
 ---
 
-### Question 8: "Show me slow queries"
+### Question 8: "Show workspace health"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_slow_queries(
-  1,
-  30
-))
-ORDER BY duration_seconds DESC
-LIMIT 20;
+SELECT * FROM TABLE(get_workspace_health()) LIMIT 20;
 ```
-**Expected Result:** Queries exceeding 30-second threshold
 
 ---
 
-### Question 9: "Show me security threats"
+### Question 9: "Show platform overview metrics"
 **Expected SQL:**
 ```sql
-SELECT 
-  user_identity,
-  prediction as threat_score
-FROM ${catalog}.${feature_schema}.security_anomaly_predictions
-WHERE prediction < -0.5
-ORDER BY prediction ASC
-LIMIT 20;
+SELECT * FROM mv_platform_health LIMIT 20;
 ```
-**Expected Result:** ML-detected security anomalies
 
 ---
 
-### Question 10: "Show me stale tables"
+### Question 10: "Overall platform health score"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_table_freshness(
-  7
-))
-WHERE freshness_status IN ('STALE', 'CRITICAL')
-ORDER BY hours_since_update DESC
-LIMIT 20;
+SELECT AVG(health_score) as avg_health FROM mv_platform_health;
 ```
-**Expected Result:** Tables with freshness issues
 
 ---
 
-### Question 11: "What is our cluster utilization?"
+### Question 11: "Workspaces by health score"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(avg_cpu_utilization) as cpu_pct
-FROM ${catalog}.${gold_schema}.mv_cluster_utilization
-WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT workspace_name, health_score FROM mv_platform_health ORDER BY health_score ASC LIMIT 10;
 ```
-**Expected Result:** Average CPU utilization across all clusters
 
 ---
 
-### Question 12: "Show me commit utilization"
+### Question 12: "Top issues by severity"
 **Expected SQL:**
 ```sql
-SELECT 
-  commit_type,
-  MEASURE(utilization_rate) as usage_pct
-FROM ${catalog}.${gold_schema}.mv_commit_tracking
-WHERE usage_month = DATE_TRUNC('month', CURRENT_DATE())
-GROUP BY commit_type
-ORDER BY usage_pct DESC;
+SELECT issue_type, severity, COUNT(*) as count FROM mv_platform_health GROUP BY issue_type, severity LIMIT 10;
 ```
-**Expected Result:** Commitment usage rates for capacity planning
 
 ---
 
-### Question 13: "Show me warehouse utilization"
+### Question 13: "Show health predictions"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_warehouse_utilization(
-  7
-))
-ORDER BY query_count DESC
-LIMIT 10;
+SELECT * FROM platform_health_predictions ORDER BY prediction DESC LIMIT 20;
 ```
-**Expected Result:** Warehouse-level query volumes and concurrency
 
 ---
 
-### Question 14: "What is the DLT pipeline health?"
+### Question 14: "Predict outage risk"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_pipeline_data_lineage(
-  7
-))
-ORDER BY success_rate ASC
-LIMIT 10;
+SELECT * FROM outage_risk_predictions WHERE prediction > 0.5 LIMIT 20;
 ```
-**Expected Result:** DLT pipeline execution success rates and health metrics
 
 ---
 
-### Question 15: "Show me underutilized clusters"
+### Question 15: "Show capacity predictions"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_idle_clusters(
-  30
-))
-WHERE avg_cpu_pct < 30
-ORDER BY potential_savings DESC
-LIMIT 15;
+SELECT * FROM capacity_predictions ORDER BY prediction DESC LIMIT 20;
 ```
-**Expected Result:** Clusters with low utilization and savings opportunities
 
 ---
 
-### Question 16: "Show me high-risk events"
+### Question 16: "Show usage profile metrics"
 **Expected SQL:**
 ```sql
-SELECT 
-  user_email,
-  action_category,
-  MEASURE(high_risk_events) as risk_count
-FROM ${catalog}.${gold_schema}.mv_security_events
-WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  AND risk_level = 'HIGH'
-GROUP BY user_email, action_category
-ORDER BY risk_count DESC
-LIMIT 15;
+SELECT * FROM fact_usage_profile_metrics WHERE log_type = 'INPUT' LIMIT 20;
 ```
-**Expected Result:** High-risk security events requiring attention
 
 ---
 
-### Question 17: "Show me tables failing quality checks"
+### Question 17: "Show usage drift metrics"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_table_freshness(
-  7
-))
-ORDER BY failed_checks DESC, quality_score ASC
-LIMIT 20;
+SELECT * FROM fact_usage_drift_metrics LIMIT 20;
 ```
-**Expected Result:** Tables with failed data quality validations
 
 ---
 
-### Question 18: "What is our tag coverage?"
+### Question 18: "Show platform usage"
 **Expected SQL:**
 ```sql
-SELECT MEASURE(tag_coverage_percentage) as coverage_pct
-FROM ${catalog}.${gold_schema}.mv_cost_analytics
-WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS;
+SELECT workspace_id, sku_name, usage_quantity FROM fact_usage ORDER BY usage_date DESC LIMIT 20;
 ```
-**Expected Result:** Percentage of resources with cost allocation tags
 
 ---
 
-### Question 19: "Show me pipeline health scores"
+### Question 19: "Show job run history"
 **Expected SQL:**
 ```sql
-SELECT 
-  pipeline_name,
-  prediction as health_score
-FROM ${catalog}.${feature_schema}.pipeline_health_predictions
-WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-ORDER BY prediction ASC
-LIMIT 20;
+SELECT job_name, result_state, run_duration_seconds FROM fact_job_run_timeline ORDER BY period_start_time DESC LIMIT 20;
 ```
-**Expected Result:** ML-predicted pipeline health scores
 
 ---
 
-### Question 20: "Show me cluster right-sizing recommendations"
+### Question 20: "List workspaces"
 **Expected SQL:**
 ```sql
-SELECT * FROM get_cluster_rightsizing_recommendations(
-  30
-))
-ORDER BY potential_savings DESC
-LIMIT 15;
+SELECT workspace_id, workspace_name FROM dim_workspace ORDER BY workspace_name LIMIT 20;
 ```
-**Expected Result:** ML-powered cluster sizing recommendations with cost impact
 
 ---
 
 ### 🔬 Deep Research Questions (Q21-Q25)
 
-### Question 21: "🔬 DEEP RESEARCH: Platform health overview - combine cost, performance, reliability, security, and quality KPIs"
+### Question 21: "🔬 DEEP RESEARCH: Comprehensive platform health analysis"
 **Expected SQL:**
 ```sql
-WITH cost_health AS (
-  SELECT 
-    MEASURE(total_cost) as total_spend,
-    MEASURE(cost_7d) as cost_7d,
-    MEASURE(cost_30d) as cost_30d,
-    MEASURE(tag_coverage_percentage) as tag_coverage
-  FROM ${catalog}.${gold_schema}.mv_cost_analytics
-  WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-),
-job_health AS (
-  SELECT 
-    MEASURE(success_rate) as job_success_rate,
-    MEASURE(failure_rate) as job_failure_rate,
-    MEASURE(total_runs) as total_job_runs
-  FROM ${catalog}.${gold_schema}.mv_job_performance
-  WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-),
-query_health AS (
-  SELECT 
-    MEASURE(p95_duration_seconds) as p95_latency,
-    MEASURE(sla_breach_rate) as sla_breach_pct,
-    MEASURE(cache_hit_rate) as cache_pct
-  FROM ${catalog}.${gold_schema}.mv_query_performance
-  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-),
-security_health AS (
-  SELECT 
-    MEASURE(success_rate) as auth_success_rate,
-    MEASURE(high_risk_events) as high_risk_count,
-    MEASURE(unique_users) as active_users
-  FROM ${catalog}.${gold_schema}.mv_security_events
-  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-),
-quality_health AS (
-  SELECT 
-    MEASURE(quality_score) as data_quality,
-    MEASURE(freshness_rate) as freshness_pct,
-    MEASURE(staleness_rate) as staleness_pct
-  FROM ${catalog}.${gold_schema}.mv_data_quality
-  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-),
-cluster_health AS (
-  SELECT 
-    MEASURE(avg_cpu_utilization) as avg_cpu,
-    MEASURE(efficiency_score) as efficiency
-  FROM ${catalog}.${gold_schema}.mv_cluster_utilization
-  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-)
-SELECT 
-  ch.total_spend,
-  ch.cost_7d,
-  ch.tag_coverage,
-  jh.job_success_rate,
-  jh.job_failure_rate,
-  jh.total_job_runs,
-  qh.p95_latency,
-  qh.sla_breach_pct,
-  qh.cache_pct,
-  sh.auth_success_rate,
-  sh.high_risk_count,
-  sh.active_users,
-  quh.data_quality,
-  quh.freshness_pct,
-  quh.staleness_pct,
-  clh.avg_cpu,
-  clh.efficiency,
-  CASE 
-    WHEN jh.job_failure_rate > 10 OR qh.sla_breach_pct > 5 THEN 'Critical - Reliability Issues'
-    WHEN sh.high_risk_count > 20 OR sh.auth_success_rate < 95 THEN 'Critical - Security Concerns'
-    WHEN quh.data_quality < 70 OR quh.staleness_pct > 20 THEN 'Critical - Data Quality Crisis'
-    WHEN ch.cost_7d * 30 > ch.cost_30d * 1.2 THEN 'Warning - Cost Spike Detected'
-    WHEN qh.cache_pct > 80 AND jh.job_success_rate > 95 AND quh.data_quality >= 90 THEN 'Excellent Health'
-    ELSE 'Normal'
-  END as overall_platform_health,
-  CASE 
-    WHEN jh.job_failure_rate > 10 THEN 'Investigate job failures immediately'
-    WHEN qh.sla_breach_pct > 5 THEN 'Optimize slow queries and warehouse sizing'
-    WHEN sh.high_risk_count > 20 THEN 'Review security events and threats'
-    WHEN quh.staleness_pct > 20 THEN 'Fix data pipeline freshness issues'
-    WHEN ch.cost_7d * 30 > ch.cost_30d * 1.2 THEN 'Analyze cost drivers and right-size resources'
-    WHEN clh.avg_cpu < 40 THEN 'Downsize underutilized clusters'
-    ELSE 'Continue monitoring'
-  END as top_priority_action
-FROM cost_health ch
-CROSS JOIN job_health jh
-CROSS JOIN query_health qh
-CROSS JOIN security_health sh
-CROSS JOIN quality_health quh
-CROSS JOIN cluster_health clh;
+SELECT workspace_name, health_score,
+       CASE WHEN health_score < 70 THEN 'Critical'
+            WHEN health_score < 85 THEN 'Warning' ELSE 'Healthy' END as status
+FROM mv_platform_health
+ORDER BY health_score ASC LIMIT 15;
 ```
-**Expected Result:** Executive platform health dashboard with cross-domain KPIs and prioritized actions
 
 ---
 
-### Question 22: "🔬 DEEP RESEARCH: Cost optimization opportunities - combine underutilized clusters, right-sizing, and tagging gaps"
+### Question 22: "🔬 DEEP RESEARCH: Cross-domain issue correlation"
 **Expected SQL:**
 ```sql
-WITH underutilized AS (
-  SELECT
-    cluster_name,
-    avg_cpu_pct,
-    potential_savings as savings_from_underutilization
-  FROM get_idle_clusters(30))
-  WHERE avg_cpu_pct < 30
-),
-rightsizing AS (
-  SELECT
-    cluster_name,
-    current_size,
-    recommended_size,
-    potential_savings as savings_from_rightsizing
-  FROM get_cluster_rightsizing_recommendations(30))
-  WHERE recommended_action != 'NO_CHANGE'
-),
-untagged AS (
-  SELECT 
-    workspace_name,
-    SUM(MEASURE(total_cost)) as untagged_cost
-  FROM ${catalog}.${gold_schema}.mv_cost_analytics
-  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-      AND tag_team IS NULL
-  GROUP BY workspace_name
-),
-autoscaling_gaps AS (
-  SELECT
-    job_name,
-    estimated_savings
-  FROM get_autoscaling_disabled_jobs(30))
-),
-legacy_dbr AS (
-  SELECT
-    COUNT(*) as legacy_job_count
-  FROM get_jobs_on_legacy_dbr(30))
-)
-SELECT 
-  COALESCE(SUM(u.savings_from_underutilization), 0) as savings_underutil,
-  COALESCE(SUM(r.savings_from_rightsizing), 0) as savings_rightsize,
-  COALESCE(SUM(ut.untagged_cost * 0.1), 0) as estimated_waste_from_untagged,
-  COALESCE(SUM(ag.estimated_savings), 0) as savings_autoscaling,
-  ld.legacy_job_count,
-  COALESCE(SUM(u.savings_from_underutilization), 0) + 
-  COALESCE(SUM(r.savings_from_rightsizing), 0) + 
-  COALESCE(SUM(ag.estimated_savings), 0) as total_monthly_savings_potential,
-  CASE 
-    WHEN COALESCE(SUM(u.savings_from_underutilization), 0) + COALESCE(SUM(r.savings_from_rightsizing), 0) > 10000 THEN 'Critical - Immediate Right-Sizing Required'
-    WHEN COALESCE(SUM(ut.untagged_cost), 0) > 5000 THEN 'High - Improve Tagging for Accountability'
-    WHEN ld.legacy_job_count > 20 THEN 'Medium - Modernize Legacy DBR Jobs'
-    ELSE 'Low - Continue Monitoring'
-  END as optimization_priority,
-  ARRAY(
-    CASE WHEN COALESCE(SUM(u.savings_from_underutilization), 0) > 5000 THEN 'Downsize or terminate underutilized clusters' END,
-    CASE WHEN COALESCE(SUM(r.savings_from_rightsizing), 0) > 5000 THEN 'Apply ML right-sizing recommendations' END,
-    CASE WHEN COALESCE(SUM(ut.untagged_cost), 0) > 5000 THEN 'Implement tagging policy and governance' END,
-    CASE WHEN COALESCE(SUM(ag.estimated_savings), 0) > 2000 THEN 'Enable autoscaling on fixed-size jobs' END,
-    CASE WHEN ld.legacy_job_count > 20 THEN 'Migrate to latest DBR versions' END
-  ) as recommended_actions
-FROM underutilized u
-FULL OUTER JOIN rightsizing r ON u.cluster_name = r.cluster_name
-FULL OUTER JOIN untagged ut ON 1=1
-FULL OUTER JOIN autoscaling_gaps ag ON 1=1
-CROSS JOIN legacy_dbr ld;
+SELECT ws.workspace_name, 
+       COUNT(DISTINCT j.job_id) as job_count,
+       SUM(u.usage_quantity) as total_usage
+FROM dim_workspace ws
+LEFT JOIN fact_job_run_timeline j ON ws.workspace_id = j.workspace_id
+LEFT JOIN fact_usage u ON ws.workspace_id = u.workspace_id
+GROUP BY ws.workspace_name
+ORDER BY total_usage DESC LIMIT 15;
 ```
-**Expected Result:** Comprehensive cost optimization analysis with quantified savings across multiple dimensions
 
 ---
 
-### Question 23: "🔬 DEEP RESEARCH: Security and compliance posture - correlate access anomalies with high-risk users and sensitive data access"
+### Question 23: "🔬 DEEP RESEARCH: Outage risk assessment"
 **Expected SQL:**
 ```sql
-WITH access_anomalies AS (
-  SELECT 
-    user_identity,
-    COUNT(*) as anomaly_count,
-    MIN(prediction) as worst_threat_score
-  FROM ${catalog}.${feature_schema}.security_anomaly_predictions
-  WHERE prediction < -0.3
-    AND event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY user_identity
-),
-user_risk AS (
-  SELECT 
-    user_identity,
-    AVG(prediction) as avg_risk_level
-  FROM ${catalog}.${feature_schema}.user_risk_scores
-  WHERE prediction >= 3
-    AND evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY user_identity
-),
-sensitive_access AS (
-  SELECT
-    user_identity,
-    COUNT(DISTINCT table_name) as sensitive_table_count,
-    SUM(access_count) as total_sensitive_access
-  FROM get_pii_access_events(
-    7
-  ))
-  GROUP BY user_identity
-),
-failed_attempts AS (
-  SELECT 
-    user_email as user_identity,
-    MEASURE(failed_events) as failed_count
-  FROM ${catalog}.${gold_schema}.mv_security_events
-  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY user_email
-),
-off_hours AS (
-  SELECT
-    user_identity,
-    COUNT(*) as off_hours_events
-  FROM get_off_hours_access(
-    7
-  ))
-  GROUP BY user_identity
-)
-SELECT 
-  COALESCE(aa.user_identity, ur.user_identity, sa.user_identity) as user,
-  COALESCE(aa.anomaly_count, 0) as detected_anomalies,
-  COALESCE(aa.worst_threat_score, 0) as threat_score,
-  COALESCE(ur.avg_risk_level, 0) as risk_level,
-  COALESCE(sa.sensitive_table_count, 0) as sensitive_tables_accessed,
-  COALESCE(sa.total_sensitive_access, 0) as sensitive_access_count,
-  COALESCE(fa.failed_count, 0) as recent_failures,
-  COALESCE(oh.off_hours_events, 0) as off_hours_activity,
-  CASE 
-    WHEN COALESCE(aa.anomaly_count, 0) > 5 AND COALESCE(ur.avg_risk_level, 0) >= 4 THEN 'Critical - Immediate Investigation'
-    WHEN COALESCE(sa.sensitive_table_count, 0) > 20 AND COALESCE(ur.avg_risk_level, 0) >= 3 THEN 'High - Review Sensitive Access'
-    WHEN COALESCE(oh.off_hours_events, 0) > 50 AND COALESCE(fa.failed_count, 0) > 10 THEN 'High - Suspicious Activity Pattern'
-    WHEN COALESCE(ur.avg_risk_level, 0) >= 3 THEN 'Medium - Elevated Risk'
-    ELSE 'Normal'
-  END as security_status,
-  CASE 
-    WHEN COALESCE(aa.anomaly_count, 0) > 5 THEN 'Contain and investigate anomalous behavior'
-    WHEN COALESCE(sa.sensitive_table_count, 0) > 20 THEN 'Audit sensitive data access permissions'
-    WHEN COALESCE(oh.off_hours_events, 0) > 50 THEN 'Review off-hours activity justification'
-    WHEN COALESCE(fa.failed_count, 0) > 10 THEN 'Investigate repeated access failures'
-    ELSE 'Continue monitoring'
-  END as recommended_action
-FROM access_anomalies aa
-FULL OUTER JOIN user_risk ur ON aa.user_identity = ur.user_identity
-FULL OUTER JOIN sensitive_access sa ON COALESCE(aa.user_identity, ur.user_identity) = sa.user_identity
-FULL OUTER JOIN failed_attempts fa ON COALESCE(aa.user_identity, ur.user_identity) = fa.user_identity
-FULL OUTER JOIN off_hours oh ON COALESCE(aa.user_identity, ur.user_identity) = oh.user_identity
-WHERE COALESCE(aa.anomaly_count, 0) > 0 
-   OR COALESCE(ur.avg_risk_level, 0) >= 3
-   OR COALESCE(sa.sensitive_table_count, 0) > 10
-ORDER BY 
-  COALESCE(aa.anomaly_count, 0) DESC,
-  COALESCE(ur.avg_risk_level, 0) DESC,
-  COALESCE(sa.total_sensitive_access, 0) DESC
-LIMIT 25;
+SELECT or_p.workspace_id, or_p.prediction as outage_risk,
+       CASE WHEN or_p.prediction > 0.7 THEN 'High Risk'
+            WHEN or_p.prediction > 0.4 THEN 'Medium Risk' ELSE 'Low Risk' END as risk_level
+FROM outage_risk_predictions or_p
+ORDER BY or_p.prediction DESC LIMIT 15;
 ```
-**Expected Result:** Comprehensive security posture analysis correlating multiple risk factors with prioritized remediation
 
 ---
 
-### Question 24: "🔬 DEEP RESEARCH: Data platform reliability - correlate job failures with pipeline health, query performance, and data quality"
+### Question 24: "🔬 DEEP RESEARCH: Capacity planning analysis"
 **Expected SQL:**
 ```sql
-WITH job_failures AS (
-  SELECT
-    job_name,
-    failure_rate,
-    avg_duration_minutes,
-    failure_count
-  FROM get_failed_jobs(7))
-  WHERE failure_rate > 5
-),
-pipeline_health AS (
-  SELECT 
-    j.job_name as pipeline_name,
-    AVG(ph.prediction) as avg_health_score
-  FROM ${catalog}.${feature_schema}.pipeline_health_predictions ph
-  JOIN ${catalog}.${gold_schema}.dim_job j ON ph.job_id = j.job_id
-  WHERE ph.evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY j.job_name
-),
-query_performance AS (
-  SELECT 
-    warehouse_name,
-    MEASURE(p95_duration_seconds) as p95_latency,
-    MEASURE(sla_breach_rate) as sla_breach_pct
-  FROM ${catalog}.${gold_schema}.mv_query_performance
-  WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY warehouse_name
-),
-data_quality AS (
-  SELECT 
-    domain,
-    MEASURE(quality_score) as avg_quality,
-    MEASURE(staleness_rate) as staleness_pct
-  FROM ${catalog}.${gold_schema}.mv_data_quality
-  WHERE evaluation_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY domain
-),
-cluster_utilization AS (
-  SELECT 
-    cluster_name,
-    MEASURE(avg_cpu_utilization) as cpu_pct
-  FROM ${catalog}.${gold_schema}.mv_cluster_utilization
-  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-  GROUP BY cluster_name
-)
-SELECT 
-  jf.job_name,
-  jf.failure_rate,
-  jf.failure_count,
-  jf.avg_duration_minutes,
-  COALESCE(ph.avg_health_score, 0) as ml_health_score,
-  COALESCE(AVG(qp.p95_latency), 0) as warehouse_p95_latency,
-  COALESCE(AVG(qp.sla_breach_pct), 0) as warehouse_sla_breach,
-  COALESCE(AVG(dq.avg_quality), 100) as related_data_quality,
-  COALESCE(AVG(dq.staleness_pct), 0) as data_staleness,
-  COALESCE(AVG(cu.cpu_pct), 0) as cluster_cpu_utilization,
-  CASE 
-    WHEN jf.failure_rate > 20 AND COALESCE(ph.avg_health_score, 100) < 60 THEN 'Critical - Pipeline Failing with Low Health Score'
-    WHEN COALESCE(AVG(dq.staleness_pct), 0) > 30 AND jf.failure_rate > 10 THEN 'High - Data Freshness Causing Failures'
-    WHEN COALESCE(AVG(qp.sla_breach_pct), 0) > 10 AND jf.failure_rate > 10 THEN 'High - Query Performance Impacting Jobs'
-    WHEN COALESCE(AVG(cu.cpu_pct), 0) > 85 THEN 'Medium - Resource Contention'
-    ELSE 'Low - Isolated Job Issue'
-  END as root_cause_category,
-  CASE 
-    WHEN COALESCE(ph.avg_health_score, 100) < 60 THEN 'Review pipeline configuration and dependencies'
-    WHEN COALESCE(AVG(dq.staleness_pct), 0) > 30 THEN 'Fix upstream data freshness issues'
-    WHEN COALESCE(AVG(qp.sla_breach_pct), 0) > 10 THEN 'Optimize queries or increase warehouse capacity'
-    WHEN COALESCE(AVG(cu.cpu_pct), 0) > 85 THEN 'Scale cluster or reduce concurrency'
-    ELSE 'Debug specific job code/logic'
-  END as recommended_action
-FROM job_failures jf
-LEFT JOIN pipeline_health ph ON jf.job_name = ph.pipeline_name
-LEFT JOIN query_performance qp ON 1=1
-LEFT JOIN data_quality dq ON 1=1
-LEFT JOIN cluster_utilization cu ON 1=1
-GROUP BY 
-  jf.job_name, jf.failure_rate, jf.failure_count, jf.avg_duration_minutes, ph.avg_health_score
-ORDER BY 
-  jf.failure_rate DESC,
-  COALESCE(ph.avg_health_score, 100) ASC
-LIMIT 20;
+SELECT cp.workspace_id, cp.prediction as capacity_forecast
+FROM capacity_predictions cp
+ORDER BY cp.prediction DESC LIMIT 15;
 ```
-**Expected Result:** Reliability analysis correlating job failures with infrastructure, performance, and data quality factors
 
 ---
 
-### Question 25: "🔬 DEEP RESEARCH: Executive FinOps dashboard - cost trends, efficiency, commit utilization, and optimization opportunities"
+### Question 25: "🔬 DEEP RESEARCH: Platform health trending"
 **Expected SQL:**
 ```sql
-WITH cost_trends AS (
-  SELECT 
-    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN MEASURE(total_cost) ELSE 0 END) as cost_7d,
-    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS THEN MEASURE(total_cost) ELSE 0 END) as cost_30d,
-    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN MEASURE(total_cost) ELSE 0 END) as cost_mtd,
-    AVG(MEASURE(tag_coverage_percentage)) as avg_tag_coverage
-  FROM ${catalog}.${gold_schema}.mv_cost_analytics
-),
-cost_by_domain AS (
-  SELECT 
-    domain,
-    SUM(MEASURE(total_cost)) as domain_cost
-  FROM ${catalog}.${gold_schema}.mv_cost_analytics
-  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS
-  GROUP BY domain
-  ORDER BY domain_cost DESC
-  LIMIT 5
-),
-commit_status AS (
-  SELECT 
-    commit_type,
-    MEASURE(utilization_rate) as usage_pct,
-    MEASURE(remaining_dbu) as remaining_capacity
-  FROM ${catalog}.${gold_schema}.mv_commit_tracking
-  WHERE usage_month = DATE_TRUNC('month', CURRENT_DATE())
-  GROUP BY commit_type
-),
-efficiency AS (
-  SELECT 
-    AVG(MEASURE(avg_cpu_utilization)) as avg_cpu_util,
-    AVG(MEASURE(efficiency_score)) as avg_efficiency
-  FROM ${catalog}.${gold_schema}.mv_cluster_utilization
-  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-),
-optimization_potential AS (
-  SELECT
-    SUM(potential_savings) as total_savings_potential
-  FROM get_cluster_rightsizing_recommendations(30))
-  WHERE recommended_action != 'NO_CHANGE'
-),
-serverless_adoption AS (
-  SELECT 
-    MEASURE(serverless_percentage) as serverless_pct
-  FROM ${catalog}.${gold_schema}.mv_cost_analytics
-  WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS
-)
-SELECT 
-  ct.cost_7d,
-  ct.cost_30d,
-  ct.cost_mtd,
-  ct.cost_7d * 30 as projected_monthly_cost,
-  ct.avg_tag_coverage,
-  COALESCE(STRING_AGG(cbd.domain || ': $' || CAST(cbd.domain_cost as STRING), ', '), 'N/A') as top_5_cost_domains,
-  COALESCE(AVG(cs.usage_pct), 0) as avg_commit_utilization,
-  COALESCE(SUM(cs.remaining_capacity), 0) as total_remaining_commit,
-  ef.avg_cpu_util,
-  ef.avg_efficiency,
-  COALESCE(op.total_savings_potential, 0) as monthly_optimization_potential,
-  sa.serverless_pct,
-  CASE 
-    WHEN ct.cost_7d * 30 > ct.cost_30d * 1.3 THEN 'Critical - Cost Spike Detected'
-    WHEN COALESCE(AVG(cs.usage_pct), 0) < 70 THEN 'Warning - Under-Utilizing Commitments'
-    WHEN ef.avg_cpu_util < 40 THEN 'Warning - Resource Inefficiency'
-    WHEN COALESCE(op.total_savings_potential, 0) > 10000 THEN 'High - Significant Optimization Opportunity'
-    WHEN sa.serverless_pct < 30 THEN 'Medium - Low Serverless Adoption'
-    ELSE 'Healthy FinOps Posture'
-  END as finops_health_status,
-  CASE 
-    WHEN ct.cost_7d * 30 > ct.cost_30d * 1.3 THEN 'Investigate cost spike drivers and implement controls'
-    WHEN COALESCE(AVG(cs.usage_pct), 0) < 70 THEN 'Increase workload on committed capacity'
-    WHEN ef.avg_cpu_util < 40 THEN 'Right-size clusters and consolidate workloads'
-    WHEN COALESCE(op.total_savings_potential, 0) > 10000 THEN 'Apply ML right-sizing recommendations'
-    WHEN sa.serverless_pct < 30 THEN 'Migrate eligible workloads to serverless'
-    WHEN ct.avg_tag_coverage < 80 THEN 'Implement tagging policy for cost allocation'
-    ELSE 'Continue monitoring and optimizing'
-  END as top_priority_action
-FROM cost_trends ct
-CROSS JOIN cost_by_domain cbd
-CROSS JOIN commit_status cs
-CROSS JOIN efficiency ef
-CROSS JOIN optimization_potential op
-CROSS JOIN serverless_adoption sa
-GROUP BY 
-  ct.cost_7d, ct.cost_30d, ct.cost_mtd, ct.avg_tag_coverage,
-  ef.avg_cpu_util, ef.avg_efficiency, op.total_savings_potential, sa.serverless_pct;
+SELECT * FROM fact_usage_drift_metrics
+ORDER BY drift_score DESC LIMIT 15;
 ```
-**Expected Result:** Executive FinOps dashboard with cost trends, efficiency, commit utilization, and actionable optimization recommendations
+
+
+
+## H. Benchmark Questions with SQL
+
+**Total Benchmarks: 24**
+- TVF Questions: 8
+- Metric View Questions: 9
+- ML Table Questions: 2
+- Monitoring Table Questions: 2
+- Fact Table Questions: 2
+- Dimension Table Questions: 1
+- Deep Research Questions: 0
 
 ---
 
-## References
+### TVF Questions
 
-### Semantic Layer Documentation
-- [TVF Inventory](../semantic/tvfs/TVF_INVENTORY.md)
-- [Metric Views Inventory](../semantic/metric_views/METRIC_VIEWS_INVENTORY.md)
-- [Metrics Inventory](../../docs/reference/metrics-inventory.md) - Unified metrics (TVFs + MVs + Custom Metrics)
-- [Semantic Layer Rationalization](../../docs/reference/semantic-layer-rationalization.md) - Design rationale
+**Q1: Query get_top_cost_contributors**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_top_cost_contributors("2025-12-15", "2026-01-14", 10) LIMIT 20;
+```
 
-### Lakehouse Monitoring Documentation
-- [Monitor Catalog](../../docs/lakehouse-monitoring-design/04-monitor-catalog.md) - Complete metric definitions
-- [Genie Integration](../../docs/lakehouse-monitoring-design/05-genie-integration.md) - Critical query patterns
-- [Custom Metrics Reference](../../docs/lakehouse-monitoring-design/03-custom-metrics.md)
+**Q2: Query get_cost_trend_by_sku**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_cost_trend_by_sku("2025-12-15", "2026-01-14", "ALL", NULL) LIMIT 20;
+```
 
-### Deployment Guides
-- [Genie Spaces Deployment Guide](../../docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md)
-- [Genie Asset Selection Guide](../../docs/reference/genie-asset-selection-guide.md)
-- [ML Models Inventory](../ml/ML_MODELS_INVENTORY.md)
+**Q3: Query get_cost_by_owner**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_cost_by_owner("2025-12-15", "2026-01-14", 20) LIMIT 20;
+```
 
+**Q4: Query get_spend_by_custom_tags**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_spend_by_custom_tags("2025-12-15", "2026-01-14", "team") LIMIT 20;
+```
+
+**Q5: Query get_tag_coverage**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_tag_coverage("2025-12-15", "2026-01-14") LIMIT 20;
+```
+
+**Q6: Query get_cost_week_over_week**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_cost_week_over_week(20) LIMIT 20;
+```
+
+**Q7: Query get_cost_anomalies**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_cost_anomalies("2025-12-15", "2026-01-14", 2.0) LIMIT 20;
+```
+
+**Q8: Query get_cost_forecast_summary**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.get_cost_forecast_summary(3) LIMIT 20;
+```
+
+### Metric View Questions
+
+**Q9: What are the key metrics from mv_cost_analytics?**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.mv_cost_analytics LIMIT 20;
+```
+
+**Q10: What are the key metrics from mv_job_performance?**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.mv_job_performance LIMIT 20;
+```
+
+**Q11: What are the key metrics from mv_query_performance?**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.mv_query_performance LIMIT 20;
+```
+
+**Q12: What are the key metrics from mv_security_events?**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.mv_security_events LIMIT 20;
+```
+
+**Q13: Analyze unified_health_monitor trends over time**
+```sql
+SELECT 'Complex trend analysis for unified_health_monitor' AS deep_research;
+```
+
+**Q14: Identify anomalies in unified_health_monitor data**
+```sql
+SELECT 'Anomaly detection query for unified_health_monitor' AS deep_research;
+```
+
+**Q15: Compare unified_health_monitor metrics across dimensions**
+```sql
+SELECT 'Cross-dimensional analysis for unified_health_monitor' AS deep_research;
+```
+
+**Q16: Provide an executive summary of unified_health_monitor**
+```sql
+SELECT 'Executive summary for unified_health_monitor' AS deep_research;
+```
+
+**Q17: What are the key insights from unified_health_monitor analysis?**
+```sql
+SELECT 'Key insights summary for unified_health_monitor' AS deep_research;
+```
+
+### ML Prediction Questions
+
+**Q18: What are the latest ML predictions from pipeline_health_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.pipeline_health_predictions LIMIT 20;
+```
+
+**Q19: What are the latest ML predictions from data_drift_predictions?**
+```sql
+SELECT * FROM ${catalog}.${feature_schema}.data_drift_predictions LIMIT 20;
+```
+
+### Lakehouse Monitoring Questions
+
+**Q20: Show monitoring data from fact_job_run_timeline_profile_metrics**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics LIMIT 20;
+```
+
+**Q21: Show monitoring data from fact_query_history_profile_metrics**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics LIMIT 20;
+```
+
+### Fact Table Questions
+
+**Q22: Show recent data from fact_usage**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.fact_usage LIMIT 20;
+```
+
+**Q23: Show recent data from fact_job_run_timeline**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.fact_job_run_timeline LIMIT 20;
+```
+
+### Dimension Table Questions
+
+**Q24: Describe the dim_workspace dimension**
+```sql
+SELECT * FROM ${catalog}.${gold_schema}.dim_workspace LIMIT 20;
+```
+
+---
+
+*Note: These benchmarks are auto-generated from `actual_assets_inventory.json` to ensure all referenced assets exist. JSON file is the source of truth.*

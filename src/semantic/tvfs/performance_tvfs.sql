@@ -102,7 +102,7 @@ RETURN
         AVG(q.total_duration_ms) / 1000.0 AS avg_duration_seconds,
         PERCENTILE_APPROX(q.total_duration_ms / 1000.0, 0.95) AS p95_duration_seconds,
         AVG(COALESCE(q.waiting_at_capacity_duration_ms, 0)) / 1000.0 AS avg_queue_time_seconds,
-        MAX(q.statement_id) AS peak_concurrency,  -- Placeholder: need proper concurrency calc
+        CAST(NULL AS INT) AS peak_concurrency,  -- Requires window function calculation - not available in simple GROUP BY
         (SUM(CASE WHEN q.execution_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)) AS error_rate_pct
     FROM ${catalog}.${gold_schema}.fact_query_history q
     LEFT JOIN ${catalog}.${gold_schema}.dim_warehouse w

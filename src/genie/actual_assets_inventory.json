@@ -1,0 +1,431 @@
+{
+  "_metadata": {
+    "description": "Single source of truth for all Databricks assets available for Genie Spaces",
+    "generated_at": "2026-01-14T00:00:00Z",
+    "catalog": "prashanth_subrahmanyam_catalog",
+    "gold_schema": "dev_prashanth_subrahmanyam_system_gold",
+    "ml_schema": "dev_prashanth_subrahmanyam_system_gold_ml",
+    "monitoring_schema": "dev_prashanth_subrahmanyam_system_gold_monitoring"
+  },
+  "schemas": {
+    "gold": "${catalog}.${gold_schema}",
+    "ml": "${catalog}.${feature_schema}",
+    "monitoring": "${catalog}.${gold_schema}_monitoring"
+  },
+  "tables": {
+    "gold": {
+      "dimensions": [
+        "dim_cluster",
+        "dim_experiment",
+        "dim_job",
+        "dim_job_task",
+        "dim_node_type",
+        "dim_pipeline",
+        "dim_served_entities",
+        "dim_sku",
+        "dim_user",
+        "dim_warehouse",
+        "dim_workspace"
+      ],
+      "facts": [
+        "fact_account_prices",
+        "fact_assistant_events",
+        "fact_audit_logs",
+        "fact_clean_room_events",
+        "fact_column_lineage",
+        "fact_data_classification",
+        "fact_data_classification_results",
+        "fact_data_quality_monitoring_table_results",
+        "fact_dq_monitoring",
+        "fact_endpoint_usage",
+        "fact_inbound_network",
+        "fact_job_run_timeline",
+        "fact_job_task_run_timeline",
+        "fact_list_prices",
+        "fact_listing_access",
+        "fact_listing_funnel",
+        "fact_mlflow_run_metrics_history",
+        "fact_mlflow_runs",
+        "fact_node_timeline",
+        "fact_outbound_network",
+        "fact_payload_logs",
+        "fact_pipeline_update_timeline",
+        "fact_predictive_optimization",
+        "fact_query_history",
+        "fact_table_lineage",
+        "fact_usage",
+        "fact_warehouse_events"
+      ],
+      "other": [
+        "_backfill_checkpoints",
+        "alert_configurations",
+        "alert_history",
+        "alert_sync_metrics",
+        "alert_validation_results",
+        "cluster_efficiency",
+        "cluster_utilization",
+        "commit_tracking",
+        "cost_analytics",
+        "data_quality",
+        "governance_analytics",
+        "job_performance",
+        "ml_intelligence",
+        "notification_destinations",
+        "query_performance",
+        "security_events"
+      ]
+    },
+    "ml": [
+      "budget_forecast_predictions",
+      "cache_hit_predictions",
+      "chargeback_predictions",
+      "cluster_capacity_predictions",
+      "commitment_recommendations",
+      "cost_anomaly_predictions",
+      "cost_features",
+      "data_drift_predictions",
+      "dbr_migration_predictions",
+      "duration_predictions",
+      "exfiltration_predictions",
+      "freshness_predictions",
+      "job_cost_optimizer_predictions",
+      "job_failure_predictions",
+      "performance_features",
+      "performance_regression_predictions",
+      "pipeline_health_predictions",
+      "privilege_escalation_predictions",
+      "quality_features",
+      "query_optimization_predictions",
+      "query_performance_predictions",
+      "reliability_features",
+      "retry_success_predictions",
+      "security_features",
+      "security_threat_predictions",
+      "sla_breach_predictions",
+      "tag_recommendations",
+      "user_behavior_predictions",
+      "warehouse_optimizer_predictions"
+    ],
+    "monitoring": [
+      "fact_audit_logs_drift_metrics",
+      "fact_audit_logs_profile_metrics",
+      "fact_job_run_timeline_drift_metrics",
+      "fact_job_run_timeline_profile_metrics",
+      "fact_node_timeline_drift_metrics",
+      "fact_node_timeline_profile_metrics",
+      "fact_query_history_drift_metrics",
+      "fact_query_history_profile_metrics",
+      "fact_table_lineage_drift_metrics",
+      "fact_table_lineage_profile_metrics",
+      "fact_usage_drift_metrics",
+      "fact_usage_profile_metrics"
+    ]
+  },
+  "metric_views": [
+    "mv_cluster_efficiency",
+    "mv_cluster_utilization",
+    "mv_commit_tracking",
+    "mv_cost_analytics",
+    "mv_data_quality",
+    "mv_governance_analytics",
+    "mv_job_performance",
+    "mv_ml_intelligence",
+    "mv_query_performance",
+    "mv_security_events"
+  ],
+  "tvfs": [
+    "get_all_purpose_cluster_cost",
+    "get_cluster_resource_metrics",
+    "get_cluster_right_sizing_recommendations",
+    "get_cluster_utilization",
+    "get_commit_vs_actual",
+    "get_cost_anomalies",
+    "get_cost_by_owner",
+    "get_cost_by_tag",
+    "get_cost_forecast_summary",
+    "get_cost_growth_analysis",
+    "get_cost_growth_by_period",
+    "get_cost_mtd_summary",
+    "get_cost_trend_by_sku",
+    "get_cost_week_over_week",
+    "get_data_freshness_by_domain",
+    "get_data_quality_summary",
+    "get_failed_actions",
+    "get_failed_jobs",
+    "get_failed_queries",
+    "get_high_spill_queries",
+    "get_ip_address_analysis",
+    "get_job_data_quality_status",
+    "get_job_duration_percentiles",
+    "get_job_failure_costs",
+    "get_job_failure_trends",
+    "get_job_outlier_runs",
+    "get_job_repair_costs",
+    "get_job_retry_analysis",
+    "get_job_run_details",
+    "get_job_run_duration_analysis",
+    "get_job_sla_compliance",
+    "get_job_spend_trend_analysis",
+    "get_job_success_rate",
+    "get_jobs_on_legacy_dbr",
+    "get_jobs_without_autoscaling",
+    "get_most_expensive_jobs",
+    "get_off_hours_activity",
+    "get_permission_changes",
+    "get_pipeline_data_lineage",
+    "get_query_efficiency",
+    "get_query_efficiency_analysis",
+    "get_query_latency_percentiles",
+    "get_query_volume_trends",
+    "get_security_events_timeline",
+    "get_sensitive_table_access",
+    "get_service_account_audit",
+    "get_slow_queries",
+    "get_spend_by_custom_tags",
+    "get_table_access_audit",
+    "get_table_activity_status",
+    "get_table_freshness",
+    "get_tables_failing_quality",
+    "get_tag_coverage",
+    "get_top_cost_contributors",
+    "get_underutilized_clusters",
+    "get_untagged_resources",
+    "get_user_activity_patterns",
+    "get_user_activity_summary",
+    "get_user_query_summary",
+    "get_warehouse_utilization"
+  ],
+  "domain_mapping": {
+    "cost_intelligence": {
+      "description": "Cost management and FinOps analytics",
+      "tables": {
+        "dimensions": ["dim_sku", "dim_workspace", "dim_cluster", "dim_node_type", "dim_job"],
+        "facts": ["fact_usage", "fact_account_prices", "fact_list_prices", "fact_node_timeline", "fact_job_run_timeline"]
+      },
+      "ml_tables": [
+        "cost_anomaly_predictions",
+        "budget_forecast_predictions",
+        "job_cost_optimizer_predictions",
+        "chargeback_predictions",
+        "commitment_recommendations",
+        "tag_recommendations"
+      ],
+      "monitoring_tables": [
+        "fact_usage_profile_metrics",
+        "fact_usage_drift_metrics"
+      ],
+      "metric_views": ["mv_cost_analytics", "mv_commit_tracking"],
+      "tvfs": [
+        "get_top_cost_contributors",
+        "get_cost_trend_by_sku",
+        "get_cost_by_owner",
+        "get_spend_by_custom_tags",
+        "get_tag_coverage",
+        "get_cost_week_over_week",
+        "get_cost_anomalies",
+        "get_cost_forecast_summary",
+        "get_cost_mtd_summary",
+        "get_commit_vs_actual",
+        "get_cost_growth_analysis",
+        "get_cost_growth_by_period",
+        "get_all_purpose_cluster_cost",
+        "get_cluster_right_sizing_recommendations",
+        "get_most_expensive_jobs",
+        "get_job_spend_trend_analysis",
+        "get_untagged_resources"
+      ]
+    },
+    "job_health_monitor": {
+      "description": "Job reliability and performance tracking",
+      "tables": {
+        "dimensions": ["dim_job", "dim_job_task", "dim_workspace", "dim_cluster"],
+        "facts": ["fact_job_run_timeline", "fact_job_task_run_timeline"]
+      },
+      "ml_tables": [
+        "job_failure_predictions",
+        "retry_success_predictions",
+        "sla_breach_predictions",
+        "duration_predictions"
+      ],
+      "monitoring_tables": [
+        "fact_job_run_timeline_profile_metrics",
+        "fact_job_run_timeline_drift_metrics"
+      ],
+      "metric_views": ["mv_job_performance"],
+      "tvfs": [
+        "get_failed_jobs",
+        "get_job_success_rate",
+        "get_job_duration_percentiles",
+        "get_job_sla_compliance",
+        "get_job_failure_trends",
+        "get_job_outlier_runs",
+        "get_job_retry_analysis",
+        "get_job_failure_costs",
+        "get_job_repair_costs",
+        "get_job_run_details",
+        "get_job_run_duration_analysis",
+        "get_jobs_without_autoscaling",
+        "get_jobs_on_legacy_dbr"
+      ]
+    },
+    "performance": {
+      "description": "Query and cluster performance analytics",
+      "tables": {
+        "dimensions": ["dim_warehouse", "dim_cluster", "dim_node_type", "dim_workspace"],
+        "facts": ["fact_query_history", "fact_warehouse_events", "fact_node_timeline"]
+      },
+      "ml_tables": [
+        "query_performance_predictions",
+        "query_optimization_predictions",
+        "cache_hit_predictions",
+        "cluster_capacity_predictions",
+        "warehouse_optimizer_predictions",
+        "performance_regression_predictions",
+        "dbr_migration_predictions"
+      ],
+      "monitoring_tables": [
+        "fact_query_history_profile_metrics",
+        "fact_query_history_drift_metrics",
+        "fact_node_timeline_profile_metrics",
+        "fact_node_timeline_drift_metrics"
+      ],
+      "metric_views": ["mv_query_performance", "mv_cluster_utilization"],
+      "tvfs": [
+        "get_slow_queries",
+        "get_query_latency_percentiles",
+        "get_warehouse_utilization",
+        "get_query_volume_trends",
+        "get_query_efficiency",
+        "get_query_efficiency_analysis",
+        "get_failed_queries",
+        "get_high_spill_queries",
+        "get_cluster_utilization",
+        "get_cluster_resource_metrics",
+        "get_underutilized_clusters",
+        "get_user_query_summary"
+      ]
+    },
+    "security_auditor": {
+      "description": "Security events and compliance tracking",
+      "tables": {
+        "dimensions": ["dim_user", "dim_workspace"],
+        "facts": ["fact_audit_logs", "fact_table_lineage", "fact_inbound_network", "fact_outbound_network"]
+      },
+      "ml_tables": [
+        "security_threat_predictions",
+        "user_behavior_predictions",
+        "privilege_escalation_predictions",
+        "exfiltration_predictions"
+      ],
+      "monitoring_tables": [
+        "fact_audit_logs_profile_metrics",
+        "fact_audit_logs_drift_metrics"
+      ],
+      "metric_views": ["mv_security_events", "mv_governance_analytics"],
+      "tvfs": [
+        "get_user_activity_summary",
+        "get_sensitive_table_access",
+        "get_permission_changes",
+        "get_security_events_timeline",
+        "get_off_hours_activity",
+        "get_failed_actions",
+        "get_table_access_audit",
+        "get_ip_address_analysis",
+        "get_service_account_audit",
+        "get_user_activity_patterns"
+      ]
+    },
+    "data_quality_monitor": {
+      "description": "Data quality and governance tracking",
+      "tables": {
+        "dimensions": ["dim_workspace"],
+        "facts": ["fact_table_lineage", "fact_dq_monitoring", "fact_data_quality_monitoring_table_results"]
+      },
+      "ml_tables": [
+        "data_drift_predictions",
+        "freshness_predictions",
+        "pipeline_health_predictions"
+      ],
+      "monitoring_tables": [
+        "fact_table_lineage_profile_metrics",
+        "fact_table_lineage_drift_metrics"
+      ],
+      "metric_views": ["mv_data_quality", "mv_governance_analytics"],
+      "tvfs": [
+        "get_table_freshness",
+        "get_data_freshness_by_domain",
+        "get_tables_failing_quality",
+        "get_pipeline_data_lineage",
+        "get_data_quality_summary",
+        "get_job_data_quality_status",
+        "get_table_activity_status"
+      ]
+    },
+    "unified_health_monitor": {
+      "description": "Cross-domain platform health dashboard",
+      "tables": {
+        "dimensions": ["dim_workspace", "dim_sku", "dim_job", "dim_user"],
+        "facts": ["fact_usage", "fact_job_run_timeline", "fact_query_history", "fact_audit_logs", "fact_node_timeline", "fact_table_lineage"]
+      },
+      "ml_tables": [
+        "pipeline_health_predictions",
+        "data_drift_predictions"
+      ],
+      "monitoring_tables": [
+        "fact_job_run_timeline_profile_metrics",
+        "fact_query_history_profile_metrics",
+        "fact_audit_logs_profile_metrics"
+      ],
+      "metric_views": [
+        "mv_cost_analytics",
+        "mv_job_performance",
+        "mv_query_performance",
+        "mv_security_events",
+        "mv_data_quality"
+      ],
+      "tvfs": [
+        "get_top_cost_contributors",
+        "get_cost_trend_by_sku",
+        "get_cost_by_owner",
+        "get_spend_by_custom_tags",
+        "get_tag_coverage",
+        "get_cost_week_over_week",
+        "get_cost_anomalies",
+        "get_cost_forecast_summary",
+        "get_cost_mtd_summary",
+        "get_commit_vs_actual",
+        "get_cost_growth_analysis",
+        "get_cost_growth_by_period",
+        "get_failed_jobs",
+        "get_job_success_rate",
+        "get_job_duration_percentiles",
+        "get_job_sla_compliance",
+        "get_job_failure_trends",
+        "get_job_outlier_runs",
+        "get_job_retry_analysis",
+        "get_job_failure_costs",
+        "get_job_repair_costs",
+        "get_slow_queries",
+        "get_query_latency_percentiles",
+        "get_warehouse_utilization",
+        "get_query_volume_trends",
+        "get_query_efficiency",
+        "get_failed_queries",
+        "get_cluster_utilization",
+        "get_cluster_resource_metrics",
+        "get_underutilized_clusters",
+        "get_user_activity_summary",
+        "get_sensitive_table_access",
+        "get_permission_changes",
+        "get_security_events_timeline",
+        "get_table_freshness",
+        "get_pipeline_data_lineage",
+        "get_data_quality_summary",
+        "get_jobs_without_autoscaling",
+        "get_jobs_on_legacy_dbr",
+        "get_service_account_audit",
+        "get_ip_address_analysis"
+      ]
+    }
+  }
+}

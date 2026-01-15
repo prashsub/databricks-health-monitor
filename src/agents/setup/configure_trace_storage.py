@@ -146,12 +146,17 @@ print("\nEnabling MLflow tracing autolog...")
 
 try:
     # Enable autolog with Unity Catalog destination
-    mlflow.langchain.autolog(
-        log_traces=True,
-        log_models=True,
-        log_input_examples=True,
-    )
-    print("✓ MLflow LangChain autolog enabled")
+    # Try new API first (no parameters), fall back to legacy
+    try:
+        mlflow.langchain.autolog()
+        print("✓ MLflow LangChain autolog enabled")
+    except TypeError:
+        mlflow.langchain.autolog(
+            log_traces=True,
+            log_models=True,
+            log_input_examples=True,
+        )
+        print("✓ MLflow LangChain autolog enabled (legacy API)")
 except Exception as e:
     print(f"⚠ Autolog error: {e}")
 

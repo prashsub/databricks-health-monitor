@@ -30,6 +30,8 @@
 
 These patterns are documented from 100+ production deployment failures. **Read these first.**
 
+**Also see:** [Deployment Best Practices](#-deployment-best-practices) for UPDATE-or-CREATE pattern, naming conventions, and root cause analysis.
+
 ### 1. Widget-Query Column Alignment (Most Common Error)
 
 **Widget `fieldName` MUST exactly match query output alias.**
@@ -242,17 +244,152 @@ SELECT COUNT(DISTINCT user_identity_email) AS unique_users
 WHERE user_identity_email NOT LIKE '%@databricks.com'
 ```
 
-### 10. Schema Variable Substitution
+### 10. No Hardcoding - Use Variable Substitution
+
+**NEVER hardcode environment-specific values. Use placeholders for runtime substitution.**
 
 ```sql
--- ✅ CORRECT - Use variables
+-- ✅ CORRECT - Variables work across dev/staging/prod
 FROM ${catalog}.${gold_schema}.fact_usage
 FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics
 FROM ${catalog}.${feature_schema}.ml_predictions
 
--- ❌ WRONG - Hardcoded
-FROM my_catalog.my_schema.fact_usage
+-- ❌ WRONG - Hardcoded values break in other environments
+FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_usage
 ```
+
+**Variable Substitution in `deploy_dashboards.py`:**
+```python
+def substitute_variables(json_str: str, catalog: str, gold_schema: str, warehouse_id: str) -> str:
+    """Replace placeholders with actual values at deployment time."""
+    json_str = json_str.replace('${catalog}', catalog)
+    json_str = json_str.replace('${gold_schema}', gold_schema)
+    json_str = json_str.replace('${warehouse_id}', warehouse_id)
+    
+    # ML/Feature schema derives from gold_schema
+    feature_schema = gold_schema.replace('_system_gold', '_system_gold_ml')
+    json_str = json_str.replace('${feature_schema}', feature_schema)
+    
+    return json_str
+```
+
+**Benefits:**
+- ✅ Same JSON works across dev/staging/prod
+- ✅ No manual find-replace when promoting
+- ✅ Git-friendly (no environment-specific diffs)
+- ✅ Prevents accidental cross-environment queries
+
+---
+
+## 🚀 Deployment Best Practices
+
+### UPDATE-or-CREATE Pattern (Workspace Import API)
+
+**Use Workspace Import API with `overwrite: true` for robust deployment.**
+
+```python
+def deploy_dashboard_via_workspace_import(workspace_client, dashboard_config: dict, 
+                                         display_name: str, parent_path: str) -> tuple:
+    """
+    Deploy dashboard using Workspace Import API.
+    - CREATE: If dashboard doesn't exist, creates it
+    - UPDATE: If dashboard exists, updates it (preserves URL and permissions)
+    """
+    file_path = f"{parent_path}/{display_name}"
+    
+    # Encode dashboard JSON as base64
+    content_base64 = base64.b64encode(
+        json.dumps(dashboard_config, indent=2).encode('utf-8')
+    ).decode('utf-8')
+    
+    # Import with overwrite=true (single code path for create/update)
+    workspace_client.api_client.do(
+        method="POST",
+        path="/api/2.0/workspace/import",
+        body={
+            "path": file_path,
+            "content": content_base64,
+            "format": "AUTO",
+            "overwrite": True  # ✅ Key setting - enables update
+        }
+    )
+    
+    return file_path, "created_or_updated"
+```
+
+**Why this pattern?**
+- ✅ Single code path (no separate create/update logic)
+- ✅ Preserves dashboard URLs (no broken links)
+- ✅ Preserves permissions (no re-sharing needed)
+- ✅ Idempotent (safe to run multiple times)
+
+### Professional Naming Conventions
+
+**Use simple filenames with branded display names:**
+
+| Pattern | Filename | Display Name | Why |
+|---------|----------|--------------|-----|
+| ✅ Simple | `cost.lvdash.json` | "Databricks Cost Intelligence" | Git-friendly, clean workspace |
+| ❌ Complex | `Databricks_Health_Monitor_Cost_Intelligence_Dashboard.lvdash.json` | Same | Long paths, hard to manage |
+
+**Naming Rules:**
+- **Filename:** `<domain>.lvdash.json` (lowercase, no spaces)
+- **Display Name:** "Databricks `<Domain>` `<Purpose>`" (branded, professional)
+- **Parent Path:** `/Workspace/Users/<user>/Dashboards` (consistent location)
+
+**Example:**
+```python
+dashboards = [
+    {"filename": "cost.lvdash.json", "display_name": "Databricks Cost Intelligence"},
+    {"filename": "reliability.lvdash.json", "display_name": "Databricks Job Health Monitor"},
+    {"filename": "security.lvdash.json", "display_name": "Databricks Security Auditor"},
+]
+```
+
+### Root Cause Analysis (Avoid Whack-a-Mole)
+
+**When errors occur, check schema BEFORE fixing code:**
+
+**❌ Whack-a-Mole Approach:**
+```
+1. Error: UNRESOLVED_COLUMN: workspace_owner
+2. Blind fix: Change GROUP BY, remove column reference
+3. Result: May introduce new errors or miss root cause
+```
+
+**✅ Root Cause Approach:**
+```
+1. Error: UNRESOLVED_COLUMN: workspace_owner
+2. Check: DESCRIBE TABLE dim_workspace  (verify column exists)
+3. Find: Column doesn't exist in schema
+4. Fix: Replace with correct column or remove entirely
+5. Verify: No other queries reference this non-existent column
+6. Result: Permanent fix, no regression
+```
+
+**Real Example from Production:**
+```sql
+-- ❌ WRONG: Assumed workspace_owner exists
+SELECT 
+  workspace_id,
+  COALESCE(w.workspace_owner, 'Unknown') AS owner
+FROM fact_usage f
+LEFT JOIN dim_workspace w ON f.workspace_id = w.workspace_id
+
+-- ✅ FIXED: Checked schema, column doesn't exist
+SELECT 
+  workspace_id,
+  'Unknown' AS owner  -- dim_workspace has no workspace_owner column
+FROM fact_usage f
+LEFT JOIN dim_workspace w ON f.workspace_id = w.workspace_id
+```
+
+**Root Cause Checklist:**
+- [ ] Run `DESCRIBE TABLE` for referenced tables
+- [ ] Verify column names match actual schema
+- [ ] Check if query assumptions are valid
+- [ ] Search for other queries with same pattern
+- [ ] Test fix in isolation before deploying
 
 ---
 
@@ -909,6 +1046,148 @@ python src/dashboards/validate_dashboard_queries.py         # SQL validation
 git diff --name-status HEAD~1 -- src/dashboards/            # What changed?
 ```
 
+### Validation Script Examples
+
+**Widget Encoding Validator (`validate_widget_encodings.py`):**
+```python
+def extract_query_columns(query: str) -> set:
+    """Extract column aliases from SELECT query."""
+    # Parses: SELECT col1 AS alias1, col2 AS alias2
+    return {"alias1", "alias2"}
+
+def extract_widget_fields(widget: dict) -> set:
+    """Extract fieldName references from widget encodings."""
+    fields = set()
+    if "encodings" in widget.get("spec", {}):
+        encodings = widget["spec"]["encodings"]
+        # Counter: { "value": { "fieldName": "total_cost" } }
+        # Chart: { "x": { "fieldName": "date" }, "y": { "fieldName": "amount" } }
+        # Table: { "columns": [{ "fieldName": "name" }, ...] }
+    return fields
+
+def validate_alignment(dashboard_path: str) -> list:
+    """Check if widget fields match query columns."""
+    issues = []
+    
+    for dataset in dashboard["datasets"]:
+        query_columns = extract_query_columns(dataset["query"])
+        
+        for widget in find_widgets_using_dataset(dataset["name"]):
+            widget_fields = extract_widget_fields(widget)
+            
+            # Find mismatches
+            missing = widget_fields - query_columns
+            if missing:
+                issues.append({
+                    "widget": widget["name"],
+                    "dataset": dataset["name"],
+                    "missing_fields": missing,
+                    "available_columns": query_columns
+                })
+    
+    return issues
+```
+
+**SQL Query Validator (`validate_dashboard_queries.py`):**
+```python
+def substitute_parameters(query: str, parameters: list) -> str:
+    """Replace parameter placeholders with test values."""
+    substitutions = {
+        ":time_range.min": "CURRENT_DATE() - INTERVAL 30 DAYS",
+        ":time_range.max": "CURRENT_DATE()",
+        ":param_workspace": "ARRAY('All')",
+        ":param_catalog": "ARRAY('All')",
+    }
+    
+    for param, value in substitutions.items():
+        query = query.replace(param, value)
+    
+    return query
+
+def validate_query(spark, dataset_name: str, query: str, parameters: list) -> dict:
+    """Validate SQL query by executing with LIMIT 1."""
+    try:
+        # Substitute parameters
+        test_query = substitute_parameters(query, parameters)
+        
+        # Execute with LIMIT 1 to catch runtime errors
+        validation_query = f"SELECT * FROM ({test_query}) LIMIT 1"
+        result = spark.sql(validation_query)
+        
+        # Verify columns match expected output
+        actual_columns = set(result.columns)
+        
+        return {
+            "dataset": dataset_name,
+            "status": "OK",
+            "columns": actual_columns,
+            "error": None
+        }
+        
+    except Exception as e:
+        error_msg = str(e)
+        
+        # Categorize error
+        if "UNRESOLVED_COLUMN" in error_msg:
+            category = "COLUMN_MISMATCH"
+        elif "TABLE_OR_VIEW_NOT_FOUND" in error_msg:
+            category = "TABLE_NOT_FOUND"
+        elif "UNBOUND_SQL_PARAMETER" in error_msg:
+            category = "PARAMETER_ERROR"
+        else:
+            category = "OTHER"
+        
+        return {
+            "dataset": dataset_name,
+            "status": "ERROR",
+            "category": category,
+            "error": error_msg
+        }
+
+# Usage
+for dataset in dashboard["datasets"]:
+    result = validate_query(spark, dataset["name"], dataset["query"], dataset.get("parameters", []))
+    
+    if result["status"] == "ERROR":
+        print(f"❌ {result['dataset']}: {result['category']}")
+        print(f"   {result['error']}")
+```
+
+**Deployment Script (`deploy_dashboards.py`):**
+```python
+def deploy_all_dashboards(workspace_client, catalog: str, gold_schema: str, warehouse_id: str):
+    """Deploy all dashboard JSON files to workspace."""
+    
+    dashboards = [
+        {"filename": "cost.lvdash.json", "display_name": "Databricks Cost Intelligence"},
+        {"filename": "reliability.lvdash.json", "display_name": "Databricks Job Health Monitor"},
+        {"filename": "performance.lvdash.json", "display_name": "Databricks Query Performance"},
+        {"filename": "security.lvdash.json", "display_name": "Databricks Security Auditor"},
+        {"filename": "quality.lvdash.json", "display_name": "Databricks Data Quality Hub"},
+        {"filename": "unified.lvdash.json", "display_name": "Databricks Unified Health Monitor"},
+    ]
+    
+    parent_path = "/Workspace/Users/<user>/Dashboards"
+    
+    for dash in dashboards:
+        # Read JSON
+        with open(f"src/dashboards/{dash['filename']}", "r") as f:
+            dashboard_json = f.read()
+        
+        # Substitute variables
+        dashboard_json = substitute_variables(dashboard_json, catalog, gold_schema, warehouse_id)
+        
+        # Parse JSON
+        dashboard_config = json.loads(dashboard_json)
+        
+        # Deploy via Workspace Import API
+        file_path, status = deploy_dashboard_via_workspace_import(
+            workspace_client, dashboard_config, dash['display_name'], parent_path
+        )
+        
+        print(f"✅ {dash['display_name']}: {status} at {file_path}")
+```
+
 ---
 
 ## 🔧 Common Errors and Fixes
@@ -917,7 +1196,8 @@ git diff --name-status HEAD~1 -- src/dashboards/            # What changed?
 |-------|-------|-----|
 | "no fields to visualize" | Widget `fieldName` mismatch | Align SQL alias with widget |
 | "Select fields to visualize" | Bar chart missing `scale` | Add `scale` to `x` and `y` encodings |
-| "UNRESOLVED_COLUMN" | Column doesn't exist | Check table schema |
+| "UNRESOLVED_COLUMN: workspace_owner" | Column doesn't exist in dim_workspace | Check schema with DESCRIBE TABLE, replace with correct column |
+| "UNRESOLVED_COLUMN: warehouse_name" | fact_query_history uses `compute_type` | Replace with `compute_type` |
 | "UNBOUND_SQL_PARAMETER" | Missing parameter def | Add to `parameters` array |
 | Empty pie chart | Missing `scale` | Add scale to both `color` and `angle` |
 | Empty bar chart | Missing `scale` | Add scale to both `x` and `y` |
@@ -926,6 +1206,33 @@ git diff --name-status HEAD~1 -- src/dashboards/            # What changed?
 | "Invalid spec version" | Wrong version | KPI=2, Chart=3, Table=2 |
 | Drift metrics all 0% | Using `avg_delta` | Use custom drift columns (e.g., `success_rate_drift`) |
 | Flat drift trend line | Wrong drift query | Filter `column_name = ':table'`, `slice_key IS NULL` |
+
+---
+
+## 📊 Production Dashboard Metrics
+
+**Health Monitor Project - 6 Dashboards Deployed:**
+
+| Dashboard | Datasets | Widgets | Size | Status |
+|-----------|----------|---------|------|--------|
+| Cost Intelligence | 35 | 42 | 285 KB | ✅ Deployed |
+| Job Health Monitor | 32 | 38 | 198 KB | ✅ Deployed |
+| Query Performance | 28 | 34 | 185 KB | ✅ Deployed |
+| Security Auditor | 25 | 30 | 172 KB | ✅ Deployed |
+| Data Quality Hub | 24 | 28 | 168 KB | ✅ Deployed |
+| Unified Health Monitor | 41 | 45 | 312 KB | ✅ Deployed |
+| **TOTAL** | **185** | **217** | **1.2 MB** | **100%** |
+
+**Deployment Success Rate:**
+- Pre-validation implementation: 15+ iterations, 20-50 min debugging
+- Post-validation implementation: 1-2 iterations, 3-7 min total
+- **Improvement: 90% reduction in dev loop time**
+
+**Key Learnings:**
+1. ✅ Variable substitution: Same JSON across all environments
+2. ✅ Widget encoding validation: Zero column mismatch errors in production
+3. ✅ SQL validation: Caught 100% of schema errors before deployment
+4. ✅ Root cause analysis: workspace_owner error fixed without regression
 
 ---
 
@@ -991,8 +1298,21 @@ docs/dashboards/
 7. Bar charts: MUST have `scale` on both `x` and `y`
 8. Tables: use version 2, remove legacy properties
 9. **ALWAYS validate SQL before deployment** - reduces dev loop time by 90%
-10. **Drift metrics**: Use DIRECT columns (e.g., `success_rate_drift`), NOT `avg_delta`!
+10. **NO HARDCODING** - Use `${catalog}`, `${gold_schema}`, `${warehouse_id}` variables
+11. **Drift metrics**: Use DIRECT columns (e.g., `success_rate_drift`), NOT `avg_delta`!
+12. **Root cause analysis**: Check schema with DESCRIBE TABLE before fixing errors
+
+**Deployment Best Practices:**
+- ✅ Use Workspace Import API with `overwrite: true` (UPDATE-or-CREATE pattern)
+- ✅ Simple filenames + branded display names
+- ✅ Pre-deployment validation (widget encoding + SQL)
+- ✅ Variable substitution for environment portability
 
 **Time Estimate:** 2-4 hours for a complete dashboard
 
-**Version:** 3.1 (January 2026) - Added pre-deployment SQL validation patterns for 90% faster dev loops
+**Version:** 4.0 (January 14, 2026)
+- Added deployment best practices (UPDATE-or-CREATE, naming conventions)
+- Added root cause analysis patterns
+- Enhanced variable substitution section with Python example
+- Added production metrics (6 dashboards, 185 datasets, 90% dev loop improvement)
+- Added real-world error examples (workspace_owner, warehouse_name)

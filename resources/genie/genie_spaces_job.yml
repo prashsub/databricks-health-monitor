@@ -133,6 +133,13 @@ resources:
               feature_schema: ${var.feature_schema}
               warehouse_id: ${var.warehouse_id}
               genie_space_json: ""  # Empty = deploy all *_export.json files
+              # Genie Space IDs from databricks.yml (override defaults in genie_spaces.py)
+              cost_genie_space_id: ${var.cost_genie_space_id}
+              reliability_genie_space_id: ${var.reliability_genie_space_id}
+              quality_genie_space_id: ${var.quality_genie_space_id}
+              performance_genie_space_id: ${var.performance_genie_space_id}
+              security_genie_space_id: ${var.security_genie_space_id}
+              unified_genie_space_id: ${var.unified_genie_space_id}
           
           # Timeout: 10 minutes (allows time for 6 Genie Space deployments)
           timeout_seconds: 600

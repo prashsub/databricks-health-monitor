@@ -1,718 +1,612 @@
 {
   "version": 1,
   "config": {
-    "name": "Health Monitor Cost Intelligence Space",
-    "description": [
-      "Natural language interface for Databricks cost analytics and FinOps. Enables finance teams, platform administrators, and executives to query billing, usage, and cost optimization insights without SQL."
-    ],
     "sample_questions": [
-      "What is our total spend this month?",
-      "Show me the top 10 workspaces by cost",
-      "What was our daily cost trend for the last 30 days?",
-      "What percentage of our spend is tagged?",
-      "Which SKU costs the most?",
-      "Show me cost by owner",
-      "What is our serverless vs non-serverless spend?",
-      "Break down cost by team tag",
-      "Which ALL_PURPOSE clusters could be migrated to JOBS clusters?",
-      "What are our cost anomalies?",
-      "Show me week-over-week cost growth",
-      "What is the cost forecast for next month?",
-      "Are there any cost anomalies today?",
-      "Which resources need tags?",
-      "What's the predicted cost for next week?"
-    ]
-  },
-  "data_sources": {
-    "metric_views": [
       {
-        "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
-        "name": "mv_cost_analytics",
-        "full_name": "${catalog}.${gold_schema}.mv_cost_analytics",
-        "description": [
-          "Comprehensive cost analytics metric view providing aggregated measures for total cost, DBUs, cost trends (7d, 30d), serverless percentage, and tag coverage percentage."
+        "id": "359b158cf434496bb5d58f2af67f8b99",
+        "question": [
+          "What is our total spend this month?"
         ]
       },
       {
-        "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
-        "name": "mv_commit_tracking",
-        "full_name": "${catalog}.${gold_schema}.mv_commit_tracking",
-        "description": [
-          "Contract and commitment monitoring metric view tracking commit amounts, consumed amounts, remaining amounts, and daily burn rate."
+        "id": "1e8b0798988c4ac78aec26bd42b230b7",
+        "question": [
+          "Show me the top 10 workspaces by cost"
         ]
+      },
+      {
+        "id": "6e8daeb868c747af84b6d0f747b67672",
+        "question": [
+          "What was our daily cost trend for the last 30 days?"
+        ]
+      },
+      {
+        "id": "70042595785947a18c0855373323b854",
+        "question": [
+          "What percentage of our spend is tagged?"
+        ]
+      },
+      {
+        "id": "fb16e6ed5752441fa54e701837a2ac6a",
+        "question": [
+          "Which SKU costs the most?"
+        ]
+      },
+      {
+        "id": "b42e56ff231e4261843beccf44399ffd",
+        "question": [
+          "Show me cost by owner"
+        ]
+      },
+      {
+        "id": "b22db94421a4439e83edf10a83b88b9a",
+        "question": [
+          "What is our serverless vs non-serverless spend?"
+        ]
+      },
+      {
+        "id": "357d2076fc3d45f58cfdf325c8e433cc",
+        "question": [
+          "Break down cost by team tag"
+        ]
+      },
+      {
+        "id": "cd3fb96cbb1a41eb9740037bc57aa794",
+        "question": [
+          "Which ALL_PURPOSE clusters could be migrated to JOBS clusters?"
+        ]
+      },
+      {
+        "id": "6954e82fd25748929d908c5a0da74e88",
+        "question": [
+          "What are our cost anomalies?"
+        ]
+      },
+      {
+        "id": "75b7750217f4478db3d301c085995b84",
+        "question": [
+          "Show me week-over-week cost growth"
+        ]
+      },
+      {
+        "id": "9cd1ec86074342b1a8e3f039f6d9aea1",
+        "question": [
+          "What is the cost forecast for next month?"
+        ]
+      },
+      {
+        "id": "0864d52916174c85a8792848faba90fa",
+        "question": [
+          "Are there any cost anomalies today?"
+        ]
+      },
+      {
+        "id": "837d5ee1cd7b478c96fc4bf25169989d",
+        "question": [
+          "Which resources need tags?"
+        ]
+      },
+      {
+        "id": "9594390cbe8045c4b758e185acbb3c27",
+        "question": [
+          "What's the predicted cost for next week?"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_sku"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_workspace"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_cluster"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_node_type"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_job"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_usage"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_account_prices"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_list_prices"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_node_timeline"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.cost_anomaly_predictions"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.budget_forecast_predictions"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.job_cost_optimizer_predictions"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.chargeback_predictions"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.commitment_recommendations"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.tag_recommendations"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics"
+      }
+    ],
+    "metric_views": [
+      {
+        "identifier": "${catalog}.${gold_schema}.mv_cost_analytics"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.mv_commit_tracking"
       }
     ]
   },
   "instructions": {
     "text_instructions": [
-      "You are a Databricks FinOps analyst. Follow these rules:",
-      "",
-      "1. **Asset Selection:** Use Metric View for current state, TVFs for lists/investigation, Custom Metrics for trends",
-      "2. **Primary Source:** Use mv_cost_analytics metric view for dashboard KPIs",
-      "3. **TVFs for Lists:** Use TVFs for \"top N\", \"which\", \"list\" queries with TABLE() wrapper",
-      "4. **Trends:** For \"is X increasing?\" check _drift_metrics tables",
-      "5. **Date Default:** If no date specified, default to last 30 days",
-      "6. **Aggregation:** Use SUM for totals, AVG for averages",
-      "7. **Sorting:** Sort by cost DESC unless specified",
-      "8. **Limits:** Top 10-20 for ranking queries",
-      "9. **Currency:** Format as USD with 2 decimals ($1,234.56)",
-      "10. **Percentages:** Show as % with 1 decimal (45.3%)",
-      "11. **Synonyms:** cost=spend=billing, workspace=environment",
-      "12. **ML Anomalies:** For \"anomalies\" \u2192 query ${catalog}.${feature_schema}.cost_anomaly_predictions",
-      "13. **ML Forecast:** For \"forecast/predict\" \u2192 query ${catalog}.${feature_schema}.budget_forecast_predictions",
-      "14. **Tag Questions:** For \"untagged\" \u2192 use get_untagged_resources TVF",
-      "15. **Commit:** For budget tracking \u2192 use mv_commit_tracking metric view",
-      "16. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')",
-      "17. **ML Tables Schema:** Always use ${catalog}.${feature_schema} (NOT hardcoded!)",
-      "18. **Performance:** Never scan Bronze/Silver tables"
+      {
+        "id": "7476024fbc0641f7831cfa77e5dcd005",
+        "content": [
+          "You are a Databricks FinOps analyst. Follow these rules:",
+          "",
+          "1. **Asset Selection:** Use Metric View for current state, TVFs for lists/investigation, Custom Metrics for trends",
+          "2. **Primary Source:** Use mv_cost_analytics metric view for dashboard KPIs",
+          "3. **TVFs for Lists:** Use TVFs for \"top N\", \"which\", \"list\" queries with TABLE() wrapper",
+          "4. **Trends:** For \"is X increasing?\" check _drift_metrics tables",
+          "5. **Date Default:** If no date specified, default to last 30 days",
+          "6. **Aggregation:** Use SUM for totals, AVG for averages",
+          "7. **Sorting:** Sort by cost DESC unless specified",
+          "8. **Limits:** Top 10-20 for ranking queries",
+          "9. **Currency:** Format as USD with 2 decimals ($1,234.56)",
+          "10. **Percentages:** Show as % with 1 decimal (45.3%)",
+          "11. **Synonyms:** cost=spend=billing, workspace=environment",
+          "12. **ML Anomalies:** For \"anomalies\" \u2192 query ${catalog}.${feature_schema}.cost_anomaly_predictions",
+          "13. **ML Forecast:** For \"forecast/predict\" \u2192 query ${catalog}.${feature_schema}.budget_forecast_predictions",
+          "14. **Tag Questions:** For \"untagged\" \u2192 use get_untagged_resources TVF",
+          "15. **Commit:** For budget tracking \u2192 use mv_commit_tracking metric view",
+          "16. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')",
+          "17. **ML Tables Schema:** Always use ${catalog}.${feature_schema} (NOT hardcoded!)",
+          "18. **Performance:** Never scan Bronze/Silver tables"
+        ]
+      }
     ],
     "sql_functions": [
       {
-        "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
-        "name": "get_top_cost_contributors",
-        "signature": "get_top_cost_contributors(start_date STRING, end_date STRING, top_n INT DEFAULT 10)",
-        "full_name": "get_top_cost_contributors",
-        "description": [
-          "Returns the top N cost contributors by workspace and SKU. Use when user asks for \"top N workspaces by cost\" or \"highest cost contributors\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "- top_n: Number of top contributors to return (default: 10)",
-          "",
-          "**Returns:** workspace_name, sku_name, total_cost, total_dbus, pct_of_total",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_top_cost_contributors('2024-12-01', '2024-12-31', 10))`"
-        ]
+        "id": "e3a4efdbc0d546ecb9e568055c0daa07",
+        "identifier": "${catalog}.${gold_schema}.get_top_cost_contributors"
       },
       {
-        "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
-        "name": "get_cost_trend_by_sku",
-        "signature": "get_cost_trend_by_sku(start_date STRING, end_date STRING, sku_filter STRING DEFAULT '%')",
-        "full_name": "get_cost_trend_by_sku",
-        "description": [
-          "Returns daily cost trend by SKU with optional filtering. Use when user asks for \"cost trend by SKU\" or \"daily cost breakdown\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "- sku_filter: SQL LIKE pattern for SKU filtering (default: '%' for all)",
-          "",
-          "**Returns:** usage_date, sku_name, daily_cost, cumulative_cost",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_cost_trend_by_sku('2024-12-01', '2024-12-31', '%'))`"
-        ]
+        "id": "c248a5a3077645808bf1d52b5f36332c",
+        "identifier": "${catalog}.${gold_schema}.get_cost_trend_by_sku"
       },
       {
-        "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
-        "name": "get_cost_by_owner",
-        "signature": "get_cost_by_owner(start_date STRING, end_date STRING, top_n INT DEFAULT 20)",
-        "full_name": "get_cost_by_owner",
-        "description": [
-          "Returns cost allocation by resource owner. Use when user asks for \"cost by owner\" or \"chargeback report\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "- top_n: Number of top owners to return (default: 20)",
-          "",
-          "**Returns:** owner, workspace_name, total_cost, pct_of_total",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_cost_by_owner('2024-12-01', '2024-12-31', 20))`"
-        ]
+        "id": "c79b1e4c0561401fb9070ed45fd38246",
+        "identifier": "${catalog}.${gold_schema}.get_cost_by_owner"
       },
       {
-        "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
-        "name": "get_cost_by_tag",
-        "signature": "get_cost_by_tag(start_date STRING, end_date STRING, tag_key STRING DEFAULT 'team')",
-        "full_name": "get_cost_by_tag",
-        "description": [
-          "Returns tag-based cost allocation. Use when user asks for \"cost by team\" or \"cost by project\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "- tag_key: Tag key to group by (default: 'team')",
-          "",
-          "**Returns:** tag_value, total_cost, pct_of_total",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_cost_by_tag('2024-12-01', '2024-12-31', 'team'))`"
-        ]
+        "id": "64d838e5fe67420ea113dc1b1090ed49",
+        "identifier": "${catalog}.${gold_schema}.get_spend_by_custom_tags"
       },
       {
-        "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
-        "name": "get_untagged_resources",
-        "signature": "get_untagged_resources(start_date STRING, end_date STRING, resource_type STRING DEFAULT 'ALL')",
-        "full_name": "get_untagged_resources",
-        "description": [
-          "Returns resources without tags. Use when user asks for \"untagged resources\" or \"tag compliance\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "- resource_type: Resource type filter ('ALL', 'CLUSTER', 'JOB', 'WAREHOUSE')",
-          "",
-          "**Returns:** workspace_name, resource_id, total_cost, days_untagged",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_untagged_resources('2024-12-01', '2024-12-31', 'ALL'))`"
-        ]
+        "id": "53058d91a239467e8f22640cf0fbedae",
+        "identifier": "${catalog}.${gold_schema}.get_tag_coverage"
       },
       {
-        "id": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
-        "name": "get_cost_anomalies",
-        "signature": "get_cost_anomalies(start_date STRING, end_date STRING, z_score_threshold DOUBLE DEFAULT 2.0)",
-        "full_name": "get_cost_anomalies",
-        "description": [
-          "Returns cost anomalies detected by z-score analysis. Use when user asks for \"cost anomalies\" or \"unusual spending patterns\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "- z_score_threshold: Z-score threshold for anomaly detection (default: 2.0)",
-          "",
-          "**Returns:** usage_date, workspace_name, actual_cost, expected_cost, z_score, is_anomaly",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_cost_anomalies('2024-12-01', '2024-12-31', 2.0))`"
-        ]
+        "id": "eb9f6d969bb34883938a13305ee6dc6c",
+        "identifier": "${catalog}.${gold_schema}.get_cost_week_over_week"
       },
       {
-        "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
-        "name": "get_cost_mtd_summary",
-        "signature": "get_cost_mtd_summary()",
-        "full_name": "get_cost_mtd_summary",
-        "description": [
-          "Returns month-to-date cost summary with daily breakdown and cumulative totals. Use when user asks for \"MTD cost\" or \"month to date spending\".",
-          "",
-          "**Parameters:** None",
-          "",
-          "**Returns:** usage_date, daily_cost, cumulative_cost, day_of_month",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_cost_mtd_summary())`"
-        ]
+        "id": "96113003617840fe814e28515920b541",
+        "identifier": "${catalog}.${gold_schema}.get_cost_anomalies"
       },
       {
-        "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
-        "name": "get_cost_week_over_week",
-        "signature": "get_cost_week_over_week(weeks_back INT DEFAULT 4)",
-        "full_name": "get_cost_week_over_week",
-        "description": [
-          "Returns week-over-week cost comparison. Use when user asks for \"weekly cost trend\" or \"week over week comparison\".",
-          "",
-          "**Parameters:**",
-          "- weeks_back: Number of weeks to look back (default: 4)",
-          "",
-          "**Returns:** week_start, week_end, total_cost, wow_growth_pct",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_cost_week_over_week(4))`"
-        ]
+        "id": "bce3fa53e90748cfaf06dc265c80aa41",
+        "identifier": "${catalog}.${gold_schema}.get_cost_forecast_summary"
       },
       {
-        "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
-        "name": "get_spend_by_custom_tags",
-        "signature": "get_spend_by_custom_tags(start_date STRING, end_date STRING, tag_keys STRING)",
-        "full_name": "get_spend_by_custom_tags",
-        "description": [
-          "Returns cost breakdown by custom tag values. Use when user asks for \"cost by tag\" or \"spending by team/project\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "- tag_keys: Comma-separated string of tag keys (e.g., 'team,project')",
-          "",
-          "**Returns:** tag_key, tag_value, total_cost, pct_of_total",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_spend_by_custom_tags('2024-12-01', '2024-12-31', 'team,project'))`"
-        ]
+        "id": "55d87186facd473085b8c6b62401e388",
+        "identifier": "${catalog}.${gold_schema}.get_cost_mtd_summary"
       },
       {
-        "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
-        "name": "get_most_expensive_jobs",
-        "signature": "get_most_expensive_jobs(start_date STRING, end_date STRING, top_n INT DEFAULT 20)",
-        "full_name": "get_most_expensive_jobs",
-        "description": [
-          "Returns most expensive jobs by total cost. Use when user asks for \"most expensive jobs\" or \"job costs\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "- top_n: Number of top jobs to return (default: 20)",
-          "",
-          "**Returns:** job_name, workspace_name, total_cost, run_count, avg_cost_per_run",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_most_expensive_jobs('2024-12-01', '2024-12-31', 20))`"
-        ]
+        "id": "5ad5f8ae985e42c48ac68283df2db663",
+        "identifier": "${catalog}.${gold_schema}.get_commit_vs_actual"
       },
       {
-        "id": "a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8",
-        "name": "get_warehouse_utilization",
-        "signature": "get_warehouse_utilization(start_date STRING, end_date STRING)",
-        "full_name": "get_warehouse_utilization",
-        "description": [
-          "Returns SQL warehouse utilization metrics. Use when user asks for \"warehouse utilization\" or \"SQL warehouse usage\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "",
-          "**Returns:** warehouse_name, total_queries, avg_duration_seconds, total_uptime_hours",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_warehouse_utilization('2024-12-01', '2024-12-31'))`"
-        ]
+        "id": "c3291b431a6a4fbeb4924f74230a7d6a",
+        "identifier": "${catalog}.${gold_schema}.get_cost_growth_analysis"
       },
       {
-        "id": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
-        "name": "get_cost_forecast_summary",
-        "signature": "get_cost_forecast_summary(forecast_months INT DEFAULT 3)",
-        "full_name": "get_cost_forecast_summary",
-        "description": [
-          "Returns cost forecast predictions. Use when user asks for \"cost forecast\" or \"predict future cost\".",
-          "",
-          "**Parameters:**",
-          "- forecast_months: Number of months to forecast (default: 3)",
-          "",
-          "**Returns:** forecast_month, predicted_cost, confidence_lower, confidence_upper",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_cost_forecast_summary(3))`"
-        ]
+        "id": "b08f254b097e40f5b0281b6d0054861a",
+        "identifier": "${catalog}.${gold_schema}.get_cost_growth_by_period"
       },
       {
-        "id": "c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
-        "name": "get_cost_growth_analysis",
-        "signature": "get_cost_growth_analysis(entity_type STRING, days_back INT DEFAULT 30, top_n INT DEFAULT 10)",
-        "full_name": "get_cost_growth_analysis",
-        "description": [
-          "Returns cost growth analysis by entity type. Use when user asks for \"cost growth\" or \"fastest growing costs\".",
-          "",
-          "**Parameters:**",
-          "- entity_type: Entity to analyze ('workspace', 'sku', 'job', 'cluster')",
-          "- days_back: Number of days to analyze (default: 30)",
-          "- top_n: Number of top results (default: 10)",
-          "",
-          "**Returns:** entity_name, current_cost, previous_cost, growth_pct, growth_rate",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_cost_growth_analysis('workspace', 30, 10))`"
-        ]
+        "id": "998e525a949d4a139f9e977eb5d7c721",
+        "identifier": "${catalog}.${gold_schema}.get_all_purpose_cluster_cost"
       },
       {
-        "id": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
-        "name": "get_tag_coverage",
-        "signature": "get_tag_coverage(start_date STRING, end_date STRING)",
-        "full_name": "get_tag_coverage",
-        "description": [
-          "Returns tag coverage analysis. Use when user asks for \"tag coverage\" or \"tagging compliance\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "",
-          "**Returns:** resource_type, total_resources, tagged_resources, coverage_pct, untagged_cost",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_tag_coverage('2024-12-01', '2024-12-31'))`"
-        ]
+        "id": "387f0216df574f838646662c7d71acc6",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_right_sizing_recommendations"
       },
       {
-        "id": "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
-        "name": "get_commit_vs_actual",
-        "signature": "get_commit_vs_actual(commit_year INT, annual_commit_amount DECIMAL, as_of_date DATE)",
-        "full_name": "get_commit_vs_actual",
-        "description": [
-          "Returns commitment vs actual usage tracking. Use when user asks for \"commit utilization\" or \"commitment tracking\".",
-          "",
-          "**Parameters:**",
-          "- commit_year: Year of commitment",
-          "- annual_commit_amount: Annual commitment amount (DECIMAL)",
-          "- as_of_date: Date for point-in-time analysis (DATE type)",
-          "",
-          "**Returns:** commit_amount, consumed_amount, remaining_amount, burn_rate_daily, projected_year_end",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_commit_vs_actual(2024, 1000000, CURRENT_DATE()))`"
-        ]
+        "id": "4b83f326a9c74184a32e436b68eaccb1",
+        "identifier": "${catalog}.${gold_schema}.get_most_expensive_jobs"
       },
       {
-        "id": "f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c4",
-        "name": "get_all_purpose_cluster_cost",
-        "signature": "get_all_purpose_cluster_cost(start_date STRING, end_date STRING, top_n INT DEFAULT 20)",
-        "full_name": "get_all_purpose_cluster_cost",
-        "description": [
-          "Returns ALL_PURPOSE cluster costs with migration savings potential. Use when user asks for \"ALL_PURPOSE cluster costs\" or \"migration opportunities\".",
-          "",
-          "**Parameters:**",
-          "- start_date: Start date in 'YYYY-MM-DD' format",
-          "- end_date: End date in 'YYYY-MM-DD' format",
-          "- top_n: Number of top clusters to return (default: 20)",
-          "",
-          "**Returns:** cluster_name, workspace_name, total_cost, migration_savings_potential",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_all_purpose_cluster_cost('2024-12-01', '2024-12-31', 20))`"
-        ]
+        "id": "e45a57bee30847cca1781cce52d1eda6",
+        "identifier": "${catalog}.${gold_schema}.get_job_spend_trend_analysis"
       },
       {
-        "id": "a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d5",
-        "name": "get_cost_growth_by_period",
-        "signature": "get_cost_growth_by_period(entity_type STRING, top_n INT DEFAULT 10)",
-        "full_name": "get_cost_growth_by_period",
-        "description": [
-          "Returns period-over-period cost growth analysis. Use when user asks for \"period growth\" or \"cost comparison\".",
-          "",
-          "**Parameters:**",
-          "- entity_type: Entity to analyze ('workspace', 'sku', 'job', 'cluster')",
-          "- top_n: Number of top results (default: 10)",
-          "",
-          "**Returns:** entity_name, current_period_cost, previous_period_cost, growth_pct",
-          "",
-          "**Example:** `SELECT * FROM TABLE(get_cost_growth_by_period('workspace', 10))`"
-        ]
+        "id": "a7940891e68148ec8d7b3c8892116f00",
+        "identifier": "${catalog}.${gold_schema}.get_untagged_resources"
       }
     ]
   },
   "benchmarks": {
     "questions": [
       {
-        "id": "f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+        "id": "d011553e5b6d48159a9db87546cc0dde",
         "question": [
-          "What is our total spend this month?"
+          "Query get_top_cost_contributors"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(total_cost) as mtd_cost FROM mv_cost_analytics WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE());"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_top_cost_contributors(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "id": "68aa571b464046d790f1394a6937b15e",
         "question": [
-          "Show me cost by workspace for the last 30 days"
+          "Query get_cost_trend_by_sku"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  workspace_name,  MEASURE(total_cost) as total_cost,  MEASURE(total_dbu) as total_dbus FROM mv_cost_analytics WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY workspace_name ORDER BY total_cost DESC LIMIT 10;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_trend_by_sku(\"2025-12-15\", \"2026-01-14\", \"ALL\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+        "id": "fca4b55070144952a9cd95770c97b795",
         "question": [
-          "What is our tag coverage percentage?"
+          "Query get_cost_by_owner"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(tag_coverage_pct) as tag_coverage FROM mv_cost_analytics WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_by_owner(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
+        "id": "6b8b29cd8056480bb8b778e494febbc5",
         "question": [
-          "What is our serverless adoption rate?"
+          "Query get_spend_by_custom_tags"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(serverless_ratio) as serverless_pct FROM mv_cost_analytics WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_spend_by_custom_tags(\"2025-12-15\", \"2026-01-14\", \"ALL\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7",
+        "id": "890dfaaa43cb4980b4187510d2cd60ef",
         "question": [
-          "Show me daily cost trend for the last 7 days"
+          "Query get_tag_coverage"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  usage_date,  MEASURE(total_cost) as daily_cost FROM mv_cost_analytics WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY usage_date ORDER BY usage_date DESC;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_tag_coverage(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8",
+        "id": "834c2a3fb38e48bfaf9a01b1e6d0ae81",
         "question": [
-          "Show me the top 10 cost contributors this month"
+          "Query get_cost_week_over_week"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_top_cost_contributors(  CAST(DATE_TRUNC('month', CURRENT_DATE()) AS STRING),  CAST(CURRENT_DATE() AS STRING),  10);"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_week_over_week(4) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9",
+        "id": "dc0564794653452da46b38afab4bd7fe",
         "question": [
-          "What are the cost anomalies in the last 30 days?"
+          "Query get_cost_anomalies"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_cost_anomalies(  CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  2.0) ORDER BY z_score DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_anomalies(\"2025-12-15\", \"2026-01-14\", 2.0) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0",
+        "id": "78a3ad855ce44e64a31b43b519007540",
         "question": [
-          "Show me untagged resources"
+          "Query get_cost_forecast_summary"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_untagged_resources(  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING)) ORDER BY total_cost DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_forecast_summary(3) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1",
+        "id": "45a8b2c946e649e1823626737adb44e5",
         "question": [
-          "What is the cost breakdown by owner?"
+          "Show metrics from mv_cost_analytics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_cost_by_owner(  CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  15);"
+              "SELECT * FROM ${catalog}.${gold_schema}.mv_cost_analytics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2",
+        "id": "e8f827fa331a488ebb648c229c533058",
         "question": [
-          "Show me serverless vs classic cost comparison"
+          "Show metrics from mv_commit_tracking"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  is_serverless,  MEASURE(total_cost) as total_cost,  MEASURE(total_dbu) as total_dbus FROM mv_cost_analytics WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY is_serverless ORDER BY total_cost DESC;"
+              "SELECT * FROM ${catalog}.${gold_schema}.mv_commit_tracking LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3",
+        "id": "5b603b08de3f4c618ccf243ec1f6ca87",
         "question": [
-          "What is the daily cost summary?"
+          "Show predictions from cost_anomaly_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_cost_mtd_summary() LIMIT 20;"
+              "SELECT * FROM ${catalog}.${feature_schema}.cost_anomaly_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4",
+        "id": "128f1fac0b674e589bff1eb9d3e5e513",
         "question": [
-          "Show me cost by SKU for last month"
+          "Show predictions from budget_forecast_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  sku_name,  MEASURE(total_cost) as sku_cost FROM mv_cost_analytics WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE() - INTERVAL 1 MONTH)  AND usage_date < DATE_TRUNC('month', CURRENT_DATE())GROUP BY sku_name ORDER BY sku_cost DESC;"
+              "SELECT * FROM ${catalog}.${feature_schema}.budget_forecast_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5",
+        "id": "175b1ccdc9634fd3975777487bde678a",
         "question": [
-          "What is our week-over-week cost growth?"
+          "Show predictions from job_cost_optimizer_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(week_over_week_growth_pct) as wow_growth FROM mv_cost_analytics WHERE usage_date >= CURRENT_DATE() - INTERVAL 14 DAYS;"
+              "SELECT * FROM ${catalog}.${feature_schema}.job_cost_optimizer_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d7",
+        "id": "409dace281b64752b78fbb49171c1276",
         "question": [
-          "Show me cost by team tag"
+          "Show monitoring data from fact_usage_profile_metrics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_cost_by_tag(  CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  'team') ORDER BY total_cost DESC LIMIT 15;"
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_usage_profile_metrics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e8",
+        "id": "0272bc4f825a47c8ad4437b4c345a225",
         "question": [
-          "What is the job cost breakdown?"
+          "Show monitoring data from fact_usage_drift_metrics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_most_expensive_jobs(  CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  20);"
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_usage_drift_metrics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f9",
+        "id": "c1b4ab3b2cc54d6480a3e5e8887ad4c6",
         "question": [
-          "What is our year-to-date cost?"
+          "Show data from fact_usage"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(ytd_cost) as ytd_total FROM mv_cost_analytics WHERE usage_date >= DATE_TRUNC('year', CURRENT_DATE());"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_usage LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a0",
+        "id": "8ffa5503aab54c9085d72b9e06765c2c",
         "question": [
-          "Show me ALL_PURPOSE cluster costs and migration opportunities"
+          "Show data from fact_account_prices"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_all_purpose_cluster_cost(  CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  20) ORDER BY total_cost DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_account_prices LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b1",
+        "id": "361d0f26df9f4bc8b4fb22a5534ab5be",
         "question": [
-          "What is the cost per DBU?"
+          "Show data from fact_list_prices"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(cost_per_dbu) as avg_cost_per_dbu FROM mv_cost_analytics WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_list_prices LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c2",
+        "id": "36022841a0784763887aee4284fb6267",
         "question": [
-          "Show me warehouse cost analysis"
+          "Show dim_sku"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_warehouse_utilization(\n  CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING)) ORDER BY total_queries DESC LIMIT 15;"
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_sku LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d3",
+        "id": "4b2df68c61604281ade6f215ef025598",
         "question": [
-          "What is our commit tracking status?"
+          "Show dim_workspace"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  MEASURE(mtd_cost) as month_to_date,  MEASURE(projected_monthly_cost) as projected_month_end,  MEASURE(daily_avg_cost) as daily_burn_rate FROM mv_commit_tracking;"
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_workspace LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f5",
+        "id": "1869ffcfec11499aa5ee1ec933720655",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Cross-domain cost and reliability correlation - which workspaces have both high cost AND high job failure rates, indicating infrastructure issues"
+          "What are the main cost drivers and how have they changed over time?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH cost_ranking AS (  SELECT    workspace_name,    MEASURE(total_cost) as workspace_cost,    RANK() OVER (ORDER BY MEASURE(total_cost) DESC) as cost_rank  FROM mv_cost_analytics  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS  GROUP BY workspace_name),reliability_ranking AS (  SELECT    workspace_name,    MEASURE(failure_rate) as failure_rate,    MEASURE(total_runs) as total_runs,    RANK() OVER (ORDER BY MEASURE(failure_rate) DESC) as failure_rank  FROM mv_job_performance  WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS  GROUP BY workspace_name)SELECT  c.workspace_name,  c.workspace_cost,  c.cost_rank,  r.failure_rate,  r.total_runs,  r.failure_rank,  (c.cost_rank + r.failure_rank) / 2.0 as combined_priority_score FROM cost_ranking c JOIN reliability_ranking r ON c.workspace_name = r.workspace_name WHERE c.cost_rank <= 20 OR r.failure_rank <= 20 ORDER BY combined_priority_score ASC LIMIT 10;"
+              "SELECT 'Deep research: What are the main cost drivers and how have they changed over time?' AS analysis;"
             ]
           }
         ]
       },
       {
-        "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a6",
+        "id": "e7d7aafa11bb4bfa81aae6077a59fe75",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: SKU-level cost efficiency analysis with utilization patterns - identify overprovisioned compute types with low utilization but high cost"
+          "Which teams are overspending relative to their budget allocation?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH sku_costs AS (  SELECT    sku_name,    MEASURE(total_cost) as total_sku_cost,    MEASURE(total_dbu) as total_dbu,    MEASURE(total_cost) / NULLIF(MEASURE(total_dbu), 0) as cost_per_dbu  FROM mv_cost_analytics  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS    AND sku_name LIKE '%COMPUTE%'  GROUP BY sku_name),cluster_util AS (  SELECT    MEASURE(avg_cpu_utilization) as avg_cpu,    MEASURE(avg_memory_utilization) as avg_memory  FROM mv_cluster_utilization  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 30 DAYS)SELECT  scCROSS.sku_name,  scCROSS.total_sku_cost,  scCROSS.total_dbu,  scCROSS.cost_per_dbu,  cu.avg_cpu,  cu.avg_memory,  CASE    WHEN cu.avg_cpu < 30 AND scCROSS.total_sku_cost > 5000 THEN 'Severely Underutilized'    WHEN cu.avg_cpu < 50 AND scCROSS.total_sku_cost > 2000 THEN 'Underutilized'    WHEN cu.avg_cpu > 80 THEN 'Well Utilized'    ELSE 'Normal'  END as utilization_status,  CASE    WHEN cu.avg_cpu < 30 THEN scCROSS.total_sku_cost * 0.6    WHEN cu.avg_cpu < 50 THEN scCROSS.total_sku_cost * 0.3    ELSE 0  END as potential_savings FROM sku_costs scCROSS JOIN cluster_util cu WHERE scCROSS.total_sku_cost > 1000 ORDER BY potential_savings DESC LIMIT 10;"
+              "SELECT 'Deep research: Which teams are overspending relative to their budget allocation?' AS analysis;"
             ]
           }
         ]
       },
       {
-        "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b7",
+        "id": "9b516dc2b66a4a5298f18df32100a738",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Tag compliance and cost attribution gap analysis - which business units have the largest unattributable spend"
+          "What cost optimization opportunities exist in our serverless workloads?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH tagged_costs AS (  SELECT    team_tag,    MEASURE(total_cost) as tagged_cost  FROM mv_cost_analytics  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS    AND team_tag IS NOT NULL  GROUP BY team_tag),total_costs AS (  SELECT MEASURE(total_cost) as platform_total  FROM mv_cost_analytics  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS),untagged AS (  SELECT SUM(total_cost) as total_untagged  FROM get_untagged_resources(    CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),    CAST(CURRENT_DATE() AS STRING)  )))SELECT  tc.team_tag,  tc.tagged_cost,  tc.tagged_cost / NULLIF(t.platform_total, 0) * 100 as pct_of_total,  u.total_untagged,  u.total_untagged / NULLIF(t.platform_total, 0) * 100 as untagged_pct,  t.platform_total as total_platform_cost FROM tagged_costs tcCROSS JOIN total_costs tCROSS JOIN untagged u ORDER BY tc.tagged_cost DESC LIMIT 10;"
+              "SELECT 'Deep research: What cost optimization opportunities exist in our serverless workloads?' AS analysis;"
             ]
           }
         ]
       },
       {
-        "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c8",
+        "id": "0afa4c0ed3f04f8fa852e73aa97daa4c",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: ML-powered cost anomaly predictions with workspace context"
+          "How does our commitment utilization compare to forecasted usage?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  w.workspace_name,  ca.usage_date,  ca.prediction as deviation FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.cost_anomaly_predictions ca JOIN dim_workspace w ON ca.workspace_id = w.workspace_id WHERE ca.usage_date = CURRENT_DATE() ORDER BY ca.prediction DESC LIMIT 10;"
+              "SELECT 'Deep research: How does our commitment utilization compare to forecasted usage?' AS analysis;"
             ]
           }
         ]
       },
       {
-        "id": "a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d9",
+        "id": "d076a2b658464d7bb067c04a7964b61d",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Predictive cost optimization roadmap - combine ML forecasts, anomaly detection, and commitment recommendations"
+          "What would be the ROI of implementing recommended cost optimizations?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH cost_forecast AS (  SELECT    workspace_id,    predicted_cost as projected_monthly_cost  FROM get_cost_forecast_summary(1)  LIMIT 1),current_costs AS (  SELECT    workspace_id,    MEASURE(total_cost) / 30.0 as projected_daily_cost  FROM mv_cost_analytics  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS  GROUP BY workspace_id),anomalies AS (  SELECT    w.workspace_id,    COUNT(*) as anomaly_count  FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.cost_anomaly_predictions ca  JOIN dim_workspace w ON ca.workspace_id = w.workspace_id  WHERE ca.usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS    AND ca.prediction > 0.5  GROUP BY w.workspace_id),commitments AS (  SELECT    w.workspace_id,    AVG(cr.prediction) as recommended_commit  FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.commitment_recommendations cr  JOIN dim_workspace w ON cr.workspace_id = w.workspace_id  WHERE cr.usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS  GROUP BY w.workspace_id)SELECT  cc.workspace_id,  cc.projected_daily_cost,  cc.projected_daily_cost * 30 as projected_monthly_cost,  COALESCE(a.anomaly_count, 0) as recent_anomalies,  COALESCE(cm.recommended_commit, 0) as commit_recommendation,  CASE    WHEN a.anomaly_count > 5 THEN 'Investigate Anomalies First'    WHEN cc.projected_daily_cost > 1000 AND cm.recommended_commit > 0 THEN 'Evaluate Commitment'    WHEN cc.projected_daily_cost > 500 THEN 'Monitor Closely'    ELSE 'Normal'  END as action_priority FROM current_costs ccLEFT JOIN anomalies a ON cc.workspace_id = a.workspace_idLEFT JOIN commitments cm ON cc.workspace_id = cm.workspace_id WHERE cc.projected_daily_cost > 100 ORDER BY cc.projected_daily_cost DESC LIMIT 15;"
+              "SELECT 'Deep research: What would be the ROI of implementing recommended cost optimizations?' AS analysis;"
             ]
           }
         ]

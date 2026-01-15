@@ -4,71 +4,141 @@
     "sample_questions": [
       {
         "id": "a1b2c3d4e5f6789012345678901234ab",
-        "question": "Who accessed this table?"
+        "question": [
+          "Who accessed this table?"
+        ]
       },
       {
         "id": "b2c3d4e5f6789012345678901234abc1",
-        "question": "Show me user activity for john@company.com"
+        "question": [
+          "Show me user activity for john@company.com"
+        ]
       },
       {
         "id": "c3d4e5f6789012345678901234abc12d",
-        "question": "Which tables are most frequently accessed?"
+        "question": [
+          "Which tables are most frequently accessed?"
+        ]
       },
       {
         "id": "d4e5f6789012345678901234abc12de3",
-        "question": "Who accessed sensitive data this week?"
+        "question": [
+          "Who accessed sensitive data this week?"
+        ]
       },
       {
         "id": "e5f6789012345678901234abc12de34f",
-        "question": "Show me failed access attempts"
+        "question": [
+          "Show me failed access attempts"
+        ]
       },
       {
         "id": "f6789012345678901234abc12de34f56",
-        "question": "What permission changes happened today?"
+        "question": [
+          "What permission changes happened today?"
+        ]
       },
       {
         "id": "789012345678901234abc12de34f5678",
-        "question": "Show me off-hours activity"
+        "question": [
+          "Show me off-hours activity"
+        ]
       },
       {
         "id": "89012345678901234abc12de34f56789",
-        "question": "Which service accounts are most active?"
+        "question": [
+          "Which service accounts are most active?"
+        ]
       },
       {
         "id": "9012345678901234abc12de34f56789a",
-        "question": "Show me unusual access patterns"
+        "question": [
+          "Show me unusual access patterns"
+        ]
       },
       {
         "id": "012345678901234abc12de34f56789ab",
-        "question": "What sensitive actions occurred?"
+        "question": [
+          "What sensitive actions occurred?"
+        ]
       },
       {
         "id": "12345678901234abc12de34f56789abc",
-        "question": "Show me security events timeline"
+        "question": [
+          "Show me security events timeline"
+        ]
       },
       {
         "id": "2345678901234abc12de34f56789abcd",
-        "question": "Which users have the most failed actions?"
+        "question": [
+          "Which users have the most failed actions?"
+        ]
       },
       {
         "id": "345678901234abc12de34f56789abcde",
-        "question": "Are there any security anomalies?"
+        "question": [
+          "Are there any security anomalies?"
+        ]
       },
       {
         "id": "45678901234abc12de34f56789abcdef",
-        "question": "What's the risk score for this user?"
+        "question": [
+          "What's the risk score for this user?"
+        ]
       },
       {
         "id": "5678901234abc12de34f56789abcdef0",
-        "question": "Show me suspicious activity patterns"
+        "question": [
+          "Show me suspicious activity patterns"
+        ]
       }
     ]
   },
   "data_sources": {
-    "tables": [],
+    "tables": [
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_user"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.dim_workspace"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_audit_logs"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_table_lineage"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_inbound_network"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.fact_outbound_network"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.security_threat_predictions"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.user_behavior_predictions"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.privilege_escalation_predictions"
+      },
+      {
+        "identifier": "${catalog}.${feature_schema}.exfiltration_predictions"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_audit_logs_drift_metrics"
+      }
+    ],
     "metric_views": [
       {
         "identifier": "${catalog}.${gold_schema}.mv_security_events"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.mv_governance_analytics"
       }
     ]
   },
@@ -99,284 +169,395 @@
     ],
     "sql_functions": [
       {
+        "id": "d183e935b05649d481565b52ca6fdd92",
         "identifier": "${catalog}.${gold_schema}.get_user_activity_summary"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_table_access_events"
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.get_permission_changes"
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.get_service_principal_activity"
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.get_failed_actions"
-      },
-      {
+        "id": "37fe8790bb554cd0a9971d623b86dd23",
         "identifier": "${catalog}.${gold_schema}.get_sensitive_table_access"
       },
       {
+        "id": "a6c6405c629e499f9312206feb90f606",
+        "identifier": "${catalog}.${gold_schema}.get_permission_changes"
+      },
+      {
+        "id": "746b8203b71c425fb5f9beb38dc54c33",
+        "identifier": "${catalog}.${gold_schema}.get_security_events_timeline"
+      },
+      {
+        "id": "77f8d42ac0ea4f46a0faa2fe016d6686",
         "identifier": "${catalog}.${gold_schema}.get_off_hours_activity"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_anomalous_access_events"
+        "id": "08d9a7b1123d46a2b69a0444ae221f86",
+        "identifier": "${catalog}.${gold_schema}.get_failed_actions"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.get_data_exfiltration_events"
+        "id": "ab369808dd424ae3aa0a18eab69b800c",
+        "identifier": "${catalog}.${gold_schema}.get_table_access_audit"
+      },
+      {
+        "id": "b3c0b475ebdc4b10b8806e2fc030481a",
+        "identifier": "${catalog}.${gold_schema}.get_ip_address_analysis"
+      },
+      {
+        "id": "56de784f8bf64011861570e53d96fe88",
+        "identifier": "${catalog}.${gold_schema}.get_service_account_audit"
+      },
+      {
+        "id": "11a8b10980e64d59b557af256ccb1f42",
+        "identifier": "${catalog}.${gold_schema}.get_user_activity_patterns"
       }
     ]
   },
   "benchmarks": {
     "questions": [
       {
-        "id": "789abcdef0123456789abcdef0123456",
+        "id": "260dcfb6a92a46efb3a9ab24239c0957",
         "question": [
-          "What is our total event count this week?"
+          "Query get_user_activity_summary"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(total_events) as event_count FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_user_activity_summary(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "89abcdef0123456789abcdef01234567",
+        "id": "554898a3c9fc4ed3ac5bafba12928de7",
         "question": [
-          "What is the failure rate for security events?"
+          "Query get_sensitive_table_access"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  MEASURE(failed_events) / NULLIF(MEASURE(total_events), 0) * 100 as failure_rate_pct FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_sensitive_table_access(\"2025-12-15\", \"2026-01-14\", \"%\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "9abcdef0123456789abcdef012345678",
+        "id": "d688f368be0a4851966d9a99d7cf525a",
         "question": [
-          "Show me events by user"
+          "Query get_permission_changes"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  user_email,  MEASURE(total_events) as event_count,  MEASURE(failed_events) as failed_count FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY user_email ORDER BY event_count DESC LIMIT 15;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_permission_changes(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "abcdef0123456789abcdef0123456789",
+        "id": "ead0ad71887b4329b82c0e0dd5580391",
         "question": [
-          "What is the success rate?"
+          "Query get_security_events_timeline"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT (1.0 - MEASURE(failed_events) / NULLIF(MEASURE(total_events), 0)) * 100 as success_pct FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_security_events_timeline(\"2025-12-15\", \"2026-01-14\", \"ALL\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "bcdef0123456789abcdef0123456789a",
+        "id": "6ac79e2c5171423a8157c5c8673d1c29",
         "question": [
-          "Show me user activity summary"
+          "Query get_off_hours_activity"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_user_activity_summary(\n  CAST(CURRENT_DATE(), CURRENT_DATE()::STRING,\n  10\n) - INTERVAL 7 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  20) ORDER BY total_events DESC;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_off_hours_activity(\"2025-12-15\", \"2026-01-14\", 9, 18) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "cdef0123456789abcdef0123456789ab",
+        "id": "e0f49b0156404aa38ea8293d7e173107",
         "question": [
-          "Who accessed sensitive tables?"
+          "Query get_failed_actions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_sensitive_table_access(\n  CAST(CURRENT_DATE(), CURRENT_DATE()::STRING,\n  '%'\n) - INTERVAL 7 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING)) ORDER BY access_count DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_failed_actions(\"2025-12-15\", \"2026-01-14\", \"ALL\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "def0123456789abcdef0123456789abc",
+        "id": "3cb7729026c54c5187ce9b999b68d01b",
         "question": [
-          "Show me failed access attempts"
+          "Query get_table_access_audit"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_failed_actions(\n  7,\n  CURRENT_DATE()::STRING,\n  '%'\n) ORDER BY event_time DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_access_audit(\"2025-12-15\", \"2026-01-14\", \"%\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "ef0123456789abcdef0123456789abcd",
+        "id": "4a955b9b36f84ce2bd5212799e4a548e",
         "question": [
-          "What permission changes happened this week?"
+          "Query get_ip_address_analysis"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_permission_changes(\n  7,\n  CURRENT_DATE()::STRING\n) ORDER BY event_time DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_ip_address_analysis(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "f0123456789abcdef0123456789abcde",
+        "id": "95597dc790bc48afab885f3385c33678",
         "question": [
-          "Show me unusual access patterns"
+          "Show metrics from mv_security_events"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_off_hours_activity(\n  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),\n  CAST(CURRENT_DATE() AS STRING),\n  7,\n  19\n) ORDER BY off_hours_events DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.mv_security_events LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "0123456789abcdef0123456789abcdef",
+        "id": "2f7993e8dcde4be3b75264cda2578351",
         "question": [
-          "What are the high-risk events?"
+          "Show metrics from mv_governance_analytics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  user_email,  action_category,  MEASURE(failed_events) as risk_events FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS  AND audit_level = 'HIGH'GROUP BY user_email, action_category ORDER BY risk_events DESC LIMIT 15;"
+              "SELECT * FROM ${catalog}.${gold_schema}.mv_governance_analytics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "123456789abcdef0123456789abcdef0",
+        "id": "460fdbe2f3304d54a06bb9805113d3b2",
         "question": [
-          "Show me user activity patterns"
+          "Show predictions from security_threat_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_off_hours_activity(\n  CAST(CURRENT_DATE() - INTERVAL 30 DAYS AS STRING),\n  CAST(CURRENT_DATE() AS STRING),\n  7,\n  19\n) ORDER BY user_email, event_date LIMIT 50;"
+              "SELECT * FROM ${catalog}.${feature_schema}.security_threat_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "23456789abcdef0123456789abcdef01",
+        "id": "7da2737ad1bd48b0bbdcd50cd8be0ba0",
         "question": [
-          "What is the unique user count?"
+          "Show predictions from user_behavior_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(unique_users) as user_count FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${feature_schema}.user_behavior_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "3456789abcdef0123456789abcdef012",
+        "id": "6e8e501638324ea4933afb248394c3f6",
         "question": [
-          "Show me data export events"
+          "Show predictions from privilege_escalation_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_table_access_audit(  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  '%') ORDER BY access_count DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${feature_schema}.privilege_escalation_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "456789abcdef0123456789abcdef0123",
+        "id": "e5017247b7254c3680a3dc76f904386f",
         "question": [
-          "Show me governance data lineage"
+          "Show monitoring data from fact_audit_logs_profile_metrics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  MEASURE(read_events) as read_count,  MEASURE(write_events) as write_count,  MEASURE(active_table_count) as active_tables FROM mv_governance_analytics WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "56789abcdef0123456789abcdef01234",
+        "id": "7ea4168bf9054bdf9c90fefc3693983c",
         "question": [
-          "What is the unique data consumer count?"
+          "Show monitoring data from fact_audit_logs_drift_metrics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(unique_users) as consumer_count FROM mv_governance_analytics WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_drift_metrics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "6789abcdef0123456789abcdef012345",
+        "id": "948ba9c4f70a4e1390f5dfe810b3182d",
         "question": [
-          "Show me service account activity"
+          "Show data from fact_audit_logs"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_service_account_audit(30) ORDER BY total_events DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_audit_logs LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "b16acdef0123456789abcdef01234516",
+        "id": "34fcd0092bbe45078250e3936a270226",
         "question": [
-          "Show me security event drift"
+          "Show data from fact_table_lineage"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT  window.start AS period_start,  event_volume_drift_pct,  sensitive_action_drift,  failure_rate_drift FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_audit_logs_drift_metrics WHERE drift_type = 'CONSECUTIVE'  AND column_name = ':table'  AND window.start >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY window.start DESC LIMIT 10;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_table_lineage LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "c17adef01234567890abcdef1234517a",
+        "id": "c7e4fb121f194838b75ec61821c8a7e1",
         "question": [
-          "Show me table access audit"
+          "Show data from fact_inbound_network"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_table_access_audit(  CAST(CURRENT_DATE() - INTERVAL 7 DAYS AS STRING),  CAST(CURRENT_DATE() AS STRING),  '%') ORDER BY access_count DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_inbound_network LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "30879eae595f4362ae176a8e839e87d3",
+        "question": [
+          "Show dim_user"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_user LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "74be8ee2a3fe48a2a4e3e2669dbb246d",
+        "question": [
+          "Show dim_workspace"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_workspace LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9fda507dc1f940d0929bdcfc3af9d146",
+        "question": [
+          "Are there any unusual access patterns that might indicate security risks?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Are there any unusual access patterns that might indicate security risks?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "70720a24f621460c8f33c3edd0f26fc4",
+        "question": [
+          "Which users have accessed sensitive data outside business hours?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Which users have accessed sensitive data outside business hours?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "d1997678a0474fa0bbf54d084db79cdc",
+        "question": [
+          "What permission changes have occurred in the last 30 days?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: What permission changes have occurred in the last 30 days?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "fee0a587c37f4f2295f79896e87ee353",
+        "question": [
+          "Are there any service accounts with excessive privileges?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Are there any service accounts with excessive privileges?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3d1e0ed1c5e645f9bc4c45f11410009f",
+        "question": [
+          "What is the compliance status of our data access controls?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: What is the compliance status of our data access controls?' AS analysis;"
             ]
           }
         ]

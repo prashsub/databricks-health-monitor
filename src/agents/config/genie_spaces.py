@@ -1,18 +1,34 @@
 """
-Genie Space Configuration (SINGLE SOURCE OF TRUTH)
-===================================================
+Genie Space Configuration
+==========================
 
 Centralized configuration for all Genie Space IDs and metadata used by the agent framework.
-This is the ONLY place where Genie Space configuration should be defined.
 
-IMPORTANT: Do NOT duplicate this configuration elsewhere. Other modules should import from here.
+CONFIGURATION HIERARCHY (in order of precedence):
+1. **Environment Variables** (highest priority) - Set via databricks.yml or runtime
+   - COST_GENIE_SPACE_ID
+   - RELIABILITY_GENIE_SPACE_ID
+   - QUALITY_GENIE_SPACE_ID
+   - PERFORMANCE_GENIE_SPACE_ID
+   - SECURITY_GENIE_SPACE_ID
+   - UNIFIED_GENIE_SPACE_ID
 
-To update Genie Space IDs:
-1. Update the GENIE_SPACE_REGISTRY dict below
-2. Redeploy the agent
-   
-Environment variables override defaults (for per-environment config):
-    export COST_GENIE_SPACE_ID="new-space-id"
+2. **Default Values** (fallback) - Hardcoded in GENIE_SPACE_REGISTRY below
+
+RECOMMENDED APPROACH:
+- Define Genie Space IDs in databricks.yml as variables
+- Pass them as environment variables to agent deployment jobs
+- Keep defaults here as fallback for development
+
+Example databricks.yml:
+    variables:
+      cost_genie_space_id:
+        default: "01f0ea871ffe176fa6aee6f895f83d3b"
+    
+    targets:
+      prod:
+        variables:
+          cost_genie_space_id: "prod-space-id"  # Override for prod
 
 Usage:
     from agents.config.genie_spaces import (
@@ -22,7 +38,7 @@ Usage:
         DOMAINS
     )
     
-    cost_space = get_genie_space_id("cost")
+    cost_space = get_genie_space_id("cost")  # Returns env var or default
     cost_config = get_genie_space_config("cost")
     print(cost_config.agent_instructions)  # When to use this space
 """

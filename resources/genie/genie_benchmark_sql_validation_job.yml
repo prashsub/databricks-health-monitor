@@ -26,15 +26,15 @@
 #   - Job FAILS if any query errors are found
 #
 # ══════════════════════════════════════════════════════════════════════════════
-# GENIE SPACES VALIDATED (200+ queries)
+# GENIE SPACES VALIDATED (150 queries - 25 per space)
 # ══════════════════════════════════════════════════════════════════════════════
 #
 #   1. 💰 Cost Intelligence (25 queries)
-#   2. 📊 Data Quality Monitor (20 queries)
+#   2. 📊 Data Quality Monitor (25 queries)
 #   3. 🔄 Job Health Monitor (25 queries)
 #   4. ⚡ Performance (25 queries)
 #   5. 🔐 Security Auditor (25 queries)
-#   6. 🏥 Unified Health Monitor (25+ queries)
+#   6. 🏥 Unified Health Monitor (25 queries)
 #
 # ══════════════════════════════════════════════════════════════════════════════
 # USAGE
@@ -66,8 +66,15 @@ resources:
             environment_version: "4"
 
       tasks:
-        - task_key: validate_all_benchmark_sql
-          description: "🔍 Execute all benchmark SQL queries with LIMIT 1 for full validation"
+        # ═══════════════════════════════════════════════════════════════════
+        # PARALLEL VALIDATION TASKS (One per Genie Space)
+        # ═══════════════════════════════════════════════════════════════════
+        # Each task validates only its assigned Genie Space JSON file
+        # All tasks run in parallel for faster validation (5x speedup)
+        # Individual pass/fail rates visible per space
+        
+        - task_key: validate_cost_intelligence
+          description: "💰 Cost Intelligence (25 queries)"
           environment_key: default
           notebook_task:
             notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
@@ -75,6 +82,62 @@ resources:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
               feature_schema: ${var.feature_schema}
+              genie_space_filter: cost_intelligence_genie_export.json
+        
+        - task_key: validate_performance
+          description: "⚡ Performance (25 queries)"
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+              genie_space_filter: performance_genie_export.json
+        
+        - task_key: validate_data_quality_monitor
+          description: "📊 Data Quality Monitor (25 queries)"
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+              genie_space_filter: data_quality_monitor_genie_export.json
+        
+        - task_key: validate_job_health_monitor
+          description: "🔄 Job Health Monitor (25 queries)"
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+              genie_space_filter: job_health_monitor_genie_export.json
+        
+        - task_key: validate_security_auditor
+          description: "🔐 Security Auditor (25 queries)"
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+              genie_space_filter: security_auditor_genie_export.json
+        
+        - task_key: validate_unified_health_monitor
+          description: "🏥 Unified Health Monitor (25 queries)"
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/genie/validate_genie_spaces_notebook.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+              genie_space_filter: unified_health_monitor_genie_export.json
 
       # ═══════════════════════════════════════════════════════════════════
       # JOB CONFIGURATION
@@ -95,8 +158,8 @@ resources:
         on_success:
           - data-engineering@company.com
 
-      # Timeout at job level (30 minutes - actual: 123 queries × ~8 sec + cold start)
-      timeout_seconds: 1800
+      # Timeout at job level (1 hour - 123 queries × ~8 sec + cold start + buffer)
+      timeout_seconds: 3600
 
       # Tags
       tags:

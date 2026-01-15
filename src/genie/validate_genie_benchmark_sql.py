@@ -325,16 +325,33 @@ def generate_validation_report(results: List[Dict]) -> str:
     return "\n".join(report)
 
 
-def validate_all_genie_benchmarks(genie_dir: Path, catalog: str, gold_schema: str, spark: SparkSession, feature_schema: str = None) -> Tuple[bool, List[Dict]]:
+def validate_all_genie_benchmarks(genie_dir: Path, catalog: str, gold_schema: str, spark: SparkSession, feature_schema: str = None, genie_space_filter: str = None) -> Tuple[bool, List[Dict]]:
     """
     Validate all benchmark queries in all Genie Space JSON export files.
+    
+    Args:
+        genie_dir: Directory containing Genie Space JSON files
+        catalog: Unity Catalog name
+        gold_schema: Gold layer schema name
+        spark: SparkSession
+        feature_schema: Feature/ML schema name (optional)
+        genie_space_filter: Optional filename to validate only one space (e.g., "cost_intelligence_genie_export.json")
     
     Returns:
         (success: bool, results: List[Dict])
     """
     
     # Find all Genie Space JSON export files
-    json_files = list(genie_dir.glob("*_genie_export.json"))
+    if genie_space_filter:
+        # Validate only the specified file
+        json_files = [genie_dir / genie_space_filter]
+        if not json_files[0].exists():
+            print(f"⚠️  Genie Space file not found: {genie_space_filter}")
+            print(f"    Searched in: {genie_dir}")
+            return False, []
+    else:
+        # Validate all files
+        json_files = list(genie_dir.glob("*_genie_export.json"))
     
     if not json_files:
         print(f"⚠️  No Genie Space JSON export files found in {genie_dir}")

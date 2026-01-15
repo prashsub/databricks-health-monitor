@@ -30,19 +30,39 @@ This documentation suite provides comprehensive architecture and implementation 
 | 04 | [Worker Agents](04-worker-agents.md) | Domain specialist agents (Cost, Security, Performance, Reliability, Quality) |
 | 05 | [Genie Integration](05-genie-integration.md) | Genie as sole data interface, Conversation API |
 | 06 | [Utility Tools](06-utility-tools.md) | Web search, dashboard linker, alert trigger, runbook RAG |
-| 07 | [Memory Management](07-memory-management.md) | Lakebase short-term and long-term memory |
+| 07 | [Memory Management](07-memory-management.md) | Lakebase short-term and long-term memory (BACKEND) |
 | 08 | [MLflow Tracing](08-mlflow-tracing.md) | MLflow 3.0 tracing instrumentation |
 | 09 | [Evaluation and Judges](09-evaluation-and-judges.md) | LLM judges and quality scoring |
 | 10 | [Prompt Registry](10-prompt-registry.md) | Prompt version management |
 | 11 | [Agent Logging](11-agent-logging.md) | Agent registration and Model Registry |
-| 12 | [Implementation Guide](12-implementation-guide.md) | Step-by-step implementation phases |
+| 12 | [Implementation Guide](12-implementation-guide.md) | Step-by-step implementation phases (BACKEND) |
 | 13 | [Deployment and Monitoring](13-deployment-and-monitoring.md) | Production deployment and observability |
+| **14A** | **[Visualization Hints: Backend](14-visualization-hints-backend.md)** | **✅ Agent generates chart recommendations** |
+| **14B** | **[Visualization Hints: Frontend](14-visualization-hints-frontend.md)** | **Frontend chart rendering with Recharts** |
+| **15** | **[Frontend Integration Guide](15-frontend-integration-guide.md)** | **🎨 Complete frontend integration overview** |
+| **16** | **[Frontend Streaming Guide](16-frontend-streaming-guide.md)** | **🌊 Streaming responses with SSE, fallback strategies** |
+| **17** | **[Frontend Memory Guide](17-frontend-memory-guide.md)** | **🧠 Short-term & long-term memory integration** |
+| **18** | **[Frontend API Conventions](18-frontend-api-conventions.md)** | **🔧 API endpoints, error codes, deployment, monitoring** |
 
 ## Supplemental Guides
 
+### Backend Implementation
 | Document | Description |
 |----------|-------------|
 | [OBO Authentication Guide](obo-authentication-guide.md) | **On-Behalf-Of-User authentication** for Genie Spaces - required for per-user access control |
+| [Visualization Hints Implementation](visualization-hints-implementation-summary.md) | **✅ DEPLOYED**: Complete implementation summary with examples |
+
+### 🎨 Frontend Integration (NEW)
+
+**Complete guides for frontend developers to integrate with the agent**:
+
+| Document | Description |
+|----------|-------------|
+| **[15 - Frontend Integration Guide](15-frontend-integration-guide.md)** | **🎯 START HERE** - Complete overview: API, requests, responses, state management, security |
+| **[16 - Frontend Streaming Guide](16-frontend-streaming-guide.md)** | **🌊 Streaming** - SSE streaming, fallback strategies, cancellation, performance |
+| **[17 - Frontend Memory Guide](17-frontend-memory-guide.md)** | **🧠 Memory** - Short-term context, long-term preferences, session management |
+| **[18 - Frontend API Conventions](18-frontend-api-conventions.md)** | **🔧 API** - Endpoints, authentication, error codes, rate limiting, deployment URLs |
+| **[14B - Visualization Hints: Frontend](14-visualization-hints-frontend.md)** | **📊 Charts** - Rendering bar, line, pie charts with Recharts |
 
 ## Appendices
 

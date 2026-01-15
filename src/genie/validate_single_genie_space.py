@@ -176,7 +176,6 @@ def main():
             )
         
         print(f"\n✅ SUCCESS: All {valid_count} queries validated for {genie_space}!")
-        dbutils.notebook.exit("SUCCESS")
         
     except Exception as e:
         print(f"\n❌ VALIDATION FAILED: {str(e)}")
@@ -184,10 +183,14 @@ def main():
     finally:
         spark.stop()
 
-# COMMAND ----------
-
+# Execute main function
 if __name__ == "__main__":
     main()
+
+# COMMAND ----------
+
+# Exit message in separate cell to allow seeing debug messages
+dbutils.notebook.exit("SUCCESS")
 
 
 

@@ -97,226 +97,39 @@
   "data_sources": {
     "tables": [
       {
-        "identifier": "${catalog}.${gold_schema}.dim_experiment",
-        "description": [
-          "Dimension table for MLflow experiments.\n",
-          "Business: Tracks ML experiments for data quality models."
-        ],
-        "column_configs": [
-          {
-            "column_name": "experiment_id",
-            "description": [
-              "Unique experiment identifier"
-            ]
-          },
-          {
-            "column_name": "experiment_name",
-            "description": [
-              "Human-readable experiment name"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "artifact_location",
-            "description": [
-              "Location of experiment artifacts"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.dim_workspace"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.dim_served_entities",
-        "description": [
-          "Dimension table for model serving endpoints.\n",
-          "Business: Model serving endpoint metadata."
-        ],
-        "column_configs": [
-          {
-            "column_name": "entity_id",
-            "description": [
-              "Unique entity identifier"
-            ]
-          },
-          {
-            "column_name": "entity_name",
-            "description": [
-              "Entity name"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "endpoint_name",
-            "description": [
-              "Serving endpoint name"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.fact_table_lineage"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.dim_workspace",
-        "description": [
-          "Dimension table for workspace details.\n",
-          "Business: Links data quality metrics to specific Databricks workspaces."
-        ],
-        "column_configs": [
-          {
-            "column_name": "workspace_id",
-            "description": [
-              "Unique workspace identifier"
-            ]
-          },
-          {
-            "column_name": "workspace_name",
-            "description": [
-              "Human-readable workspace name"
-            ],
-            "synonyms": [
-              "workspace",
-              "environment"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "region",
-            "description": [
-              "Cloud region"
-            ]
-          },
-          {
-            "column_name": "cloud_provider",
-            "description": [
-              "Cloud provider (AWS, Azure, GCP)"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.fact_dq_monitoring"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_table_lineage",
-        "description": [
-          "Fact table for table lineage events.\n",
-          "Business: Table-level lineage tracking."
-        ]
+        "identifier": "${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_column_lineage",
-        "description": [
-          "Fact table for column-level lineage.\n",
-          "Business: Column-level lineage tracking."
-        ]
+        "identifier": "${catalog}.${feature_schema}.data_drift_predictions"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_data_classification",
-        "description": [
-          "Fact table for data classification tags.\n",
-          "Business: Data classification and sensitivity tagging."
-        ]
+        "identifier": "${catalog}.${feature_schema}.freshness_predictions"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_data_classification_results",
-        "description": [
-          "Fact table for classification scan results.\n",
-          "Business: Classification scan execution results."
-        ]
+        "identifier": "${catalog}.${feature_schema}.pipeline_health_predictions"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_dq_monitoring",
-        "description": [
-          "Fact table for DQ monitoring results.\n",
-          "Business: Data quality check execution results."
-        ]
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_table_lineage_profile_metrics"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results",
-        "description": [
-          "Fact table for table-level DQ results.\n",
-          "Business: Aggregated table-level data quality results."
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_predictive_optimization",
-        "description": [
-          "Fact table for predictive optimization events.\n",
-          "Business: Predictive optimization execution tracking."
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_mlflow_runs",
-        "description": [
-          "Fact table for MLflow run history.\n",
-          "Business: ML experiment run tracking."
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_mlflow_run_metrics_history",
-        "description": [
-          "Fact table for MLflow metrics over time.\n",
-          "Business: ML model training metrics history."
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_endpoint_usage",
-        "description": [
-          "Fact table for model serving usage.\n",
-          "Business: Model serving endpoint usage tracking."
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_payload_logs",
-        "description": [
-          "Fact table for model serving payloads.\n",
-          "Business: Model inference payload logging."
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_listing_access",
-        "description": [
-          "Fact table for marketplace listing access.\n",
-          "Business: Marketplace listing access tracking."
-        ]
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}.fact_listing_funnel",
-        "description": [
-          "Fact table for marketplace funnel events.\n",
-          "Business: Marketplace conversion funnel tracking."
-        ]
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_table_lineage_drift_metrics"
       }
     ],
     "metric_views": [
       {
-        "identifier": "${catalog}.${gold_schema}.mv_ml_intelligence",
-        "description": [
-          "ML model inference intelligence.\n",
-          "PURPOSE: Track ML model performance and drift detection.\n",
-          "BEST FOR: ML accuracy | Drift score | Prediction count\n",
-          "KEY MEASURES: prediction_count, accuracy, drift_score"
-        ],
-        "column_configs": [
-          {
-            "column_name": "prediction_count",
-            "synonyms": [
-              "predictions",
-              "inference count"
-            ]
-          },
-          {
-            "column_name": "accuracy",
-            "synonyms": [
-              "model accuracy",
-              "ml accuracy"
-            ]
-          },
-          {
-            "column_name": "drift_score",
-            "synonyms": [
-              "model drift",
-              "ml drift"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.mv_data_quality"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.mv_governance_analytics"
       }
     ]
   },
@@ -328,18 +141,18 @@
           "ROLE: You are a data quality and governance analyst.\n",
           "\n",
           "ASSET SELECTION RULES:\n",
-          "1. Current state aggregates (overall quality score, freshness rate) → Use data_quality METRIC VIEW\n",
-          "2. Trend/drift queries (is quality degrading?) → Use _drift_metrics TABLE\n",
-          "3. List queries (stale tables, failing tables) → Use TVF functions\n",
-          "4. Predictions (quality anomalies, freshness alerts) → Use ML prediction tables\n",
+          "1. Current state aggregates (overall quality score, freshness rate) \u2192 Use data_quality METRIC VIEW\n",
+          "2. Trend/drift queries (is quality degrading?) \u2192 Use _drift_metrics TABLE\n",
+          "3. List queries (stale tables, failing tables) \u2192 Use TVF functions\n",
+          "4. Predictions (quality anomalies, freshness alerts) \u2192 Use ML prediction tables\n",
           "\n",
           "PRIORITY ORDER:\n",
-          "- If user asks for a LIST → TVF (get_table_freshness, get_table_activity_status)\n",
-          "- If user asks about TREND → Custom Metrics (_drift_metrics)\n",
-          "- If user asks for CURRENT VALUE → Metric View (data_quality)\n",
-          "- If user asks for PREDICTION → ML tables\n",
+          "- If user asks for a LIST \u2192 TVF (get_table_freshness, get_table_activity_status)\n",
+          "- If user asks about TREND \u2192 Custom Metrics (_drift_metrics)\n",
+          "- If user asks for CURRENT VALUE \u2192 Metric View (data_quality)\n",
+          "- If user asks for PREDICTION \u2192 ML tables\n",
           "\n",
-          "⚠️ CUSTOM METRICS QUERY RULES:\n",
+          "\u26a0\ufe0f CUSTOM METRICS QUERY RULES:\n",
           "- _profile_metrics: ALWAYS include column_name=':table' AND log_type='INPUT'\n",
           "- _drift_metrics: ALWAYS include drift_type='CONSECUTIVE' AND column_name=':table'\n",
           "\n",
@@ -401,299 +214,383 @@
     ],
     "sql_functions": [
       {
-        "id": "be497ff9f29af589476e57aff1fc679b",
+        "id": "0dc3847ee3554f4db4ab76d298ad9803",
         "identifier": "${catalog}.${gold_schema}.get_table_freshness"
       },
       {
-        "id": "463ca3718cb1f20b6df91f9d1a13bac8",
-        "identifier": "${catalog}.${gold_schema}.get_table_lineage"
+        "id": "bfad9ccf043d46328cc66d1f6c3368f8",
+        "identifier": "${catalog}.${gold_schema}.get_data_freshness_by_domain"
       },
       {
-        "id": "f3efc560036e0ccd09ff8ad36327b8cb",
+        "id": "961871b2e3624ae0aa979c7959c73f25",
+        "identifier": "${catalog}.${gold_schema}.get_tables_failing_quality"
+      },
+      {
+        "id": "c8775c3de1ad4859874d90f9c209cfab",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
+      },
+      {
+        "id": "a33fa6c6877b4d33a59fb9b7606612b2",
+        "identifier": "${catalog}.${gold_schema}.get_data_quality_summary"
+      },
+      {
+        "id": "2205520322be491293d64d2ebcf661e5",
+        "identifier": "${catalog}.${gold_schema}.get_job_data_quality_status"
+      },
+      {
+        "id": "b38a5f3eb1bf493c9bc9185b24ea426f",
         "identifier": "${catalog}.${gold_schema}.get_table_activity_status"
-      },
-      {
-        "id": "8741e2591b4ae88e32e235ee26d4bd4e",
-        "identifier": "${catalog}.${gold_schema}.get_data_lineage_summary"
-      },
-      {
-        "id": "c602fbfbb8a51cdfbec26643cd8265bc",
-        "identifier": "${catalog}.${gold_schema}.get_pipeline_lineage_impact"
-      }
-    ],
-    "join_specs": [
-      {
-        "id": "def49189ebf21fc5120a33bf8d9a272b",
-        "left": {
-          "identifier": "${catalog}.${gold_schema}.fact_table_lineage",
-          "alias": "fact_table_lineage"
-        },
-        "right": {
-          "identifier": "${catalog}.${gold_schema}.dim_workspace",
-          "alias": "dim_workspace"
-        },
-        "sql": [
-          "`fact_table_lineage`.`workspace_id` = `dim_workspace`.`workspace_id`\n",
-          "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
-        ],
-        "comment": [
-          "Join lineage to workspace for workspace context"
-        ]
-      },
-      {
-        "id": "a66171aeadcedeb605b807fdc5a29c84",
-        "left": {
-          "identifier": "${catalog}.${gold_schema}.fact_mlflow_runs",
-          "alias": "fact_mlflow_runs"
-        },
-        "right": {
-          "identifier": "${catalog}.${gold_schema}.dim_experiment",
-          "alias": "dim_experiment"
-        },
-        "sql": [
-          "`fact_mlflow_runs`.`workspace_id` = `dim_experiment`.`workspace_id` AND `fact_mlflow_runs`.`experiment_id` = `dim_experiment`.`experiment_id`\n",
-          "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
-        ],
-        "comment": [
-          "Join MLflow runs to experiments"
-        ]
       }
     ]
   },
   "benchmarks": {
     "questions": [
       {
-        "id": "37dd19999a2e13c114e190803a5e187c",
+        "id": "28963671b2a34ab68609034bd5f447d3",
         "question": [
-          "What is our overall data quality score?"
+          "Query get_table_freshness"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(freshness_rate) as overall_quality",
-              "FROM mv_data_quality;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_freshness(24) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "a3e09ee970c2846e26575170915af2ea",
+        "id": "73431d675584426eaac5efa41abdcd39",
         "question": [
-          "Show me tables with freshness issues"
+          "Query get_data_freshness_by_domain"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_table_freshness(24) WHERE is_stale = TRUE ORDER BY hours_since_update DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_data_freshness_by_domain(24) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "d0e2ded00f58b1b8f10e0cfbcf0326f4",
+        "id": "f955099bb4604782a1eb77acb157a0c8",
         "question": [
-          "What is the completeness rate?"
+          "Query get_tables_failing_quality"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(total_tables) as completeness_pct",
-              "FROM mv_data_quality;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_tables_failing_quality(24) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "9836b3eb035074cbe4e214c1aa81aed9",
+        "id": "580bc6a0c11b4244a541a97063369bf7",
         "question": [
-          "Show me tables failing quality checks"
+          "Query get_pipeline_data_lineage"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_table_activity_status(7, 14) WHERE activity_status = 'INACTIVE'ORDER BY days_since_last_access DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_pipeline_data_lineage(30, \"ALL\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "96378659fbc84ca27d9fa282e5842029",
+        "id": "6d90fe0004444b11a4a7dfc617a3f4a1",
         "question": [
-          "What is our data freshness by domain?"
+          "Query get_data_quality_summary"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT domain, table_count as total_tables, freshness_threshold, avg_hours_since_update, max_hours_since_update FROM get_data_freshness_by_domain(24) ORDER BY max_hours_since_update DESC LIMIT 15;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_data_quality_summary() LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "21fbba3439a78dfb2498050a16bae95a",
+        "id": "59c4c2cfec1441f38fd4f0a681128b8f",
         "question": [
-          "Show me the data quality summary"
+          "Query get_job_data_quality_status"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_table_activity_status(7, 14) ORDER BY days_since_last_access DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_data_quality_status(30) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "01ffdb45d3e5e9f898cd1e571e645b4f",
+        "id": "688c1d1593ef4b2d8ff0a52479b35bf7",
         "question": [
-          "What is the validity rate?"
+          "Query get_table_activity_status"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(staleness_rate) as validity_pct",
-              "FROM mv_data_quality;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_table_activity_status(30, 90) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "2d00597697ea962c161f9668c4b19a7a",
+        "id": "15b9ffd78cf34dba8b5907219c26b0ab",
         "question": [
-          "Show me inactive tables"
+          "Show metrics from mv_data_quality"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_table_activity_status(30, 14) WHERE activity_status IN ('INACTIVE', 'OR PHANED') ORDER BY days_since_last_access DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.mv_data_quality LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "f90c7690d7d10b552ee68131de39ff77",
+        "id": "3dc629ef499449228bb2d4f71cb7594e",
         "question": [
-          "What is the freshness rate?"
+          "Show metrics from mv_governance_analytics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(freshness_rate) as fresh_pct",
-              "FROM mv_data_quality;"
+              "SELECT * FROM ${catalog}.${gold_schema}.mv_governance_analytics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "1be3990d47aafb665e0749d604c64257",
+        "id": "3675ecb4ee724a298f4407a0b053b8e1",
         "question": [
-          "Show me pipeline data lineage"
+          "Show predictions from data_drift_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_pipeline_data_lineage(7, '%') ORDER BY complexity_score DESC LIMIT 50;"
+              "SELECT * FROM ${catalog}.${feature_schema}.data_drift_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "e4a5d34f88921b1e732d7564023dbcf3",
+        "id": "cb6b5d8639d3453e9651148e0acc8d05",
         "question": [
-          "What is the job quality status?"
+          "Show predictions from freshness_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_table_activity_status(7, 14) ORDER BY days_since_last_access DESC LIMIT 15;"
+              "SELECT * FROM ${catalog}.${feature_schema}.freshness_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "c12e082cec1f0627820659ee2f639631",
+        "id": "1422e397a28f42d49384c179c09da2db",
         "question": [
-          "What is the staleness rate?"
+          "Show predictions from pipeline_health_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(staleness_rate) as stale_pct",
-              "FROM mv_data_quality;"
+              "SELECT * FROM ${catalog}.${feature_schema}.pipeline_health_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "881d6e7d8cc130bc77f1fc7f46d44316",
+        "id": "e0e11ccbd0f64cbca560c2bcccdf264b",
         "question": [
-          "Show me quality score by domain"
+          "Show monitoring data from fact_table_lineage_profile_metrics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT   domain,  MEASURE(freshness_rate) as avg_quality,  MEASURE(total_tables) as table_count FROM mv_data_quality GROUP BY domain ORDER BY avg_quality ASC LIMIT 10;"
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_table_lineage_profile_metrics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "0f0f2d6dfdab3a1f1632ec3bc44f9221",
+        "id": "963090feba3248b497ba4e4496f83dd5",
         "question": [
-          "What is our ML model performance?"
+          "Show monitoring data from fact_table_lineage_drift_metrics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT ",
-              "  MEASURE(accuracy) as ml_accuracy,",
-              "  MEASURE(drift_score) as ml_drift,",
-              "  MEASURE(prediction_count) as total_predictions",
-              "FROM mv_ml_intelligence;"
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_table_lineage_drift_metrics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "d5bc0884e82891cdb83738d699960bfe",
+        "id": "b01324e39876428aa86bd9fb8e9587ca",
         "question": [
-          "What is our ML prediction accuracy?"
+          "Show data from fact_table_lineage"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT ",
-              "  MEASURE(accuracy) as model_accuracy,",
-              "  MEASURE(prediction_count) as predictions",
-              "FROM mv_ml_intelligence;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_table_lineage LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "d206e41a02d897ac3a9bb51232e6aa76",
+        "id": "bb6ab16afdac4c49bcc4a4ddc203b178",
         "question": [
-          "Show me quality score distribution"
+          "Show data from fact_dq_monitoring"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT   CASE     WHEN MEASURE(freshness_rate) >= 90 THEN 'Excellent (90-100)'    WHEN MEASURE(freshness_rate) >= 70 THEN 'Good (70-89)'    WHEN MEASURE(freshness_rate) >= 50 THEN 'Fair (50-69)'    ELSE 'Poor (<50)'  END as quality_tier,  COUNT(*) as table_count FROM mv_data_quality GROUP BY quality_tier ORDER BY MIN(MEASURE(freshness_rate)) DESC;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_dq_monitoring LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c8728e71cc414ca59e227aab5fbd0515",
+        "question": [
+          "Show data from fact_data_quality_monitoring_table_results"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "0ed3ba7a6f6349f39b906795dc5772bb",
+        "question": [
+          "Show dim_workspace"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_workspace LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "131660bb764e4689a058cfab04d9e9c7",
+        "question": [
+          "Which tables have the highest data quality issues?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Which tables have the highest data quality issues?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1ff486669ce9484ebec26cb2a1c2ba5e",
+        "question": [
+          "What is the impact of data freshness on downstream consumers?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: What is the impact of data freshness on downstream consumers?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "835007b38db64d54aeb1426a78cf3963",
+        "question": [
+          "Which pipelines are most likely to have data quality failures?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Which pipelines are most likely to have data quality failures?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9af429e099e54a808530947959882fd0",
+        "question": [
+          "How has our overall data quality score trended over time?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: How has our overall data quality score trended over time?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bf706b6eb3c044b0aacaf1cbbf45d5da",
+        "question": [
+          "What governance gaps exist in our data lineage?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: What governance gaps exist in our data lineage?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "54d8e1afb0294d50b84452e4af3474ff",
+        "question": [
+          "Additional analysis query 24"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Placeholder' AS result;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3118aec8f3c24ebca9e0d3aed53c02c0",
+        "question": [
+          "Additional analysis query 25"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Placeholder' AS result;"
             ]
           }
         ]

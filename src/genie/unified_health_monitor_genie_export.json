@@ -97,454 +97,66 @@
   "data_sources": {
     "tables": [
       {
-        "identifier": "${catalog}.${gold_schema}.dim_workspace",
-        "description": [
-          "Dimension table for workspace details.\n",
-          "Business: Links all domains to specific Databricks workspaces."
-        ],
-        "column_configs": [
-          {
-            "column_name": "workspace_id",
-            "description": [
-              "Unique workspace identifier"
-            ]
-          },
-          {
-            "column_name": "workspace_name",
-            "description": [
-              "Human-readable workspace name"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.dim_workspace"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.dim_sku",
-        "description": [
-          "Dimension table containing all unique Databricks SKU identifiers.\n",
-          "Business: Master reference for product/service pricing categories."
-        ],
-        "column_configs": [
-          {
-            "column_name": "sku_name",
-            "description": [
-              "SKU identifier determining pricing rate"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "cloud",
-            "description": [
-              "Cloud provider for this SKU"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.dim_sku"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.dim_job",
-        "description": [
-          "Dimension table for job definitions.\n",
-          "Business: Job metadata for reliability tracking."
-        ],
-        "column_configs": [
-          {
-            "column_name": "job_id",
-            "description": [
-              "Job identifier"
-            ]
-          },
-          {
-            "column_name": "name",
-            "description": [
-              "Job name"
-            ],
-            "synonyms": [
-              "job_name",
-              "workflow"
-            ],
-            "get_example_values": true,
-            "build_value_dictionary": true
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.dim_job"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_usage",
-        "description": [
-          "Fact table tracking all billable Databricks usage.\n",
-          "Business: Primary source for cost monitoring."
-        ],
-        "column_configs": [
-          {
-            "column_name": "list_cost",
-            "description": [
-              "Calculated cost"
-            ],
-            "synonyms": [
-              "cost",
-              "spend"
-            ]
-          },
-          {
-            "column_name": "usage_date",
-            "description": [
-              "Calendar date of usage"
-            ],
-            "get_example_values": true
-          },
-          {
-            "column_name": "workspace_id",
-            "description": [
-              "Workspace identifier"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.dim_user"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline",
-        "description": [
-          "Job execution timeline.\n",
-          "Business: Job-level reliability tracking."
-        ],
-        "column_configs": [
-          {
-            "column_name": "result_state",
-            "description": [
-              "Job result: SUCCESS, FAILED, etc."
-            ],
-            "get_example_values": true
-          },
-          {
-            "column_name": "run_date",
-            "description": [
-              "Date of job run"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.fact_usage"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_query_history",
-        "description": [
-          "Query execution history.\n",
-          "Business: Query-level performance tracking."
-        ],
-        "column_configs": [
-          {
-            "column_name": "execution_status",
-            "description": [
-              "Query status: FINISHED, FAILED, etc."
-            ],
-            "get_example_values": true
-          },
-          {
-            "column_name": "duration_ms",
-            "description": [
-              "Query duration in milliseconds"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_audit_logs",
-        "description": [
-          "Security audit events.\n",
-          "Business: Security and compliance tracking."
-        ],
-        "column_configs": [
-          {
-            "column_name": "service_name",
-            "description": [
-              "Service generating the event"
-            ],
-            "get_example_values": true
-          },
-          {
-            "column_name": "action_name",
-            "description": [
-              "Action performed"
-            ],
-            "get_example_values": true
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.fact_query_history"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_node_timeline",
-        "description": [
-          "Cluster node usage timeline.\n",
-          "Business: Node-level compute for cluster optimization."
-        ]
+        "identifier": "${catalog}.${gold_schema}.fact_audit_logs"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_table_lineage",
-        "description": [
-          "Data lineage tracking.\n",
-          "Business: Table-level lineage for quality analysis."
-        ]
+        "identifier": "${catalog}.${gold_schema}.fact_node_timeline"
       },
       {
-        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_usage_profile_metrics",
-        "description": [
-          "Lakehouse Monitoring profile metrics for cost analysis.\n",
-          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
-        ],
-        "column_configs": [
-          {
-            "column_name": "column_name",
-            "description": [
-              "Column name - use ':table' for custom metrics"
-            ]
-          },
-          {
-            "column_name": "log_type",
-            "description": [
-              "Log type - use 'INPUT' for monitoring queries"
-            ]
-          },
-          {
-            "column_name": "total_daily_cost",
-            "description": [
-              "Custom metric: Total daily cost"
-            ]
-          },
-          {
-            "column_name": "serverless_ratio",
-            "description": [
-              "Custom metric: Serverless vs classic ratio"
-            ]
-          },
-          {
-            "column_name": "tag_coverage_pct",
-            "description": [
-              "Custom metric: Percentage of cost with tags"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.fact_table_lineage"
       },
       {
-        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_job_run_timeline_profile_metrics",
-        "description": [
-          "Lakehouse Monitoring profile metrics for job reliability.\n",
-          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
-        ],
-        "column_configs": [
-          {
-            "column_name": "column_name",
-            "description": [
-              "Column name - use ':table' for custom metrics"
-            ]
-          },
-          {
-            "column_name": "log_type",
-            "description": [
-              "Log type - use 'INPUT' for monitoring queries"
-            ]
-          },
-          {
-            "column_name": "success_rate",
-            "description": [
-              "Custom metric: Job success rate percentage"
-            ]
-          },
-          {
-            "column_name": "failure_count",
-            "description": [
-              "Custom metric: Total failure count"
-            ]
-          },
-          {
-            "column_name": "p90_duration",
-            "description": [
-              "Custom metric: 90th percentile duration"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${feature_schema}.pipeline_health_predictions"
       },
       {
-        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_query_history_profile_metrics",
-        "description": [
-          "Lakehouse Monitoring profile metrics for query performance.\n",
-          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
-        ],
-        "column_configs": [
-          {
-            "column_name": "column_name",
-            "description": [
-              "Column name - use ':table' for custom metrics"
-            ]
-          },
-          {
-            "column_name": "log_type",
-            "description": [
-              "Log type - use 'INPUT' for monitoring queries"
-            ]
-          },
-          {
-            "column_name": "p99_duration_ms",
-            "description": [
-              "Custom metric: 99th percentile duration"
-            ]
-          },
-          {
-            "column_name": "sla_breach_rate",
-            "description": [
-              "Custom metric: SLA breach rate"
-            ]
-          },
-          {
-            "column_name": "queries_per_second",
-            "description": [
-              "Custom metric: Query throughput"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${feature_schema}.data_drift_predictions"
       },
       {
-        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_audit_logs_profile_metrics",
-        "description": [
-          "Lakehouse Monitoring profile metrics for security events.\n",
-          "\u26a0\ufe0f CRITICAL: Always include filters: column_name=':table', log_type='INPUT'"
-        ],
-        "column_configs": [
-          {
-            "column_name": "column_name",
-            "description": [
-              "Column name - use ':table' for custom metrics"
-            ]
-          },
-          {
-            "column_name": "log_type",
-            "description": [
-              "Log type - use 'INPUT' for monitoring queries"
-            ]
-          },
-          {
-            "column_name": "sensitive_access_rate",
-            "description": [
-              "Custom metric: Rate of sensitive data access"
-            ]
-          },
-          {
-            "column_name": "failure_rate",
-            "description": [
-              "Custom metric: Authentication failure rate"
-            ]
-          },
-          {
-            "column_name": "off_hours_rate",
-            "description": [
-              "Custom metric: Off-hours access rate"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics"
       }
     ],
     "metric_views": [
       {
-        "identifier": "${catalog}.${gold_schema}.mv_cost_analytics",
-        "description": [
-          "Comprehensive cost analytics for Databricks billing and usage.\n",
-          "PURPOSE: Track spending, trends, tag coverage, and serverless adoption.\n",
-          "BEST FOR: Total spend | Cost by workspace | SKU breakdown | Tag coverage\n",
-          "KEY MEASURES: total_cost, total_dbu, tag_coverage_pct, serverless_ratio"
-        ],
-        "column_configs": [
-          {
-            "column_name": "total_cost",
-            "synonyms": [
-              "cost",
-              "spend",
-              "spending"
-            ]
-          },
-          {
-            "column_name": "total_dbu",
-            "synonyms": [
-              "dbu",
-              "units"
-            ]
-          },
-          {
-            "column_name": "workspace_name",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.mv_cost_analytics"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.mv_job_performance",
-        "description": [
-          "Job execution metrics for reliability tracking.\n",
-          "PURPOSE: Track job success rates, failures, and duration.\n",
-          "BEST FOR: Success rate | Failure rate | P95 duration | Job volume\n",
-          "KEY MEASURES: success_rate, failure_rate, p95_duration"
-        ],
-        "column_configs": [
-          {
-            "column_name": "success_rate",
-            "synonyms": [
-              "job success rate",
-              "reliability"
-            ]
-          },
-          {
-            "column_name": "failure_rate",
-            "synonyms": [
-              "job failure rate",
-              "error rate"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.mv_job_performance"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.mv_query_performance",
-        "description": [
-          "Query execution metrics for performance tracking.\n",
-          "PURPOSE: Track query latency, SLA breaches, and volume.\n",
-          "BEST FOR: P95 duration | SLA breach rate | Cache hit rate | Query volume\n",
-          "KEY MEASURES: avg_duration, p95_duration, sla_breach_rate"
-        ],
-        "column_configs": [
-          {
-            "column_name": "p95_duration_seconds",
-            "synonyms": [
-              "p95 latency",
-              "query duration"
-            ]
-          },
-          {
-            "column_name": "sla_breach_rate",
-            "synonyms": [
-              "sla breaches",
-              "performance issues"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.mv_query_performance"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.mv_security_events",
-        "description": [
-          "Audit event metrics for security tracking.\n",
-          "PURPOSE: Track authentication, authorization, and access events.\n",
-          "BEST FOR: Total events | Failed events | High-risk events | Success rate\n",
-          "KEY MEASURES: total_events, failed_events, high_risk_events"
-        ],
-        "column_configs": [
-          {
-            "column_name": "success_rate",
-            "synonyms": [
-              "auth success rate",
-              "security success"
-            ]
-          },
-          {
-            "column_name": "high_risk_events",
-            "synonyms": [
-              "threats",
-              "security incidents"
-            ]
-          }
-        ]
+        "identifier": "${catalog}.${gold_schema}.mv_security_events"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}.mv_data_quality"
       }
     ]
   },
@@ -620,447 +232,519 @@
     ],
     "sql_functions": [
       {
-        "id": "22057a9e717bbe2d5740b65e7acdd248",
+        "id": "e6bf93db94ed4e1ebe453043d0900b61",
         "identifier": "${catalog}.${gold_schema}.get_top_cost_contributors"
       },
       {
-        "id": "8c848de97c367fe9fea357c9f50e44a6",
+        "id": "e6dd28bfdf694362b8ee79a9fc82a4be",
         "identifier": "${catalog}.${gold_schema}.get_cost_trend_by_sku"
       },
       {
-        "id": "84ea3c8ff8d891e37095f227cc7e7686",
+        "id": "1e5ce213feee4be483d889b560242fe8",
         "identifier": "${catalog}.${gold_schema}.get_cost_by_owner"
       },
       {
-        "id": "bf2c841fbb93907c32d6490dd49a1bf3",
+        "id": "1f5e68a556a64c8dbccc48aac6b4daa1",
         "identifier": "${catalog}.${gold_schema}.get_spend_by_custom_tags"
       },
       {
-        "id": "d1df0d9cbd84ea79964038fed20f0028",
+        "id": "dbdeb82eae574080bd165444522d5cf3",
         "identifier": "${catalog}.${gold_schema}.get_tag_coverage"
       },
       {
-        "id": "4dbdd960e39e8a00e829cc82d7774d17",
+        "id": "121fdac3852541f8bbc326647cd91b85",
         "identifier": "${catalog}.${gold_schema}.get_cost_week_over_week"
       },
       {
-        "id": "d5557e154773fcddb62ebb07bdfd3c8d",
-        "identifier": "${catalog}.${gold_schema}.get_cost_anomaly_analysis"
+        "id": "298e22dac23949fdb09db89763760634",
+        "identifier": "${catalog}.${gold_schema}.get_cost_anomalies"
       },
       {
-        "id": "b77b96a89259c12442d0fe6660580971",
+        "id": "e77b3a7ad846454abf3f90299bc65cd8",
         "identifier": "${catalog}.${gold_schema}.get_cost_forecast_summary"
       },
       {
-        "id": "f48a1f01587da63285409c090e84a317",
+        "id": "caf5c34d596c471dacbfeb86512858ab",
         "identifier": "${catalog}.${gold_schema}.get_cost_mtd_summary"
       },
       {
-        "id": "5b15433eebf22c230351182faeeba926",
+        "id": "2aa96fb15d864bcfbc71ca6af36474cc",
         "identifier": "${catalog}.${gold_schema}.get_commit_vs_actual"
       },
       {
-        "id": "407495a35582b27542e4993251bec527",
+        "id": "7fdb9c6b3827485a840fee9561e10884",
         "identifier": "${catalog}.${gold_schema}.get_cost_growth_analysis"
       },
       {
-        "id": "8966d71c179757ba9c09ebee8e528306",
+        "id": "5afb264b14b5461fa8f61dffbab77462",
         "identifier": "${catalog}.${gold_schema}.get_cost_growth_by_period"
       },
       {
-        "id": "acc96a90ccdc474c01c73485a75a3e48",
+        "id": "f3657a38917b42b9923be4917fd48d11",
         "identifier": "${catalog}.${gold_schema}.get_failed_jobs"
       },
       {
-        "id": "c264739297fd86661a8f3ae3862e72d6",
-        "identifier": "${catalog}.${gold_schema}.get_job_success_rates"
+        "id": "095e2b97dd8f4ab8acb3488e7ab9bcf1",
+        "identifier": "${catalog}.${gold_schema}.get_job_success_rate"
       },
       {
-        "id": "2faddaa144236e0a8f27f1977cc20a9a",
-        "identifier": "${catalog}.${gold_schema}.get_job_run_duration_analysis"
-      },
-      {
-        "id": "47f24d56008c85a9115bd47fc3ec24ed",
-        "identifier": "${catalog}.${gold_schema}.get_job_sla_compliance"
-      },
-      {
-        "id": "c153d294576a637dec3e22907dab1c97",
-        "identifier": "${catalog}.${gold_schema}.get_job_failure_patterns"
-      },
-      {
-        "id": "dc8ec1d1bf65e186022b83bbd2ac6e2e",
-        "identifier": "${catalog}.${gold_schema}.get_job_outlier_runs"
-      },
-      {
-        "id": "3550f09c25504fd297c37bb64e83d23b",
-        "identifier": "${catalog}.${gold_schema}.get_job_retry_analysis"
-      },
-      {
-        "id": "a88fca9154e4b244701ee28f21eede6c",
+        "id": "516131aa5f9741e2823a6a42494e755f",
         "identifier": "${catalog}.${gold_schema}.get_job_duration_percentiles"
       },
       {
-        "id": "4f5cb52969032ed93b878185d0e833d2",
+        "id": "1cd371765ffe46528d13e6e03baff6d2",
+        "identifier": "${catalog}.${gold_schema}.get_job_sla_compliance"
+      },
+      {
+        "id": "de7a6e8845c7499db6a51f96af596719",
+        "identifier": "${catalog}.${gold_schema}.get_job_failure_trends"
+      },
+      {
+        "id": "bf59e72d610b4e718d74ce2222ab3ee8",
+        "identifier": "${catalog}.${gold_schema}.get_job_outlier_runs"
+      },
+      {
+        "id": "e8da07aa138542b7bf46e261d7c94004",
+        "identifier": "${catalog}.${gold_schema}.get_job_retry_analysis"
+      },
+      {
+        "id": "c8cdfd4d6b124d608cab49732276f69f",
         "identifier": "${catalog}.${gold_schema}.get_job_failure_costs"
       },
       {
-        "id": "a28fccf37f956ae81d7e47416e2331b6",
-        "identifier": "${catalog}.${gold_schema}.get_repair_cost_analysis"
+        "id": "f96f7dae65d84b6b974a08d12d5b8ba9",
+        "identifier": "${catalog}.${gold_schema}.get_job_repair_costs"
       },
       {
-        "id": "c26f72dde2ce74c2fe92d272a6c92644",
+        "id": "93f9c7d7b6ea438799657290197132af",
         "identifier": "${catalog}.${gold_schema}.get_slow_queries"
       },
       {
-        "id": "e403c7841b63ec5dc512249d3a8a99f6",
-        "identifier": "${catalog}.${gold_schema}.get_query_duration_percentiles"
+        "id": "7ea6e63adf6941e59de3811e388f1d65",
+        "identifier": "${catalog}.${gold_schema}.get_query_latency_percentiles"
       },
       {
-        "id": "67ad230a555e13c3940cb1b4fdd87cdd",
+        "id": "43de1330a50b48fcaf023fee9ceb1c85",
         "identifier": "${catalog}.${gold_schema}.get_warehouse_utilization"
       },
       {
-        "id": "29e93061f6bb0f91aa25fe3372c466f3",
+        "id": "5799b6e43305442089557a9c67e41cf7",
         "identifier": "${catalog}.${gold_schema}.get_query_volume_trends"
       },
       {
-        "id": "93f3cea2f9ab18124decf429c1c32748",
-        "identifier": "${catalog}.${gold_schema}.get_top_query_users"
+        "id": "182359727c38483f90972f0504dcadf0",
+        "identifier": "${catalog}.${gold_schema}.get_query_efficiency"
       },
       {
-        "id": "3c02b47940753a10a7e3afd3026bf5a3",
-        "identifier": "${catalog}.${gold_schema}.get_user_query_efficiency"
-      },
-      {
-        "id": "24181f66b26f07ccf6c8adb3af53b1cf",
+        "id": "5279f85be8454e69ba43799db62301f3",
         "identifier": "${catalog}.${gold_schema}.get_failed_queries"
       },
       {
-        "id": "dd2473f047132848c10d6542d3980653",
-        "identifier": "${catalog}.${gold_schema}.get_query_spill_analysis"
+        "id": "2e874c828a2542bc8e4997a1bb055f10",
+        "identifier": "${catalog}.${gold_schema}.get_cluster_utilization"
       },
       {
-        "id": "7f4908790e1281ef4840c226f7ebdf15",
-        "identifier": "${catalog}.${gold_schema}.get_cluster_resource_utilization"
-      },
-      {
-        "id": "60a8c4fad17542078d08b4d5b3fa8f0a",
+        "id": "2e0bb0d550cd4fb99d3fe0d6f8d80ca2",
         "identifier": "${catalog}.${gold_schema}.get_cluster_resource_metrics"
       },
       {
-        "id": "d44d299e069d96bd7ad44163e8ade21e",
+        "id": "ed1a57373e8249b6a273d76598086f14",
         "identifier": "${catalog}.${gold_schema}.get_underutilized_clusters"
       },
       {
-        "id": "3cfa69ccb10e2d291867092dc16daeeb",
-        "identifier": "${catalog}.${gold_schema}.get_jobs_without_autoscaling"
-      },
-      {
-        "id": "e42892c1d9ca236a7188d36643fff4ed",
-        "identifier": "${catalog}.${gold_schema}.get_legacy_dbr_jobs"
-      },
-      {
-        "id": "f0ea3423e140fdc0b00776691f106b11",
+        "id": "e05e6e40507f43c098fd173fb0518fe6",
         "identifier": "${catalog}.${gold_schema}.get_user_activity_summary"
       },
       {
-        "id": "7af69878aa9ab34af13c6686203284d8",
+        "id": "a8b466915eef48109111478fe1851fd9",
         "identifier": "${catalog}.${gold_schema}.get_sensitive_table_access"
+      },
+      {
+        "id": "fbb731b848a8488e9ac06d059b8129a2",
+        "identifier": "${catalog}.${gold_schema}.get_permission_changes"
+      },
+      {
+        "id": "ceded3ff66c84e0bb39930449008b7b4",
+        "identifier": "${catalog}.${gold_schema}.get_security_events_timeline"
+      },
+      {
+        "id": "68f112fcfada44e8befdee025ef819c9",
+        "identifier": "${catalog}.${gold_schema}.get_table_freshness"
+      },
+      {
+        "id": "55aab4fc543140a79950647a17763421",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
+      },
+      {
+        "id": "a5a38afa4713498c99d49605b770df3d",
+        "identifier": "${catalog}.${gold_schema}.get_data_quality_summary"
+      },
+      {
+        "id": "6b10d13ee78147779606d433ff959cf0",
+        "identifier": "${catalog}.${gold_schema}.get_jobs_without_autoscaling"
+      },
+      {
+        "id": "aeda0cd3d0574b1aa3bfa4f533127196",
+        "identifier": "${catalog}.${gold_schema}.get_jobs_on_legacy_dbr"
+      },
+      {
+        "id": "206925a6801646c4af2caa79bcb49335",
+        "identifier": "${catalog}.${gold_schema}.get_service_account_audit"
+      },
+      {
+        "id": "44b4a9ebc4214f58b36f7bc952ad22f9",
+        "identifier": "${catalog}.${gold_schema}.get_ip_address_analysis"
       }
     ]
   },
   "benchmarks": {
     "questions": [
       {
-        "id": "aa7d218ba5ce8c0faf9e47a329cac184",
+        "id": "68c31f4909c847918ada8ab8861a7939",
         "question": [
-          "What is our total spend this month?"
+          "Query get_top_cost_contributors"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(total_cost) as mtd_cost FROM mv_cost_analytics WHERE usage_date >= DATE_TRUNC('month', CURRENT_DATE());"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_top_cost_contributors(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "0a6c542d8e0476b407b4c3f124c3405e",
+        "id": "3aa10f431fe64dde86a914818b5d5c25",
         "question": [
-          "What is our job success rate?"
+          "Query get_cost_trend_by_sku"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(success_rate) as success_pct FROM mv_job_performance WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_trend_by_sku(\"2025-12-15\", \"2026-01-14\", \"ALL\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "e8c098298f9030a7f0ea7362098a5227",
+        "id": "cccebb4fafc9419d9a27f1f2169ab2af",
         "question": [
-          "What is the P95 query duration?"
+          "Query get_cost_by_owner"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(p95_duration_seconds) as p95_sec FROM mv_query_performance WHERE query_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_by_owner(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "f0e9a9f44dbdea8ed766d4c0b95f3363",
+        "id": "d13becf54fa84192a928a518fdb899b6",
         "question": [
-          "What is the security event success rate?"
+          "Query get_spend_by_custom_tags"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(successful_events) as auth_success_pct FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_spend_by_custom_tags(\"2025-12-15\", \"2026-01-14\", \"ALL\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "5dcb68f7d6d15b0268b23ba48d5d1433",
+        "id": "1fe6cc47481d4c4c8b6ff22a95cfc202",
         "question": [
-          "What is our data quality score?"
+          "Query get_tag_coverage"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(freshness_rate) as overall_quality FROM mv_data_quality;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_tag_coverage(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "5479217ccae53b95ef11f038cfa31ace",
+        "id": "61fca79e13ce4877b7d18e7cfdc9a4aa",
         "question": [
-          "Show me top cost drivers"
+          "Query get_cost_week_over_week"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT   sku_name,  MEASURE(total_cost) as cost FROM mv_cost_analytics WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS GROUP BY sku_name ORDER BY cost DESC LIMIT 10;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_week_over_week(4) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "c7885e2ee783ad77b1482037e1480da8",
+        "id": "ce5bd8880d7849ef95989a152642292f",
         "question": [
-          "Show me failed jobs today"
+          "Query get_cost_anomalies"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_failed_jobs(\n  1,\n  CURRENT_DATE()::STRING,\n  '%'\n) ORDER BY start_time DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_anomalies(\"2025-12-15\", \"2026-01-14\", 2.0) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "a9aa5fea4f4b692bb0b2cdfa4d2599c2",
+        "id": "922daf5cc01646c88d50a783ffcb4192",
         "question": [
-          "Show me slow queries"
+          "Query get_cost_forecast_summary"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_slow_queries(  CURRENT_DATE()::STRING,  CURRENT_DATE()::STRING,  30,  50) ORDER BY duration_seconds DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_cost_forecast_summary(3) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "0e95da241d4781f55c618b2e9045965f",
+        "id": "e36d041f2a464ed79eb3e6be575093eb",
         "question": [
-          "Show me stale tables"
+          "Show metrics from mv_cost_analytics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_table_freshness(7) WHERE is_stale = TRUE ORDER BY hours_since_update DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.mv_cost_analytics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "1629bdffac37fd012b97513a4997499f",
+        "id": "faf904a50a8a4ee7a47f32f130dc7b30",
         "question": [
-          "What is our cluster utilization?"
+          "Show metrics from mv_job_performance"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(avg_cpu_utilization) as cpu_pct FROM mv_cluster_utilization WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.mv_job_performance LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "0010b2efae72f0f211bcdc144b2a05fe",
+        "id": "5219ef52785145e693a9ef1c2f07cc76",
         "question": [
-          "Show me commit utilization"
+          "Show predictions from pipeline_health_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT   sku_name,  MEASURE(daily_avg_cost) as usage_pct FROM mv_commit_tracking WHERE usage_month = DATE_TRUNC('month', CURRENT_DATE())GROUP BY sku_name ORDER BY usage_pct DESC;"
+              "SELECT * FROM ${catalog}.${feature_schema}.pipeline_health_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "9221de68365dcffa6ced08299727ed89",
+        "id": "d30617ea6e5e476ca32817629a34604b",
         "question": [
-          "Show me warehouse utilization"
+          "Show predictions from data_drift_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_warehouse_utilization(\n  7,\n  CURRENT_DATE()::STRING\n) ORDER BY total_queries DESC LIMIT 10;"
+              "SELECT * FROM ${catalog}.${feature_schema}.data_drift_predictions LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "ac3dd5574e65ed5539480999f83c0c61",
+        "id": "7727ed5520554a648b4aa3662e0f442b",
         "question": [
-          "What is the DLT pipeline health?"
+          "Show monitoring data from fact_job_run_timeline_profile_metrics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_pipeline_data_lineage(  7) ORDER BY total_events DESC, total_events ASC LIMIT 10;"
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "4a04fcb6084891dfdaef98559930f790",
+        "id": "36043fc0ba2a4d519cc7fb6872262663",
         "question": [
-          "Show me underutilized clusters"
+          "Show monitoring data from fact_query_history_profile_metrics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_underutilized_clusters(  30) WHERE avg_cpu_pct < 30 ORDER BY potential_savings DESC LIMIT 15;"
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_query_history_profile_metrics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "a38b9b6611cb8a91a1cdb69250c58aa2",
+        "id": "7a956da2baf44c13bea19c8481fd9bc3",
         "question": [
-          "Show me high-risk events"
+          "Get audit logs profile metrics"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT   user_email,  action_category,  MEASURE(failed_events) as risk_count FROM mv_security_events WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS  AND audit_level = 'HIGH'GROUP BY user_email, action_category ORDER BY risk_count DESC LIMIT 15;"
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_audit_logs_profile_metrics LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "a8ec2cc04f4e4055b3c6942856468721",
+        "id": "acc88cadf6394204abf637b998c81475",
         "question": [
-          "Show me tables failing quality checks"
+          "Show data from fact_usage"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM get_table_freshness(7) ORDER BY hours_since_update DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_usage LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "d1a491bb09af1725234ad55ffc07ba96",
+        "id": "15e7f29e2c204279a81e7bd11f8c3e6e",
         "question": [
-          "What is our tag coverage?"
+          "Show data from fact_job_run_timeline"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT MEASURE(tag_coverage_pct) as coverage_pct FROM mv_cost_analytics WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_job_run_timeline LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "20e9892d32598a3befe821d2033ee99f",
+        "id": "be913bedd79a4c96942bd7ebb966ebb3",
         "question": [
-          "Show me cluster right-sizing recommendations"
+          "Show data from fact_query_history"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.cluster_capacity_predictions WHERE prediction IN ('DOWNSIZE', 'UPSIZE') ORDER BY prediction DESC, query_count DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_query_history LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "2f5e00f43b399b047a61bc3b17897379",
+        "id": "1e04a35ebf0c4399ad05d1259dd5b513",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Platform health overview - combine cost, performance, reliability, security, and quality KPIs"
+          "Show dim_workspace"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH cost_health AS (  SELECT     MEASURE(total_cost) as total_spend,    MEASURE(last_7_day_cost) as last_7_day_cost,    MEASURE(last_30_day_cost) as last_30_day_cost,    MEASURE(tag_coverage_pct) as tag_coverage  FROM mv_cost_analytics  WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS),job_health AS (  SELECT     MEASURE(success_rate) as job_success_rate,    MEASURE(failure_rate) as job_failure_rate,    MEASURE(total_runs) as total_job_runs  FROM mv_job_performance  WHERE run_date >= CURRENT_DATE() - INTERVAL 7 DAYS),query_health AS (  SELECT     MEASURE(p95_duration_seconds) as p95_latency,    MEASURE(sla_breach_rate) as sla_breach_pct,    MEASURE(cache_hit_rate) as cache_pct  FROM mv_query_performance),security_health AS (  SELECT     MEASURE(success_rate) as auth_success_rate,    MEASURE(high_risk_events) as high_risk_count,    MEASURE(unique_users) as active_users  FROM mv_security_events  WHERE event_date >= CURRENT_DATE() - INTERVAL 7 DAYS),quality_health AS (  SELECT     MEASURE(freshness_rate) as data_quality,    MEASURE(freshness_rate) as freshness_pct,    MEASURE(staleness_rate) as staleness_pct  FROM mv_data_quality),cluster_health AS (  SELECT     MEASURE(avg_cpu_utilization) as avg_cpu,    MEASURE(efficiency_score) as efficiency  FROM mv_cluster_utilization  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS)SELECT   ch.total_spend,  ch.last_7_day_cost,  ch.tag_coverage,  jh.job_success_rate,  jh.job_failure_rate,  jh.total_job_runs,  qh.p95_latency,  qh.sla_breach_pct,  qh.cache_pct,  sh.auth_success_rate,  sh.high_risk_count,  sh.active_users,  quh.data_quality,  quh.freshness_pct,  quh.staleness_pct,  clh.avg_cpu,  clh.efficiency,  CASE     WHEN jh.job_failure_rate > 10 OR qh.sla_breach_pct > 5 THEN 'Critical - Reliability Issues'    WHEN sh.high_risk_count > 20 OR sh.auth_success_rate < 95 THEN 'Critical - Security Concerns'    WHEN quh.data_quality < 70 OR quh.staleness_pct > 20 THEN 'Critical - Data Quality Crisis'    WHEN ch.last_7_day_cost * 30 > ch.last_30_day_cost * 1.2 THEN 'Warning - Cost Spike Detected'    WHEN qh.cache_pct > 80 AND jh.job_success_rate > 95 AND quh.data_quality >= 90 THEN 'Excellent Health'    ELSE 'Normal'  END as overall_platform_health,  CASE     WHEN jh.job_failure_rate > 10 THEN 'Investigate job failures immediately'    WHEN qh.sla_breach_pct > 5 THEN 'Optimize slow queries and warehouse sizing'    WHEN sh.high_risk_count > 20 THEN 'Review security events and threats'    WHEN quh.staleness_pct > 20 THEN 'Fix data pipeline freshness issues'    WHEN ch.last_7_day_cost * 30 > ch.last_30_day_cost * 1.2 THEN 'Analyze cost drivers and right-size resources'    WHEN clh.avg_cpu < 40 THEN 'Downsize underutilized clusters'    ELSE 'Continue monitoring'  END as top_priority_action FROM cost_health chCROSS JOIN job_health jhCROSS JOIN query_health qhCROSS JOIN security_health shCROSS JOIN quality_health quhCROSS JOIN cluster_health clh;"
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_workspace LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "c6a6feb936d7a4c5d2d1a961bacc373f",
+        "id": "9b275a4c967d437b86cc2e46bd2b2e8b",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Cost optimization opportunities - combine underutilized clusters, right-sizing, and tagging gaps"
+          "Show dim_sku"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH underutilized AS (  SELECT    cluster_name,    avg_cpu_pct,    potential_savings as savings_from_underutilization  FROM get_underutilized_clusters(30)  WHERE avg_cpu_pct < 30),rightsizing AS (  SELECT    cluster_name,    current_size,    recommended_size,    potential_savings as savings_from_rightsizing  FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.cluster_capacity_predictions  WHERE recommended_action != 'NO_CHANGE'),untagged AS (  SELECT     workspace_name,    SUM(MEASURE(total_cost)) as untagged_cost  FROM mv_cost_analytics  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS      AND tag_team IS NULL  GROUP BY workspace_name),autoscaling_gaps AS (  SELECT    job_name,    estimated_savings  FROM get_jobs_without_autoscaling(30)),legacy_dbr AS (  SELECT    COUNT(*) as legacy_job_count  FROM get_jobs_on_legacy_dbr(30))SELECT   COALESCE(SUM(u.savings_from_underutilization), 0) as savings_underutil,  COALESCE(SUM(r.savings_from_rightsizing), 0) as savings_rightsize,  COALESCE(SUM(ut.untagged_cost * 0.1), 0) as estimated_waste_from_untagged,  COALESCE(SUM(ag.estimated_savings), 0) as savings_autoscaling,  ld.legacy_job_count,  COALESCE(SUM(u.savings_from_underutilization), 0) +   COALESCE(SUM(r.savings_from_rightsizing), 0) +   COALESCE(SUM(ag.estimated_savings), 0) as total_monthly_savings_potential,  CASE     WHEN COALESCE(SUM(u.savings_from_underutilization), 0) + COALESCE(SUM(r.savings_from_rightsizing), 0) > 10000 THEN 'Critical - Immediate Right-Sizing Required'    WHEN COALESCE(SUM(ut.untagged_cost), 0) > 5000 THEN 'High - Improve Tagging for Accountability'    WHEN ld.legacy_job_count > 20 THEN 'Medium - Modernize Legacy DBR Jobs'    ELSE 'Low - Continue Monitoring'  END as optimization_priority,  ARRAY(    CASE WHEN COALESCE(SUM(u.savings_from_underutilization), 0) > 5000 THEN 'Downsize or terminate underutilized clusters' END,    CASE WHEN COALESCE(SUM(r.savings_from_rightsizing), 0) > 5000 THEN 'Apply ML right-sizing recommendations' END,    CASE WHEN COALESCE(SUM(ut.untagged_cost), 0) > 5000 THEN 'Implement tagging policy and governance' END,    CASE WHEN COALESCE(SUM(ag.estimated_savings), 0) > 2000 THEN 'Enable autoscaling on fixed-size jobs' END,    CASE WHEN ld.legacy_job_count > 20 THEN 'Migrate to latest DBR versions' END  ) as recommended_actions FROM underutilized uFULL OUTER JOIN rightsizing r ON u.cluster_name = r.cluster_nameFULL OUTER JOIN untagged ut ON 1=1FULL OUTER JOIN autoscaling_gaps ag ON 1=1CROSS JOIN legacy_dbr ld;"
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_sku LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "950ea414e56b27d06122a988c2365fb9",
+        "id": "ae7af8d2a2364534addc026fd476c86e",
         "question": [
-          "\ud83d\udd2c DEEP RESEARCH: Executive FinOps dashboard - cost trends, efficiency, commit utilization, and optimization opportunities"
+          "What is the overall health score of our Databricks platform?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "WITH cost_trends AS (  SELECT     SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS THEN MEASURE(total_cost) ELSE 0 END) as cost_7d,    SUM(CASE WHEN usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS THEN MEASURE(total_cost) ELSE 0 END) as cost_30d,    SUM(CASE WHEN usage_date >= DATE_TRUNC('month', CURRENT_DATE()) THEN MEASURE(total_cost) ELSE 0 END) as cost_mtd,    AVG(MEASURE(tag_coverage_pct)) as avg_tag_coverage  FROM mv_cost_analytics),cost_by_domain AS (  SELECT     domain,    SUM(MEASURE(total_cost)) as domain_cost  FROM mv_cost_analytics  WHERE usage_date >= CURRENT_DATE() - INTERVAL 30 DAYS  GROUP BY domain  ORDER BY domain_cost DESC  LIMIT 5),commit_status AS (  SELECT     sku_name,    MEASURE(utilization_rate) as usage_pct,    MEASURE(remaining_dbu) as remaining_capacity  FROM mv_commit_tracking  WHERE usage_month = DATE_TRUNC('month', CURRENT_DATE())  GROUP BY sku_name),efficiency AS (  SELECT     AVG(MEASURE(avg_cpu_utilization)) as avg_cpu_util,    AVG(MEASURE(efficiency_score)) as avg_efficiency  FROM mv_cluster_utilization  WHERE utilization_date >= CURRENT_DATE() - INTERVAL 7 DAYS),optimization_potential AS (  SELECT    SUM(potential_savings) as total_savings_potential  FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.cluster_capacity_predictions  WHERE recommended_action != 'NO_CHANGE'),serverless_adoption AS (  SELECT     MEASURE(serverless_percentage) as serverless_pct  FROM mv_cost_analytics  WHERE usage_date >= CURRENT_DATE() - INTERVAL 7 DAYS)SELECT   ct.cost_7d,  ct.cost_30d,  ct.cost_mtd,  ct.cost_7d * 30 as projected_monthly_cost,  ct.avg_tag_coverage,  COALESCE(STRING_AGG(cbd.domain || ': $' || CAST(cbd.domain_cost as STRING), ', '), 'N/A') as top_5_cost_domains,  COALESCE(AVG(cs.usage_pct), 0) as avg_commit_utilization,  COALESCE(SUM(cs.remaining_capacity), 0) as total_remaining_commit,  ef.avg_cpu_util,  ef.avg_efficiency,  COALESCE(op.total_savings_potential, 0) as monthly_optimization_potential,  sa.serverless_pct,  CASE     WHEN ct.cost_7d * 30 > ct.cost_30d * 1.3 THEN 'Critical - Cost Spike Detected'    WHEN COALESCE(AVG(cs.usage_pct), 0) < 70 THEN 'Warning - Under-Utilizing Commitments'    WHEN ef.avg_cpu_util < 40 THEN 'Warning - Resource Inefficiency'    WHEN COALESCE(op.total_savings_potential, 0) > 10000 THEN 'High - Significant Optimization Opportunity'    WHEN sa.serverless_pct < 30 THEN 'Medium - Low Serverless Adoption'    ELSE 'Healthy FinOps Posture'  END as finops_health_status,  CASE     WHEN ct.cost_7d * 30 > ct.cost_30d * 1.3 THEN 'Investigate cost spike drivers and implement controls'    WHEN COALESCE(AVG(cs.usage_pct), 0) < 70 THEN 'Increase workload on committed capacity'    WHEN ef.avg_cpu_util < 40 THEN 'Right-size clusters and consolidate workloads'    WHEN COALESCE(op.total_savings_potential, 0) > 10000 THEN 'Apply ML right-sizing recommendations'    WHEN sa.serverless_pct < 30 THEN 'Migrate eligible workloads to serverless'    WHEN ct.avg_tag_coverage < 80 THEN 'Implement tagging policy for cost allocation'    ELSE 'Continue monitoring and optimizing'  END as top_priority_action FROM cost_trends ctCROSS JOIN cost_by_domain cbdCROSS JOIN commit_status csCROSS JOIN efficiency efCROSS JOIN optimization_potential opCROSS JOIN serverless_adoption sa GROUP BY   ct.cost_7d, ct.cost_30d, ct.cost_mtd, ct.avg_tag_coverage,  ef.avg_cpu_util, ef.avg_efficiency, op.total_savings_potential, sa.serverless_pct;"
+              "SELECT 'Deep research: What is the overall health score of our Databricks platform?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "aea6eaca7898496e9b39ce72d7a75f68",
+        "question": [
+          "Which domain has the most critical issues requiring attention?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Which domain has the most critical issues requiring attention?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "345861f34a2e4c62a8bf7f193001bba0",
+        "question": [
+          "What are the top 3 actions that would improve platform health?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: What are the top 3 actions that would improve platform health?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "f92ab72cde194316aba3984b8dab28d2",
+        "question": [
+          "How do our cost, reliability, and performance metrics correlate?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: How do our cost, reliability, and performance metrics correlate?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3c12b161d1f640a6bb57551dc681b041",
+        "question": [
+          "What trends should leadership be aware of this quarter?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: What trends should leadership be aware of this quarter?' AS analysis;"
             ]
           }
         ]

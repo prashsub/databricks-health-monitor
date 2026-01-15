@@ -42,11 +42,22 @@ def get_parameters():
     except Exception:
         feature_schema = f"{gold_schema}_ml"
     
+    # genie_space_filter is optional - validates specific Genie space JSON file
+    try:
+        genie_space_filter = dbutils.widgets.get("genie_space_filter")
+    except Exception:
+        genie_space_filter = None  # Validate all spaces
+    
     print(f"Catalog: {catalog}")
     print(f"Gold Schema: {gold_schema}")
     print(f"Feature Schema: {feature_schema}")
     
-    return catalog, gold_schema, feature_schema
+    if genie_space_filter:
+        print(f"🎯 Filtering to: {genie_space_filter}")
+    else:
+        print(f"🔍 Validating: ALL Genie Spaces")
+    
+    return catalog, gold_schema, feature_schema, genie_space_filter
 
 # COMMAND ----------
 
@@ -93,7 +104,7 @@ def main():
         tuple: (success: bool, results: list, stats: dict)
     """
 
-    catalog, gold_schema, feature_schema = get_parameters()
+    catalog, gold_schema, feature_schema, genie_space_filter = get_parameters()
     spark = SparkSession.builder.getOrCreate()
 
     print("\n" + "=" * 80)
@@ -107,8 +118,8 @@ def main():
     print(f"   This catches syntax, column, type, and runtime errors")
     print("")
 
-    # Validate all benchmark queries
-    success, results = validate_all_genie_benchmarks(genie_dir, catalog, gold_schema, spark, feature_schema)
+    # Validate all benchmark queries (or just one space if filtered)
+    success, results = validate_all_genie_benchmarks(genie_dir, catalog, gold_schema, spark, feature_schema, genie_space_filter)
 
     if not success:
         invalid_count = sum(1 for r in results if not r['valid'])
