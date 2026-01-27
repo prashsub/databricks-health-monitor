@@ -44,34 +44,67 @@ except Exception as e:
 
 # COMMAND ----------
 
-# Parameters
+# Parameters - Core
 dbutils.widgets.text("catalog", "prashanth_subrahmanyam_catalog")
 dbutils.widgets.text("agent_schema", "dev_prashanth_subrahmanyam_system_gold_agent")
 dbutils.widgets.text("warehouse_id", "4b9b953939869799")  # Default SQL Warehouse for Genie
+
+# Parameters - Genie Space IDs (passed from databricks.yml via agent_setup_job)
+# These are the SINGLE SOURCE OF TRUTH - no hardcoding needed!
+dbutils.widgets.text("cost_genie_space_id", "")
+dbutils.widgets.text("reliability_genie_space_id", "")
+dbutils.widgets.text("quality_genie_space_id", "")
+dbutils.widgets.text("performance_genie_space_id", "")
+dbutils.widgets.text("security_genie_space_id", "")
+dbutils.widgets.text("unified_genie_space_id", "")
+
+# Parameters - Optional features (leave empty to disable)
+dbutils.widgets.text("lakebase_instance_name", "")  # Leave empty if Lakebase not configured
 
 catalog = dbutils.widgets.get("catalog")
 agent_schema = dbutils.widgets.get("agent_schema")
 warehouse_id = dbutils.widgets.get("warehouse_id")
 
+# Read Genie Space IDs from widgets (passed from databricks.yml)
+cost_genie_space_id = dbutils.widgets.get("cost_genie_space_id")
+reliability_genie_space_id = dbutils.widgets.get("reliability_genie_space_id")
+quality_genie_space_id = dbutils.widgets.get("quality_genie_space_id")
+performance_genie_space_id = dbutils.widgets.get("performance_genie_space_id")
+security_genie_space_id = dbutils.widgets.get("security_genie_space_id")
+unified_genie_space_id = dbutils.widgets.get("unified_genie_space_id")
+
+# Read optional Lakebase instance name (empty = disabled)
+lakebase_instance_name_param = dbutils.widgets.get("lakebase_instance_name")
+
 print(f"Catalog: {catalog}")
 print(f"Agent Schema: {agent_schema}")
+print(f"Warehouse ID: {warehouse_id}")
+print(f"\nGenie Space IDs (from databricks.yml):")
+print(f"  Cost: {cost_genie_space_id}")
+print(f"  Reliability: {reliability_genie_space_id}")
+print(f"  Quality: {quality_genie_space_id}")
+print(f"  Performance: {performance_genie_space_id}")
+print(f"  Security: {security_genie_space_id}")
+print(f"  Unified: {unified_genie_space_id}")
+print(f"\nOptional Features:")
+print(f"  Lakebase: {lakebase_instance_name_param or '(disabled)'}")
 
 # COMMAND ----------
 
 # ===========================================================================
-# Configuration - DEFAULTS (actual values come from environment variables)
+# Configuration - Genie Space IDs
 # ===========================================================================
-# NOTE: The source of truth for Genie Space IDs is src/agents/config/genie_spaces.py
-# These defaults are embedded here for Model Serving container isolation.
-# The serving endpoint sets environment variables from the central registry.
+# SINGLE SOURCE OF TRUTH: databricks.yml → agent_setup_job.yml → widget parameters
+# The widget values are populated from databricks.yml at job runtime.
+# This eliminates hardcoded IDs and ensures consistency across environments.
 # ===========================================================================
 DEFAULT_GENIE_SPACES = {
-    "cost": "01f0ea871ffe176fa6aee6f895f83d3b",
-    "security": "01f0ea9367f214d6a4821605432234c4",
-    "performance": "01f0ea93671e12d490224183f349dba0",
-    "reliability": "01f0ea8724fd160e8e959b8a5af1a8c5",
-    "quality": "01f0ea93616c1978a99a59d3f2e805bd",
-    "unified": "01f0ea9368801e019e681aa3abaa0089",
+    "cost": cost_genie_space_id,
+    "security": security_genie_space_id,
+    "performance": performance_genie_space_id,
+    "reliability": reliability_genie_space_id,
+    "quality": quality_genie_space_id,
+    "unified": unified_genie_space_id,
 }
 
 LLM_ENDPOINT = "databricks-claude-sonnet-4-5"
@@ -86,7 +119,9 @@ LLM_ENDPOINT = "databricks-claude-sonnet-4-5"
 # Reference: https://docs.databricks.com/aws/en/notebooks/source/generative-ai/short-term-memory-agent-lakebase.html
 # Reference: https://docs.databricks.com/aws/en/notebooks/source/generative-ai/long-term-memory-agent-lakebase.html
 # ===========================================================================
-LAKEBASE_INSTANCE_NAME = os.environ.get("LAKEBASE_INSTANCE_NAME", "vibe-coding-workshop-lakebase")
+# Lakebase instance name - from widget parameter (empty = disabled)
+# The agent will work without Lakebase, just without memory features
+LAKEBASE_INSTANCE_NAME = lakebase_instance_name_param or ""
 
 # Embedding model for long-term memory semantic search
 EMBEDDING_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT", "databricks-gte-large-en")
@@ -155,15 +190,17 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
     def __init__(self):
         """Initialize agent - called when model is loaded."""
         super().__init__()
-        self.llm_endpoint = os.environ.get("LLM_ENDPOINT", LLM_ENDPOINT)
-        # Load Genie Space IDs from env vars with defaults from central config
+        self.llm_endpoint = os.environ.get("LLM_ENDPOINT", "databricks-claude-sonnet-4-5")
+        # Load Genie Space IDs from environment variables
+        # IMPORTANT: The serving endpoint MUST set these env vars (configured in databricks.yml)
+        # No hardcoded fallbacks - this ensures configuration errors are caught immediately
         self.genie_spaces = {
-            "cost": os.environ.get("COST_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["cost"]),
-            "security": os.environ.get("SECURITY_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["security"]),
-            "performance": os.environ.get("PERFORMANCE_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["performance"]),
-            "reliability": os.environ.get("RELIABILITY_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["reliability"]),
-            "quality": os.environ.get("QUALITY_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["quality"]),
-            "unified": os.environ.get("UNIFIED_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["unified"]),
+            "cost": os.environ.get("COST_GENIE_SPACE_ID", ""),
+            "security": os.environ.get("SECURITY_GENIE_SPACE_ID", ""),
+            "performance": os.environ.get("PERFORMANCE_GENIE_SPACE_ID", ""),
+            "reliability": os.environ.get("RELIABILITY_GENIE_SPACE_ID", ""),
+            "quality": os.environ.get("QUALITY_GENIE_SPACE_ID", ""),
+            "unified": os.environ.get("UNIFIED_GENIE_SPACE_ID", ""),
         }
         self._llm = None
         self._genie_agents = None
@@ -206,16 +243,17 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
     
     def load_context(self, context):
         """Initialize agent with lazy loading for serving efficiency."""
-        self.llm_endpoint = os.environ.get("LLM_ENDPOINT", LLM_ENDPOINT)
-        # Load Genie Space IDs from env vars with defaults from central config
-        # Source of truth: src/agents/config/genie_spaces.py
+        self.llm_endpoint = os.environ.get("LLM_ENDPOINT", "databricks-claude-sonnet-4-5")
+        # Load Genie Space IDs from environment variables
+        # Source of truth: databricks.yml → serving endpoint environment variables
+        # No hardcoded fallbacks - this ensures configuration errors are caught immediately
         self.genie_spaces = {
-            "cost": os.environ.get("COST_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["cost"]),
-            "security": os.environ.get("SECURITY_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["security"]),
-            "performance": os.environ.get("PERFORMANCE_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["performance"]),
-            "reliability": os.environ.get("RELIABILITY_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["reliability"]),
-            "quality": os.environ.get("QUALITY_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["quality"]),
-            "unified": os.environ.get("UNIFIED_GENIE_SPACE_ID", DEFAULT_GENIE_SPACES["unified"]),
+            "cost": os.environ.get("COST_GENIE_SPACE_ID", ""),
+            "security": os.environ.get("SECURITY_GENIE_SPACE_ID", ""),
+            "performance": os.environ.get("PERFORMANCE_GENIE_SPACE_ID", ""),
+            "reliability": os.environ.get("RELIABILITY_GENIE_SPACE_ID", ""),
+            "quality": os.environ.get("QUALITY_GENIE_SPACE_ID", ""),
+            "unified": os.environ.get("UNIFIED_GENIE_SPACE_ID", ""),
         }
         self._llm = None
         self._genie_agents = None
@@ -710,82 +748,123 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
                 print(f"  Falling back to default auth")
                 return WorkspaceClient()
         else:
-            # Not in Model Serving - try to use explicit token from Databricks Runtime context
-            # WorkspaceClient() with no args uses "runtime" auth which may not have Genie permissions
-            # We need to use the actual user's token from the notebook/job context
+            # Not in Model Serving - try multiple authentication methods
+            # 
+            # Per official Databricks Genie API docs:
+            # "In situations where browser-based authentication is not possible,
+            #  use a SERVICE PRINCIPAL to authenticate with the API."
+            #
+            # Reference: https://docs.databricks.com/aws/en/genie/conversation-api
             
             # ================================================================
-            # ATTEMPT 1: Get token from Databricks Runtime context (dbutils)
+            # ATTEMPT 1: Service Principal OAuth M2M (RECOMMENDED for jobs)
             # ================================================================
-            # In notebooks/jobs, dbutils provides access to the current user's token
-            # This is the most reliable way to authenticate as the run_as user
+            # Per official docs, Service Principal is the recommended auth method
+            # for non-browser contexts like jobs, CI/CD, evaluation.
             # ================================================================
-            try:
-                # Try to get the API token from dbutils context
-                # This works in Databricks Runtime but not in local development
-                import subprocess
-                
-                # Get workspace URL
-                host = os.environ.get("DATABRICKS_HOST")
-                if not host:
-                    # Try to get from spark config
-                    try:
-                        from pyspark.sql import SparkSession
-                        spark = SparkSession.builder.getOrCreate()
-                        host = spark.conf.get("spark.databricks.workspaceUrl", None)
-                        if host and not host.startswith("https://"):
-                            host = f"https://{host}"
-                    except:
-                        pass
-                
-                if not host:
-                    # Fallback to known host
-                    host = "https://e2-demo-field-eng.cloud.databricks.com"
-                
-                # Try to get token from notebook context
-                # This requires dbutils which is available in Databricks Runtime
-                token = None
+            sp_client_id = os.environ.get("GENIE_SP_CLIENT_ID")
+            sp_client_secret = os.environ.get("GENIE_SP_CLIENT_SECRET")
+            host = os.environ.get("DATABRICKS_HOST", "https://e2-demo-field-eng.cloud.databricks.com")
+            
+            if sp_client_id and sp_client_secret:
                 try:
-                    # Method 1: Direct dbutils access (if available in scope)
-                    import builtins
-                    if hasattr(builtins, 'dbutils'):
-                        ctx = builtins.dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-                        token = ctx.apiToken().get()
-                        print(f"✓ Got API token from dbutils context")
-                except Exception as dbutils_e:
-                    print(f"  dbutils token not available: {type(dbutils_e).__name__}")
-                
-                if token:
-                    # Create client with explicit token authentication
-                    client = WorkspaceClient(host=host, token=token)
-                    print(f"✓ Using explicit token auth for {domain} Genie (evaluation/notebook mode)")
+                    from databricks.sdk import WorkspaceClient
+                    from databricks.sdk.config import Config
+                    
+                    # OAuth M2M authentication with Service Principal
+                    config = Config(
+                        host=host,
+                        client_id=sp_client_id,
+                        client_secret=sp_client_secret
+                    )
+                    client = WorkspaceClient(config=config)
+                    print(f"✓ Using Service Principal OAuth M2M for {domain} Genie")
                     
                     # Verify authentication
                     try:
-                        current_user = client.current_user.me()
-                        print(f"  Authenticated as: {current_user.user_name}")
+                        # Note: SP identity check is different from user
+                        print(f"  SP Client ID: {sp_client_id[:8]}...")
                     except Exception as verify_e:
-                        print(f"  Could not verify user: {verify_e}")
+                        print(f"  Could not verify SP: {verify_e}")
                     
                     return client
-                else:
-                    # Fallback to default WorkspaceClient
-                    print(f"→ Using default workspace auth for {domain} Genie (no explicit token available)")
-                    client = WorkspaceClient()
+                except Exception as sp_e:
+                    print(f"⚠ Service Principal auth failed: {type(sp_e).__name__}: {sp_e}")
+            
+            # ================================================================
+            # ATTEMPT 2: Use explicit token from environment variables
+            # ================================================================
+            # Fallback to PAT if Service Principal not configured.
+            # Note: Notebook PAT tokens may not have Genie OAuth scopes.
+            # ================================================================
+            token = os.environ.get("DATABRICKS_TOKEN")
+            
+            if host and token:
+                # We have explicit credentials from the evaluation environment
+                client = WorkspaceClient(host=host, token=token)
+                print(f"✓ Using explicit token auth for {domain} Genie (from environment)")
+                
+                # Verify authentication
+                try:
+                    current_user = client.current_user.me()
+                    print(f"  Authenticated as: {current_user.user_name}")
+                except Exception as verify_e:
+                    print(f"  Could not verify user: {verify_e}")
+                
+                return client
+            
+            # ================================================================
+            # ATTEMPT 2: Try dbutils context directly (if available)
+            # ================================================================
+            # This works when the model code has direct access to dbutils,
+            # such as when running in a notebook directly (not via load_model)
+            # ================================================================
+            try:
+                import builtins
+                if hasattr(builtins, 'dbutils'):
+                    ctx = builtins.dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+                    dbutils_token = ctx.apiToken().get()
                     
-                    # Log what auth type is being used
-                    try:
-                        config = client.config
-                        print(f"  Auth type: {config.auth_type if hasattr(config, 'auth_type') else 'unknown'}")
-                    except:
-                        pass
-                    
-                    return client
-                    
-            except Exception as e:
-                print(f"⚠ Error setting up auth for {domain} Genie: {type(e).__name__}: {e}")
-                print(f"  Falling back to default WorkspaceClient")
-                return WorkspaceClient()
+                    if dbutils_token:
+                        # Get host from spark config
+                        try:
+                            from pyspark.sql import SparkSession
+                            spark = SparkSession.builder.getOrCreate()
+                            spark_host = spark.conf.get("spark.databricks.workspaceUrl", None)
+                            if spark_host and not spark_host.startswith("https://"):
+                                spark_host = f"https://{spark_host}"
+                        except:
+                            spark_host = "https://e2-demo-field-eng.cloud.databricks.com"
+                        
+                        client = WorkspaceClient(host=spark_host, token=dbutils_token)
+                        print(f"✓ Using dbutils token auth for {domain} Genie")
+                        
+                        try:
+                            current_user = client.current_user.me()
+                            print(f"  Authenticated as: {current_user.user_name}")
+                        except Exception as verify_e:
+                            print(f"  Could not verify user: {verify_e}")
+                        
+                        return client
+            except Exception as dbutils_e:
+                print(f"  dbutils token not available: {type(dbutils_e).__name__}")
+            
+            # ================================================================
+            # FALLBACK: Default WorkspaceClient (uses runtime auth)
+            # ================================================================
+            # This is the last resort. Runtime auth may not have Genie permissions.
+            # ================================================================
+            print(f"→ Using default workspace auth for {domain} Genie (no explicit token available)")
+            client = WorkspaceClient()
+            
+            # Log what auth type is being used
+            try:
+                config = client.config
+                print(f"  Auth type: {config.auth_type if hasattr(config, 'auth_type') else 'unknown'}")
+            except:
+                pass
+            
+            return client
     
     def _query_genie(self, domain: str, query: str, session_id: str = None, conversation_id: str = None) -> tuple:
         """
@@ -2623,16 +2702,19 @@ def get_mlflow_resources() -> List:
     except Exception as e:
         print(f"⚠ Could not add DatabricksServingEndpoint: {e}")
     
-    # Lakebase memory storage (short-term and long-term)
+    # Lakebase memory storage (short-term and long-term) - OPTIONAL
     # Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/stateful-agents
-    try:
-        from mlflow.models.resources import DatabricksLakebase
-        resources.append(DatabricksLakebase(database_instance_name=LAKEBASE_INSTANCE_NAME))
-        print(f"✓ Added DatabricksLakebase: {LAKEBASE_INSTANCE_NAME}")
-    except ImportError as ie:
-        print(f"⚠ DatabricksLakebase not available: {ie}")
-    except Exception as e:
-        print(f"⚠ Could not add DatabricksLakebase: {e}")
+    if LAKEBASE_INSTANCE_NAME:
+        try:
+            from mlflow.models.resources import DatabricksLakebase
+            resources.append(DatabricksLakebase(database_instance_name=LAKEBASE_INSTANCE_NAME))
+            print(f"✓ Added DatabricksLakebase: {LAKEBASE_INSTANCE_NAME}")
+        except ImportError as ie:
+            print(f"⚠ DatabricksLakebase not available: {ie}")
+        except Exception as e:
+            print(f"⚠ Could not add DatabricksLakebase: {e}")
+    else:
+        print("ℹ Lakebase not configured - memory features disabled")
     
     # ================================================================
     # CRITICAL: Add ALL Genie Spaces for Automatic Auth Passthrough

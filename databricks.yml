@@ -61,7 +61,7 @@ variables:
   
   lakebase_instance_name:
     description: Lakebase instance name for agent memory (shared workspace instance)
-    default: "vibe-coding-workshop-lakebase"
+    default: "DONOTDELETE-vibe-coding-workshop-lakebase"
   
   llm_endpoint:
     description: LLM endpoint for agent inference (used by agent_deployment.yml)

@@ -1,124 +1,199 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Agent Framework Setup
+# MAGIC # Lakebase Memory Setup
 # MAGIC
 # MAGIC This notebook initializes the Lakebase infrastructure for the Health Monitor agent:
-# MAGIC 1. Creates CheckpointSaver tables for short-term memory
-# MAGIC 2. Creates DatabricksStore tables for long-term memory
+# MAGIC 1. Creates CheckpointSaver tables for short-term memory (conversation context)
+# MAGIC 2. Creates DatabricksStore tables for long-term memory (user preferences)
 # MAGIC 3. Verifies connectivity and permissions
+# MAGIC
+# MAGIC **Run this once** before using memory features. Tables persist across agent versions.
 
 # COMMAND ----------
 
-# MAGIC %pip install databricks-langchain mlflow>=3.0.0
-# MAGIC dbutils.library.restartPython()
-
-# COMMAND ----------
-
-# Parameters
-dbutils.widgets.text("catalog", "health_monitor")
-dbutils.widgets.text("schema", "agents")
-dbutils.widgets.text("lakebase_instance", "health_monitor_memory")
+# Parameters - passed from agent_setup_job.yml
+dbutils.widgets.text("catalog", "prashanth_subrahmanyam_catalog")
+dbutils.widgets.text("agent_schema", "dev_prashanth_subrahmanyam_system_gold_agent")
+dbutils.widgets.text("lakebase_instance_name", "")  # Empty = skip Lakebase setup
 
 catalog = dbutils.widgets.get("catalog")
-schema = dbutils.widgets.get("schema")
-lakebase_instance = dbutils.widgets.get("lakebase_instance")
+agent_schema = dbutils.widgets.get("agent_schema")
+lakebase_instance = dbutils.widgets.get("lakebase_instance_name")
 
+print("=" * 60)
+print("LAKEBASE MEMORY SETUP")
+print("=" * 60)
 print(f"Catalog: {catalog}")
-print(f"Schema: {schema}")
-print(f"Lakebase Instance: {lakebase_instance}")
+print(f"Schema: {agent_schema}")
+print(f"Lakebase Instance: {lakebase_instance or '(not configured)'}")
+print("=" * 60)
+
+# Skip if Lakebase not configured
+if not lakebase_instance:
+    print("\n⚠ Lakebase instance not configured - skipping memory setup")
+    print("  Memory features will be disabled in the agent.")
+    print("  To enable, set 'lakebase_instance_name' in databricks.yml")
+    dbutils.notebook.exit("SKIPPED - No Lakebase instance configured")
+
+# COMMAND ----------
+
+# MAGIC %pip install -q databricks-langchain[memory]
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# Re-read parameters after Python restart
+lakebase_instance = dbutils.widgets.get("lakebase_instance_name")
+catalog = dbutils.widgets.get("catalog")
+agent_schema = dbutils.widgets.get("agent_schema")
+
+print(f"\nInitializing Lakebase: {lakebase_instance}")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 1. Create Schema
-
-# COMMAND ----------
-
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema}")
-print(f"Schema {catalog}.{schema} ready")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## 2. Setup Short-Term Memory (CheckpointSaver)
+# MAGIC ## 1. Setup Short-Term Memory (CheckpointSaver)
+# MAGIC 
+# MAGIC CheckpointSaver stores conversation context between turns.
+# MAGIC - Table: `checkpoints` in Lakebase
+# MAGIC - Retention: Configurable (default 24h)
 
 # COMMAND ----------
 
 from databricks_langchain import CheckpointSaver
 
-print("Setting up CheckpointSaver tables...")
+print("\n" + "─" * 60)
+print("STEP 1: SHORT-TERM MEMORY (CheckpointSaver)")
+print("─" * 60)
 
-with CheckpointSaver(instance_name=lakebase_instance) as saver:
-    saver.setup()
-
-print("CheckpointSaver tables created successfully")
+try:
+    print(f"→ Connecting to Lakebase: {lakebase_instance}")
+    with CheckpointSaver(instance_name=lakebase_instance) as saver:
+        print("→ Creating/verifying checkpoints table...")
+        saver.setup()
+        print("✓ CheckpointSaver tables ready")
+except Exception as e:
+    print(f"✗ CheckpointSaver setup failed: {e}")
+    raise
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 3. Setup Long-Term Memory (DatabricksStore)
+# MAGIC ## 2. Setup Long-Term Memory (DatabricksStore)
+# MAGIC 
+# MAGIC DatabricksStore stores user preferences and insights with semantic search.
+# MAGIC - Table: `store` in Lakebase
+# MAGIC - Uses embeddings for semantic retrieval
 
 # COMMAND ----------
 
 from databricks_langchain import DatabricksStore
 
-# Use GTE-Large for embeddings
+# Embedding configuration for semantic search
 EMBEDDING_ENDPOINT = "databricks-gte-large-en"
 EMBEDDING_DIMS = 1024
 
-print("Setting up DatabricksStore tables...")
+print("\n" + "─" * 60)
+print("STEP 2: LONG-TERM MEMORY (DatabricksStore)")
+print("─" * 60)
 
-store = DatabricksStore(
-    instance_name=lakebase_instance,
-    embedding_endpoint=EMBEDDING_ENDPOINT,
-    embedding_dims=EMBEDDING_DIMS,
-)
-store.setup()
-
-print("DatabricksStore tables created successfully")
+try:
+    print(f"→ Connecting to Lakebase: {lakebase_instance}")
+    print(f"→ Embedding model: {EMBEDDING_ENDPOINT}")
+    
+    store = DatabricksStore(
+        instance_name=lakebase_instance,
+        embedding_endpoint=EMBEDDING_ENDPOINT,
+        embedding_dims=EMBEDDING_DIMS,
+    )
+    
+    print("→ Creating/verifying store table...")
+    store.setup()
+    print("✓ DatabricksStore tables ready")
+except Exception as e:
+    print(f"✗ DatabricksStore setup failed: {e}")
+    raise
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 4. Verify Setup
+# MAGIC ## 3. Verify Setup
 
 # COMMAND ----------
 
-# Test short-term memory
-print("\nTesting Short-Term Memory...")
-with CheckpointSaver(instance_name=lakebase_instance) as saver:
-    # The setup is complete if we can create the context manager
-    print("Short-term memory: OK")
+print("\n" + "─" * 60)
+print("STEP 3: VERIFICATION")
+print("─" * 60)
 
-# Test long-term memory
-print("\nTesting Long-Term Memory...")
-test_namespace = ("test", "setup_verification")
-test_key = "test_memory"
-test_value = {"status": "verified", "timestamp": str(spark.sql("SELECT current_timestamp()").first()[0])}
+verification_passed = True
 
-store.put(test_namespace, test_key, test_value)
-retrieved = store.get(test_namespace, test_key)
+# Test short-term memory connection
+print("\n→ Testing CheckpointSaver connection...")
+try:
+    with CheckpointSaver(instance_name=lakebase_instance) as saver:
+        print("  ✓ CheckpointSaver: Connected")
+except Exception as e:
+    print(f"  ✗ CheckpointSaver: Failed - {e}")
+    verification_passed = False
 
-if retrieved and retrieved.value == test_value:
-    print("Long-term memory: OK")
-    # Cleanup test data
+# Test long-term memory with write/read/delete cycle
+print("\n→ Testing DatabricksStore operations...")
+try:
+    import datetime
+    test_namespace = ("__test__", "setup_verification")
+    test_key = f"test_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    test_value = {"status": "verified", "timestamp": str(datetime.datetime.now())}
+    
+    # Write
+    store.put(test_namespace, test_key, test_value)
+    print("  ✓ Write: OK")
+    
+    # Read
+    retrieved = store.get(test_namespace, test_key)
+    if retrieved and retrieved.value == test_value:
+        print("  ✓ Read: OK")
+    else:
+        print("  ✗ Read: Data mismatch")
+        verification_passed = False
+    
+    # Delete (cleanup)
     store.delete(test_namespace, test_key)
-else:
-    print("Long-term memory: FAILED")
+    print("  ✓ Delete: OK")
+    
+except Exception as e:
+    print(f"  ✗ DatabricksStore operations failed: {e}")
+    verification_passed = False
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 5. Summary
+# MAGIC ## Summary
 
 # COMMAND ----------
 
-print("=" * 60)
-print("Agent Framework Setup Complete")
-print("=" * 60)
-print(f"Lakebase Instance: {lakebase_instance}")
-print(f"Embedding Model: {EMBEDDING_ENDPOINT}")
-print(f"Embedding Dimensions: {EMBEDDING_DIMS}")
-print("=" * 60)
+print("\n")
+print("╔" + "═" * 58 + "╗")
+print("║" + " LAKEBASE MEMORY SETUP COMPLETE ".center(58) + "║")
+print("╠" + "═" * 58 + "╣")
+print(f"║  Lakebase Instance: {lakebase_instance:<36} ║")
+print(f"║  Embedding Model:   {EMBEDDING_ENDPOINT:<36} ║")
+print(f"║  Embedding Dims:    {EMBEDDING_DIMS:<36} ║")
+print("╠" + "═" * 58 + "╣")
+print("║  Tables Created:                                        ║")
+print("║    • checkpoints (short-term memory)                    ║")
+print("║    • store (long-term memory with embeddings)           ║")
+print("╠" + "═" * 58 + "╣")
 
-dbutils.notebook.exit("SUCCESS")
+if verification_passed:
+    print("║  Status: ✅ ALL TESTS PASSED                            ║")
+    exit_status = "SUCCESS"
+else:
+    print("║  Status: ⚠️  SOME TESTS FAILED (check logs above)       ║")
+    exit_status = "PARTIAL"
+
+print("╚" + "═" * 58 + "╝")
+
+dbutils.notebook.exit(exit_status)

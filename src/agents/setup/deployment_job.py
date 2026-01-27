@@ -129,6 +129,28 @@ reliability_genie_space_id = dbutils.widgets.get("reliability_genie_space_id")
 quality_genie_space_id = dbutils.widgets.get("quality_genie_space_id")
 unified_genie_space_id = dbutils.widgets.get("unified_genie_space_id")
 
+# ===========================================================================
+# CRITICAL: Set Genie Space IDs as environment variables
+# ===========================================================================
+# The agent reads from os.environ at runtime. Without this, evaluation will
+# show "Genie Space Not Configured" for all queries.
+# ===========================================================================
+import os
+if cost_genie_space_id:
+    os.environ["COST_GENIE_SPACE_ID"] = cost_genie_space_id
+if security_genie_space_id:
+    os.environ["SECURITY_GENIE_SPACE_ID"] = security_genie_space_id
+if performance_genie_space_id:
+    os.environ["PERFORMANCE_GENIE_SPACE_ID"] = performance_genie_space_id
+if reliability_genie_space_id:
+    os.environ["RELIABILITY_GENIE_SPACE_ID"] = reliability_genie_space_id
+if quality_genie_space_id:
+    os.environ["QUALITY_GENIE_SPACE_ID"] = quality_genie_space_id
+if unified_genie_space_id:
+    os.environ["UNIFIED_GENIE_SPACE_ID"] = unified_genie_space_id
+
+print(f"✓ Genie Space IDs set as environment variables")
+
 # Use model_name parameter if provided, else construct from catalog/schema
 if model_name_param and model_name_param.count('.') == 2:
     MODEL_NAME = model_name_param
@@ -2857,30 +2879,23 @@ def log_deployment_results(version: str, results, passed: bool, promoted: bool, 
 
 def create_or_update_serving_endpoint(version: str) -> bool:
     """
-    Create or update the serving endpoint ONLY after evaluation passes.
+    Deploy agent using the Agent Framework's deploy() function.
     
-    This is the proper MLflow 3.0 Deployment Job pattern where endpoint
-    creation is gated by successful evaluation.
+    This uses agents.deploy() which automatically enables:
+    - Real-time tracing (MLflow experiment tracing)
+    - Inference tables (AI Gateway inference tables)
+    - Review App (stakeholder feedback)
+    - Production monitoring
     
-    Returns True if endpoint was created/updated successfully.
+    Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/deploy-agent
+    
+    Returns True if deployment was successful.
     """
-    from databricks.sdk import WorkspaceClient
-    from databricks.sdk.service.serving import (
-        EndpointCoreConfigInput,
-        ServedEntityInput,
-        AiGatewayConfig,
-        AiGatewayRateLimit,
-        AiGatewayRateLimitKey,
-        AiGatewayRateLimitRenewalPeriod,
-        AiGatewayUsageTrackingConfig,
-        AiGatewayInferenceTableConfig,
-    )
     import time
     
     print(f"\n  ┌{'─' * 58}┐")
-    print(f"  │{'SERVING ENDPOINT CONFIGURATION':^58}│")
+    print(f"  │{'AGENT FRAMEWORK DEPLOYMENT':^58}│")
     print(f"  ├{'─' * 58}┤")
-    print(f"  │ Endpoint:  {endpoint_name:<45} │")
     print(f"  │ Model:     {MODEL_NAME:<45} │")
     print(f"  │ Version:   {version:<45} │")
     print(f"  │ Catalog:   {catalog:<45} │")
@@ -2945,205 +2960,109 @@ def create_or_update_serving_endpoint(version: str) -> bool:
         
         # Deployment context - for operational insights
         "DEPLOYMENT_REGION": "us-west-2",  # Update based on actual region
-        "ENDPOINT_NAME": endpoint_name,
-        
-        # Endpoint identification
-        "DATABRICKS_SERVING_ENDPOINT_NAME": endpoint_name,
     }
     
     print(f"\n  📦 Environment variables configured: {len(env_vars)} total")
     print(f"       • Genie Spaces: 6 configured")
-    print(f"       • LLM: databricks-claude-3-7-sonnet")
+    print(f"       • LLM: {llm_endpoint}")
     print(f"       • Memory: Lakebase enabled")
-    
-    client = WorkspaceClient()
+    print(f"       • OBO: enabled (identity passthrough)")
     
     try:
-        # Check if endpoint exists
-        print(f"\n  🔍 Checking for existing endpoint: '{endpoint_name}'...")
-        existing_endpoint = None
-        try:
-            existing_endpoint = client.serving_endpoints.get(endpoint_name)
-            print(f"       ✓ Found existing endpoint (will update)")
-            if existing_endpoint.state:
-                print(f"       Current state: {existing_endpoint.state.ready}")
-        except Exception as e:
-            print(f"       → Endpoint does not exist (will create new)")
-            print(f"       Get error type: {type(e).__name__}")
+        # =================================================================
+        # CRITICAL: Set experiment BEFORE agents.deploy() for real-time tracing
+        # Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/deploy-agent
+        # "To enable real-time tracing, set the experiment to a non-Git-associated 
+        # experiment using mlflow.set_experiment() before running agents.deploy()"
+        # =================================================================
+        print(f"\n  📊 Setting MLflow experiment for real-time tracing...")
+        mlflow.set_experiment(EXPERIMENT_EVALUATION)
+        print(f"       ✓ Experiment: {EXPERIMENT_EVALUATION}")
         
-        # Build served entity
-        print(f"\n  🏗️  Building served entity configuration...")
-        served_entity = ServedEntityInput(
-            name="health_monitor_agent",
-            entity_name=MODEL_NAME,
-            entity_version=version,
-            workload_size="Small",
+        # =================================================================
+        # Use agents.deploy() from databricks-agents package
+        # This automatically enables:
+        # - Real-time tracing
+        # - Inference tables
+        # - Review App
+        # - Production monitoring
+        # Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/deploy-agent
+        # =================================================================
+        print(f"\n  🚀 Deploying agent using Agent Framework...")
+        print(f"       Model: {MODEL_NAME}")
+        print(f"       Version: {version}")
+        print(f"       Scale-to-zero: enabled")
+        
+        from databricks import agents
+        
+        # Check for existing deployment first
+        print(f"\n  🔍 Checking for existing deployments...")
+        try:
+            existing_deployments = agents.list_deployments()
+            existing = [d for d in existing_deployments if d.model_name == MODEL_NAME]
+            if existing:
+                print(f"       Found {len(existing)} existing deployment(s)")
+                for d in existing:
+                    print(f"         • Version {d.model_version}: {d.endpoint_name}")
+                    # Delete old deployments to avoid conflicts
+                    if str(d.model_version) != str(version):
+                        print(f"         → Deleting old deployment (version {d.model_version})...")
+                        try:
+                            agents.delete_deployment(model_name=MODEL_NAME, model_version=d.model_version)
+                            print(f"         ✓ Deleted")
+                            time.sleep(2)  # Brief pause for cleanup
+                        except Exception as del_err:
+                            print(f"         ⚠ Could not delete: {del_err}")
+            else:
+                print(f"       No existing deployments found")
+        except Exception as list_err:
+            print(f"       ⚠ Could not list deployments: {list_err}")
+        
+        # Deploy the agent
+        print(f"\n  ✨ Creating deployment...")
+        deployment = agents.deploy(
+            model_name=MODEL_NAME,
+            model_version=version,
             scale_to_zero_enabled=True,
             environment_vars=env_vars,
         )
-        print(f"       ✓ Entity: health_monitor_agent")
-        print(f"       ✓ Workload: Small (scale-to-zero enabled)")
         
-        # Build AI Gateway config
-        # Reference: https://docs.databricks.com/aws/en/notebooks/source/ai-gateway/enable-gateway-features.html
-        print(f"\n  🌐 Configuring AI Gateway...")
-        table_prefix = endpoint_name.replace("-", "_")
-        ai_gateway = AiGatewayConfig(
-            inference_table_config=AiGatewayInferenceTableConfig(
-                catalog_name=catalog,
-                schema_name=agent_schema,
-                table_name_prefix=table_prefix,
-                enabled=True,
-            ),
-            # Rate limiting: 100 requests per user per minute
-            # Reference: https://docs.databricks.com/aws/en/notebooks/source/ai-gateway/enable-gateway-features.html
-            rate_limits=[
-                AiGatewayRateLimit(
-                    calls=100,
-                    key=AiGatewayRateLimitKey.USER,
-                    renewal_period=AiGatewayRateLimitRenewalPeriod.MINUTE,
-                ),
-            ],
-            # Usage tracking for cost monitoring and analytics
-            usage_tracking_config=AiGatewayUsageTrackingConfig(enabled=True),
-        )
-        print(f"       ✓ Inference logging: {catalog}.{agent_schema}.{table_prefix}_*")
-        print(f"       ✓ Rate limit: 100 calls/user/minute")
-        print(f"       ✓ Usage tracking: enabled")
+        print(f"\n  ╔{'═' * 58}╗")
+        print(f"  ║{'✅ AGENT DEPLOYED SUCCESSFULLY':^58}║")
+        print(f"  ╠{'═' * 58}╣")
+        print(f"  ║  Query Endpoint:                                        ║")
+        print(f"  ║    {deployment.query_endpoint[:54]:<54} ║")
+        print(f"  ╠{'═' * 58}╣")
+        print(f"  ║  Features Enabled by agents.deploy():                   ║")
+        print(f"  ║    ✓ Real-time tracing (MLflow experiment)              ║")
+        print(f"  ║    ✓ Inference tables (AI Gateway)                      ║")
+        print(f"  ║    ✓ Review App (stakeholder feedback)                  ║")
+        print(f"  ║    ✓ Production monitoring                              ║")
+        print(f"  ║    ✓ Automatic scaling                                  ║")
+        print(f"  ╚{'═' * 58}╝")
         
-        if existing_endpoint:
-            # Update existing endpoint
-            print(f"\n  🔄 Updating endpoint configuration...")
-            try:
-                client.serving_endpoints.update_config(
-                    name=endpoint_name,
-                    served_entities=[served_entity],
-                )
-                print(f"       ✓ Model update request submitted")
-                
-                # Also update AI Gateway config for existing endpoints
-                # Reference: https://docs.databricks.com/aws/en/notebooks/source/ai-gateway/enable-gateway-features.html
-                print(f"\n  🌐 Updating AI Gateway configuration...")
-                try:
-                    client.serving_endpoints.put_ai_gateway(
-                        name=endpoint_name,
-                        inference_table_config=ai_gateway.inference_table_config,
-                        rate_limits=ai_gateway.rate_limits,
-                        usage_tracking_config=ai_gateway.usage_tracking_config,
-                    )
-                    print(f"       ✓ AI Gateway configuration updated")
-                except Exception as gateway_error:
-                    # AI Gateway update is non-fatal - endpoint still works
-                    gateway_msg = str(gateway_error)
-                    if "not supported" in gateway_msg.lower():
-                        print(f"       ⚠ AI Gateway features not available: {gateway_msg[:100]}")
-                    else:
-                        print(f"       ⚠ AI Gateway update failed (non-fatal): {gateway_msg[:100]}")
-                
-            except Exception as update_error:
-                error_msg = str(update_error)
-                
-                # Check for agent/non-agent incompatibility error
-                if "Agent endpoint cannot be updated to serve non-agent models" in error_msg:
-                    print(f"\n  ⚠️  Detected agent/non-agent endpoint conflict")
-                    print(f"       → Deleting existing non-agent endpoint and recreating...")
-                    
-                    # Delete existing endpoint
-                    try:
-                        client.serving_endpoints.delete(endpoint_name)
-                        print(f"       ✓ Deleted existing endpoint")
-                        
-                        # Wait a moment for deletion to complete
-                        time.sleep(5)
-                        
-                        # Create new endpoint with agent model
-                        print(f"\n  ✨ Creating fresh agent endpoint with AI Gateway...")
-                        endpoint_config = EndpointCoreConfigInput(
-                            name=endpoint_name,  # Required by SDK
-                            served_entities=[served_entity]
-                        )
-                        client.serving_endpoints.create(
-                            name=endpoint_name,
-                            config=endpoint_config,
-                            ai_gateway=ai_gateway,
-                        )
-                        print(f"       ✓ Agent endpoint create request submitted")
-                    except Exception as recreate_error:
-                        print(f"       ✗ Failed to recreate endpoint: {str(recreate_error)}")
-                        raise recreate_error
-                else:
-                    # Re-raise for other errors
-                    raise update_error
-        else:
-            # Create new endpoint
-            print(f"\n  ✨ Creating new endpoint with AI Gateway...")
-            print(f"       Endpoint name: {endpoint_name}")
-            print(f"       Model: {MODEL_NAME}")
-            print(f"       Version: {version}")
-            
-            try:
-                endpoint_config = EndpointCoreConfigInput(
-                    name=endpoint_name,  # Required by SDK
-                    served_entities=[served_entity]
-                )
-                client.serving_endpoints.create(
-                    name=endpoint_name,
-                    config=endpoint_config,
-                    ai_gateway=ai_gateway,
-                )
-                print(f"       ✓ Create request submitted")
-            except Exception as create_error:
-                print(f"\n  ╔{'═' * 50}╗")
-                print(f"  ║{'❌ CREATE ENDPOINT FAILED':^50}║")
-                print(f"  ╚{'═' * 50}╝")
-                print(f"\n  Error type: {type(create_error).__name__}")
-                print(f"  Error message: {str(create_error)}")
-                print(f"\n  Full details:")
-                import traceback
-                traceback.print_exc()
-                raise create_error
-        
-        # Wait for endpoint to be ready (up to 15 minutes)
-        print(f"\n  ⏳ Waiting for endpoint to be ready (up to 15 min)...")
-        print(f"       Polling every 30 seconds...")
-        wait_start = time.time()
-        
-        for i in range(30):  # 30 * 30 seconds = 15 minutes
-            try:
-                ep = client.serving_endpoints.get(endpoint_name)
-                state = ep.state.ready if ep.state else "UNKNOWN"
-                config_state = ep.state.config_update if ep.state else "UNKNOWN"
-                
-                elapsed = int(time.time() - wait_start)
-                progress = "▓" * min((i + 1), 30) + "░" * max(0, 30 - (i + 1))
-                
-                if state == "READY":
-                    print(f"\n       [{progress}] {elapsed}s")
-                    print(f"\n  ╔{'═' * 50}╗")
-                    print(f"  ║{'✅ ENDPOINT IS READY!':^50}║")
-                    print(f"  ╚{'═' * 50}╝")
-                    return True
-                else:
-                    print(f"       [{progress}] {elapsed}s - State: {state} | Config: {config_state}")
-                    
-            except Exception as poll_error:
-                print(f"       ⚠ Poll error: {str(poll_error)[:40]}")
-                
-            time.sleep(30)
-        
-        print(f"\n  ⚠️  Endpoint created but not READY after 15 minutes")
-        print(f"       Check the Serving Endpoints UI for status")
-        print(f"       URL: https://<workspace>.databricks.com/serving-endpoints/{endpoint_name}")
-        return True  # Still consider it a success - it was created
+        return True
         
     except Exception as e:
-        print(f"\n  ╔{'═' * 50}╗")
-        print(f"  ║{'❌ ENDPOINT CREATION FAILED':^50}║")
-        print(f"  ╚{'═' * 50}╝")
-        print(f"\n  Error: {str(e)}")
+        error_msg = str(e)
+        print(f"\n  ╔{'═' * 58}╗")
+        print(f"  ║{'❌ AGENT DEPLOYMENT FAILED':^58}║")
+        print(f"  ╚{'═' * 58}╝")
+        print(f"\n  Error type: {type(e).__name__}")
+        print(f"  Error message: {error_msg[:200]}")
+        
+        # Check for common issues
+        if "endpoint" in error_msg.lower() and "limit" in error_msg.lower():
+            print(f"\n  💡 Suggestion: You've hit the endpoint limit.")
+            print(f"     Delete unused endpoints to free up capacity.")
+        elif "already exists" in error_msg.lower():
+            print(f"\n  💡 Suggestion: Deployment already exists.")
+            print(f"     Try deleting the existing deployment first.")
+        
         print(f"\n  Full traceback:")
         import traceback
         traceback.print_exc()
+        
         return False
 
 # COMMAND ----------

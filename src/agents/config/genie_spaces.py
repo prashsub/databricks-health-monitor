@@ -125,7 +125,7 @@ KEYWORDS: {', '.join(self.routing_keywords[:10])}"""
 GENIE_SPACE_REGISTRY: Dict[str, GenieSpaceConfig] = {
     
     DOMAINS.COST: GenieSpaceConfig(
-        space_id="01f0ea871ffe176fa6aee6f895f83d3b",
+        space_id="01f0f1a3c2dc1c8897de11d27ca2cb6f",
         domain=DOMAINS.COST,
         env_var="COST_GENIE_SPACE_ID",
         name="Cost Intelligence Space",
@@ -168,7 +168,7 @@ data quality issues (use quality), or access control (use security).""",
     ),
     
     DOMAINS.RELIABILITY: GenieSpaceConfig(
-        space_id="01f0ea8724fd160e8e959b8a5af1a8c5",
+        space_id="01f0f1a3c33b19848c856518eac91dee",
         domain=DOMAINS.RELIABILITY,
         env_var="RELIABILITY_GENIE_SPACE_ID",
         name="Job Reliability Space",
@@ -212,7 +212,7 @@ data freshness issues (use quality), or permission errors (use security).""",
     ),
     
     DOMAINS.QUALITY: GenieSpaceConfig(
-        space_id="01f0ea93616c1978a99a59d3f2e805bd",
+        space_id="01f0f1a3c39517ffbe190f38956d8dd1",
         domain=DOMAINS.QUALITY,
         env_var="QUALITY_GENIE_SPACE_ID",
         name="Data Quality Space",
@@ -256,7 +256,7 @@ spending analysis (use cost), or access permissions (use security).""",
     ),
     
     DOMAINS.PERFORMANCE: GenieSpaceConfig(
-        space_id="01f0ea93671e12d490224183f349dba0",
+        space_id="01f0f1a3c3e31a8e8e6dee3eddf5d61f",
         domain=DOMAINS.PERFORMANCE,
         env_var="PERFORMANCE_GENIE_SPACE_ID",
         name="Performance Space",
@@ -300,7 +300,7 @@ data quality issues (use quality), or access control (use security).""",
     ),
     
     DOMAINS.SECURITY: GenieSpaceConfig(
-        space_id="01f0ea9367f214d6a4821605432234c4",
+        space_id="01f0f1a3c44117acada010638189392f",
         domain=DOMAINS.SECURITY,
         env_var="SECURITY_GENIE_SPACE_ID",
         name="Security Auditor Space",
@@ -344,7 +344,7 @@ query performance (use performance), or data quality (use quality).""",
     ),
     
     DOMAINS.UNIFIED: GenieSpaceConfig(
-        space_id="01f0ea9368801e019e681aa3abaa0089",
+        space_id="01f0f1a3c4981080b61e224ecd465817",
         domain=DOMAINS.UNIFIED,
         env_var="UNIFIED_GENIE_SPACE_ID",
         name="Overall Health Monitor Space",

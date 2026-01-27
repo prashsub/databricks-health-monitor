@@ -54,7 +54,8 @@ resources:
         - name: promotion_target
           default: staging  # staging or production
         - name: endpoint_name
-          default: health_monitor_agent_${bundle.target}  # Serving endpoint name
+          # Must match existing endpoint name format: dev_{user}_health_monitor_agent_{target}
+          default: ${bundle.target}_${workspace.current_user.short_name}_health_monitor_agent_${bundle.target}
       
       tasks:
         # ==================================================================

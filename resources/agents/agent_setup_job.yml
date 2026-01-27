@@ -2,6 +2,7 @@
 # ===========================================================================
 # Setup pipeline for the Health Monitor Agent:
 #   1. Create infrastructure (schemas, tables, volumes)
+#   1b. Setup Lakebase memory tables (if configured)
 #   2. Register prompts to MLflow Prompt Registry
 #   2b. Register scorers for production monitoring
 #   2c. Create evaluation datasets (synthetic + manual)
@@ -82,6 +83,23 @@ resources:
               agent_schema: ${var.agent_schema}
         
         # ==================================================================
+        # Task 1b: Setup Lakebase Memory Tables (Optional)
+        # Creates CheckpointSaver (short-term) and DatabricksStore (long-term)
+        # tables in the Lakebase instance. Skipped if lakebase_instance_name
+        # is not configured in databricks.yml.
+        # ==================================================================
+        - task_key: setup_lakebase_memory
+          depends_on:
+            - task_key: create_agent_infrastructure
+          environment_key: agent_env
+          notebook_task:
+            notebook_path: ../../src/agents/notebooks/setup_lakebase.py
+            base_parameters:
+              catalog: ${var.catalog}
+              agent_schema: ${var.agent_schema}
+              lakebase_instance_name: ${var.lakebase_instance_name}
+        
+        # ==================================================================
         # Task 2: Register Prompts to MLflow Prompt Registry
         # ==================================================================
         - task_key: register_prompts
@@ -134,6 +152,7 @@ resources:
             - task_key: register_prompts
             - task_key: register_scorers
             - task_key: create_evaluation_datasets
+            - task_key: setup_lakebase_memory  # Ensure memory tables exist before logging
           environment_key: agent_env
           notebook_task:
             notebook_path: ../../src/agents/setup/log_agent_model.py
@@ -149,6 +168,8 @@ resources:
               performance_genie_space_id: ${var.performance_genie_space_id}
               security_genie_space_id: ${var.security_genie_space_id}
               unified_genie_space_id: ${var.unified_genie_space_id}
+              # Optional: Lakebase instance for memory features (empty = disabled)
+              lakebase_instance_name: ${var.lakebase_instance_name}
         
         # ==================================================================
         # Task 4: Run Initial Evaluation (Pre-deployment validation)
