@@ -327,13 +327,13 @@
       {
         "id": "95597dc790bc48afab885f3385c33678",
         "question": [
-          "Show metrics from mv_security_events"
+          "What is the event count by action name?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.mv_security_events LIMIT 20;"
+              "SELECT action_name, MEASURE(total_events) AS event_count FROM ${catalog}.${gold_schema}.mv_security_events GROUP BY action_name ORDER BY event_count DESC LIMIT 20;"
             ]
           }
         ]
@@ -341,13 +341,13 @@
       {
         "id": "2f7993e8dcde4be3b75264cda2578351",
         "question": [
-          "Show metrics from mv_governance_analytics"
+          "What are the data access events by source table?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.mv_governance_analytics LIMIT 20;"
+              "SELECT source_table_name, MEASURE(total_events) AS access_count FROM ${catalog}.${gold_schema}.mv_governance_analytics GROUP BY source_table_name ORDER BY access_count DESC LIMIT 20;"
             ]
           }
         ]

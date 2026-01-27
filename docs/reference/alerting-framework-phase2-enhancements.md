@@ -413,11 +413,11 @@ def validate_all_alert_queries(spark: SparkSession, catalog: str, gold_schema: s
 ### Add to Job Workflow
 
 ```yaml
-# resources/alerting/alert_query_validation_job.yml
+# resources/alerting/alerting_validation_job.yml
 
 resources:
   jobs:
-    alert_query_validation_job:
+    alerting_validation_job:
       name: "[${bundle.target}] Health Monitor - Alert Query Validation"
       description: "Validates all alert queries before deployment"
       
@@ -444,25 +444,25 @@ resources:
 ### Integration with Composite Job
 
 ```yaml
-# resources/alerting/alerting_layer_setup_job.yml
+# resources/alerting/alerting_setup_orchestrator_job.yml
 
 tasks:
   - task_key: setup_tables
     run_job_task:
-      job_id: ${resources.jobs.alerting_tables_setup_job.id}
+      job_id: ${resources.jobs.alerting_tables_job.id}
   
   # NEW: Validate queries before deployment
   - task_key: validate_queries
     depends_on:
       - task_key: setup_tables
     run_job_task:
-      job_id: ${resources.jobs.alert_query_validation_job.id}
+      job_id: ${resources.jobs.alerting_validation_job.id}
   
   - task_key: deploy_alerts
     depends_on:
       - task_key: validate_queries  # ✅ Only deploy if validation passes
     run_job_task:
-      job_id: ${resources.jobs.sql_alert_deployment_job.id}
+      job_id: ${resources.jobs.alerting_deploy_job.id}
 ```
 
 **Effort:** 1 week  

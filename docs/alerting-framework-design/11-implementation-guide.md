@@ -31,12 +31,12 @@ src/
 
 resources/
 └── alerting/
-    ├── alerting_layer_setup_job.yml    # Composite orchestrator
-    ├── alerting_tables_setup_job.yml   # Atomic: table creation
-    ├── seed_all_alerts_job.yml         # Atomic: alert seeding
-    ├── alert_query_validation_job.yml  # Atomic: query validation
-    ├── notification_destinations_sync_job.yml  # Atomic: destinations
-    └── sql_alert_deployment_job.yml    # Atomic: SDK deployment
+    ├── alerting_setup_orchestrator_job.yml    # Composite orchestrator
+    ├── alerting_tables_job.yml   # Atomic: table creation
+    ├── alerting_seed_job.yml         # Atomic: alert seeding
+    ├── alerting_validation_job.yml  # Atomic: query validation
+    ├── alerting_notifications_job.yml  # Atomic: destinations
+    └── alerting_deploy_job.yml    # Atomic: SDK deployment
 ```
 
 ### 1.2 Create alerting_config.py
@@ -289,10 +289,10 @@ if __name__ == "__main__":
 ### 2.2 Create Job YAML
 
 ```yaml
-# resources/alerting/alerting_tables_setup_job.yml
+# resources/alerting/alerting_tables_job.yml
 resources:
   jobs:
-    alerting_tables_setup_job:
+    alerting_tables_job:
       name: "[${bundle.target}] Health Monitor - Alerting Tables Setup"
       
       environments:
@@ -689,7 +689,7 @@ databricks bundle deploy -t dev
 
 ```bash
 # Run complete alerting setup
-databricks bundle run -t dev alerting_layer_setup_job
+databricks bundle run -t dev alerting_setup_orchestrator_job
 ```
 
 ### 7.3 Verify

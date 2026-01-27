@@ -316,11 +316,11 @@ WHERE alert_id = 'CLUSTER-002';
 
 ```bash
 # If data is corrupted, force reseed
-databricks bundle run -t dev seed_all_alerts_job \
+databricks bundle run -t dev alerting_seed_job \
   --parameters force_reseed=true
 
 # Then re-sync
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
 ```
 
 ## Configuring Threshold

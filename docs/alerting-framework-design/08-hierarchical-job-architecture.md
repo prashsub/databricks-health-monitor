@@ -18,22 +18,22 @@ The alerting framework uses a **hierarchical job architecture** that separates c
 │         NO direct notebook references                                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│   alerting_layer_setup_job (Orchestrator)                                  │
+│   alerting_setup_orchestrator_job (Orchestrator)                                  │
 │   │                                                                         │
 │   ├── Task: setup_alerting_tables                                          │
-│   │   └── run_job_task: alerting_tables_setup_job                          │
+│   │   └── run_job_task: alerting_tables_job                          │
 │   │                                                                         │
 │   ├── Task: seed_all_alerts (depends_on: setup_alerting_tables)            │
-│   │   └── run_job_task: seed_all_alerts_job                                │
+│   │   └── run_job_task: alerting_seed_job                                │
 │   │                                                                         │
 │   ├── Task: validate_alert_queries (depends_on: seed_all_alerts)           │
-│   │   └── run_job_task: alert_query_validation_job                         │
+│   │   └── run_job_task: alerting_validation_job                         │
 │   │                                                                         │
 │   ├── Task: sync_notification_destinations (depends_on: setup)             │
-│   │   └── run_job_task: notification_destinations_sync_job                 │
+│   │   └── run_job_task: alerting_notifications_job                 │
 │   │                                                                         │
 │   └── Task: deploy_sql_alerts (depends_on: validate, sync_notif)           │
-│       └── run_job_task: sql_alert_deployment_job                           │
+│       └── run_job_task: alerting_deploy_job                           │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 
@@ -43,23 +43,23 @@ The alerting framework uses a **hierarchical job architecture** that separates c
 │         Single-purpose, testable independently                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│   alerting_tables_setup_job                                                │
+│   alerting_tables_job                                                │
 │   └── notebook_task: setup_alerting_tables.py                              │
 │       └── job_level: atomic                                                 │
 │                                                                             │
-│   seed_all_alerts_job                                                      │
+│   alerting_seed_job                                                      │
 │   └── notebook_task: seed_all_alerts.py                                    │
 │       └── job_level: atomic                                                 │
 │                                                                             │
-│   alert_query_validation_job                                               │
+│   alerting_validation_job                                               │
 │   └── notebook_task: validate_alert_queries.py                             │
 │       └── job_level: atomic                                                 │
 │                                                                             │
-│   notification_destinations_sync_job                                       │
+│   alerting_notifications_job                                       │
 │   └── notebook_task: sync_notification_destinations.py                     │
 │       └── job_level: atomic                                                 │
 │                                                                             │
-│   sql_alert_deployment_job                                                 │
+│   alerting_deploy_job                                                 │
 │   └── notebook_task: sync_sql_alerts.py                                    │
 │       └── job_level: atomic                                                 │
 │                                                                             │
@@ -82,11 +82,11 @@ The alerting framework uses a **hierarchical job architecture** that separates c
 ### Atomic Job Example
 
 ```yaml
-# resources/alerting/alerting_tables_setup_job.yml
+# resources/alerting/alerting_tables_job.yml
 
 resources:
   jobs:
-    alerting_tables_setup_job:
+    alerting_tables_job:
       name: "[${bundle.target}] Health Monitor - Alerting Tables Setup"
       description: "Atomic job: Creates alerting configuration tables in Unity Catalog"
       
@@ -113,11 +113,11 @@ resources:
 ### Composite Job Example
 
 ```yaml
-# resources/alerting/alerting_layer_setup_job.yml
+# resources/alerting/alerting_setup_orchestrator_job.yml
 
 resources:
   jobs:
-    alerting_layer_setup_job:
+    alerting_setup_orchestrator_job:
       name: "[${bundle.target}] Health Monitor - Alerting Layer Setup"
       description: "Composite job: Orchestrates complete alerting setup via atomic jobs"
       
@@ -125,28 +125,28 @@ resources:
         # Step 1: Create tables
         - task_key: setup_alerting_tables
           run_job_task:  # ✅ Reference atomic job
-            job_id: ${resources.jobs.alerting_tables_setup_job.id}
+            job_id: ${resources.jobs.alerting_tables_job.id}
         
         # Step 2: Seed alerts (depends on tables)
         - task_key: seed_all_alerts
           depends_on:
             - task_key: setup_alerting_tables
           run_job_task:
-            job_id: ${resources.jobs.seed_all_alerts_job.id}
+            job_id: ${resources.jobs.alerting_seed_job.id}
         
         # Step 3: Validate queries (depends on seeding)
         - task_key: validate_alert_queries
           depends_on:
             - task_key: seed_all_alerts
           run_job_task:
-            job_id: ${resources.jobs.alert_query_validation_job.id}
+            job_id: ${resources.jobs.alerting_validation_job.id}
         
         # Step 4: Sync notification destinations (parallel with validation)
         - task_key: sync_notification_destinations
           depends_on:
             - task_key: setup_alerting_tables
           run_job_task:
-            job_id: ${resources.jobs.notification_destinations_sync_job.id}
+            job_id: ${resources.jobs.alerting_notifications_job.id}
         
         # Step 5: Deploy alerts (depends on validation + destinations)
         - task_key: deploy_sql_alerts
@@ -154,7 +154,7 @@ resources:
             - task_key: validate_alert_queries
             - task_key: sync_notification_destinations
           run_job_task:
-            job_id: ${resources.jobs.sql_alert_deployment_job.id}
+            job_id: ${resources.jobs.alerting_deploy_job.id}
       
       tags:
         job_level: composite  # ✅ Mark as composite
@@ -207,13 +207,13 @@ resources:
 ### ❌ WRONG: Notebook Duplication
 
 ```yaml
-# File 1: alerting_tables_setup_job.yml
+# File 1: alerting_tables_job.yml
 tasks:
   - task_key: setup_tables
     notebook_task:
       notebook_path: ../../src/alerting/setup_alerting_tables.py  # ❌ Duplicated!
 
-# File 2: alerting_layer_setup_job.yml
+# File 2: alerting_setup_orchestrator_job.yml
 tasks:
   - task_key: setup_alerting_tables
     notebook_task:
@@ -229,17 +229,17 @@ tasks:
 ### ✅ CORRECT: Job Reference Pattern
 
 ```yaml
-# File 1: alerting_tables_setup_job.yml (ATOMIC)
+# File 1: alerting_tables_job.yml (ATOMIC)
 tasks:
   - task_key: setup_tables
     notebook_task:
       notebook_path: ../../src/alerting/setup_alerting_tables.py  # ✅ Single source
 
-# File 2: alerting_layer_setup_job.yml (COMPOSITE)
+# File 2: alerting_setup_orchestrator_job.yml (COMPOSITE)
 tasks:
   - task_key: setup_alerting_tables
     run_job_task:
-      job_id: ${resources.jobs.alerting_tables_setup_job.id}  # ✅ Reference job
+      job_id: ${resources.jobs.alerting_tables_job.id}  # ✅ Reference job
 ```
 
 ## File Organization
@@ -247,12 +247,12 @@ tasks:
 ```
 resources/
 └── alerting/
-    ├── alerting_layer_setup_job.yml      # Layer 2: Composite orchestrator
-    ├── alerting_tables_setup_job.yml     # Layer 1: Atomic - table creation
-    ├── seed_all_alerts_job.yml           # Layer 1: Atomic - alert seeding
-    ├── alert_query_validation_job.yml    # Layer 1: Atomic - query validation
-    ├── notification_destinations_sync_job.yml  # Layer 1: Atomic - destinations
-    └── sql_alert_deployment_job.yml      # Layer 1: Atomic - SDK deployment
+    ├── alerting_setup_orchestrator_job.yml      # Layer 2: Composite orchestrator
+    ├── alerting_tables_job.yml     # Layer 1: Atomic - table creation
+    ├── alerting_seed_job.yml           # Layer 1: Atomic - alert seeding
+    ├── alerting_validation_job.yml    # Layer 1: Atomic - query validation
+    ├── alerting_notifications_job.yml  # Layer 1: Atomic - destinations
+    └── alerting_deploy_job.yml      # Layer 1: Atomic - SDK deployment
 ```
 
 ## Standard Tags
@@ -275,23 +275,23 @@ tags:
 
 ```bash
 # Full alerting setup
-databricks bundle run -t dev alerting_layer_setup_job
+databricks bundle run -t dev alerting_setup_orchestrator_job
 ```
 
 ### Run Individual Step (Atomic)
 
 ```bash
 # Just create tables
-databricks bundle run -t dev alerting_tables_setup_job
+databricks bundle run -t dev alerting_tables_job
 
 # Just seed alerts
-databricks bundle run -t dev seed_all_alerts_job
+databricks bundle run -t dev alerting_seed_job
 
 # Just validate queries
-databricks bundle run -t dev alert_query_validation_job
+databricks bundle run -t dev alerting_validation_job
 
 # Just deploy alerts
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
 ```
 
 ### Testing Strategy

@@ -1,5 +1,5 @@
-# SQL Alert Deployment Job (Atomic)
-# =================================
+# Alerting Deploy Job (Atomic)
+# ============================
 #
 # Deploys Databricks SQL Alerts (v2) from the central alert_configurations table.
 # Uses Databricks SDK for automatic authentication and clean API access.
@@ -12,13 +12,13 @@
 #   workspace destination UUIDs in notification_destinations.databricks_destination_id.
 #
 # Usage:
-#   databricks bundle run -t dev sql_alert_deployment_job
+#   databricks bundle run -t dev alerting_deploy_job
 
 resources:
   jobs:
-    sql_alert_deployment_job:
-      name: "[${bundle.target}] Health Monitor - SQL Alert Deployment"
-      description: "Atomic job: Sync SQL Alerts (v2) from Gold alert_configurations via SDK"
+    alerting_deploy_job:
+      name: "[${bundle.target}] Health Monitor - Alerting Deploy SQL Alerts"
+      description: "Atomic job: Syncs SQL Alerts (v2) from Gold alert_configurations via SDK"
 
       environments:
         - environment_key: default
@@ -27,7 +27,7 @@ resources:
             # SDK installed via %pip in notebook to override system version
 
       tasks:
-        - task_key: sync_sql_alerts
+        - task_key: deploy_alerts
           environment_key: default
           notebook_task:
             notebook_path: ../../src/alerting/sync_sql_alerts.py
@@ -59,5 +59,3 @@ resources:
         job_type: deployment
         job_level: atomic
         compute_type: serverless
-
-

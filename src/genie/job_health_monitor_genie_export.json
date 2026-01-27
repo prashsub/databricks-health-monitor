@@ -337,13 +337,13 @@
       {
         "id": "29b71f5ca3674057ade80bac1fe33560",
         "question": [
-          "Show metrics from mv_job_performance"
+          "What is the job success rate by workspace?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.mv_job_performance LIMIT 20;"
+              "SELECT workspace_name, MEASURE(success_rate) AS success_rate FROM ${catalog}.${gold_schema}.mv_job_performance GROUP BY workspace_name ORDER BY success_rate ASC LIMIT 20;"
             ]
           }
         ]

@@ -223,21 +223,38 @@ def evaluate_agent(catalog: str, agent_schema: str) -> Dict[str, Any]:
             query = row["query"]
             domain = row["domain"]
             
+            print(f"\n{'='*70}")
+            print(f"Query {idx+1}/{len(eval_data)} - Domain: {domain}")
+            print(f"{'='*70}")
+            print(f"Question: {query}")
+            
             # Get response
+            response_error = None
             if agent is not None:
                 try:
-                    input_data = {"messages": [{"role": "user", "content": query}]}
+                    print(f"→ Calling agent with input_data...")
+                    # CRITICAL: ResponsesAgent expects 'input' not 'messages'
+                    input_data = {"input": [{"role": "user", "content": query}]}
                     response_obj = agent.predict(input_data)
                     response = str(response_obj)
+                    print(f"✓ Agent responded ({len(response)} chars)")
+                    print(f"Response preview: {response[:200]}...")
                 except Exception as e:
+                    response_error = str(e)
                     response = f"Error: {str(e)}"
+                    print(f"✗ Agent error: {type(e).__name__}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
             else:
                 # Placeholder response for testing without agent
                 response = f"[Placeholder] Analysis for {domain} domain: {query}"
+                print(f"⚠ Using placeholder response (agent not loaded)")
             
             # Score responses
             relevance = heuristic_relevance_score(query, response)
             safety = heuristic_safety_score(response)
+            
+            print(f"Scores: relevance={relevance:.2f}, safety={safety:.2f}")
             
             results.append({
                 "query": query,
@@ -245,12 +262,12 @@ def evaluate_agent(catalog: str, agent_schema: str) -> Dict[str, Any]:
                 "response_length": len(response),
                 "relevance_score": relevance,
                 "safety_score": safety,
+                "had_error": response_error is not None,
+                "error_message": response_error,
             })
             
             total_relevance += relevance
             total_safety += safety
-            
-            print(f"  [{idx+1}/{len(eval_data)}] {domain}: relevance={relevance:.2f}")
         
         # Calculate averages
         n = len(eval_data)
@@ -336,29 +353,64 @@ def save_results_to_delta(catalog: str, agent_schema: str, results: Dict):
 # COMMAND ----------
 
 # Main execution
+exit_status = "SUCCESS"
+exit_message = ""
+evaluation_results = None
+
 try:
     print("=" * 70)
     print("HEALTH MONITOR AGENT EVALUATION")
     print("=" * 70)
     
-    results = evaluate_agent(catalog, agent_schema)
+    evaluation_results = evaluate_agent(catalog, agent_schema)
     
     # Save to Delta
-    save_results_to_delta(catalog, agent_schema, results)
+    save_results_to_delta(catalog, agent_schema, evaluation_results)
     
     print("\n✓ Evaluation completed successfully!")
     print(f"\nView results: mlflow experiments -> /Shared/health_monitor/agent (run_type=evaluation)")
-    print(f"Run ID: {results['run_id']}")
+    print(f"Run ID: {evaluation_results['run_id']}")
     
-    if results["overall_score"] >= 0.7:
+    # Detailed threshold check
+    print(f"\n{'='*70}")
+    print("THRESHOLD CHECK")
+    print(f"{'='*70}")
+    print(f"Overall Score: {evaluation_results['overall_score']:.3f}")
+    print(f"Threshold:     0.70")
+    print(f"Status:        {'✓ PASS' if evaluation_results['overall_score'] >= 0.7 else '✗ FAIL'}")
+    print(f"{'='*70}")
+    
+    if evaluation_results["overall_score"] >= 0.7:
         print("\n✓ Agent meets minimum quality threshold (0.7)")
-        dbutils.notebook.exit("SUCCESS")
+        exit_status = "SUCCESS"
+        exit_message = f"Evaluation passed: {evaluation_results['overall_score']:.3f}"
     else:
-        print(f"\n⚠ Agent below quality threshold: {results['overall_score']:.3f} < 0.7")
-        dbutils.notebook.exit("WARNING - Below threshold")
+        print(f"\n⚠ Agent below quality threshold: {evaluation_results['overall_score']:.3f} < 0.7")
+        exit_status = "WARNING"
+        exit_message = f"Below threshold: {evaluation_results['overall_score']:.3f} < 0.70"
         
 except Exception as e:
     print(f"\n❌ Evaluation failed: {str(e)}")
     import traceback
     traceback.print_exc()
-    dbutils.notebook.exit(f"FAILED: {str(e)}")
+    exit_status = "FAILED"
+    exit_message = str(e)
+
+# COMMAND ----------
+
+# Exit in separate cell to avoid Databricks "FAILED: SUCCESS" issue
+print(f"\n{'='*70}")
+print(f"Final Status: {exit_status}")
+print(f"Message: {exit_message}")
+if evaluation_results:
+    print(f"Overall Score: {evaluation_results['overall_score']:.3f}")
+    print(f"Avg Relevance: {evaluation_results['avg_relevance']:.3f}")
+    print(f"Avg Safety: {evaluation_results['avg_safety']:.3f}")
+print(f"{'='*70}\n")
+
+if exit_status == "SUCCESS":
+    dbutils.notebook.exit(exit_message)
+elif exit_status == "WARNING":
+    dbutils.notebook.exit(f"WARNING - {exit_message}")
+else:
+    dbutils.notebook.exit(f"FAILED: {exit_message}")

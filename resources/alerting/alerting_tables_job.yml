@@ -1,14 +1,18 @@
-# Alerting Tables Setup Job (Atomic)
-# ==================================
+# Alerting Tables Job (Atomic)
+# ============================
 #
-# Creates alerting framework tables in Gold schema.
+# Creates alerting framework tables in Gold schema:
+# - alert_configurations
+# - notification_destinations  
+# - alert_history
+# - alert_sync_metrics
 #
 # Usage:
-#   databricks bundle run -t dev alerting_tables_setup_job
+#   databricks bundle run -t dev alerting_tables_job
 
 resources:
   jobs:
-    alerting_tables_setup_job:
+    alerting_tables_job:
       name: "[${bundle.target}] Health Monitor - Alerting Tables Setup"
       description: "Atomic job: Creates Gold alerting tables (alert_configurations, notification_destinations, alert_history)"
 
@@ -18,7 +22,7 @@ resources:
             environment_version: "4"
 
       tasks:
-        - task_key: setup_alerting_tables
+        - task_key: setup_tables
           environment_key: default
           notebook_task:
             notebook_path: ../../src/alerting/setup_alerting_tables.py
@@ -39,5 +43,3 @@ resources:
         job_type: setup
         job_level: atomic
         compute_type: serverless
-
-

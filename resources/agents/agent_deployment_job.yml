@@ -79,6 +79,8 @@ resources:
               # Legacy params for backward compatibility
               catalog: ${var.catalog}
               agent_schema: ${var.agent_schema}
+              # LLM Configuration (environment-specific)
+              llm_endpoint: ${var.llm_endpoint}
               # Genie Space IDs from databricks.yml (override defaults in genie_spaces.py)
               cost_genie_space_id: ${var.cost_genie_space_id}
               reliability_genie_space_id: ${var.reliability_genie_space_id}
@@ -89,6 +91,14 @@ resources:
       
       # Timeout
       timeout_seconds: 1800  # 30 minutes
+      
+      # ================================================================
+      # CRITICAL: Run job as the job owner (not service principal)
+      # This ensures the job has access to Genie Spaces and other
+      # user-scoped resources during evaluation.
+      # ================================================================
+      run_as:
+        user_name: ${workspace.current_user.userName}
       
       # Can be scheduled or triggered by model events
       # schedule:

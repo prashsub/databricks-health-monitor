@@ -358,7 +358,7 @@ FROM alert_validation_results;
 Validation runs **before** deployment in the job pipeline:
 
 ```
-alerting_layer_setup_job (Composite)
+alerting_setup_orchestrator_job (Composite)
 ├── setup_alerting_tables
 ├── seed_all_alerts
 ├── validate_alert_queries  ◄── Validation step
@@ -455,7 +455,7 @@ except Exception as e:
 
 ```bash
 # Run validation job
-databricks bundle run -t dev alert_query_validation_job
+databricks bundle run -t dev alerting_validation_job
 ```
 
 ## Next Steps

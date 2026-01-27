@@ -376,13 +376,13 @@
       {
         "id": "45a8b2c946e649e1823626737adb44e5",
         "question": [
-          "Show metrics from mv_cost_analytics"
+          "What is the total cost by workspace?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.mv_cost_analytics LIMIT 20;"
+              "SELECT workspace_name, MEASURE(total_cost) AS total_cost FROM ${catalog}.${gold_schema}.mv_cost_analytics GROUP BY workspace_name ORDER BY total_cost DESC LIMIT 20;"
             ]
           }
         ]
@@ -390,13 +390,13 @@
       {
         "id": "e8f827fa331a488ebb648c229c533058",
         "question": [
-          "Show metrics from mv_commit_tracking"
+          "What is the monthly cost trend for commit tracking?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.mv_commit_tracking LIMIT 20;"
+              "SELECT usage_month, MEASURE(total_cost) AS monthly_cost FROM ${catalog}.${gold_schema}.mv_commit_tracking GROUP BY usage_month ORDER BY usage_month LIMIT 12;"
             ]
           }
         ]

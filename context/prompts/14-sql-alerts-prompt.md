@@ -122,9 +122,9 @@ src/alerting/
 └── sync_sql_alerts.py       # SDK-based sync engine
 
 resources/alerting/
-├── alerting_layer_setup_job.yml
-├── seed_all_alerts_job.yml
-└── sql_alert_deployment_job.yml
+├── alerting_setup_orchestrator_job.yml
+├── alerting_seed_job.yml
+└── alerting_deploy_job.yml
 ```
 
 ---

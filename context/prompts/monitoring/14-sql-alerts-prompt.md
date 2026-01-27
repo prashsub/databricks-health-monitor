@@ -158,14 +158,14 @@ df.write.mode("append").saveAsTable(cfg_table)
 
 ```
 Layer 1 (Atomic - single notebook per job):
-├── alerting_tables_setup_job.yml    → setup_alerting_tables.py
-├── seed_all_alerts_job.yml          → seed_all_alerts.py
-├── alert_query_validation_job.yml   → validate_alert_queries.py
-├── notification_destinations_sync_job.yml → sync_notification_destinations.py
-└── sql_alert_deployment_job.yml     → sync_sql_alerts.py
+├── alerting_tables_job.yml    → setup_alerting_tables.py
+├── alerting_seed_job.yml          → seed_all_alerts.py
+├── alerting_validation_job.yml   → validate_alert_queries.py
+├── alerting_notifications_job.yml → sync_notification_destinations.py
+└── alerting_deploy_job.yml     → sync_sql_alerts.py
 
 Layer 2 (Composite - orchestrates via run_job_task):
-└── alerting_layer_setup_job.yml     → References all atomic jobs
+└── alerting_setup_orchestrator_job.yml     → References all atomic jobs
 ```
 
 **Composite Job Pattern:**
@@ -173,13 +173,13 @@ Layer 2 (Composite - orchestrates via run_job_task):
 tasks:
   - task_key: setup_alerting_tables
     run_job_task:  # ✅ NOT notebook_task!
-      job_id: ${resources.jobs.alerting_tables_setup_job.id}
+      job_id: ${resources.jobs.alerting_tables_job.id}
   
   - task_key: deploy_sql_alerts
     depends_on:
       - task_key: validate_alert_queries
     run_job_task:
-      job_id: ${resources.jobs.sql_alert_deployment_job.id}
+      job_id: ${resources.jobs.alerting_deploy_job.id}
 ```
 
 **Benefits:** Test atomic jobs independently, debug failures at specific step, run subsets of pipeline.
@@ -211,12 +211,12 @@ src/alerting/
 └── sync_sql_alerts.py              # SDK-based sync engine
 
 resources/alerting/
-├── alerting_layer_setup_job.yml          # Layer 2: Composite orchestrator
-├── alerting_tables_setup_job.yml         # Layer 1: Atomic
-├── seed_all_alerts_job.yml               # Layer 1: Atomic
-├── alert_query_validation_job.yml        # Layer 1: Atomic
-├── notification_destinations_sync_job.yml # Layer 1: Atomic
-└── sql_alert_deployment_job.yml          # Layer 1: Atomic
+├── alerting_setup_orchestrator_job.yml          # Layer 2: Composite orchestrator
+├── alerting_tables_job.yml         # Layer 1: Atomic
+├── alerting_seed_job.yml               # Layer 1: Atomic
+├── alerting_validation_job.yml        # Layer 1: Atomic
+├── alerting_notifications_job.yml # Layer 1: Atomic
+└── alerting_deploy_job.yml          # Layer 1: Atomic
 ```
 
 ---

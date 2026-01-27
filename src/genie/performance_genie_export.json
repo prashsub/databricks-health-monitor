@@ -353,13 +353,13 @@
       {
         "id": "477df5e7c8a64e05aedd667b7398d4f6",
         "question": [
-          "Show metrics from mv_query_performance"
+          "What is the average query duration by warehouse?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.mv_query_performance LIMIT 20;"
+              "SELECT warehouse_name, MEASURE(avg_duration_seconds) AS avg_duration FROM ${catalog}.${gold_schema}.mv_query_performance GROUP BY warehouse_name ORDER BY avg_duration DESC LIMIT 20;"
             ]
           }
         ]
@@ -367,13 +367,13 @@
       {
         "id": "ffe1667e689b497192911448b3fc9ba7",
         "question": [
-          "Show metrics from mv_cluster_utilization"
+          "What is the average CPU utilization by cluster?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.mv_cluster_utilization LIMIT 20;"
+              "SELECT cluster_name, MEASURE(avg_cpu_utilization) AS avg_cpu FROM ${catalog}.${gold_schema}.mv_cluster_utilization GROUP BY cluster_name ORDER BY avg_cpu DESC LIMIT 20;"
             ]
           }
         ]

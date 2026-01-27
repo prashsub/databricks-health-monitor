@@ -16,23 +16,26 @@ databricks bundle validate -t dev
 databricks bundle deploy -t dev
 
 # 3. Run complete alerting setup
-databricks bundle run -t dev alerting_layer_setup_job
+databricks bundle run -t dev alerting_setup_orchestrator_job
 ```
 
 ### Individual Job Execution
 
 ```bash
 # Setup tables only
-databricks bundle run -t dev alerting_tables_setup_job
+databricks bundle run -t dev alerting_tables_job
 
 # Seed alerts only
-databricks bundle run -t dev seed_all_alerts_job
+databricks bundle run -t dev alerting_seed_job
 
 # Validate queries only
-databricks bundle run -t dev alert_query_validation_job
+databricks bundle run -t dev alerting_validation_job
 
 # Deploy alerts only
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
+
+# Sync notification destinations
+databricks bundle run -t dev alerting_notifications_job
 ```
 
 ### Production Deployment
@@ -42,7 +45,7 @@ databricks bundle run -t dev sql_alert_deployment_job
 databricks bundle deploy -t prod
 
 # Run setup
-databricks bundle run -t prod alerting_layer_setup_job
+databricks bundle run -t prod alerting_setup_orchestrator_job
 ```
 
 ## Verification Queries
@@ -142,7 +145,7 @@ df.write.mode("append").saveAsTable(f"{catalog}.{gold_schema}.alert_configuratio
 
 ```bash
 # Run validation to catch syntax/column errors early
-databricks bundle run -t dev alert_query_validation_job
+databricks bundle run -t dev alerting_validation_job
 ```
 
 Check validation results:
@@ -156,7 +159,7 @@ WHERE alert_id = 'COST-099';
 
 ```bash
 # Sync configuration to Databricks SQL Alerts
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
 ```
 
 #### Step 4: Verify Deployment
@@ -187,13 +190,13 @@ WHERE alert_id = 'COST-099';
                         ↓
 ┌─────────────────────────────────────────────────────────┐
 │ 2. Validate Query (Recommended)                        │
-│    → databricks bundle run alert_query_validation_job  │
+│    → databricks bundle run alerting_validation_job     │
 │    → Catches 100% of syntax/column errors              │
 └─────────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────────┐
 │ 3. Deploy to Databricks SQL Alerts                     │
-│    → databricks bundle run sql_alert_deployment_job    │
+│    → databricks bundle run alerting_deploy_job         │
 │    → Creates/updates alert via SDK                     │
 └─────────────────────────────────────────────────────────┘
                         ↓
@@ -218,7 +221,7 @@ SET
 WHERE alert_id = 'COST-099';
 
 -- Then re-sync (will UPDATE existing Databricks alert, not create duplicate)
--- databricks bundle run -t dev sql_alert_deployment_job
+-- databricks bundle run -t dev alerting_deploy_job
 ```
 
 #### Update Alert Query
@@ -232,8 +235,8 @@ SET
 WHERE alert_id = 'COST-099';
 
 -- IMPORTANT: Validate query after update!
--- databricks bundle run -t dev alert_query_validation_job
--- databricks bundle run -t dev sql_alert_deployment_job
+-- databricks bundle run -t dev alerting_validation_job
+-- databricks bundle run -t dev alerting_deploy_job
 ```
 
 ### Disabling/Enabling Alerts
@@ -249,7 +252,7 @@ SET
 WHERE alert_id = 'COST-099';
 
 -- Sync will DELETE the alert from Databricks (if delete_disabled = true)
--- databricks bundle run -t dev sql_alert_deployment_job
+-- databricks bundle run -t dev alerting_deploy_job
 ```
 
 #### Pause Alert (Keeps in Databricks, Stops Evaluation)
@@ -263,7 +266,7 @@ SET
 WHERE alert_id = 'COST-099';
 
 -- Sync will update pause status
--- databricks bundle run -t dev sql_alert_deployment_job
+-- databricks bundle run -t dev alerting_deploy_job
 ```
 
 ### Best Practices
@@ -359,36 +362,36 @@ ORDER BY validation_timestamp DESC;
 # Deploy and run everything
 databricks bundle validate -t dev
 databricks bundle deploy -t dev
-databricks bundle run -t dev alerting_layer_setup_job
+databricks bundle run -t dev alerting_setup_orchestrator_job
 ```
 
 ### Day 2: Add/Update Alerts
 ```bash
 # After updating alert_configurations table:
-databricks bundle run -t dev alert_query_validation_job  # Recommended
-databricks bundle run -t dev sql_alert_deployment_job     # Required
+databricks bundle run -t dev alerting_validation_job  # Recommended
+databricks bundle run -t dev alerting_deploy_job      # Required
 ```
 
 ### Day 2: Troubleshooting
 ```bash
 # Re-seed all alerts (force refresh)
-databricks bundle run -t dev seed_all_alerts_job
+databricks bundle run -t dev alerting_seed_job
 
 # Validate all queries
-databricks bundle run -t dev alert_query_validation_job
+databricks bundle run -t dev alerting_validation_job
 
 # Re-sync configuration to Databricks
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
 ```
 
 ### Individual Atomic Jobs
 ```bash
 # Run specific steps independently
-databricks bundle run -t dev alerting_tables_setup_job
-databricks bundle run -t dev seed_all_alerts_job
-databricks bundle run -t dev alert_query_validation_job
-databricks bundle run -t dev notification_destinations_sync_job
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_tables_job
+databricks bundle run -t dev alerting_seed_job
+databricks bundle run -t dev alerting_validation_job
+databricks bundle run -t dev alerting_notifications_job
+databricks bundle run -t dev alerting_deploy_job
 ```
 
 ## Troubleshooting
@@ -399,8 +402,8 @@ See [Appendix D](appendices/D-troubleshooting.md) for detailed troubleshooting g
 
 **To add a new alert:**
 1. ✅ INSERT into `alert_configurations` table (or use DataFrame)
-2. ✅ Run `alert_query_validation_job` (catches errors early)
-3. ✅ Run `sql_alert_deployment_job` (deploys to Databricks)
+2. ✅ Run `alerting_validation_job` (catches errors early)
+3. ✅ Run `alerting_deploy_job` (deploys to Databricks)
 4. ✅ Verify in config table and Databricks UI
 
 **To update an alert:**

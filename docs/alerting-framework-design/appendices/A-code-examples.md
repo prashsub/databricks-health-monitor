@@ -116,7 +116,7 @@ def validate_query(spark, query: str) -> Tuple[bool, Optional[str]]:
 ```yaml
 resources:
   jobs:
-    seed_all_alerts_job:
+    alerting_seed_job:
       name: "[${bundle.target}] Alerting - Seed All Alerts"
       environments:
         - environment_key: default
@@ -139,12 +139,12 @@ resources:
 ```yaml
 resources:
   jobs:
-    alerting_layer_setup_job:
+    alerting_setup_orchestrator_job:
       name: "[${bundle.target}] Alerting - Layer Setup"
       tasks:
         - task_key: seed_all_alerts
           run_job_task:
-            job_id: ${resources.jobs.seed_all_alerts_job.id}
+            job_id: ${resources.jobs.alerting_seed_job.id}
       tags:
         job_level: composite
 ```

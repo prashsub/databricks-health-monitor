@@ -1,3 +1,267 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
+# =========================================================
+# PURPOSE
+# =========================================================
+# Govern how an LLM writes prompts for Figma Make when:
+# - a design system exists (or will exist)
+# - component reuse is mandatory
+# - consistency matters more than novelty
+#
+# This rule prevents:
+# - component sprawl
+# - visual drift
+# - variant explosion
+# - token misuse
+#
+# It ensures Make behaves like a GOOD junior designer
+# working inside a mature design system.
+
+# =========================================================
+# CORE MENTAL MODEL
+# =========================================================
+# A Design System is a CONTRACT.
+#
+# Figma Make must:
+# - reuse components first
+# - extend via variants second
+# - create new components only as a last resort
+#
+# The LLM’s job is to PROMPT Make to respect this contract.
+#
+# If Make invents new components casually,
+# downstream MCP + code quality degrades rapidly.
+
+# =========================================================
+# NON-NEGOTIABLE DESIGN SYSTEM PRINCIPLES
+# =========================================================
+
+## DS-1: REUSE BEFORE CREATE
+- If a component exists in the design system, it MUST be reused.
+- If a variation is needed, it MUST be a variant/property of the existing component.
+- Only create a new component if:
+#   a) no existing component semantically fits
+#   b) reuse would cause incorrect meaning or UX
+
+The LLM must explicitly instruct Make to attempt reuse first.
+
+---
+
+## DS-2: VARIANTS > DUPLICATION
+- Differences in:
+#   - size
+#   - density
+#   - severity/status
+#   - enabled/disabled
+#   - icon/no-icon
+#   - emphasis (primary/secondary/tertiary)
+#
+# MUST be implemented as variants or properties,
+# not as separate components.
+
+Variant naming must be:
+- consistent
+- flat
+- semantic
+Example:
+- size = sm | md | lg
+- tone = neutral | warning | critical
+- density = comfortable | compact
+
+---
+
+## DS-3: TOKENS ARE THE ONLY SOURCE OF STYLE
+- Colors, spacing, typography, radii must come from variables/tokens.
+- No ad-hoc values.
+- No “just for this screen” styling.
+
+If a needed token does not exist:
+- the prompt must ask Make to FLAG it
+- not invent it silently
+
+---
+
+## DS-4: AUTO LAYOUT IS NOT OPTIONAL
+- All components must use Auto Layout unless impossible.
+- Auto Layout must:
+#   - support content growth
+#   - support text wrapping
+#   - support responsive resizing
+
+This ensures components survive real data and code translation.
+
+---
+
+## DS-5: SEMANTIC NAMING (LLM-READABLE)
+Component names must:
+- describe intent, not shape
+- be singular nouns
+- match how engineers would name components
+
+GOOD:
+- AlertRow
+- MetricCard
+- StatusBadge
+- FilterBar
+
+BAD:
+- Rectangle12
+- CardVariant3
+- BlueBox
+- HeaderThing
+
+Good naming dramatically improves MCP + code mapping.
+
+---
+
+## DS-6: SCREENS ARE COMPOSITION ONLY
+- Screens must NEVER introduce:
+#   - new styles
+#   - new components
+#   - one-off variants
+#
+- Screens exist only to:
+#   - arrange components
+#   - demonstrate usage
+
+If a screen needs something new → extract a component first.
+
+---
+
+# =========================================================
+# GUIDELINES.md (CRITICAL FOR MAKE)
+# =========================================================
+# Figma Make supports project-level guidelines.
+# These dramatically improve component selection and variant choice.
+#
+# The LLM must:
+# - instruct the user to maintain Guidelines.md
+# - instruct Make to FOLLOW Guidelines.md
+
+## What Guidelines.md should contain:
+- Design system philosophy
+- Allowed component list
+- Variant rules (when to use which)
+- Token usage rules
+- Accessibility expectations
+
+## Prompt rule:
+Every Make prompt MUST include:
+"Follow Guidelines.md for component selection, variants, and token usage."
+
+---
+
+# =========================================================
+# COMPONENT-SPECIFIC GUIDELINES (WHEN NEEDED)
+# =========================================================
+For high-impact components (Buttons, Tables, Forms, Alerts):
+
+- Add a component-specific guideline file
+- Example:
+#   guidelines/Button.md
+#   guidelines/Table.md
+
+Prompts should reference these when relevant:
+"Follow Button guidelines for variants and emphasis."
+
+This prevents Make from inventing new button styles.
+
+---
+
+# =========================================================
+# DESIGN SYSTEM ADOPTION PROMPT REQUIREMENTS
+# =========================================================
+When writing a Make prompt, the LLM MUST include:
+
+1) Explicit reuse instruction
+   - “Reuse existing design system components where possible.”
+
+2) Variant instruction
+   - “Extend via variants/properties instead of new components.”
+
+3) Token instruction
+   - “Use design tokens/variables for all styling.”
+
+4) Organization instruction
+   - “Place new components in the Components section only.”
+
+5) Rejection of novelty
+   - “Do not introduce new visual styles.”
+
+---
+
+# =========================================================
+# FAILURE MODES TO PREVENT (VERY IMPORTANT)
+# =========================================================
+The LLM must actively guard against these Make behaviors:
+
+- ❌ Button sprawl (PrimaryBlue, PrimaryDark, PrimaryAlt…)
+- ❌ Card explosion (Card1, Card2, Card3)
+- ❌ Token drift (random grays, random spacing)
+- ❌ Screen-specific hacks
+- ❌ Auto Layout disabled
+- ❌ Hard-coded typography
+- ❌ Over-designed one-off visuals
+
+If a prompt would allow these → it is invalid.
+
+---
+
+# =========================================================
+# CANONICAL DESIGN SYSTEM-AWARE PROMPT TEMPLATE
+# =========================================================
+
+TEMPLATE:
+"Create a clean, enterprise-grade UI structure that strictly follows the existing design system.
+
+Context:
+- Product: enterprise software
+- Users: technical power users
+- Usage: daily, data-dense
+- Platform: desktop web
+
+Design system rules:
+- Reuse existing design system components first
+- Extend behavior via variants/properties, not duplication
+- Use tokens/variables for all styling
+- Follow Guidelines.md for component selection and variants
+- Follow any component-specific guidelines when applicable
+
+Objective (this run only):
+- Generate ONLY: [small set of components OR one composed screen]
+- Do not expand scope beyond this
+
+Create:
+- Components:
+  - [ComponentName]: purpose
+  - [ComponentName]: purpose
+- (Optional) Screens:
+  - [ScreenName]: composed only from components above
+
+Figma best practices to apply:
+- Auto Layout on all components
+- Responsive resizing and constraints
+- Semantic naming for components and layers
+- Variants instead of duplicates
+- Minimal, restrained visual styling
+
+States:
+- Default
+- Loading
+- Empty
+- Error (structural placeholders only)
+
+Do NOT:
+- Invent new visual styles
+- Create one-off components
+- Duplicate variants
+- Hardcode colors/spacing/typography
+- Over-polish visuals
+- Add external icon libraries"
+
+---
+
+# =========================================================
+# END
+# =========================================================

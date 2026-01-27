@@ -47,9 +47,11 @@ except Exception as e:
 # Parameters
 dbutils.widgets.text("catalog", "prashanth_subrahmanyam_catalog")
 dbutils.widgets.text("agent_schema", "dev_prashanth_subrahmanyam_system_gold_agent")
+dbutils.widgets.text("warehouse_id", "4b9b953939869799")  # Default SQL Warehouse for Genie
 
 catalog = dbutils.widgets.get("catalog")
 agent_schema = dbutils.widgets.get("agent_schema")
+warehouse_id = dbutils.widgets.get("warehouse_id")
 
 print(f"Catalog: {catalog}")
 print(f"Agent Schema: {agent_schema}")
@@ -646,27 +648,144 @@ class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):
         
         Supports:
         - On-behalf-of-user auth (Model Serving with auth passthrough)
-        - Default workspace auth (notebooks, jobs)
+        - Default workspace auth (notebooks, jobs, evaluation)
+        
+        CRITICAL: OBO authentication only works in Model Serving context.
+        Outside Model Serving (notebooks, jobs, evaluation), we use default auth.
         
         Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/agent-authentication
         """
         from databricks.sdk import WorkspaceClient
+        import os
         
-        try:
-            from databricks_ai_bridge import ModelServingUserCredentials
-            client = WorkspaceClient(credentials_strategy=ModelServingUserCredentials())
-            print(f"✓ Using on-behalf-of-user auth for {domain} Genie")
-            return client
-        except ImportError as ie:
-            client = WorkspaceClient()
-            print(f"⚠ databricks-ai-bridge not available for {domain} Genie: {ie}")
-            print(f"  Falling back to default auth (service principal or PAT)")
-            return client
-        except Exception as auth_e:
-            client = WorkspaceClient()
-            print(f"⚠ Auth setup failed for {domain} Genie: {type(auth_e).__name__}: {auth_e}")
-            print(f"  Falling back to default auth")
-            return client
+        # ================================================================
+        # DEBUG: Log environment variables for OBO context detection
+        # ================================================================
+        print(f"\n{'='*70}")
+        print(f"OBO Context Detection for {domain} Genie")
+        print(f"{'='*70}")
+        env_vars = {
+            "IS_IN_DB_MODEL_SERVING_ENV": os.environ.get("IS_IN_DB_MODEL_SERVING_ENV"),
+            "DATABRICKS_SERVING_ENDPOINT": os.environ.get("DATABRICKS_SERVING_ENDPOINT"),
+            "MLFLOW_DEPLOYMENT_FLAVOR_NAME": os.environ.get("MLFLOW_DEPLOYMENT_FLAVOR_NAME"),
+        }
+        for key, value in env_vars.items():
+            print(f"  {key}: {value if value else 'NOT SET'}")
+        
+        # ================================================================
+        # STEP 1: Detect if we're running in Model Serving environment
+        # ================================================================
+        # Model Serving sets specific environment variables:
+        # - IS_IN_DB_MODEL_SERVING_ENV=true (Databricks Model Serving)
+        # - DATABRICKS_SERVING_ENDPOINT (endpoint name)
+        # - MLFLOW_DEPLOYMENT_FLAVOR_NAME=databricks (MLflow deployment)
+        # ================================================================
+        is_model_serving = (
+            os.environ.get("IS_IN_DB_MODEL_SERVING_ENV") == "true" or
+            os.environ.get("DATABRICKS_SERVING_ENDPOINT") is not None or
+            os.environ.get("MLFLOW_DEPLOYMENT_FLAVOR_NAME") == "databricks"
+        )
+        
+        print(f"\nDetected Environment: {'MODEL SERVING' if is_model_serving else 'EVALUATION/NOTEBOOK'}")
+        print(f"{'='*70}\n")
+        
+        # ================================================================
+        # STEP 2: Use OBO only in Model Serving, default auth otherwise
+        # ================================================================
+        if is_model_serving:
+            # We're in Model Serving - attempt OBO authentication
+            try:
+                from databricks_ai_bridge import ModelServingUserCredentials
+                client = WorkspaceClient(credentials_strategy=ModelServingUserCredentials())
+                print(f"✓ Using on-behalf-of-user auth for {domain} Genie (Model Serving)")
+                return client
+            except ImportError:
+                # databricks-ai-bridge not installed
+                print(f"⚠ databricks-ai-bridge not available for {domain} Genie")
+                print(f"  Falling back to default auth (may not respect user permissions)")
+                return WorkspaceClient()
+            except Exception as auth_e:
+                # OBO setup failed
+                print(f"⚠ OBO auth failed for {domain} Genie: {type(auth_e).__name__}: {auth_e}")
+                print(f"  Falling back to default auth")
+                return WorkspaceClient()
+        else:
+            # Not in Model Serving - try to use explicit token from Databricks Runtime context
+            # WorkspaceClient() with no args uses "runtime" auth which may not have Genie permissions
+            # We need to use the actual user's token from the notebook/job context
+            
+            # ================================================================
+            # ATTEMPT 1: Get token from Databricks Runtime context (dbutils)
+            # ================================================================
+            # In notebooks/jobs, dbutils provides access to the current user's token
+            # This is the most reliable way to authenticate as the run_as user
+            # ================================================================
+            try:
+                # Try to get the API token from dbutils context
+                # This works in Databricks Runtime but not in local development
+                import subprocess
+                
+                # Get workspace URL
+                host = os.environ.get("DATABRICKS_HOST")
+                if not host:
+                    # Try to get from spark config
+                    try:
+                        from pyspark.sql import SparkSession
+                        spark = SparkSession.builder.getOrCreate()
+                        host = spark.conf.get("spark.databricks.workspaceUrl", None)
+                        if host and not host.startswith("https://"):
+                            host = f"https://{host}"
+                    except:
+                        pass
+                
+                if not host:
+                    # Fallback to known host
+                    host = "https://e2-demo-field-eng.cloud.databricks.com"
+                
+                # Try to get token from notebook context
+                # This requires dbutils which is available in Databricks Runtime
+                token = None
+                try:
+                    # Method 1: Direct dbutils access (if available in scope)
+                    import builtins
+                    if hasattr(builtins, 'dbutils'):
+                        ctx = builtins.dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+                        token = ctx.apiToken().get()
+                        print(f"✓ Got API token from dbutils context")
+                except Exception as dbutils_e:
+                    print(f"  dbutils token not available: {type(dbutils_e).__name__}")
+                
+                if token:
+                    # Create client with explicit token authentication
+                    client = WorkspaceClient(host=host, token=token)
+                    print(f"✓ Using explicit token auth for {domain} Genie (evaluation/notebook mode)")
+                    
+                    # Verify authentication
+                    try:
+                        current_user = client.current_user.me()
+                        print(f"  Authenticated as: {current_user.user_name}")
+                    except Exception as verify_e:
+                        print(f"  Could not verify user: {verify_e}")
+                    
+                    return client
+                else:
+                    # Fallback to default WorkspaceClient
+                    print(f"→ Using default workspace auth for {domain} Genie (no explicit token available)")
+                    client = WorkspaceClient()
+                    
+                    # Log what auth type is being used
+                    try:
+                        config = client.config
+                        print(f"  Auth type: {config.auth_type if hasattr(config, 'auth_type') else 'unknown'}")
+                    except:
+                        pass
+                    
+                    return client
+                    
+            except Exception as e:
+                print(f"⚠ Error setting up auth for {domain} Genie: {type(e).__name__}: {e}")
+                print(f"  Falling back to default WorkspaceClient")
+                return WorkspaceClient()
     
     def _query_genie(self, domain: str, query: str, session_id: str = None, conversation_id: str = None) -> tuple:
         """
@@ -2473,70 +2592,145 @@ No Genie Space ID is configured for the **{domain}** domain.
 
 def get_mlflow_resources() -> List:
     """
-    Get resources for SYSTEM authentication (LLM endpoint and Lakebase memory).
+    Get resources for Automatic Authentication Passthrough.
     
-    Genie Spaces use OBO authentication (on-behalf-of-user), so they are NOT
-    included here. They are declared in the UserAuthPolicy with api_scopes.
+    CRITICAL: This function now includes ALL resources the agent needs:
+    - LLM serving endpoint
+    - Lakebase memory storage
+    - ALL Genie Spaces (REQUIRED for evaluation/notebook contexts!)
+    - SQL Warehouse (REQUIRED for Genie to execute queries!)
+    
+    When the agent is deployed, Databricks creates a service principal with
+    access to these resources. This enables the agent to work in:
+    - Model Serving (via OBO or system auth)
+    - Evaluation/notebooks (via automatic auth passthrough)
     
     Reference: https://docs.databricks.com/aws/en/generative-ai/agent-framework/agent-authentication
+    
+    IMPORTANT (from docs): "Remember to log all downstream dependent resources, too.
+    For example, if you log a Genie Space, you must also log its tables, SQL Warehouses,
+    and Unity Catalog functions."
     """
     resources = []
     
     # LLM endpoint uses system auth (automatic passthrough)
     try:
         from mlflow.models.resources import DatabricksServingEndpoint
-        resources.append(DatabricksServingEndpoint(LLM_ENDPOINT))
-    except ImportError:
-        pass
+        resources.append(DatabricksServingEndpoint(endpoint_name=LLM_ENDPOINT))
+        print(f"✓ Added DatabricksServingEndpoint: {LLM_ENDPOINT}")
+    except ImportError as e:
+        print(f"⚠ DatabricksServingEndpoint not available: {e}")
+    except Exception as e:
+        print(f"⚠ Could not add DatabricksServingEndpoint: {e}")
     
     # Lakebase memory storage (short-term and long-term)
     # Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/stateful-agents
     try:
         from mlflow.models.resources import DatabricksLakebase
         resources.append(DatabricksLakebase(database_instance_name=LAKEBASE_INSTANCE_NAME))
-        print(f"✓ Added DatabricksLakebase resource: {LAKEBASE_INSTANCE_NAME}")
+        print(f"✓ Added DatabricksLakebase: {LAKEBASE_INSTANCE_NAME}")
     except ImportError as ie:
-        print(f"⚠ DatabricksLakebase resource not available: {ie}")
+        print(f"⚠ DatabricksLakebase not available: {ie}")
     except Exception as e:
-        print(f"⚠ Could not add DatabricksLakebase resource: {e}")
+        print(f"⚠ Could not add DatabricksLakebase: {e}")
     
-    # NOTE: Genie Spaces NOT included here - they use OBO auth via UserAuthPolicy
-    # The agent uses ModelServingUserCredentials() at runtime for Genie access
+    # ================================================================
+    # CRITICAL: Add ALL Genie Spaces for Automatic Auth Passthrough
+    # ================================================================
+    # Without this, evaluation/notebook contexts CANNOT access Genie!
+    # The service principal created by Databricks needs "Can Run" on each space.
+    # Minimum MLflow version: 2.17.1
+    # ================================================================
+    try:
+        from mlflow.models.resources import DatabricksGenieSpace
+        
+        genie_count = 0
+        for domain, space_id in DEFAULT_GENIE_SPACES.items():
+            if space_id:
+                resources.append(DatabricksGenieSpace(genie_space_id=space_id))
+                print(f"✓ Added DatabricksGenieSpace: {domain} ({space_id})")
+                genie_count += 1
+        
+        print(f"✓ Total Genie Spaces added: {genie_count}")
+        
+    except ImportError as ie:
+        print(f"⚠ DatabricksGenieSpace not available (MLflow < 2.17.1?): {ie}")
+        print("  Agent will NOT be able to access Genie in evaluation/notebook contexts!")
+    except Exception as e:
+        print(f"⚠ Could not add DatabricksGenieSpace resources: {e}")
     
+    # ================================================================
+    # CRITICAL: Add SQL Warehouse for Genie query execution
+    # ================================================================
+    # Genie requires a SQL Warehouse to execute queries. The service principal
+    # needs "CAN USE" on this warehouse.
+    # ================================================================
+    try:
+        from mlflow.models.resources import DatabricksSQLWarehouse
+        
+        # Use global warehouse_id variable (set from widgets at top of notebook)
+        resources.append(DatabricksSQLWarehouse(warehouse_id=warehouse_id))
+        print(f"✓ Added DatabricksSQLWarehouse: {warehouse_id}")
+        
+    except ImportError as ie:
+        print(f"⚠ DatabricksSQLWarehouse not available: {ie}")
+    except Exception as e:
+        print(f"⚠ Could not add DatabricksSQLWarehouse: {e}")
+    
+    print(f"\n✓ Total resources for automatic auth passthrough: {len(resources)}")
     return resources
 
 
 def get_auth_policy():
     """
-    Get MLflow AuthPolicy for On-Behalf-Of-User (OBO) authentication.
+    Get MLflow AuthPolicy with BOTH System and User authentication.
     
-    This enables the agent to access Genie Spaces and SQL warehouses
-    using the END USER's credentials, not the deployer's credentials.
+    This enables the agent to access resources in TWO ways:
     
-    Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/agent-authentication#on-behalf-of-user-authentication
+    1. SYSTEM AUTH (SystemAuthPolicy with resources):
+       - Creates a service principal with access to declared resources
+       - Used in evaluation/notebook contexts
+       - Used for LLM endpoints, Lakebase, Genie Spaces, SQL Warehouses
     
-    Required API scopes for OBO:
-    - dashboards.genie: Access Genie spaces
-    - sql.warehouses: Query SQL warehouses
-    - sql.statement-execution: Execute SQL statements
-    - serving.serving-endpoints: Call LLM endpoints
+    2. OBO AUTH (UserAuthPolicy with api_scopes):
+       - Uses end-user's credentials in Model Serving
+       - Enables per-user data access controls
+       - Used for Genie queries in production
+    
+    CRITICAL: Without resources in SystemAuthPolicy, evaluation will fail
+    because OBO only works in Model Serving!
+    
+    Reference: https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/agent-authentication
     """
     try:
         from mlflow.models.auth_policy import AuthPolicy, SystemAuthPolicy, UserAuthPolicy
         from mlflow.models.resources import DatabricksServingEndpoint
         
-        # System policy: LLM endpoint accessed with system credentials
-        # (deployer's permissions for the Foundation Model API)
-        system_resources = []
-        try:
-            system_resources.append(DatabricksServingEndpoint(LLM_ENDPOINT))
-        except Exception:
-            pass
+        # ================================================================
+        # System policy: ALL resources for automatic auth passthrough
+        # ================================================================
+        # This is CRITICAL for evaluation/notebook contexts where OBO
+        # doesn't work. The service principal created by Databricks
+        # needs access to ALL these resources.
+        # ================================================================
+        system_resources = get_mlflow_resources()
         
-        system_policy = SystemAuthPolicy(resources=system_resources) if system_resources else None
+        if system_resources:
+            system_policy = SystemAuthPolicy(resources=system_resources)
+            print(f"✓ SystemAuthPolicy created with {len(system_resources)} resources")
+        else:
+            system_policy = None
+            print("⚠ No system resources - automatic auth passthrough disabled")
         
+        # ================================================================
         # User policy: API scopes for on-behalf-of-user access
-        # These scopes define what the agent can do with the USER's credentials
+        # ================================================================
+        # These scopes define what the agent can do with the END USER's
+        # credentials when running in Model Serving. This enables:
+        # - Per-user data access controls
+        # - User-attributed audit trails
+        # - Fine-grained Unity Catalog permissions
+        # ================================================================
         user_policy = UserAuthPolicy(api_scopes=[
             # Genie Space access
             "dashboards.genie",
@@ -2546,13 +2740,14 @@ def get_auth_policy():
             # Model Serving access (for LLM calls if using OBO for those too)
             "serving.serving-endpoints",
         ])
+        print("✓ UserAuthPolicy created with scopes: dashboards.genie, sql.warehouses, sql.statement-execution, serving.serving-endpoints")
         
         auth_policy = AuthPolicy(
             system_auth_policy=system_policy,
             user_auth_policy=user_policy
         )
         
-        print("✓ Created OBO AuthPolicy with scopes: dashboards.genie, sql.warehouses, sql.statement-execution, serving.serving-endpoints")
+        print("✓ Combined AuthPolicy created (System + User policies)")
         return auth_policy
         
     except ImportError as e:
@@ -2561,6 +2756,8 @@ def get_auth_policy():
         return None
     except Exception as e:
         print(f"⚠ Error creating AuthPolicy: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 # COMMAND ----------
@@ -2807,6 +3004,9 @@ def log_agent():
 # COMMAND ----------
 
 # Main execution
+exit_status = "SUCCESS"
+exit_message = ""
+
 try:
     model = log_agent()
     
@@ -2821,10 +3021,22 @@ try:
     print("  - Unity Catalog registration complete")
     print("  - Authentication passthrough configured")
     
-    dbutils.notebook.exit("SUCCESS")
+    exit_status = "SUCCESS"
+    exit_message = f"Agent {model} logged successfully"
     
 except Exception as e:
     print(f"\n✗ Error: {e}")
     import traceback
     traceback.print_exc()
-    dbutils.notebook.exit(f"FAILED: {e}")
+    exit_status = "FAILED"
+    exit_message = str(e)
+
+# COMMAND ----------
+
+# Exit in separate cell to avoid Databricks "FAILED: SUCCESS" issue
+print(f"\n{'='*70}")
+print(f"Final Status: {exit_status}")
+print(f"Message: {exit_message}")
+print(f"{'='*70}\n")
+
+dbutils.notebook.exit(exit_message if exit_status == "SUCCESS" else f"FAILED: {exit_message}")

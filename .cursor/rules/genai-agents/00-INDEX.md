@@ -1,8 +1,8 @@
 # GenAI Agent Framework - Complete Rule Index
 
-**Status:** ✅ COMPLETE  
-**Date:** January 14, 2026  
-**Total Documentation:** ~6,600 lines
+**Status:** ✅ COMPLETE (Updated Jan 27, 2026 - OBO Context Detection)
+**Date:** January 27, 2026  
+**Total Documentation:** ~6,850 lines
 
 ---
 
@@ -13,11 +13,11 @@
 | **30** | [mlflow-genai-evaluation.mdc](30-mlflow-genai-evaluation.mdc) | ~800 | LLM judges, custom scorers, 4-6 guidelines, thresholds, foundation models |
 | **31** | [lakebase-memory-patterns.mdc](31-lakebase-memory-patterns.mdc) | ~1,000 | CheckpointSaver, DatabricksStore, graceful degradation, thread_id |
 | **32** | [prompt-registry-patterns.mdc](32-prompt-registry-patterns.mdc) | ~800 | Unity Catalog storage, MLflow versioning, AB testing, lazy loading |
-| **33** | [mlflow-tracing-agent-patterns.mdc](33-mlflow-tracing-agent-patterns.mdc) | ~1,400 | ResponsesAgent (MANDATORY), streaming, tracing, OBO auth, **trace context** |
+| **33** | [mlflow-tracing-agent-patterns.mdc](33-mlflow-tracing-agent-patterns.mdc) | ~1,650 | ResponsesAgent (MANDATORY), streaming, tracing, **OBO context detection**, trace context |
 | **34** | [deployment-automation-patterns.mdc](34-deployment-automation-patterns.mdc) | ~800 | Auto-trigger, dataset linking, multi-agent Genie, parallel queries |
 | **35** | [production-monitoring-patterns.mdc](35-production-monitoring-patterns.mdc) | ~700 | Registered scorers, sampling, trace archival, backfill |
 
-**Subtotal:** ~5,500 lines of cursor rules
+**Subtotal:** ~5,750 lines of cursor rules
 
 ---
 
@@ -41,8 +41,9 @@
 ✅ ResponsesAgent (MANDATORY for AI Playground)  
 ✅ Streaming responses with delta events  
 ✅ MLflow Tracing (span types, nested spans)  
-✅ On-behalf-of authentication  
+✅ On-behalf-of authentication **with context detection**  
 ✅ No LLM fallback for data queries  
+✅ OBO works in Model Serving, default auth in evaluation  
 
 ### Evaluation & Quality (Rules 30, 35)
 ✅ Development: Pre-deployment evaluation with `mlflow.genai.evaluate()`  

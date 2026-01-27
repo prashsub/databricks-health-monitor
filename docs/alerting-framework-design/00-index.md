@@ -54,14 +54,14 @@ ALERTING FRAMEWORK (v2.3)
 │   └── Alert Sync Engine         # Databricks SDK (WorkspaceClient)
 │
 ├── DEPLOYMENT LAYER (Hierarchical Jobs)
-│   ├── LAYER 2: alerting_layer_setup_job (Composite)
+│   ├── LAYER 2: alerting_setup_orchestrator_job (Composite)
 │   │   └── Orchestrates 5 atomic jobs via run_job_task
 │   └── LAYER 1: Atomic Jobs
-│       ├── alerting_tables_setup_job
-│       ├── seed_all_alerts_job
-│       ├── alert_query_validation_job
-│       ├── notification_destinations_sync_job
-│       └── sql_alert_deployment_job
+│       ├── alerting_tables_job
+│       ├── alerting_seed_job
+│       ├── alerting_validation_job
+│       ├── alerting_notifications_job
+│       └── alerting_deploy_job
 │
 └── OUTPUT LAYER
     └── Databricks SQL Alerts (v2 API)

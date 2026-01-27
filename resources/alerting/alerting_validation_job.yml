@@ -1,22 +1,25 @@
-# Alert Query Validation Job
-# ==========================
+# Alerting Validation Job (Atomic)
+# ================================
 #
 # Pre-deployment validation of all alert SQL queries.
-# Should run BEFORE alert sync to catch:
+# Should run BEFORE alert deployment to catch:
 # - SQL syntax errors
 # - Security violations (DROP, DELETE, etc.)
 # - Missing table references
 #
 # If any queries fail validation, the job fails to prevent bad deployments.
+#
+# Usage:
+#   databricks bundle run -t dev alerting_validation_job
 
 resources:
   jobs:
-    alert_query_validation_job:
-      name: "[${bundle.target}] Health Monitor - Alert Query Validation"
+    alerting_validation_job:
+      name: "[${bundle.target}] Health Monitor - Alerting Query Validation"
       description: >
-        Validates all enabled alert SQL queries before deployment.
+        Atomic job: Validates all enabled alert SQL queries before deployment.
         Checks syntax, security patterns, and table references.
-        Run before alert sync to prevent deployment of invalid queries.
+        Run before alert deployment to prevent invalid queries.
       
       environments:
         - environment_key: default
@@ -24,7 +27,7 @@ resources:
             environment_version: "4"
       
       tasks:
-        - task_key: validate_alert_queries
+        - task_key: validate_queries
           environment_key: default
           notebook_task:
             notebook_path: ../../src/alerting/validate_all_queries.py
@@ -32,7 +35,7 @@ resources:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
               fail_on_warning: "false"
-          timeout_seconds: 900  # 15 minutes
+          timeout_seconds: 900
       
       email_notifications:
         on_failure:
@@ -41,8 +44,7 @@ resources:
       tags:
         environment: ${bundle.target}
         project: health_monitor
-        layer: gold
+        layer: alerting
         job_type: validation
-        component: alerting
+        job_level: atomic
         compute_type: serverless
-

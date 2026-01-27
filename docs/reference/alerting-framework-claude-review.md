@@ -369,7 +369,7 @@ Deleted:    2/2
 
 **Configuration:**
 ```yaml
-# sql_alert_deployment_job.yml
+# alerting_deploy_job.yml
 base_parameters:
   delete_disabled: "false"  # Set to "true" to auto-delete disabled alerts
 ```
@@ -571,8 +571,8 @@ __all__ = [
    - ✅ Clean separation of concerns
 
 2. **Hierarchical Job Integration**
-   - ✅ Atomic jobs: `alerting_tables_setup_job`, `sql_alert_deployment_job`
-   - ✅ Composite job: `alerting_layer_setup_job`
+   - ✅ Atomic jobs: `alerting_tables_job`, `alerting_deploy_job`
+   - ✅ Composite job: `alerting_setup_orchestrator_job`
    - ✅ Master orchestrator: `master_setup_orchestrator` includes alerting
 
 3. **REST API Approach**
@@ -816,7 +816,7 @@ pytest -m integration tests/alerting/test_integration_sync_alerts.py
 ### Manual Testing Checklist
 
 - [ ] Deploy atomic jobs: `databricks bundle deploy -t dev`
-- [ ] Run setup job: `databricks bundle run -t dev alerting_tables_setup_job`
+- [ ] Run setup job: `databricks bundle run -t dev alerting_tables_job`
 - [ ] Verify tables created: `SELECT * FROM {catalog}.{gold_schema}.alert_configurations`
 - [ ] Verify seed data: Should have 1 default alert (COST-012)
 - [ ] Run deploy job in dry-run: Check logs for `[DRY RUN]` output
@@ -917,7 +917,7 @@ pytest -m integration tests/alerting/test_integration_sync_alerts.py
    - Comprehensive coverage of all helpers
    - ~150 lines added
 
-5. **`resources/alerting/sql_alert_deployment_job.yml`** (Minor update)
+5. **`resources/alerting/alerting_deploy_job.yml`** (Minor update)
    - Added `delete_disabled` parameter
 
 ### Unchanged Files (3) - Validated Correct
@@ -932,11 +932,11 @@ pytest -m integration tests/alerting/test_integration_sync_alerts.py
    - Realistic seed data (COST-012 references actual `fact_usage` table)
    - Proper FK constraint handling
 
-8. **`resources/alerting/alerting_tables_setup_job.yml`** ✅
+8. **`resources/alerting/alerting_tables_job.yml`** ✅
    - Correct atomic job pattern
    - Proper notebook_task usage
 
-9. **`resources/alerting/alerting_layer_setup_job.yml`** ✅
+9. **`resources/alerting/alerting_setup_orchestrator_job.yml`** ✅
    - Correct composite job pattern
    - Uses `run_job_task` (no direct notebooks)
 
@@ -952,9 +952,9 @@ pytest -m integration tests/alerting/test_integration_sync_alerts.py
   - `notification_destinations` (created by setup) ✅
 
 - [ ] **Job hierarchy**: Atomic → Composite → Orchestrator wired correctly
-  - Atomic: `alerting_tables_setup_job` ✅
-  - Atomic: `sql_alert_deployment_job` ✅
-  - Composite: `alerting_layer_setup_job` ✅
+  - Atomic: `alerting_tables_job` ✅
+  - Atomic: `alerting_deploy_job` ✅
+  - Composite: `alerting_setup_orchestrator_job` ✅
   - Orchestrator: `master_setup_orchestrator` includes alerting ✅
 
 - [ ] **Dependencies**: SDK and requests versions pinned
@@ -985,7 +985,7 @@ pytest -m integration tests/alerting/test_integration_sync_alerts.py
 
 - [ ] **Sync dry run**: Verify no errors
   ```bash
-  databricks bundle run -t dev sql_alert_deployment_job
+  databricks bundle run -t dev alerting_deploy_job
   # Check logs for: [DRY RUN] messages
   ```
 
@@ -995,7 +995,7 @@ pytest -m integration tests/alerting/test_integration_sync_alerts.py
   dry_run: "false"
   ```
   ```bash
-  databricks bundle run -t dev sql_alert_deployment_job
+  databricks bundle run -t dev alerting_deploy_job
   ```
 
 - [ ] **Verify in UI**: Check Databricks SQL > Alerts
@@ -1091,7 +1091,7 @@ git pull origin main  # Assuming you committed Claude's improvements
 databricks bundle deploy -t dev
 
 # 3. Test with dry run
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
 
 # 4. Verify improvements
 # Check job logs for:

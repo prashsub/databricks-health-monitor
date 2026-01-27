@@ -42,8 +42,8 @@ All 11 Phase 2 enhancements from the specification have been implemented. The al
 
 | File | Description |
 |------|-------------|
-| `alert_query_validation_job.yml` | Pre-deployment query validation |
-| `alerting_layer_setup_job.yml` | Composite orchestrator job |
+| `alerting_validation_job.yml` | Pre-deployment query validation |
+| `alerting_setup_orchestrator_job.yml` | Composite orchestrator job |
 
 ### Metric Views (`src/semantic/metric_views/`)
 
@@ -60,7 +60,7 @@ All 11 Phase 2 enhancements from the specification have been implemented. The al
 | `src/alerting/__init__.py` | Added new module exports |
 | `src/alerting/sync_sql_alerts.py` | Added parallel sync, metrics collection |
 | `src/alerting/setup_alerting_tables.py` | Added `alert_sync_metrics` table DDL |
-| `resources/alerting/sql_alert_deployment_job.yml` | Added parallel sync parameters |
+| `resources/alerting/alerting_deploy_job.yml` | Added parallel sync parameters |
 
 ---
 
@@ -164,7 +164,7 @@ log_sync_metrics_spark(spark, metrics)
 4. Verify table references exist
 5. Validate custom template placeholders
 
-**Job:** `alert_query_validation_job.yml`
+**Job:** `alerting_validation_job.yml`
 
 ### 6. Notification Destination Sync (`sync_notification_destinations.py`)
 
@@ -175,7 +175,7 @@ log_sync_metrics_spark(spark, metrics)
 
 **Note:** Requires workspace admin permissions
 
-### 7. Composite Orchestrator (`alerting_layer_setup_job.yml`)
+### 7. Composite Orchestrator (`alerting_setup_orchestrator_job.yml`)
 
 **Task Sequence:**
 ```
@@ -233,28 +233,28 @@ pytest -m unit tests/alerting/ -v
 databricks bundle deploy -t dev
 
 # Run complete alerting setup (includes validation)
-databricks bundle run -t dev alerting_layer_setup_job
+databricks bundle run -t dev alerting_setup_orchestrator_job
 
 # Or run individual jobs:
-databricks bundle run -t dev alert_query_validation_job
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_validation_job
+databricks bundle run -t dev alerting_deploy_job
 ```
 
 ### Production Deployment
 ```bash
 # 1. Validate queries first
-databricks bundle run -t prod alert_query_validation_job
+databricks bundle run -t prod alerting_validation_job
 
 # 2. Deploy with dry_run=false
-# (Update sql_alert_deployment_job.yml: dry_run: "false")
-databricks bundle run -t prod sql_alert_deployment_job
+# (Update alerting_deploy_job.yml: dry_run: "false")
+databricks bundle run -t prod alerting_deploy_job
 ```
 
 ---
 
 ## 🔧 Configuration Options
 
-### `sql_alert_deployment_job.yml`
+### `alerting_deploy_job.yml`
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -263,7 +263,7 @@ databricks bundle run -t prod sql_alert_deployment_job
 | `enable_parallel` | "false" | Enable concurrent sync |
 | `parallel_workers` | "5" | Worker count for parallel sync |
 
-### `alerting_layer_setup_job.yml`
+### `alerting_setup_orchestrator_job.yml`
 
 | Task | Dry Run Default | Notes |
 |------|-----------------|-------|

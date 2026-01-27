@@ -1,16 +1,16 @@
-# Notification Destinations Sync Job (Atomic)
-# =============================================
+# Alerting Notifications Job (Atomic)
+# ===================================
 #
 # Syncs notification destinations (email, Slack, etc.) to the Databricks workspace.
 # Requires workspace admin permissions.
 #
 # Usage:
-#   databricks bundle run -t dev notification_destinations_sync_job
+#   databricks bundle run -t dev alerting_notifications_job
 
 resources:
   jobs:
-    notification_destinations_sync_job:
-      name: "[${bundle.target}] Health Monitor - Notification Destinations Sync"
+    alerting_notifications_job:
+      name: "[${bundle.target}] Health Monitor - Alerting Notifications Sync"
       description: "Atomic job: Syncs notification destinations to workspace (requires admin)"
 
       environments:
@@ -19,7 +19,7 @@ resources:
             environment_version: "4"
 
       tasks:
-        - task_key: sync_notification_destinations
+        - task_key: sync_notifications
           environment_key: default
           notebook_task:
             notebook_path: ../../src/alerting/sync_notification_destinations.py
@@ -36,9 +36,8 @@ resources:
 
       tags:
         environment: ${bundle.target}
-        project: databricks_health_monitor
+        project: health_monitor
         layer: alerting
-        job_type: setup
+        job_type: sync
         job_level: atomic
         compute_type: serverless
-

@@ -185,26 +185,68 @@ def sync_service_principals(catalog: str, schema: str):
     print("Fetching service principals...")
     
     w = WorkspaceClient()
-    sp_data = []
+    sp_rows = []  # Build rows directly as tuples of primitives
+    skipped_count = 0
     
     try:
         for sp in w.service_principals.list():
-            sp_record = {
-                "user_id": sp.id,
-                "email": sp.application_id or sp.display_name,  # Use app ID as identifier
-                "display_name": f"[SP] {sp.display_name}" if sp.display_name else f"[SP] {sp.application_id}",
-                "active": sp.active if sp.active is not None else True,
-                "created_at": None
-            }
-            sp_data.append(sp_record)
+            # Skip service principals without an ID (shouldn't happen but be defensive)
+            if not sp.id:
+                skipped_count += 1
+                continue
+            
+            # CRITICAL: Convert ALL values to Python primitives immediately
+            # to avoid CANNOT_DETERMINE_TYPE errors
+            sp_id = str(sp.id) if sp.id is not None else None
+            
+            # Get application_id safely - it might be a complex object
+            app_id = None
+            if hasattr(sp, 'application_id') and sp.application_id is not None:
+                app_id = str(sp.application_id)
+            
+            # Get display_name safely
+            disp_name = None
+            if hasattr(sp, 'display_name') and sp.display_name is not None:
+                disp_name = str(sp.display_name)
+            
+            # Get active status safely - convert to string "true"/"false"
+            active_val = "true"  # Default
+            if hasattr(sp, 'active') and sp.active is not None:
+                active_val = "true" if sp.active else "false"
+            
+            # Skip if no ID
+            if not sp_id:
+                skipped_count += 1
+                continue
+            
+            # Build identifier - prefer application_id, fall back to display_name, then ID
+            identifier = app_id or disp_name or f"sp-{sp_id}"
+            
+            # Build display name with [SP] prefix
+            if disp_name:
+                display_name = f"[SP] {disp_name}"
+            elif app_id:
+                display_name = f"[SP] {app_id}"
+            else:
+                display_name = f"[SP] Service Principal {sp_id}"
+            
+            # Append tuple of primitives only (str or None)
+            sp_rows.append((
+                sp_id,           # user_id: str
+                identifier,      # email: str
+                display_name,    # display_name: str
+                active_val,      # active: str ("true"/"false")
+                None             # created_at: None (will be cast to string)
+            ))
             
     except Exception as e:
         print(f"⚠️ Could not fetch service principals: {e}")
         return 0
     
-    print(f"  Found {len(sp_data)} service principals")
+    print(f"  Found {len(sp_rows)} service principals" + (f" (skipped {skipped_count} without ID)" if skipped_count else ""))
     
-    if not sp_data:
+    if not sp_rows:
+        print("⚠️ No valid service principals to sync")
         return 0
     
     # Create DataFrame with explicit schema to avoid type inference issues
@@ -216,12 +258,7 @@ def sync_service_principals(catalog: str, schema: str):
         StructField("created_at", StringType(), True)  # String to avoid None type issues
     ])
     
-    # Convert dict to tuples for schema compatibility
-    sp_rows = [
-        (sp["user_id"], sp["email"], sp["display_name"], str(sp["active"]) if sp["active"] is not None else "true", None)
-        for sp in sp_data
-    ]
-    
+    # Create DataFrame - data is already clean tuples of primitives
     sp_df = spark.createDataFrame(sp_rows, schema=sp_schema)
     
     # Add sync timestamp and cast types
@@ -248,9 +285,9 @@ def sync_service_principals(catalog: str, schema: str):
     """
     
     spark.sql(merge_sql)
-    print(f"✓ Synced {len(sp_data)} service principals")
+    print(f"✓ Synced {len(sp_rows)} service principals")
     
-    return len(sp_data)
+    return len(sp_rows)
 
 # COMMAND ----------
 

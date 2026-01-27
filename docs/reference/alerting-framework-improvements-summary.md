@@ -58,13 +58,13 @@
 ### Modified (3)
 - `src/alerting/sync_sql_alerts.py` - **Major improvements** (retry, timeout, delete, SQL escaping)
 - `tests/alerting/test_alerting_config.py` - **Complete rewrite** (fixed imports, 24 new tests)
-- `resources/alerting/sql_alert_deployment_job.yml` - Added `delete_disabled` parameter
+- `resources/alerting/alerting_deploy_job.yml` - Added `delete_disabled` parameter
 
 ### Validated Correct (4)
 - `src/alerting/alerting_config.py` ✅
 - `src/alerting/setup_alerting_tables.py` ✅
-- `resources/alerting/alerting_tables_setup_job.yml` ✅
-- `resources/alerting/alerting_layer_setup_job.yml` ✅
+- `resources/alerting/alerting_tables_job.yml` ✅
+- `resources/alerting/alerting_setup_orchestrator_job.yml` ✅
 
 ---
 
@@ -104,16 +104,16 @@ pytest -m unit tests/alerting/test_alerting_config.py -v
 databricks bundle deploy -t dev
 
 # Run setup (creates tables)
-databricks bundle run -t dev alerting_tables_setup_job
+databricks bundle run -t dev alerting_tables_job
 
 # Run sync (dry run first)
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
 # Check logs for: [DRY RUN] messages
 ```
 
 ### Enable Real Deployment
 ```yaml
-# In resources/alerting/sql_alert_deployment_job.yml
+# In resources/alerting/alerting_deploy_job.yml
 base_parameters:
   dry_run: "false"          # ✅ Change from "true"
   delete_disabled: "false"  # Enable if you want auto-cleanup
@@ -121,7 +121,7 @@ base_parameters:
 
 ```bash
 # Deploy for real
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
 ```
 
 ---

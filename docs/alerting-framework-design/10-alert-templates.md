@@ -332,7 +332,7 @@ INSERT INTO alert_configurations (
 ```bash
 # 1. Add alert with PAUSED status
 # 2. Run validation
-databricks bundle run -t dev alert_query_validation_job
+databricks bundle run -t dev alerting_validation_job
 
 # 3. Check validation results
 # 4. If valid, unpause
@@ -341,7 +341,7 @@ SET pause_status = 'UNPAUSED'
 WHERE alert_id = 'CUSTOM-001';
 
 # 5. Sync to Databricks
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
 ```
 
 ## Template Best Practices

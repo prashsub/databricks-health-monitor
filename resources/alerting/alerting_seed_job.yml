@@ -1,7 +1,7 @@
-# Seed All Alerts Job (Atomic)
-# =============================
+# Alerting Seed Job (Atomic)
+# ==========================
 #
-# Populates the alert_configurations table with all 56 planned alerts from:
+# Populates the alert_configurations table with all planned alerts from:
 # plans/phase3-addendum-3.7-alerting-framework.md
 #
 # Alert Categories:
@@ -12,15 +12,15 @@
 # - QUALITY (6 alerts): Data quality, governance, freshness
 #
 # Usage:
-#   databricks bundle run -t dev seed_all_alerts_job
+#   databricks bundle run -t dev alerting_seed_job
 #
 # Reference: https://docs.databricks.com/aws/en/sql/user/alerts
 
 resources:
   jobs:
-    seed_all_alerts_job:
-      name: "[${bundle.target}] Health Monitor - Seed All Alerts"
-      description: "Atomic job: Seed alert_configurations table with all planned alerts"
+    alerting_seed_job:
+      name: "[${bundle.target}] Health Monitor - Alerting Seed Configurations"
+      description: "Atomic job: Seeds alert_configurations table with all planned alerts"
 
       environments:
         - environment_key: default
@@ -28,7 +28,7 @@ resources:
             environment_version: "4"
 
       tasks:
-        - task_key: seed_all_alerts
+        - task_key: seed_alerts
           environment_key: default
           notebook_task:
             notebook_path: ../../src/alerting/seed_all_alerts.py
@@ -46,7 +46,6 @@ resources:
         environment: ${bundle.target}
         project: health_monitor
         layer: alerting
-        job_type: setup
+        job_type: seed
         job_level: atomic
         compute_type: serverless
-

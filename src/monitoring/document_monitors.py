@@ -62,16 +62,21 @@ verbose = dbutils.widgets.get("verbose") == "true"
 
 # COMMAND ----------
 
+# Global variable to store results for exit cell
+_doc_results = None
+
 def main():
     """Document all Lakehouse Monitoring output tables."""
+    global _doc_results
     
     print("=" * 70)
     print("LAKEHOUSE MONITOR DOCUMENTATION")
     print("=" * 70)
-    print(f"  Catalog:          {catalog}")
-    print(f"  Gold Schema:      {gold_schema}")
+    print(f"  Catalog:           {catalog}")
+    print(f"  Gold Schema:       {gold_schema}")
     print(f"  Monitoring Schema: {gold_schema}_monitoring")
-    print(f"  Metrics Registry: {len(METRIC_DESCRIPTIONS)} descriptions loaded")
+    print(f"  Metrics Registry:  {len(METRIC_DESCRIPTIONS)} descriptions loaded")
+    print(f"  Verbose Mode:      {verbose}")
     print("-" * 70)
     
     if verbose:
@@ -90,77 +95,128 @@ def main():
         print("    WHERE slice_key = 'workspace_id'")
         print("    AND slice_value = 'your_value'")
         print()
-        
-        print("📊 Tables to Document:")
-        for table_name in MONITOR_TABLE_DESCRIPTIONS.keys():
-            print(f"    • {table_name}_profile_metrics")
-            print(f"    • {table_name}_drift_metrics")
+    
+    print("\n📊 DISCOVERING MONITORING TABLES...")
+    print("-" * 40)
+    
+    # List actual tables in monitoring schema
+    monitoring_schema = f"{gold_schema}_monitoring"
+    try:
+        existing_tables = spark.sql(f"SHOW TABLES IN {catalog}.{monitoring_schema}").collect()
+        existing_table_names = [row.tableName for row in existing_tables]
+        print(f"  Found {len(existing_table_names)} tables in {catalog}.{monitoring_schema}:")
+        for t in sorted(existing_table_names):
+            print(f"    • {t}")
         print()
+    except Exception as e:
+        print(f"  ⚠ Could not list tables: {str(e)[:60]}")
+        print(f"  Will attempt to document known monitor tables anyway.\n")
     
-    # Document all monitoring tables
-    results = document_all_monitor_tables(spark, catalog, gold_schema)
+    # Document all monitoring tables (pass verbose flag)
+    results = document_all_monitor_tables(spark, catalog, gold_schema, verbose=verbose)
     
-    # Count results
+    # Count results by status
     success_count = 0
     not_ready_count = 0
     error_count = 0
+    total_cols_documented = 0
+    total_cols_in_tables = 0
     
     for table_name, table_results in results.items():
-        for table_type, status in table_results.items():
-            if "SUCCESS" in status:
-                success_count += 1
-            elif status == "NOT_READY":
-                not_ready_count += 1
-            else:
-                error_count += 1
+        # Count profile/drift table statuses
+        profile_status = table_results.get("profile_metrics", "")
+        drift_status = table_results.get("drift_metrics", "")
+        
+        # Profile metrics
+        if "SUCCESS" in str(profile_status):
+            success_count += 1
+            total_cols_documented += table_results.get("profile_columns_documented", 0)
+            total_cols_in_tables += table_results.get("profile_columns_total", 0)
+        elif profile_status == "NOT_READY":
+            not_ready_count += 1
+        elif profile_status != "NOT_FOUND":
+            error_count += 1
+            
+        # Drift metrics
+        if "SUCCESS" in str(drift_status):
+            success_count += 1
+            total_cols_documented += table_results.get("drift_columns_documented", 0)
+            total_cols_in_tables += table_results.get("drift_columns_total", 0)
+        elif drift_status == "NOT_READY":
+            not_ready_count += 1
+        elif drift_status != "NOT_FOUND":
+            error_count += 1
     
-    print("\n" + "-" * 70)
-    
-    if verbose:
-        print("\nDetailed Results:")
-        for table_name, table_results in results.items():
-            print(f"\n  {table_name}:")
-            for table_type, status in table_results.items():
-                icon = "✓" if "SUCCESS" in status else "⚠" if status == "NOT_READY" else "✗"
-                print(f"    [{icon}] {table_type}: {status}")
+    print("\n" + "=" * 70)
+    print("DOCUMENTATION RESULTS SUMMARY")
+    print("=" * 70)
+    print(f"  ✓ Tables documented:      {success_count}")
+    print(f"  ⏳ Tables not ready:       {not_ready_count}")
+    print(f"  ✗ Tables with errors:     {error_count}")
+    print(f"  📊 Columns documented:     {total_cols_documented}/{total_cols_in_tables}")
+    print("-" * 70)
     
     # Print query guide summary
-    print("\n📖 GENIE QUERY GUIDE SUMMARY:")
+    print("\n📖 GENIE QUERY EXAMPLES:")
     print("-" * 50)
-    print("  Example queries Genie can now understand:")
-    print()
     print("  'What is the total cost this month?'")
-    print("  → Query fact_usage_profile_metrics")
+    print("  → SELECT total_daily_cost FROM fact_usage_profile_metrics")
     print("    WHERE column_name=':table' AND log_type='INPUT'")
     print()
     print("  'Show cost breakdown by workspace'")
-    print("  → Query fact_usage_profile_metrics")
+    print("  → SELECT slice_value as workspace, total_daily_cost")
+    print("    FROM fact_usage_profile_metrics")
     print("    WHERE slice_key='workspace_id'")
     print()
     print("  'Which jobs failed yesterday?'")
-    print("  → Query fact_job_run_timeline_profile_metrics")
+    print("  → SELECT failure_count FROM fact_job_run_timeline_profile_metrics")
     print("    WHERE slice_key='result_state' AND slice_value='FAILED'")
     print()
     print("  'How has cost changed compared to last period?'")
-    print("  → Query fact_usage_drift_metrics")
+    print("  → SELECT cost_drift_pct FROM fact_usage_drift_metrics")
     print("    WHERE drift_type='CONSECUTIVE'")
     
-    # Exit with appropriate status
-    if not_ready_count > 0 and success_count == 0:
-        print(f"\n[⚠ NOT READY] Monitoring tables not yet created.")
-        print("    Run this notebook again after monitors initialize (~15 min).")
-        dbutils.notebook.exit(f"NOT_READY: {not_ready_count} tables still initializing")
-    elif error_count > 0:
-        print(f"\n[⚠ PARTIAL] Some tables had errors.")
-        dbutils.notebook.exit(f"PARTIAL: {success_count} success, {error_count} errors")
-    else:
-        print(f"\n[✓ SUCCESS] All {success_count} monitoring tables documented!")
-        print("    Genie can now understand custom metrics for natural language queries.")
-        print("    Query patterns documented in table comments for LLM understanding.")
-        dbutils.notebook.exit(f"SUCCESS: {success_count} tables documented for Genie")
+    # Store results for exit cell
+    _doc_results = {
+        "success_count": success_count,
+        "not_ready_count": not_ready_count,
+        "error_count": error_count,
+        "total_cols_documented": total_cols_documented,
+        "total_cols_in_tables": total_cols_in_tables,
+        "detailed_results": results
+    }
+    
+    return _doc_results
 
 # COMMAND ----------
 
 # Call main() directly - __name__ check doesn't work in Databricks job notebooks
-main()
+results = main()
+
+# COMMAND ----------
+
+# NOTEBOOK EXIT (separate cell for job status)
+# This cell provides the final exit status for the DAB job
+
+if _doc_results is None:
+    dbutils.notebook.exit("ERROR: main() did not complete")
+
+success_count = _doc_results["success_count"]
+not_ready_count = _doc_results["not_ready_count"]
+error_count = _doc_results["error_count"]
+total_cols = _doc_results["total_cols_documented"]
+
+# Determine exit status
+if not_ready_count > 0 and success_count == 0:
+    print(f"\n[⏳ NOT READY] Monitoring tables not yet created.")
+    print("    Run this notebook again after monitors initialize (~15 min).")
+    dbutils.notebook.exit(f"NOT_READY: {not_ready_count} tables still initializing")
+elif error_count > 0:
+    print(f"\n[⚠ PARTIAL] {success_count} tables documented, {error_count} had errors.")
+    dbutils.notebook.exit(f"PARTIAL: {success_count} tables, {total_cols} columns documented")
+else:
+    print(f"\n[✓ SUCCESS] All {success_count} monitoring tables documented!")
+    print(f"    {total_cols} custom metric columns documented for Genie.")
+    print("    Query patterns documented in table comments for LLM understanding.")
+    dbutils.notebook.exit(f"SUCCESS: {success_count} tables, {total_cols} columns documented")
 

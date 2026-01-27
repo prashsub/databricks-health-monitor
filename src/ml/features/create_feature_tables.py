@@ -1353,6 +1353,24 @@ def create_all_feature_tables(
     if len(verified_tables) < 5:
         print(f"\n⚠ WARNING: Only {len(verified_tables)}/5 tables created successfully")
     
+    # Apply comprehensive table and column metadata for Genie/LLM discoverability
+    print("\n" + "=" * 80)
+    print("Applying Feature Table Metadata (Genie/LLM Optimization)")
+    print("=" * 80)
+    try:
+        from src.ml.utils.feature_table_metadata import apply_feature_table_metadata
+        metadata_applied = 0
+        for domain, table_name in tables.items():
+            print(f"\n  Applying metadata to {domain} ({table_name})...")
+            if apply_feature_table_metadata(spark, table_name):
+                metadata_applied += 1
+        print(f"\n✓ Metadata applied to {metadata_applied}/{len(tables)} feature tables")
+    except ImportError:
+        print("  ⚠ Feature table metadata module not found. Skipping metadata application.")
+        print("    Create src/ml/utils/feature_table_metadata.py to enable rich column descriptions.")
+    except Exception as e:
+        print(f"  ⚠ Metadata application error (non-fatal): {str(e)[:100]}")
+    
     return tables
 
 # COMMAND ----------

@@ -202,7 +202,7 @@ WHERE last_sync_status = 'ERROR';
 
 **Solution:** Fix individual alerts and re-run deployment:
 ```bash
-databricks bundle run -t dev sql_alert_deployment_job
+databricks bundle run -t dev alerting_deploy_job
 ```
 
 ---
@@ -213,7 +213,7 @@ databricks bundle run -t dev sql_alert_deployment_job
 
 **Solution:** Enable parallel sync:
 ```yaml
-# In sql_alert_deployment_job.yml
+# In alerting_deploy_job.yml
 base_parameters:
   enable_parallel: "true"
   parallel_workers: "10"

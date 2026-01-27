@@ -320,39 +320,58 @@ def apply_tag_recommendations_metadata(spark, output_table: str) -> bool:
     """
     Apply table and column metadata for tag_recommendations table.
     Enables Genie Space natural language queries and AI/BI discoverability.
+    
+    Uses centralized metadata from utility module if available, fallback to inline.
     """
     try:
-        # Table comment
+        # Try using centralized metadata (has comprehensive descriptions)
+        from src.ml.utils.prediction_metadata import PREDICTION_TABLE_METADATA, apply_table_metadata
+        if "tag_recommendations" in PREDICTION_TABLE_METADATA:
+            result = apply_table_metadata(spark, output_table)
+            if result:
+                print(f"  ✓ Applied comprehensive metadata from utility module")
+                return result
+    except ImportError:
+        print(f"  ⚠ Utility module not found, using inline metadata")
+    except Exception as e:
+        print(f"  ⚠ Utility module error: {str(e)[:50]}, using inline metadata")
+    
+    # Fallback to inline metadata
+    try:
         table_comment = """ML predictions from tag_recommender model.
 Recommends tags for untagged jobs using TF-IDF text analysis and Random Forest classification.
-Use for improving cost attribution coverage and governance compliance.
+Interpretation: predicted_tag is the recommended tag value with associated confidence_score.
+Business Use: Improve cost attribution coverage, governance compliance, automated tagging.
+Action: Review high-confidence recommendations (>0.7) for auto-tagging. Manual review for lower confidence.
 Source: cost_features + job names (TF-IDF) | Model: RandomForestClassifier | Domain: Cost"""
         table_comment = table_comment.replace("'", "''")
         spark.sql(f"COMMENT ON TABLE {output_table} IS '{table_comment}'")
         
-        # Column comments
+        # Column comments with interpretation guidance
         column_comments = {
-            "job_id": "Unique identifier of the untagged job receiving a tag recommendation.",
-            "job_name": "Name of the job (used for TF-IDF text feature extraction).",
-            "workspace_id": "Workspace where the job is defined.",
-            "usage_date": "Reference date for cost features used in prediction.",
-            "predicted_tag": "Recommended tag value (e.g., team name, project, cost center).",
-            "confidence_score": "Model confidence in the recommendation (0-1). Higher=more confident.",
-            "total_cost_30d": "Total cost associated with this job over 30 days for prioritization.",
-            "model_name": "ML model that generated this prediction (tag_recommender).",
-            "model_version": "Version of the model used for scoring.",
-            "scored_at": "Timestamp when the prediction was generated.",
-            "scored_date": "Date partition for efficient querying of recent predictions."
+            "job_id": "Unique identifier of the untagged job. Use to apply recommended tag via Jobs API.",
+            "job_name": "Name of the job (used for TF-IDF feature extraction). Consistent naming improves accuracy.",
+            "workspace_id": "Workspace where the job is defined. Use for workspace-level tag standardization.",
+            "usage_date": "Reference date for cost features. Recent dates ensure current cost patterns.",
+            "predicted_tag": "Recommended tag value (team name, project, cost center). Verify matches org taxonomy.",
+            "confidence_score": "Model confidence (0-1). >0.8=auto-tag safe, 0.5-0.8=manual review, <0.5=human decision.",
+            "total_cost_30d": "Job cost over 30 days (USD). Prioritize high-cost jobs for tagging.",
+            "model_name": "ML model for lineage (tag_recommender).",
+            "model_version": "Model version for reproducibility.",
+            "scored_at": "Prediction timestamp. Use recent predictions for tagging campaigns.",
+            "scored_date": "Date partition. Filter by scored_date for recent recommendations."
         }
         
         table_columns = [f.name for f in spark.table(output_table).schema.fields]
+        columns_updated = 0
         
         for col_name, col_comment in column_comments.items():
             if col_name in table_columns:
                 escaped_comment = col_comment.replace("'", "''")
                 spark.sql(f"ALTER TABLE {output_table} ALTER COLUMN `{col_name}` COMMENT '{escaped_comment}'")
+                columns_updated += 1
         
-        print(f"  ✓ Table and column metadata applied")
+        print(f"  ✓ Table comment + {columns_updated} column comments applied (inline)")
         return True
         
     except Exception as e:

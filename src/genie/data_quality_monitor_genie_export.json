@@ -346,13 +346,13 @@
       {
         "id": "15b9ffd78cf34dba8b5907219c26b0ab",
         "question": [
-          "Show metrics from mv_data_quality"
+          "What is the table freshness status by schema?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.mv_data_quality LIMIT 20;"
+              "SELECT table_schema, MEASURE(total_tables) AS table_count, MEASURE(fresh_tables) AS fresh_count FROM ${catalog}.${gold_schema}.mv_data_quality GROUP BY table_schema ORDER BY table_count DESC LIMIT 20;"
             ]
           }
         ]
@@ -360,13 +360,13 @@
       {
         "id": "3dc629ef499449228bb2d4f71cb7594e",
         "question": [
-          "Show metrics from mv_governance_analytics"
+          "What are the data access events by source table?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.mv_governance_analytics LIMIT 20;"
+              "SELECT source_table_name, MEASURE(total_events) AS access_count FROM ${catalog}.${gold_schema}.mv_governance_analytics GROUP BY source_table_name ORDER BY access_count DESC LIMIT 20;"
             ]
           }
         ]
