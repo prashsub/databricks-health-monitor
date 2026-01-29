@@ -369,11 +369,11 @@ MANUAL_EVALS = [
         "difficulty": "moderate"
     },
     {
-        "inputs": {"messages": [{"role": "user", "content": "Which pipelines have the most retries?"}]},
+        "inputs": {"messages": [{"role": "user", "content": "Which jobs have the most retries?"}]},
         "expectations": {
             "expected_domains": ["reliability"],
             "expected_facts": [
-                "Should list pipeline names",
+                "Should list job names",
                 "Should count retries",
                 "Should rank by retry count"
             ]

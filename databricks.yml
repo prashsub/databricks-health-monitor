@@ -65,7 +65,7 @@ variables:
   
   llm_endpoint:
     description: LLM endpoint for agent inference (used by agent_deployment.yml)
-    default: "databricks-claude-4-5-sonnet"
+    default: "databricks-claude-sonnet-4-5"
   
   dashboard_folder:
     description: Workspace folder path where dashboards will be published

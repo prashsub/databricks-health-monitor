@@ -43,7 +43,7 @@ class AgentSettings:
     # LLM Configuration
     # =========================================================================
     llm_endpoint: str = field(
-        default_factory=lambda: os.environ.get("LLM_ENDPOINT", "databricks-claude-4-5-sonnet")
+        default_factory=lambda: os.environ.get("LLM_ENDPOINT", "databricks-claude-sonnet-4-5")
     )
     llm_temperature: float = field(
         default_factory=lambda: float(os.environ.get("LLM_TEMPERATURE", "0.3"))

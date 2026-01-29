@@ -101,7 +101,7 @@ dbutils.widgets.text("model_name", "prashanth_subrahmanyam_catalog.dev_prashanth
 dbutils.widgets.text("model_version", "")  # Empty = latest
 dbutils.widgets.text("promotion_target", "staging")  # staging or production
 dbutils.widgets.text("endpoint_name", "health_monitor_agent_dev")  # Serving endpoint name
-dbutils.widgets.text("llm_endpoint", "databricks-claude-4-5-sonnet")  # LLM endpoint for agent
+dbutils.widgets.text("llm_endpoint", "databricks-claude-sonnet-4-5")  # LLM endpoint for agent
 # Genie Space IDs (passed from databricks.yml)
 dbutils.widgets.text("cost_genie_space_id", "01f0f1a3c2dc1c8897de11d27ca2cb6f")
 dbutils.widgets.text("security_genie_space_id", "01f0f1a3c44117acada010638189392f")
@@ -2995,43 +2995,47 @@ def create_or_update_serving_endpoint(version: str) -> bool:
         
         from databricks import agents
         
-        # Check for existing deployment first
-        print(f"\n  🔍 Checking for existing deployments...")
-        try:
-            existing_deployments = agents.list_deployments()
-            existing = [d for d in existing_deployments if d.model_name == MODEL_NAME]
-            if existing:
-                print(f"       Found {len(existing)} existing deployment(s)")
-                for d in existing:
-                    print(f"         • Version {d.model_version}: {d.endpoint_name}")
-                    # Delete old deployments to avoid conflicts
-                    if str(d.model_version) != str(version):
-                        print(f"         → Deleting old deployment (version {d.model_version})...")
-                        try:
-                            agents.delete_deployment(model_name=MODEL_NAME, model_version=d.model_version)
-                            print(f"         ✓ Deleted")
-                            time.sleep(2)  # Brief pause for cleanup
-                        except Exception as del_err:
-                            print(f"         ⚠ Could not delete: {del_err}")
-            else:
-                print(f"       No existing deployments found")
-        except Exception as list_err:
-            print(f"       ⚠ Could not list deployments: {list_err}")
+        # =================================================================
+        # Use agents.deploy() for BOTH create AND update
+        # When endpoint_name is specified, it updates if exists, creates if not
+        # Reference: https://docs.databricks.com/aws/en/generative-ai/agent-framework/deploy-agent
+        # =================================================================
+        from databricks.sdk import WorkspaceClient
+        client = WorkspaceClient()
         
-        # Deploy the agent
-        print(f"\n  ✨ Creating deployment...")
+        # Check if endpoint exists (for logging purposes only)
+        print(f"\n  🔍 Checking for existing endpoint: '{endpoint_name}'...")
+        is_update = False
+        try:
+            existing_endpoint = client.serving_endpoints.get(endpoint_name)
+            is_update = True
+            print(f"       ✓ Found existing endpoint (will UPDATE)")
+            print(f"       Current state: {existing_endpoint.state.ready if existing_endpoint.state else 'UNKNOWN'}")
+        except Exception as e:
+            if "RESOURCE_DOES_NOT_EXIST" in str(e) or "does not exist" in str(e).lower():
+                print(f"       No existing endpoint (will CREATE)")
+            else:
+                print(f"       ⚠ Could not check endpoint: {str(e)[:100]}")
+        
+        # Deploy using agents.deploy() - handles both create and update
+        action = "Updating" if is_update else "Creating"
+        print(f"\n  ✨ {action} deployment with agents.deploy()...")
+        print(f"       Endpoint: {endpoint_name}")
+        
         deployment = agents.deploy(
             model_name=MODEL_NAME,
             model_version=version,
+            endpoint_name=endpoint_name,  # Specify endpoint name for updates
             scale_to_zero_enabled=True,
             environment_vars=env_vars,
         )
         
+        status_msg = "UPDATED" if is_update else "CREATED"
         print(f"\n  ╔{'═' * 58}╗")
-        print(f"  ║{'✅ AGENT DEPLOYED SUCCESSFULLY':^58}║")
+        print(f"  ║{f'✅ AGENT {status_msg} SUCCESSFULLY':^58}║")
         print(f"  ╠{'═' * 58}╣")
-        print(f"  ║  Query Endpoint:                                        ║")
-        print(f"  ║    {deployment.query_endpoint[:54]:<54} ║")
+        print(f"  ║  Endpoint: {endpoint_name:<46}║")
+        print(f"  ║  Version:  {version:<46}║")
         print(f"  ╠{'═' * 58}╣")
         print(f"  ║  Features Enabled by agents.deploy():                   ║")
         print(f"  ║    ✓ Real-time tracing (MLflow experiment)              ║")
@@ -3046,24 +3050,166 @@ def create_or_update_serving_endpoint(version: str) -> bool:
     except Exception as e:
         error_msg = str(e)
         print(f"\n  ╔{'═' * 58}╗")
-        print(f"  ║{'❌ AGENT DEPLOYMENT FAILED':^58}║")
+        print(f"  ║{'⚠️  agents.deploy() FAILED - TRYING SDK FALLBACK':^58}║")
         print(f"  ╚{'═' * 58}╝")
         print(f"\n  Error type: {type(e).__name__}")
         print(f"  Error message: {error_msg[:200]}")
         
-        # Check for common issues
-        if "endpoint" in error_msg.lower() and "limit" in error_msg.lower():
-            print(f"\n  💡 Suggestion: You've hit the endpoint limit.")
-            print(f"     Delete unused endpoints to free up capacity.")
-        elif "already exists" in error_msg.lower():
-            print(f"\n  💡 Suggestion: Deployment already exists.")
-            print(f"     Try deleting the existing deployment first.")
+        # Check if this is an endpoint limit issue - try SDK fallback
+        if "limit" in error_msg.lower() or "ResourceExhausted" in str(type(e).__name__):
+            print(f"\n  🔄 Workspace at endpoint limit - using SDK fallback...")
+            print(f"     This creates/updates endpoint without agents.deploy() features")
+            print(f"     (No automatic Review App, but inference tables can be added)")
+            
+            try:
+                return _create_endpoint_with_sdk_fallback(version, env_vars)
+            except Exception as sdk_err:
+                print(f"\n  ❌ SDK fallback also failed: {sdk_err}")
+                import traceback
+                traceback.print_exc()
+                return False
         
         print(f"\n  Full traceback:")
         import traceback
         traceback.print_exc()
         
         return False
+
+
+def _create_endpoint_with_sdk_fallback(version: str, env_vars: dict) -> bool:
+    """
+    Fallback: Create or update endpoint using Databricks SDK.
+    
+    This is used when agents.deploy() fails due to endpoint limits.
+    It can UPDATE existing endpoints instead of always creating new ones.
+    
+    Limitations vs agents.deploy():
+    - No automatic Review App
+    - Manual AI Gateway configuration
+    - No automatic production monitoring setup
+    """
+    from databricks.sdk import WorkspaceClient
+    from databricks.sdk.service.serving import (
+        EndpointCoreConfigInput,
+        ServedEntityInput,
+        AiGatewayConfig,
+        AiGatewayRateLimit,
+        AiGatewayRateLimitKey,
+        AiGatewayRateLimitRenewalPeriod,
+        AiGatewayInferenceTableConfig,
+    )
+    
+    print(f"\n  ┌{'─' * 58}┐")
+    print(f"  │{'SDK FALLBACK DEPLOYMENT':^58}│")
+    print(f"  ├{'─' * 58}┤")
+    print(f"  │ Endpoint:  {endpoint_name:<45} │")
+    print(f"  │ Model:     {MODEL_NAME:<45} │")
+    print(f"  │ Version:   {version:<45} │")
+    print(f"  └{'─' * 58}┘")
+    
+    client = WorkspaceClient()
+    
+    # Build served entity
+    served_entity = ServedEntityInput(
+        name="health_monitor_agent",
+        entity_name=MODEL_NAME,
+        entity_version=version,
+        workload_size="Small",
+        scale_to_zero_enabled=True,
+        environment_vars=env_vars,
+    )
+    
+    # Build AI Gateway config
+    table_prefix = endpoint_name.replace("-", "_")
+    ai_gateway = AiGatewayConfig(
+        inference_table_config=AiGatewayInferenceTableConfig(
+            catalog_name=catalog,
+            schema_name=agent_schema,
+            table_name_prefix=table_prefix,
+            enabled=True,
+        ),
+        rate_limits=[
+            AiGatewayRateLimit(
+                calls=100,
+                key=AiGatewayRateLimitKey.USER,
+                renewal_period=AiGatewayRateLimitRenewalPeriod.MINUTE,
+            ),
+        ],
+    )
+    
+    # Check if endpoint exists
+    print(f"\n  🔍 Checking for existing endpoint: '{endpoint_name}'...")
+    existing_endpoint = None
+    try:
+        existing_endpoint = client.serving_endpoints.get(endpoint_name)
+        print(f"       ✓ Found existing endpoint (will update)")
+    except Exception:
+        print(f"       → Endpoint does not exist (will create)")
+    
+    if existing_endpoint:
+        # UPDATE existing endpoint
+        print(f"\n  🔄 Updating endpoint to version {version}...")
+        try:
+            client.serving_endpoints.update_config(
+                name=endpoint_name,
+                served_entities=[served_entity],
+            )
+            print(f"       ✓ Model update submitted")
+            
+            # Update AI Gateway
+            print(f"\n  🌐 Updating AI Gateway...")
+            try:
+                client.serving_endpoints.put_ai_gateway(
+                    name=endpoint_name,
+                    inference_table_config=ai_gateway.inference_table_config,
+                    rate_limits=ai_gateway.rate_limits,
+                )
+                print(f"       ✓ AI Gateway updated")
+            except Exception as gw_err:
+                print(f"       ⚠ AI Gateway update failed (non-fatal): {str(gw_err)[:80]}")
+            
+            print(f"\n  ╔{'═' * 58}╗")
+            print(f"  ║{'✅ ENDPOINT UPDATED (SDK FALLBACK)':^58}║")
+            print(f"  ╠{'═' * 58}╣")
+            print(f"  ║  Endpoint: {endpoint_name:<46}║")
+            print(f"  ║  Version:  {version:<46}║")
+            print(f"  ╠{'═' * 58}╣")
+            print(f"  ║  Note: Using SDK fallback due to endpoint limits         ║")
+            print(f"  ║  • Inference tables: ✓ Configured                        ║")
+            print(f"  ║  • Rate limiting: ✓ Configured                           ║")
+            print(f"  ║  • Real-time tracing: Configure manually via experiment  ║")
+            print(f"  ║  • Review App: Not available (requires agents.deploy)    ║")
+            print(f"  ╚{'═' * 58}╝")
+            
+            return True
+            
+        except Exception as update_err:
+            print(f"       ✗ Update failed: {update_err}")
+            raise update_err
+    else:
+        # CREATE new endpoint (shouldn't happen if at limit, but try anyway)
+        print(f"\n  ✨ Creating new endpoint...")
+        try:
+            endpoint_config = EndpointCoreConfigInput(
+                name=endpoint_name,
+                served_entities=[served_entity]
+            )
+            client.serving_endpoints.create(
+                name=endpoint_name,
+                config=endpoint_config,
+                ai_gateway=ai_gateway,
+            )
+            print(f"       ✓ Endpoint created")
+            
+            print(f"\n  ╔{'═' * 58}╗")
+            print(f"  ║{'✅ ENDPOINT CREATED (SDK FALLBACK)':^58}║")
+            print(f"  ╚{'═' * 58}╝")
+            
+            return True
+            
+        except Exception as create_err:
+            print(f"       ✗ Create failed: {create_err}")
+            raise create_err
 
 # COMMAND ----------
 
