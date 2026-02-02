@@ -2937,7 +2937,7 @@ def create_or_update_serving_endpoint(version: str) -> bool:
         # ==========================================================
         # Memory Configuration
         # ==========================================================
-        "LAKEBASE_INSTANCE_NAME": "health_monitor_lakebase",
+        "LAKEBASE_INSTANCE_NAME": "DONOTDELETE-vibe-coding-workshop-lakebase",
         
         # ==========================================================
         # Feature Flags
@@ -3824,7 +3824,7 @@ def main() -> str:
     
     # Memory status - Lakebase memory requires tables to be initialized
     # Tables are created on first use; until then memory operations are skipped
-    lakebase_instance = "vibe-coding-workshop-lakebase"
+    lakebase_instance = "DONOTDELETE-vibe-coding-workshop-lakebase"
     print(f"║  🧠 Memory Configuration:                                          ║")
     print(f"║     Lakebase Instance: {lakebase_instance:<43} ║")
     print(f"║                                                                    ║")

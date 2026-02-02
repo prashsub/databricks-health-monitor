@@ -1,0 +1,1706 @@
+# Genie Golden Queries - Test Cases for Optimizer
+#
+# These test cases are used by the LLM-driven optimizer to validate
+# Genie Space accuracy. Each test case includes:
+#   - A natural language question
+#   - Hints for validation (tables, columns, assertions)
+#   - Whether it's a critical test
+#
+# NOTE: The validation section provides HINTS for the LLM evaluator.
+# The LLM makes the final judgment on whether a response is correct.
+
+---
+# ==============================================================================
+# COST DOMAIN TEST CASES (25 tests)
+# ==============================================================================
+
+cost_tests:
+  
+  # ---------------------------------------------------------------------------
+  # Simple Aggregations (6 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: cost_001
+    category: simple_aggregation
+    domain: cost
+    question: "What is our total spend this month?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_usage"]
+      expected_tvfs: ["get_cost_mtd_summary"]
+      expected_metric_views: ["mv_cost_analytics"]
+      result_assertions:
+        - type: not_empty
+        - type: column_exists
+          columns: ["total_cost"]
+    critical: true
+    notes: |
+      Should use get_cost_mtd_summary TVF, mv_cost_analytics metric view, 
+      or fact_usage table with date filter for current month.
+  
+  - id: cost_002
+    category: simple_aggregation
+    domain: cost
+    question: "What is our total DBU consumption this month?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_usage"]
+      expected_metric_views: ["mv_cost_analytics"]
+      result_assertions:
+        - type: not_empty
+    critical: true
+    notes: |
+      Should aggregate DBU-related columns (total_dbu measure) from mv_cost_analytics
+      or usage_quantity from fact_usage.
+  
+  - id: cost_003
+    category: simple_aggregation
+    domain: cost
+    question: "How much have we spent year to date?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_usage"]
+      expected_metric_views: ["mv_cost_analytics"]
+      result_assertions:
+        - type: not_empty
+    critical: true
+    notes: |
+      Should use ytd_cost measure from mv_cost_analytics or filter 
+      fact_usage from Jan 1 of current year to today.
+
+  - id: cost_004
+    category: simple_aggregation
+    domain: cost
+    question: "What is our average daily cost?"
+    validation:
+      type: result_check
+      expected_metric_views: ["mv_cost_analytics"]
+      result_assertions:
+        - type: not_empty
+    critical: false
+    notes: |
+      Should use avg_daily_cost measure from mv_cost_analytics.
+
+  - id: cost_005
+    category: simple_aggregation
+    domain: cost
+    question: "How much did we spend last week compared to the previous week?"
+    validation:
+      type: result_check
+      expected_metric_views: ["mv_cost_analytics"]
+      expected_tvfs: ["get_cost_week_over_week"]
+      result_assertions:
+        - type: not_empty
+    critical: true
+    notes: |
+      Should use week_over_week_growth_pct measure or get_cost_week_over_week TVF.
+
+  - id: cost_006
+    category: simple_aggregation
+    domain: cost
+    question: "What is our month over month cost growth?"
+    validation:
+      type: result_check
+      expected_metric_views: ["mv_cost_analytics"]
+      result_assertions:
+        - type: not_empty
+    critical: false
+    notes: |
+      Should use month_over_month_growth_pct measure from mv_cost_analytics.
+
+  # ---------------------------------------------------------------------------
+  # Top-N Queries (5 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: cost_007
+    category: top_n
+    domain: cost
+    question: "What are the top 10 workspaces by cost?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_usage", "dim_workspace"]
+      expected_tvfs: ["get_top_cost_contributors"]
+      result_assertions:
+        - type: row_count
+          min: 1
+          max: 10
+        - type: column_exists
+          columns: ["workspace_name"]
+    critical: true
+    notes: |
+      Should use get_top_cost_contributors TVF or join fact_usage to dim_workspace.
+  
+  - id: cost_008
+    category: top_n
+    domain: cost
+    question: "Which SKUs cost the most?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_usage"]
+      expected_metric_views: ["mv_cost_analytics"]
+      result_assertions:
+        - type: not_empty
+    critical: true
+    notes: |
+      Should aggregate by sku_name from mv_cost_analytics and order descending.
+  
+  - id: cost_009
+    category: top_n
+    domain: cost
+    question: "Show me the top 5 most expensive jobs"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_most_expensive_jobs"
+      fallback_tables: ["fact_usage"]
+    critical: true
+    notes: |
+      Should use TVF get_most_expensive_jobs.
+
+  - id: cost_010
+    category: top_n
+    domain: cost
+    question: "Who are the top cost contributors by owner?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_cost_by_owner"
+    critical: true
+    notes: |
+      Should use get_cost_by_owner TVF for owner-based chargeback.
+
+  - id: cost_011
+    category: top_n
+    domain: cost
+    question: "Which workspaces have the highest cost growth this week?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_cost_growth_analysis"
+    critical: false
+    notes: |
+      Should use get_cost_growth_analysis TVF with entity_type='WORKSPACE'.
+
+  # ---------------------------------------------------------------------------
+  # Time Series / Trends (4 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: cost_012
+    category: time_series
+    domain: cost
+    question: "Show me cost trends over the last 30 days"
+    validation:
+      type: result_check
+      expected_tables: ["fact_usage"]
+      expected_tvfs: ["get_cost_trend_by_sku"]
+      result_assertions:
+        - type: row_count
+          min: 1
+    critical: true
+    notes: |
+      Should use get_cost_trend_by_sku TVF or aggregate fact_usage by day.
+  
+  - id: cost_013
+    category: time_series
+    domain: cost
+    question: "How has our serverless spending changed week over week?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_usage"]
+      expected_metric_views: ["mv_cost_analytics"]
+    critical: true
+    notes: |
+      Should filter for serverless using is_serverless dimension and show weekly change.
+
+  - id: cost_014
+    category: time_series
+    domain: cost
+    question: "Show me weekly cost trends for the last 12 weeks"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_cost_week_over_week"
+    critical: false
+    notes: |
+      Should use get_cost_week_over_week TVF with weeks_back=12.
+
+  - id: cost_015
+    category: time_series
+    domain: cost
+    question: "What is the cost trend by product?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_cost_trend_by_sku"
+    critical: false
+    notes: |
+      Should use get_cost_trend_by_sku TVF.
+
+  # ---------------------------------------------------------------------------
+  # Tag-Related Queries (4 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: cost_016
+    category: tvf
+    domain: cost
+    question: "Show me untagged resources"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_untagged_resources"
+      expected_metric_views: ["mv_cost_analytics"]
+    critical: true
+    notes: |
+      Should use get_untagged_resources TVF or mv_cost_analytics with tag_status filter.
+  
+  - id: cost_017
+    category: tvf
+    domain: cost
+    question: "What's our tag coverage?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_tag_coverage"
+      expected_metric_views: ["mv_cost_analytics"]
+    critical: true
+    notes: |
+      Should use get_tag_coverage TVF or tag_coverage_pct measure.
+
+  - id: cost_018
+    category: tvf
+    domain: cost
+    question: "Show cost breakdown by team tag"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_cost_by_tag"
+    critical: true
+    notes: |
+      Should use get_cost_by_tag TVF with tag_key='team'.
+
+  - id: cost_019
+    category: tvf
+    domain: cost
+    question: "What percentage of cost is untagged?"
+    validation:
+      type: result_check
+      expected_metric_views: ["mv_cost_analytics"]
+    critical: false
+    notes: |
+      Should calculate from untagged_cost / total_cost from mv_cost_analytics.
+
+  # ---------------------------------------------------------------------------
+  # ML / Predictions (3 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: cost_020
+    category: ml_prediction
+    domain: cost
+    question: "Are there any cost anomalies?"
+    validation:
+      type: ml_table
+      expected_tables: ["cost_anomaly_predictions"]
+      expected_tvfs: ["get_cost_anomalies"]
+    critical: true
+    notes: |
+      Should query cost_anomaly_predictions ML table or get_cost_anomalies TVF.
+  
+  - id: cost_021
+    category: ml_prediction
+    domain: cost
+    question: "What's the cost forecast for next month?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_cost_forecast_summary"
+    critical: true
+    notes: |
+      Should use get_cost_forecast_summary TVF.
+
+  - id: cost_022
+    category: ml_prediction
+    domain: cost
+    question: "Show me any spending spikes detected"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_cost_anomalies"
+    critical: false
+    notes: |
+      Should use get_cost_anomalies TVF with anomaly_type='SPIKE'.
+
+  # ---------------------------------------------------------------------------
+  # Serverless / Compute Type Analysis (3 tests)
+  # ---------------------------------------------------------------------------
+
+  - id: cost_023
+    category: compute_type
+    domain: cost
+    question: "What percentage of our spend is on serverless?"
+    validation:
+      type: result_check
+      expected_metric_views: ["mv_cost_analytics"]
+    critical: true
+    notes: |
+      Should use serverless_ratio measure from mv_cost_analytics.
+
+  - id: cost_024
+    category: compute_type
+    domain: cost
+    question: "Show me all-purpose cluster costs"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_all_purpose_cluster_cost"
+    critical: false
+    notes: |
+      Should use get_all_purpose_cluster_cost TVF.
+
+  - id: cost_025
+    category: compute_type
+    domain: cost
+    question: "Compare serverless vs classic compute costs"
+    validation:
+      type: result_check
+      expected_metric_views: ["mv_cost_analytics"]
+    critical: true
+    notes: |
+      Should use serverless_cost and classic_compute_cost measures from mv_cost_analytics.
+
+---
+# ==============================================================================
+# RELIABILITY DOMAIN TEST CASES (25 tests)
+# ==============================================================================
+
+reliability_tests:
+
+  # ---------------------------------------------------------------------------
+  # Simple Queries (6 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: rel_001
+    category: simple_aggregation
+    domain: reliability
+    question: "What is our overall job success rate?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_job_run_timeline"]
+      expected_tvfs: ["get_job_success_rate"]
+      result_assertions:
+        - type: not_empty
+    critical: true
+    notes: |
+      Should use get_job_success_rate TVF or calculate success_rate from fact_job_run_timeline.
+  
+  - id: rel_002
+    category: simple_query
+    domain: reliability
+    question: "How many jobs failed today?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_job_run_timeline"]
+      expected_tvfs: ["get_failed_jobs"]
+    critical: true
+    notes: |
+      Should count jobs where result_state = 'FAILED' for today or use get_failed_jobs TVF.
+
+  - id: rel_003
+    category: simple_query
+    domain: reliability
+    question: "How many total job runs did we have this week?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_job_run_timeline"]
+    critical: false
+    notes: |
+      Should count total runs from fact_job_run_timeline for current week.
+
+  - id: rel_004
+    category: simple_query
+    domain: reliability
+    question: "What is our average job duration?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_job_run_timeline"]
+      expected_tvfs: ["get_job_duration_percentiles"]
+    critical: false
+    notes: |
+      Should calculate average run_duration_minutes from fact_job_run_timeline.
+
+  - id: rel_005
+    category: simple_query
+    domain: reliability
+    question: "How many unique jobs ran in the last 7 days?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_job_run_timeline"]
+    critical: false
+    notes: |
+      Should count distinct job_id from fact_job_run_timeline for last 7 days.
+
+  - id: rel_006
+    category: simple_query
+    domain: reliability
+    question: "What is our job error rate this month?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_job_run_timeline"]
+    critical: true
+    notes: |
+      Should calculate failed_runs / total_runs for current month.
+
+  # ---------------------------------------------------------------------------
+  # TVF Queries (8 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: rel_007
+    category: tvf
+    domain: reliability
+    question: "Show me failed jobs in the last 24 hours"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_failed_jobs"
+    critical: true
+    notes: |
+      Should use get_failed_jobs TVF.
+  
+  - id: rel_008
+    category: tvf
+    domain: reliability
+    question: "What are the job duration percentiles?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_duration_percentiles"
+    critical: true
+    notes: |
+      Should use get_job_duration_percentiles TVF.
+  
+  - id: rel_009
+    category: tvf
+    domain: reliability
+    question: "Show me job failure trends"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_failure_trends"
+    critical: true
+    notes: |
+      Should use get_job_failure_trends TVF.
+
+  - id: rel_010
+    category: tvf
+    domain: reliability
+    question: "What are the job SLA compliance metrics?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_sla_compliance"
+    critical: true
+    notes: |
+      Should use get_job_sla_compliance TVF.
+
+  - id: rel_011
+    category: tvf
+    domain: reliability
+    question: "Show me job retry analysis"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_retry_analysis"
+    critical: false
+    notes: |
+      Should use get_job_retry_analysis TVF to identify flaky jobs.
+
+  - id: rel_012
+    category: tvf
+    domain: reliability
+    question: "What are the job repair costs?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_repair_costs"
+    critical: true
+    notes: |
+      Should use get_job_repair_costs TVF.
+
+  - id: rel_013
+    category: tvf
+    domain: reliability
+    question: "Show job spend trend analysis"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_spend_trend_analysis"
+    critical: false
+    notes: |
+      Should use get_job_spend_trend_analysis TVF.
+
+  - id: rel_014
+    category: tvf
+    domain: reliability
+    question: "Which jobs have the highest failure costs?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_failure_costs"
+    critical: true
+    notes: |
+      Should use get_job_failure_costs TVF.
+
+  # ---------------------------------------------------------------------------
+  # Top-N Queries (5 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: rel_015
+    category: top_n
+    domain: reliability
+    question: "Which jobs fail the most?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_job_run_timeline", "dim_job"]
+      expected_tvfs: ["get_job_failure_costs"]
+    critical: true
+    notes: |
+      Should group by job and count failures.
+  
+  - id: rel_016
+    category: top_n
+    domain: reliability
+    question: "What are the slowest jobs?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_job_run_timeline"]
+      expected_tvfs: ["get_job_run_duration_analysis"]
+    critical: true
+    notes: |
+      Should use get_job_run_duration_analysis TVF or order by duration.
+
+  - id: rel_017
+    category: top_n
+    domain: reliability
+    question: "Which jobs have the lowest success rate?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_success_rate"
+    critical: true
+    notes: |
+      Should use get_job_success_rate TVF ordered by success_rate_pct ASC.
+
+  - id: rel_018
+    category: top_n
+    domain: reliability
+    question: "Show me the top 10 most expensive jobs"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_most_expensive_jobs"
+    critical: true
+    notes: |
+      Should use get_most_expensive_jobs TVF.
+
+  - id: rel_019
+    category: top_n
+    domain: reliability
+    question: "Which jobs have the most retries?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_retry_analysis"
+    critical: false
+    notes: |
+      Should use get_job_retry_analysis TVF ordered by retry_count.
+
+  # ---------------------------------------------------------------------------
+  # ML / Predictions (3 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: rel_020
+    category: ml_prediction
+    domain: reliability
+    question: "Which jobs are likely to fail?"
+    validation:
+      type: ml_table
+      expected_tables: ["job_failure_predictions"]
+    critical: true
+    notes: |
+      Should query job_failure_predictions ML inference table.
+  
+  - id: rel_021
+    category: ml_prediction
+    domain: reliability
+    question: "What's the pipeline health score?"
+    validation:
+      type: ml_table
+      expected_tables: ["pipeline_health_predictions"]
+    critical: false
+    notes: |
+      Should query pipeline_health_predictions ML table.
+
+  - id: rel_022
+    category: ml_prediction
+    domain: reliability
+    question: "Show me predicted job failures"
+    validation:
+      type: ml_table
+      expected_tables: ["job_failure_predictions"]
+    critical: true
+    notes: |
+      Should query job_failure_predictions for high-risk jobs.
+
+  # ---------------------------------------------------------------------------
+  # Time Series / Analysis (3 tests)
+  # ---------------------------------------------------------------------------
+
+  - id: rel_023
+    category: time_series
+    domain: reliability
+    question: "How has our failure rate changed over time?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_failure_trends"
+    critical: true
+    notes: |
+      Should use get_job_failure_trends TVF.
+
+  - id: rel_024
+    category: analysis
+    domain: reliability
+    question: "Show me job outlier runs"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_outlier_runs"
+    critical: false
+    notes: |
+      Should use get_job_outlier_runs TVF to detect anomalous runs.
+
+  - id: rel_025
+    category: analysis
+    domain: reliability
+    question: "Show me job run details for a specific job"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_run_details"
+    critical: false
+    notes: |
+      Should use get_job_run_details TVF with job_id parameter.
+
+---
+# ==============================================================================
+# PERFORMANCE DOMAIN TEST CASES (25 tests)
+# ==============================================================================
+
+performance_tests:
+
+  # ---------------------------------------------------------------------------
+  # Query Performance (8 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: perf_001
+    category: simple_aggregation
+    domain: performance
+    question: "What is our P95 query duration?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_query_history"]
+      expected_tvfs: ["get_query_latency_percentiles"]
+    critical: true
+    notes: |
+      Should use get_query_latency_percentiles TVF or calculate percentile from fact_query_history.
+  
+  - id: perf_002
+    category: tvf
+    domain: performance
+    question: "Show me slow queries in the last hour"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_slow_queries"
+    critical: true
+    notes: |
+      Should use get_slow_queries TVF.
+  
+  - id: perf_003
+    category: tvf
+    domain: performance
+    question: "What's the warehouse utilization?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_warehouse_utilization"
+    critical: true
+    notes: |
+      Should use get_warehouse_utilization TVF.
+
+  - id: perf_004
+    category: tvf
+    domain: performance
+    question: "Which queries are inefficient?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_query_efficiency"
+    critical: true
+    notes: |
+      Should use get_query_efficiency TVF.
+
+  - id: perf_005
+    category: tvf
+    domain: performance
+    question: "Show me queries with high disk spill"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_high_spill_queries"
+    critical: true
+    notes: |
+      Should use get_high_spill_queries TVF.
+
+  - id: perf_006
+    category: tvf
+    domain: performance
+    question: "What are the query volume trends?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_query_volume_trends"
+    critical: false
+    notes: |
+      Should use get_query_volume_trends TVF.
+
+  - id: perf_007
+    category: tvf
+    domain: performance
+    question: "Show me query latency percentiles by warehouse"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_query_latency_percentiles"
+    critical: true
+    notes: |
+      Should use get_query_latency_percentiles TVF.
+
+  - id: perf_008
+    category: tvf
+    domain: performance
+    question: "What are the failed queries?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_failed_queries"
+    critical: true
+    notes: |
+      Should use get_failed_queries TVF.
+
+  # ---------------------------------------------------------------------------
+  # Cluster Performance (6 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: perf_009
+    category: tvf
+    domain: performance
+    question: "Show me underutilized clusters"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_underutilized_clusters"
+    critical: true
+    notes: |
+      Should use get_underutilized_clusters TVF (if available) or derive from metrics.
+  
+  - id: perf_010
+    category: tvf
+    domain: performance
+    question: "What are the cluster right-sizing recommendations?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_cluster_right_sizing_recommendations"
+    critical: true
+    notes: |
+      Should use get_cluster_right_sizing_recommendations TVF or similar.
+  
+  - id: perf_011
+    category: simple_aggregation
+    domain: performance
+    question: "What is our average CPU utilization?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_node_timeline"]
+    critical: false
+    notes: |
+      Should aggregate CPU metrics from fact_node_timeline.
+
+  - id: perf_012
+    category: simple_aggregation
+    domain: performance
+    question: "What is our average memory utilization?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_node_timeline"]
+    critical: false
+    notes: |
+      Should aggregate memory metrics from fact_node_timeline.
+
+  - id: perf_013
+    category: tvf
+    domain: performance
+    question: "Show warehouse efficiency analysis"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_query_efficiency_analysis"
+    critical: true
+    notes: |
+      Should use get_query_efficiency_analysis TVF.
+
+  - id: perf_014
+    category: analysis
+    domain: performance
+    question: "Which warehouses need to scale up?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_query_efficiency_analysis"
+    critical: true
+    notes: |
+      Should use get_query_efficiency_analysis TVF with sizing_indicator.
+
+  # ---------------------------------------------------------------------------
+  # User Analysis (4 tests)
+  # ---------------------------------------------------------------------------
+
+  - id: perf_015
+    category: tvf
+    domain: performance
+    question: "Who are the heaviest query users?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_user_query_summary"
+    critical: true
+    notes: |
+      Should use get_user_query_summary TVF.
+
+  - id: perf_016
+    category: tvf
+    domain: performance
+    question: "Show me user query summary"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_user_query_summary"
+    critical: false
+    notes: |
+      Should use get_user_query_summary TVF.
+
+  - id: perf_017
+    category: simple_aggregation
+    domain: performance
+    question: "How many queries did each warehouse run today?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_query_history"]
+    critical: false
+    notes: |
+      Should group by warehouse from fact_query_history.
+
+  - id: perf_018
+    category: simple_aggregation
+    domain: performance
+    question: "What is the query error rate?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_query_history"]
+    critical: false
+    notes: |
+      Should calculate failed queries / total queries.
+
+  # ---------------------------------------------------------------------------
+  # ML / Predictions (3 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: perf_019
+    category: ml_prediction
+    domain: performance
+    question: "What queries should we optimize?"
+    validation:
+      type: ml_table
+      expected_tables: ["query_optimization_recommendations"]
+    critical: true
+    notes: |
+      Should query query_optimization_recommendations ML table.
+
+  - id: perf_020
+    category: ml_prediction
+    domain: performance
+    question: "Which warehouses are predicted to have capacity issues?"
+    validation:
+      type: ml_table
+      expected_tables: ["warehouse_capacity_predictions"]
+    critical: false
+    notes: |
+      Should query warehouse capacity predictions if available.
+
+  - id: perf_021
+    category: ml_prediction
+    domain: performance
+    question: "Show predicted slow queries"
+    validation:
+      type: ml_table
+      expected_tables: ["query_performance_predictions"]
+    critical: false
+    notes: |
+      Should query query performance predictions.
+
+  # ---------------------------------------------------------------------------
+  # Time Series / Trends (4 tests)
+  # ---------------------------------------------------------------------------
+
+  - id: perf_022
+    category: time_series
+    domain: performance
+    question: "Show query performance trends over time"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_query_volume_trends"
+    critical: false
+    notes: |
+      Should use get_query_volume_trends TVF.
+
+  - id: perf_023
+    category: time_series
+    domain: performance
+    question: "How has warehouse utilization changed this week?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_warehouse_utilization"
+    critical: false
+    notes: |
+      Should use get_warehouse_utilization TVF with weekly comparison.
+
+  - id: perf_024
+    category: analysis
+    domain: performance
+    question: "Show me job outlier runs by performance"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_outlier_runs"
+    critical: false
+    notes: |
+      Should use get_job_outlier_runs TVF.
+
+  - id: perf_025
+    category: analysis
+    domain: performance
+    question: "What is our P99 query latency by warehouse?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_query_latency_percentiles"
+    critical: true
+    notes: |
+      Should use get_query_latency_percentiles TVF for P99.
+
+---
+# ==============================================================================
+# SECURITY DOMAIN TEST CASES (25 tests)
+# ==============================================================================
+
+security_tests:
+
+  # ---------------------------------------------------------------------------
+  # Audit Queries (8 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: sec_001
+    category: tvf
+    domain: security
+    question: "Who accessed sensitive data today?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_sensitive_table_access"
+    critical: true
+    notes: |
+      Should use get_sensitive_table_access TVF.
+  
+  - id: sec_002
+    category: tvf
+    domain: security
+    question: "Show me user activity summary"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_user_activity_summary"
+    critical: true
+    notes: |
+      Should use get_user_activity_summary TVF.
+  
+  - id: sec_003
+    category: tvf
+    domain: security
+    question: "What are the failed login attempts?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_failed_actions"
+    critical: true
+    notes: |
+      Should use get_failed_actions TVF.
+  
+  - id: sec_004
+    category: tvf
+    domain: security
+    question: "Show me off-hours activity"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_off_hours_activity"
+    critical: true
+    notes: |
+      Should use get_off_hours_activity TVF.
+
+  - id: sec_005
+    category: tvf
+    domain: security
+    question: "What permission changes were made today?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_permission_changes"
+    critical: true
+    notes: |
+      Should use get_permission_changes TVF.
+
+  - id: sec_006
+    category: tvf
+    domain: security
+    question: "Show me the security events timeline"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_security_events_timeline"
+    critical: true
+    notes: |
+      Should use get_security_events_timeline TVF.
+
+  - id: sec_007
+    category: tvf
+    domain: security
+    question: "What IP addresses have multiple users?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_ip_address_analysis"
+    critical: true
+    notes: |
+      Should use get_ip_address_analysis TVF.
+
+  - id: sec_008
+    category: tvf
+    domain: security
+    question: "Show table access audit trail"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_table_access_audit"
+    critical: true
+    notes: |
+      Should use get_table_access_audit TVF.
+
+  # ---------------------------------------------------------------------------
+  # User Activity Analysis (6 tests)
+  # ---------------------------------------------------------------------------
+
+  - id: sec_009
+    category: tvf
+    domain: security
+    question: "Show me user activity patterns"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_user_activity_patterns"
+    critical: true
+    notes: |
+      Should use get_user_activity_patterns TVF.
+
+  - id: sec_010
+    category: tvf
+    domain: security
+    question: "Which users have bursty activity?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_user_activity_patterns"
+    critical: false
+    notes: |
+      Should use get_user_activity_patterns TVF filtering for BURSTY pattern.
+
+  - id: sec_011
+    category: tvf
+    domain: security
+    question: "Show service account audit"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_service_account_audit"
+    critical: true
+    notes: |
+      Should use get_service_account_audit TVF.
+
+  - id: sec_012
+    category: simple_query
+    domain: security
+    question: "How many failed actions occurred today?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_audit_logs"]
+    critical: false
+    notes: |
+      Should count is_failed_action=true from fact_audit_logs.
+
+  - id: sec_013
+    category: simple_query
+    domain: security
+    question: "How many unique users accessed the system today?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_audit_logs"]
+    critical: false
+    notes: |
+      Should count distinct user_identity_email from fact_audit_logs.
+
+  - id: sec_014
+    category: simple_query
+    domain: security
+    question: "What are the most common actions performed?"
+    validation:
+      type: result_check
+      expected_tables: ["fact_audit_logs"]
+    critical: false
+    notes: |
+      Should group by action_name from fact_audit_logs.
+
+  # ---------------------------------------------------------------------------
+  # ML / Predictions (5 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: sec_015
+    category: ml_prediction
+    domain: security
+    question: "Are there any security anomalies?"
+    validation:
+      type: ml_table
+      expected_tables: ["access_anomaly_predictions"]
+    critical: true
+    notes: |
+      Should query access_anomaly_predictions ML table.
+  
+  - id: sec_016
+    category: ml_prediction
+    domain: security
+    question: "What are the user risk scores?"
+    validation:
+      type: ml_table
+      expected_tables: ["user_risk_scores"]
+    critical: true
+    notes: |
+      Should query user_risk_scores ML table.
+
+  - id: sec_017
+    category: ml_prediction
+    domain: security
+    question: "Which users have high risk scores?"
+    validation:
+      type: ml_table
+      expected_tables: ["user_risk_scores"]
+    critical: true
+    notes: |
+      Should query user_risk_scores filtered for high risk.
+
+  - id: sec_018
+    category: ml_prediction
+    domain: security
+    question: "Show anomalous user activity"
+    validation:
+      type: ml_table
+      expected_tables: ["access_anomaly_predictions"]
+    critical: true
+    notes: |
+      Should query access_anomaly_predictions.
+
+  - id: sec_019
+    category: ml_prediction
+    domain: security
+    question: "Predict potential security threats"
+    validation:
+      type: ml_table
+      expected_tables: ["security_threat_predictions"]
+    critical: false
+    notes: |
+      Should query security threat predictions if available.
+
+  # ---------------------------------------------------------------------------
+  # Top-N / Analysis (6 tests)
+  # ---------------------------------------------------------------------------
+
+  - id: sec_020
+    category: top_n
+    domain: security
+    question: "Who are the most active users?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_user_activity_summary"
+    critical: false
+    notes: |
+      Should use get_user_activity_summary TVF ordered by event_count.
+
+  - id: sec_021
+    category: analysis
+    domain: security
+    question: "Show users with anomalous patterns"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_user_activity_patterns"
+    critical: true
+    notes: |
+      Should use get_user_activity_patterns filtering for ANOMALOUS.
+
+  - id: sec_022
+    category: analysis
+    domain: security
+    question: "Which service accounts have high risk?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_service_account_audit"
+    critical: true
+    notes: |
+      Should use get_service_account_audit filtering for HIGH risk_level.
+
+  - id: sec_023
+    category: analysis
+    domain: security
+    question: "Show me shared IP addresses"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_ip_address_analysis"
+    critical: false
+    notes: |
+      Should use get_ip_address_analysis filtering for is_shared_ip=true.
+
+  - id: sec_024
+    category: analysis
+    domain: security
+    question: "What sensitive actions were performed after hours?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_off_hours_activity"
+    critical: true
+    notes: |
+      Should use get_off_hours_activity TVF filtering for sensitive_actions > 0.
+
+  - id: sec_025
+    category: analysis
+    domain: security
+    question: "Show me the timeline for a specific user"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_security_events_timeline"
+    critical: false
+    notes: |
+      Should use get_security_events_timeline TVF with user_filter.
+
+---
+# ==============================================================================
+# QUALITY DOMAIN TEST CASES (25 tests)
+# ==============================================================================
+
+quality_tests:
+
+  # ---------------------------------------------------------------------------
+  # Data Freshness (6 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: qual_001
+    category: tvf
+    domain: quality
+    question: "Which tables are stale?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_table_freshness"
+    critical: true
+    notes: |
+      Should use get_table_freshness TVF.
+  
+  - id: qual_002
+    category: tvf
+    domain: quality
+    question: "What's our data quality summary?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_data_quality_summary"
+    critical: true
+    notes: |
+      Should use get_data_quality_summary TVF.
+  
+  - id: qual_003
+    category: tvf
+    domain: quality
+    question: "Which tables are failing quality checks?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_tables_failing_quality"
+    critical: true
+    notes: |
+      Should use get_tables_failing_quality TVF.
+
+  - id: qual_004
+    category: tvf
+    domain: quality
+    question: "Show data freshness by domain"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_data_freshness_by_domain"
+    critical: true
+    notes: |
+      Should use get_data_freshness_by_domain TVF.
+
+  - id: qual_005
+    category: tvf
+    domain: quality
+    question: "What is the job data quality status?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_data_quality_status"
+    critical: true
+    notes: |
+      Should use get_job_data_quality_status TVF.
+
+  - id: qual_006
+    category: simple_query
+    domain: quality
+    question: "How many tables were updated in the last 24 hours?"
+    validation:
+      type: result_check
+      expected_tables: ["information_schema.tables"]
+    critical: false
+    notes: |
+      Should count tables with recent last_altered timestamp.
+
+  # ---------------------------------------------------------------------------
+  # Table Activity (6 tests)
+  # ---------------------------------------------------------------------------
+
+  - id: qual_007
+    category: tvf
+    domain: quality
+    question: "Which tables are inactive?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_table_activity_status"
+    critical: true
+    notes: |
+      Should use get_table_activity_status TVF.
+
+  - id: qual_008
+    category: tvf
+    domain: quality
+    question: "Show orphaned tables"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_table_activity_status"
+    critical: true
+    notes: |
+      Should use get_table_activity_status filtering for ORPHANED status.
+
+  - id: qual_009
+    category: tvf
+    domain: quality
+    question: "What is the table read/write activity?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_table_activity_status"
+    critical: false
+    notes: |
+      Should use get_table_activity_status TVF.
+
+  - id: qual_010
+    category: tvf
+    domain: quality
+    question: "Show me pipeline data lineage"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_pipeline_data_lineage"
+    critical: true
+    notes: |
+      Should use get_pipeline_data_lineage TVF.
+
+  - id: qual_011
+    category: tvf
+    domain: quality
+    question: "Which pipelines have the most complex data flows?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_pipeline_data_lineage"
+    critical: false
+    notes: |
+      Should use get_pipeline_data_lineage ordered by complexity_score.
+
+  - id: qual_012
+    category: simple_query
+    domain: quality
+    question: "How many tables exist in the Gold layer?"
+    validation:
+      type: result_check
+      expected_tables: ["information_schema.tables"]
+    critical: false
+    notes: |
+      Should count tables in gold schema.
+
+  # ---------------------------------------------------------------------------
+  # ML / Predictions (5 tests)
+  # ---------------------------------------------------------------------------
+  
+  - id: qual_013
+    category: ml_prediction
+    domain: quality
+    question: "Are there any data quality anomalies?"
+    validation:
+      type: ml_table
+      expected_tables: ["quality_anomaly_predictions"]
+    critical: true
+    notes: |
+      Should query quality_anomaly_predictions ML table.
+  
+  - id: qual_014
+    category: ml_prediction
+    domain: quality
+    question: "Predict freshness issues"
+    validation:
+      type: ml_table
+      expected_tables: ["freshness_alert_predictions"]
+    critical: true
+    notes: |
+      Should query freshness_alert_predictions ML table.
+
+  - id: qual_015
+    category: ml_prediction
+    domain: quality
+    question: "Which tables are predicted to have quality issues?"
+    validation:
+      type: ml_table
+      expected_tables: ["quality_anomaly_predictions"]
+    critical: true
+    notes: |
+      Should query quality_anomaly_predictions for high-risk tables.
+
+  - id: qual_016
+    category: ml_prediction
+    domain: quality
+    question: "Show predicted schema change alerts"
+    validation:
+      type: ml_table
+      expected_tables: ["schema_change_predictions"]
+    critical: false
+    notes: |
+      Should query schema change predictions if available.
+
+  - id: qual_017
+    category: ml_prediction
+    domain: quality
+    question: "Which pipelines are predicted to have data issues?"
+    validation:
+      type: ml_table
+      expected_tables: ["pipeline_quality_predictions"]
+    critical: false
+    notes: |
+      Should query pipeline quality predictions.
+
+  # ---------------------------------------------------------------------------
+  # Quality Metrics (8 tests)
+  # ---------------------------------------------------------------------------
+
+  - id: qual_018
+    category: simple_aggregation
+    domain: quality
+    question: "What is our overall data quality score?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_data_quality_summary"
+    critical: true
+    notes: |
+      Should use get_data_quality_summary TVF for overall quality metrics.
+
+  - id: qual_019
+    category: simple_query
+    domain: quality
+    question: "How many dimension tables do we have?"
+    validation:
+      type: result_check
+      expected_tables: ["information_schema.tables"]
+    critical: false
+    notes: |
+      Should count tables matching 'dim_%' pattern.
+
+  - id: qual_020
+    category: simple_query
+    domain: quality
+    question: "How many fact tables do we have?"
+    validation:
+      type: result_check
+      expected_tables: ["information_schema.tables"]
+    critical: false
+    notes: |
+      Should count tables matching 'fact_%' pattern.
+
+  - id: qual_021
+    category: analysis
+    domain: quality
+    question: "Which domains have the oldest data?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_data_freshness_by_domain"
+    critical: true
+    notes: |
+      Should use get_data_freshness_by_domain ordered by max_hours_since_update.
+
+  - id: qual_022
+    category: analysis
+    domain: quality
+    question: "Show tables with quality issues and recommendations"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_tables_failing_quality"
+    critical: true
+    notes: |
+      Should use get_tables_failing_quality TVF with recommendations.
+
+  - id: qual_023
+    category: analysis
+    domain: quality
+    question: "Which tables have no recent activity?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_table_activity_status"
+    critical: false
+    notes: |
+      Should use get_table_activity_status filtering for high days_since_last_access.
+
+  - id: qual_024
+    category: analysis
+    domain: quality
+    question: "Show unhealthy pipeline status"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_job_data_quality_status"
+    critical: true
+    notes: |
+      Should use get_job_data_quality_status filtering for WARNING or CRITICAL status.
+
+  - id: qual_025
+    category: analysis
+    domain: quality
+    question: "What is the schema coverage for Gold layer?"
+    validation:
+      type: tvf_preferred
+      expected_tvf: "get_data_quality_summary"
+    critical: false
+    notes: |
+      Should use get_data_quality_summary checking schema coverage metrics.
+
+---
+# ==============================================================================
+# UNIFIED (CROSS-DOMAIN) TEST CASES (5 tests)
+# ==============================================================================
+
+unified_tests:
+
+  - id: uni_001
+    category: cross_domain
+    domain: unified
+    question: "What's the overall platform health?"
+    validation:
+      type: cross_domain
+      expected_domains: ["cost", "reliability", "performance", "security", "quality"]
+    critical: true
+    notes: |
+      Should provide a summary across multiple domains including cost,
+      reliability, performance, security, and quality metrics.
+  
+  - id: uni_002
+    category: cross_domain
+    domain: unified
+    question: "Show me all anomalies across domains"
+    validation:
+      type: ml_table
+      expected_tables:
+        - cost_anomaly_predictions
+        - access_anomaly_predictions
+        - quality_anomaly_predictions
+    critical: true
+    notes: |
+      Should query anomaly predictions from cost, security, and quality domains.
+  
+  - id: uni_003
+    category: simple_aggregation
+    domain: unified
+    question: "What is our total spend and job success rate?"
+    validation:
+      type: cross_domain
+      expected_domains: ["cost", "reliability"]
+    critical: true
+    notes: |
+      Should combine cost aggregation with job success rate from both domains.
+
+  - id: uni_004
+    category: cross_domain
+    domain: unified
+    question: "Show me top issues across all domains"
+    validation:
+      type: cross_domain
+      expected_domains: ["cost", "reliability", "performance", "security", "quality"]
+    critical: true
+    notes: |
+      Should provide a prioritized list of issues from all domains.
+
+  - id: uni_005
+    category: cross_domain
+    domain: unified
+    question: "What are the key metrics for the executive dashboard?"
+    validation:
+      type: cross_domain
+      expected_domains: ["cost", "reliability", "performance"]
+    critical: true
+    notes: |
+      Should provide high-level KPIs: total spend, job success rate, query latency.
+
+---
+# ==============================================================================
+# TEST CASE METADATA
+# ==============================================================================
+
+metadata:
+  version: "2.0.0"
+  created: "2026-01-30"
+  updated: "2026-01-30"
+  total_test_cases: 130
+  critical_test_cases: 80
+  
+  domains:
+    - name: cost
+      test_count: 25
+      critical_count: 15
+    - name: reliability
+      test_count: 25
+      critical_count: 15
+    - name: performance
+      test_count: 25
+      critical_count: 12
+    - name: security
+      test_count: 25
+      critical_count: 16
+    - name: quality
+      test_count: 25
+      critical_count: 14
+    - name: unified
+      test_count: 5
+      critical_count: 5
+  
+  categories:
+    - simple_aggregation
+    - simple_query
+    - top_n
+    - time_series
+    - tvf
+    - ml_prediction
+    - cross_domain
+    - analysis
+    - compute_type
+  
+  # Evaluation guidelines for the LLM
+  evaluation_guidelines: |
+    When evaluating Genie responses:
+    
+    1. PASS if:
+       - Generated SQL uses appropriate tables/TVFs/Metric Views
+       - Results are correct and complete
+       - Query is efficient
+       - TVF usage is correct when TVF is listed as expected
+       - Metric View MEASURE() syntax is used correctly
+    
+    2. FAIL if:
+       - Wrong tables used (e.g., dim_workspace for cost instead of fact_usage)
+       - Results are demonstrably incorrect
+       - Critical columns missing from output
+       - SQL errors or empty results when data exists
+    
+    3. NEEDS_REVIEW if:
+       - Valid alternative approach used
+       - Results are correct but method differs from expected
+       - Minor optimization opportunities
+       - Used direct table query when TVF would be more efficient
+    
+    Remember: NEVER assume Genie is wrong. Verify actual results first.
+    Genie may find a valid alternative path that's equally correct.
+    
+    Priority of response types (all equally valid):
+    1. TVFs - Optimized for specific use cases
+    2. Metric Views - Semantic layer with MEASURE() syntax
+    3. Direct table queries - Flexible but may be less optimized
+    4. ML inference tables - For predictions and anomaly detection

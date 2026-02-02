@@ -47,10 +47,6 @@ variables:
     description: Schema for Agent models, inference logs, memory, and all agent data
     default: system_gold_agent
   
-  agent_model_version:
-    description: Model version to deploy to serving endpoint (workspace-specific)
-    default: "1"  # Default to version 1 for new workspaces
-  
   warehouse_id:
     description: SQL Warehouse ID for serverless execution
     default: "4b9b953939869799"
@@ -110,7 +106,6 @@ targets:
       gold_schema: dev_${workspace.current_user.short_name}_system_gold
       feature_schema: dev_${workspace.current_user.short_name}_system_gold_ml
       agent_schema: dev_${workspace.current_user.short_name}_system_gold_agent
-      agent_model_version: "87"  # Current dev version with OBO
       warehouse_id: "4b9b953939869799"
       
   prod:

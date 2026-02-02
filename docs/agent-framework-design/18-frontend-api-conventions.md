@@ -1,10 +1,16 @@
 # 18 - Frontend API Conventions & Best Practices
 
-> **📋 Implementation Status**: GUIDE FOR FRONTEND DEVELOPERS
+> ⚠️ **DEPRECATED**: This guide has been reorganized and updated.
 > 
-> **Purpose**: API conventions, error codes, deployment URLs, and best practices for Health Monitor Agent integration.
+> **👉 NEW LOCATION**: See `frontend-guides/03-api-reference.md`
 > 
-> **Audience**: Frontend developers, DevOps engineers
+> **Why Moved**: Part of reorganized frontend guide series (01-06) with verified implementation.
+> 
+> **All Frontend Guides**: See `frontend-guides/00-README.md`
+
+---
+
+**This file is kept for backward compatibility but will not be updated.**
 
 ---
 

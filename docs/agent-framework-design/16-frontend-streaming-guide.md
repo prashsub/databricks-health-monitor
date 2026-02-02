@@ -1,10 +1,16 @@
 # 16 - Frontend Streaming Responses Guide
 
-> **📋 Implementation Status**: GUIDE FOR FRONTEND DEVELOPERS
+> ⚠️ **DEPRECATED**: This guide has been reorganized and updated.
 > 
-> **Purpose**: Detailed guide for implementing streaming agent responses with proper fallback handling.
+> **👉 NEW LOCATION**: See `frontend-guides/04-streaming-responses.md`
 > 
-> **Audience**: Frontend developers implementing real-time chat interfaces
+> **Why Moved**: Part of reorganized frontend guide series (01-06) with verified implementation.
+> 
+> **All Frontend Guides**: See `frontend-guides/00-README.md`
+
+---
+
+**This file is kept for backward compatibility but will not be updated.**
 
 ---
 

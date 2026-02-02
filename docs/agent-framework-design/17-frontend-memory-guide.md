@@ -1,10 +1,16 @@
 # 17 - Frontend Memory Integration Guide
 
-> **📋 Implementation Status**: GUIDE FOR FRONTEND DEVELOPERS
+> ⚠️ **DEPRECATED**: This guide has been reorganized and updated.
 > 
-> **Purpose**: Comprehensive guide for leveraging short-term and long-term memory in the UI.
+> **👉 NEW LOCATION**: See `frontend-guides/05-memory-integration.md`
 > 
-> **Audience**: Frontend developers implementing stateful chat experiences
+> **Why Moved**: Part of reorganized frontend guide series (01-06) with verified implementation.
+> 
+> **All Frontend Guides**: See `frontend-guides/00-README.md`
+
+---
+
+**This file is kept for backward compatibility but will not be updated.**
 
 ---
 

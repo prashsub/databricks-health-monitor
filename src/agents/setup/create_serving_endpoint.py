@@ -85,7 +85,7 @@ ENVIRONMENT_VARS = {
     "LLM_ENDPOINT": "databricks-claude-3-7-sonnet",
     "LLM_TEMPERATURE": "0.3",
     # Memory Configuration
-    "LAKEBASE_INSTANCE_NAME": "health_monitor_lakebase",
+    "LAKEBASE_INSTANCE_NAME": "DONOTDELETE-vibe-coding-workshop-lakebase",
     # Feature Flags
     "ENABLE_LONG_TERM_MEMORY": "true",
     "ENABLE_WEB_SEARCH": "true",

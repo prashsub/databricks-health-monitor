@@ -1,0 +1,629 @@
+{
+  "version": 1,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "b8907f5d334dbdbdd43cc31c21de7aab",
+        "question": [
+          "What is our average query duration?"
+        ]
+      },
+      {
+        "id": "db2f897e8aba8ea01be44835139828f5",
+        "question": [
+          "Show me slow queries from today"
+        ]
+      },
+      {
+        "id": "7d2bdd3c07fd04ce6651b663190cb1c0",
+        "question": [
+          "What is the P95 query duration?"
+        ]
+      },
+      {
+        "id": "0273965eb8c95f3af46ed9ea2ce9c3d0",
+        "question": [
+          "Which warehouse has the highest queue time?"
+        ]
+      },
+      {
+        "id": "55e82bbaeae6aaaa7dbedb9cfb0830b0",
+        "question": [
+          "What is the SLA breach rate?"
+        ]
+      },
+      {
+        "id": "df8198b014943e5c5ddcc9f6aded6e0c",
+        "question": [
+          "What is our average CPU utilization?"
+        ]
+      },
+      {
+        "id": "c61774f221f11b139838c57324a27959",
+        "question": [
+          "Which clusters are underutilized?"
+        ]
+      },
+      {
+        "id": "507a74a0766b12c05a6d6aa66a6db2c0",
+        "question": [
+          "Show me memory utilization by cluster"
+        ]
+      },
+      {
+        "id": "47a648cf3c5b546ca2680738db38bbd2",
+        "question": [
+          "Which clusters are overprovisioned?"
+        ]
+      },
+      {
+        "id": "a98b7476c74be5989d6afdd82fae3dbb",
+        "question": [
+          "Show me right-sizing recommendations"
+        ]
+      },
+      {
+        "id": "f42c443721297a6a2b1abbf46eb87839",
+        "question": [
+          "Which clusters are on legacy DBR?"
+        ]
+      },
+      {
+        "id": "a83c2ab8b4fc88dd2f591edde0be5620",
+        "question": [
+          "What's the potential savings from downsizing?"
+        ]
+      },
+      {
+        "id": "23621c1fb99953cf0c542c4c06ef9e3c",
+        "question": [
+          "Show me queries needing optimization"
+        ]
+      },
+      {
+        "id": "11a87e5e7e4cb944640d05d4a6e1b6c2",
+        "question": [
+          "Which queries should I optimize?"
+        ]
+      },
+      {
+        "id": "1dbf8dd84d6f13030a2e5d07a67cc79b",
+        "question": [
+          "Recommend optimal cluster capacity"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_warehouse"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_cluster"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_node_type"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_workspace"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_query_history"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_warehouse_events"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_node_timeline"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.query_performance_predictions"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.query_optimization_predictions"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.cache_hit_predictions"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.cluster_capacity_predictions"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.warehouse_optimizer_predictions"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.performance_regression_predictions"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.dbr_migration_predictions"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_query_history_profile_metrics"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_query_history_drift_metrics"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_node_timeline_profile_metrics"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_node_timeline_drift_metrics"
+      }
+    ],
+    "metric_views": [
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.mv_query_performance"
+      },
+      {
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.mv_cluster_utilization"
+      }
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "262968b696e87fc9c43725de073a072a",
+        "content": [
+          "You are a Databricks performance analyst. Follow these STRICT rules for consistent responses:",
+          "",
+          "=== CRITICAL ASSET ROUTING (ALWAYS FOLLOW) ===",
+          "",
+          "1. **Query Aggregations (P95, P99, avg, counts):**",
+          "   \u2192 USE: mv_query_performance metric view",
+          "   \u2192 NEVER USE: fact_query_history directly",
+          "   ",
+          "2. **Slow Query Lists:**",
+          "   \u2192 USE: get_slow_queries TVF with TABLE() wrapper",
+          "   \u2192 Example: SELECT * FROM TABLE(get_slow_queries('2024-01-01', '2024-12-31', 300, 50))",
+          "",
+          "3. **Warehouse Utilization:**",
+          "   \u2192 USE: get_warehouse_utilization TVF with TABLE() wrapper",
+          "   \u2192 Example: SELECT * FROM TABLE(get_warehouse_utilization('2024-01-01', '2024-12-31'))",
+          "   ",
+          "4. **Query Efficiency:**",
+          "   \u2192 USE: mv_query_performance with query_efficiency_status dimension",
+          "   \u2192 Filter: query_efficiency_status IN ('EFFICIENT','SLOW','HIGH_QUEUE','HIGH_SPILL')",
+          "",
+          "5. **Cluster CPU/Memory:**",
+          "   \u2192 USE: mv_cluster_utilization metric view",
+          "   \u2192 NEVER USE: fact_node_timeline directly",
+          "",
+          "6. **Failed Queries:**",
+          "   \u2192 USE: get_failed_queries TVF with TABLE() wrapper",
+          "   \u2192 Example: SELECT * FROM TABLE(get_failed_queries('2024-01-01', '2024-12-31', 100))",
+          "",
+          "=== TIME FILTER PATTERNS (ALWAYS USE THESE EXACT PATTERNS) ===",
+          "",
+          "\u2022 \"last hour\" \u2192 query_date = CURRENT_DATE() AND hour_of_day = HOUR(CURRENT_TIMESTAMP())",
+          "\u2022 \"today\" \u2192 query_date = CURRENT_DATE()",
+          "\u2022 \"yesterday\" \u2192 query_date = DATE_ADD(CURRENT_DATE(), -1)",
+          "\u2022 \"this week\" \u2192 query_date >= DATE_ADD(CURRENT_DATE(), -7)",
+          "\u2022 \"last 24 hours\" \u2192 start_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS",
+          "",
+          "=== STANDARD COLUMN SETS (ALWAYS INCLUDE THESE) ===",
+          "",
+          "For slow queries: statement_id, warehouse_name, executed_by, duration_seconds, query_date",
+          "For warehouse metrics: warehouse_id, warehouse_name, total_queries, avg_duration_seconds, p95_duration_seconds",
+          "For efficiency: query_efficiency_status, inefficient_query_count, efficiency_rate",
+          "",
+          "=== TERMINOLOGY ===",
+          "",
+          "\u2022 \"Warehouse\" = SQL Warehouse (fact_query_history, mv_query_performance)",
+          "\u2022 \"Cluster\" = All-purpose cluster (fact_node_timeline, mv_cluster_utilization)",
+          "",
+          "=== DEFAULTS ===",
+          "",
+          "\u2022 Date range: last 7 days",
+          "\u2022 Duration unit: seconds",
+          "\u2022 Top N: 20 for performance lists",
+          "\u2022 SLA threshold: 60 seconds"
+        ]
+      }
+    ],
+    "sql_functions": [
+      {
+        "id": "118db1fde23b40cd8ce38e022863fe30",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_slow_queries"
+      },
+      {
+        "id": "c35d1b8a8fa24ed8a53c17bf3bf01ac7",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_query_latency_percentiles"
+      },
+      {
+        "id": "8a97bcbfb9d24985a11a88e2c2a59631",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_warehouse_utilization"
+      },
+      {
+        "id": "47b5ddb22e754c88aabe5ad0e1797c7b",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_query_volume_trends"
+      },
+      {
+        "id": "6ca9f102b22f482a9d3b73f53daff512",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_query_efficiency"
+      },
+      {
+        "id": "4e075cb4bda34a11a1c700eccb90d688",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_query_efficiency_analysis"
+      },
+      {
+        "id": "b290f6d0028a4ea0b613e9b6356fd299",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_failed_queries"
+      },
+      {
+        "id": "06759aab00b9401cae56ebf3da5391ec",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_high_spill_queries"
+      },
+      {
+        "id": "8367e43fe5f3431eacba6f1816b8a513",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_cluster_utilization"
+      },
+      {
+        "id": "86460a0ee082458db6f00becd9c181ea",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_cluster_resource_metrics"
+      },
+      {
+        "id": "2cb610d9ef0b47fb89091c142e822eb1",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_underutilized_clusters"
+      },
+      {
+        "id": "1d79dd5c67f9408b873b949ac8ea3971",
+        "identifier": "prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_user_query_summary"
+      }
+    ]
+  },
+  "benchmarks": {
+    "questions": [
+      {
+        "id": "0fef8b7437f44ed187c9a4fcc4b71ab1",
+        "question": [
+          "Query get_slow_queries"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_slow_queries(\"2025-12-15\", \"2026-01-14\", 300, 20) LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "730a314918f648b193f4ccc3e5669ff1",
+        "question": [
+          "Query get_query_latency_percentiles"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_query_latency_percentiles(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ddf3b45edf61499aa145d46ce6744799",
+        "question": [
+          "Query get_warehouse_utilization"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_warehouse_utilization(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "a176d3570d8c455a9f6852f757b27f40",
+        "question": [
+          "Query get_query_volume_trends"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_query_volume_trends(30, \"daily\") LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "d92ca0e31a634db88c80e369c5a08d5b",
+        "question": [
+          "Query get_query_efficiency"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_query_efficiency(\"2025-12-15\", \"2026-01-14\", 60, 20) LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "49f811b27d754b82a516f237f1324292",
+        "question": [
+          "Query get_query_efficiency_analysis"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_query_efficiency_analysis(30, \"ALL\") LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "4149af7752a44381837124bef9d85c66",
+        "question": [
+          "Query get_failed_queries"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_failed_queries(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b6b2b7fb36c14f4a8b0782a07b1041c1",
+        "question": [
+          "Query get_high_spill_queries"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.get_high_spill_queries(\"2025-12-15\", \"2026-01-14\", 1.0) LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "477df5e7c8a64e05aedd667b7398d4f6",
+        "question": [
+          "What is the average query duration by warehouse?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT warehouse_name, MEASURE(avg_duration_seconds) AS avg_duration FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.mv_query_performance GROUP BY warehouse_name ORDER BY avg_duration DESC LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ffe1667e689b497192911448b3fc9ba7",
+        "question": [
+          "What is the average CPU utilization by cluster?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT cluster_name, MEASURE(avg_cpu_utilization) AS avg_cpu FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.mv_cluster_utilization GROUP BY cluster_name ORDER BY avg_cpu DESC LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3ae1dde90e4949989aaa06d9e5f3da35",
+        "question": [
+          "Show predictions from query_performance_predictions"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.query_performance_predictions LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "d482c80a0ace4eb683ece83443aac918",
+        "question": [
+          "Show predictions from query_optimization_predictions"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.query_optimization_predictions LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c30dcf4c09874069b79248d66f6df4f6",
+        "question": [
+          "Show predictions from cache_hit_predictions"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_ml.cache_hit_predictions LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "770e6c9e03634e3693e2ccdc7dcd3eb5",
+        "question": [
+          "Show monitoring data from fact_query_history_profile_metrics"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_query_history_profile_metrics LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "764f972ab0a241b58228f5618ac598b7",
+        "question": [
+          "Show monitoring data from fact_query_history_drift_metrics"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold_monitoring.fact_query_history_drift_metrics LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3611b0c16b36491e91b92efaddb31606",
+        "question": [
+          "Show data from fact_query_history"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_query_history LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "33ce5bdc437042f190c06af32be70671",
+        "question": [
+          "Show data from fact_warehouse_events"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_warehouse_events LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dba9fb5c7d7348549a5c95cc430d936b",
+        "question": [
+          "Show data from fact_node_timeline"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.fact_node_timeline LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ee237f81e94c43b18454aa6e0fa8f9cc",
+        "question": [
+          "Show dim_warehouse"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_warehouse LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9532e5d5d2b741bd9032e8f95ab27052",
+        "question": [
+          "Show dim_cluster"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM prashanth_subrahmanyam_catalog.dev_prashanth_subrahmanyam_system_gold.dim_cluster LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1559da69d8f84c11b246f7459902a731",
+        "question": [
+          "Which queries are causing the most resource contention?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Which queries are causing the most resource contention?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "d840625a48714260a13948586d38f5f3",
+        "question": [
+          "What are the optimization opportunities for our slowest queries?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: What are the optimization opportunities for our slowest queries?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "a31b495aa20e4bb29231460fdf7820ee",
+        "question": [
+          "How does cluster utilization vary throughout the day?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: How does cluster utilization vary throughout the day?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "6c1a332d749a41139eef6c0498006594",
+        "question": [
+          "Which warehouses are underutilized and could be consolidated?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Which warehouses are underutilized and could be consolidated?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c1f4b0c75467422c840ce798f2e3a665",
+        "question": [
+          "What performance improvements would result from query caching?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: What performance improvements would result from query caching?' AS analysis;"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -98,7 +98,7 @@ class AgentSettings:
     # Lakebase Memory Configuration
     # =========================================================================
     lakebase_instance_name: str = field(
-        default_factory=lambda: os.environ.get("LAKEBASE_INSTANCE_NAME", "health_monitor_memory")
+        default_factory=lambda: os.environ.get("LAKEBASE_INSTANCE_NAME", "DONOTDELETE-vibe-coding-workshop-lakebase")
     )
 
     # Short-term memory (conversation context)

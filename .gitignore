@@ -134,6 +134,18 @@ override.tf.json
 terraform.rc
 
 # -----------------------------------------------------------------------------
+# Project-Specific
+# -----------------------------------------------------------------------------
+# Scratchpad - temporary work files
+scratchpad/
+
+# Archive folders - old documentation
+docs/archive/
+
+# Optimizer state files
+*.optimizer_state.json
+
+# -----------------------------------------------------------------------------
 # Misc
 # -----------------------------------------------------------------------------
 *.bak

@@ -97,6 +97,9 @@
   "data_sources": {
     "tables": [
       {
+        "identifier": "${catalog}.${gold_schema}.dim_cluster"
+      },
+      {
         "identifier": "${catalog}.${gold_schema}.dim_job"
       },
       {
@@ -106,31 +109,28 @@
         "identifier": "${catalog}.${gold_schema}.dim_workspace"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.dim_cluster"
-      },
-      {
         "identifier": "${catalog}.${gold_schema}.fact_job_run_timeline"
       },
       {
         "identifier": "${catalog}.${gold_schema}.fact_job_task_run_timeline"
       },
       {
-        "identifier": "${catalog}.${feature_schema}.job_failure_predictions"
+        "identifier": "${catalog}.${gold_schema}_ml.duration_predictions"
       },
       {
-        "identifier": "${catalog}.${feature_schema}.retry_success_predictions"
+        "identifier": "${catalog}.${gold_schema}_ml.job_failure_predictions"
       },
       {
-        "identifier": "${catalog}.${feature_schema}.sla_breach_predictions"
+        "identifier": "${catalog}.${gold_schema}_ml.retry_success_predictions"
       },
       {
-        "identifier": "${catalog}.${feature_schema}.duration_predictions"
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics"
+        "identifier": "${catalog}.${gold_schema}_ml.sla_breach_predictions"
       },
       {
         "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics"
       }
     ],
     "metric_views": [
@@ -144,55 +144,108 @@
       {
         "id": "c1d2e3f4a5b6789012345678901234cc",
         "content": [
-          "You are a Databricks job reliability analyst. Follow these rules:\n",
-          "\n",
-          "1. **Asset Selection:** Use Metric View for current state, TVFs for lists, Custom Metrics for trends\n",
-          "2. **Primary Source:** Use mv_job_performance metric view for dashboard KPIs\n",
-          "3. **TVFs for Lists:** Use TVFs for \"which jobs\", \"top N\", \"list\" queries - always wrap in TABLE()\n",
-          "4. **Trends:** For \"is success rate degrading?\" check _drift_metrics tables\n",
-          "5. **Date Default:** If no date specified, default to last 7 days\n",
-          "6. **Aggregation:** Use COUNT for volumes, AVG for averages\n",
-          "7. **Sorting:** Sort by failure_rate DESC or duration DESC\n",
-          "8. **Limits:** Top 10-20 for ranking queries\n",
-          "9. **Percentages:** Success/failure rates as % with 1 decimal\n",
-          "10. **Duration:** Show in minutes for readability\n",
-          "11. **Synonyms:** job=workflow=pipeline, failure=error=crash\n",
-          "12. **ML Predictions:** For \"likely to fail\" \u2192 query job_failure_predictions with ${feature_schema}\n",
-          "13. **Failed Jobs:** For \"failed jobs today\" \u2192 use get_failed_jobs(days_back) with TABLE()\n",
-          "14. **Custom Metrics:** Always include required filters (column_name=':table', log_type='INPUT')\n",
-          "15. **Context:** Explain FAILED vs ERROR vs TIMED_OUT\n",
-          "16. **Performance:** Never scan Bronze/Silver tables"
+          "You are a Databricks job reliability analyst. Follow these STRICT rules:",
+          "",
+          "=== CRITICAL ASSET ROUTING (ALWAYS FOLLOW) ===",
+          "",
+          "1. **Job success rate / overall success rate**",
+          "   \u2192 USE: mv_job_performance metric view",
+          "   \u2192 SQL: SELECT MEASURE(success_rate) AS success_rate FROM mv_job_performance",
+          "",
+          "2. **Failed jobs today / failed jobs list**",
+          "   \u2192 USE: get_failed_jobs TVF with TABLE() wrapper",
+          "   \u2192 Example: SELECT * FROM TABLE(get_failed_jobs(CURRENT_DATE - 1, CURRENT_DATE, 'ALL'))",
+          "",
+          "3. **Job duration percentiles / P50 / P95 / P99**",
+          "   \u2192 USE: get_job_duration_percentiles TVF with TABLE() wrapper",
+          "   \u2192 Example: SELECT * FROM TABLE(get_job_duration_percentiles(30, 'ALL'))",
+          "",
+          "4. **Slowest jobs / longest running jobs**",
+          "   \u2192 USE: mv_job_performance metric view with ORDER BY",
+          "   \u2192 SQL: SELECT job_name, MEASURE(avg_duration_minutes) FROM mv_job_performance GROUP BY job_name ORDER BY 2 DESC LIMIT 10",
+          "",
+          "5. **Highest failure rate / most failures**",
+          "   \u2192 USE: get_job_failure_trends TVF with TABLE() wrapper",
+          "   \u2192 Example: SELECT * FROM TABLE(get_job_failure_trends(30)) ORDER BY failure_rate DESC LIMIT 10",
+          "",
+          "6. **Job SLA compliance / SLA breaches**",
+          "   \u2192 USE: get_job_sla_compliance TVF with TABLE() wrapper",
+          "",
+          "7. **Job retry analysis / retry rate**",
+          "   \u2192 USE: get_job_retry_analysis TVF with TABLE() wrapper",
+          "",
+          "8. **Job failure costs / repair costs**",
+          "   \u2192 USE: get_job_failure_costs or get_job_repair_costs TVF",
+          "",
+          "9. **Job outliers / anomalous runs**",
+          "   \u2192 USE: get_job_outlier_runs TVF with TABLE() wrapper",
+          "",
+          "10. **Failure predictions / will jobs fail?**",
+          "    \u2192 USE: job_failure_predictions table from feature schema",
+          "",
+          "=== METRIC VIEW USAGE ===",
+          "",
+          "Only use mv_job_performance metric view for:",
+          "- Dashboard-style aggregations (success rate, avg duration)",
+          "- High-level KPIs without specific parameters",
+          "- \"What is our success rate\" type questions",
+          "",
+          "=== TVF USAGE ===",
+          "",
+          "Use TVFs for:",
+          "- List queries (\"show me\", \"which jobs\", \"top N\")",
+          "- Parameterized queries (date ranges, filters)",
+          "- Detailed analysis queries",
+          "",
+          "=== TIME FILTER DEFAULTS ===",
+          "",
+          "If no date specified:",
+          "- Default to last 7 days for trends",
+          "- Default to today for \"today\" questions",
+          "- Use date format: 'YYYY-MM-DD'",
+          "",
+          "=== STANDARD RESPONSE FORMAT ===",
+          "",
+          "For all queries, include these columns when available:",
+          "- job_name or job_id",
+          "- success_rate or failure_rate (as percentage with 1 decimal)",
+          "- run_duration_minutes (in minutes)",
+          "- run_count or total_runs",
+          "",
+          "=== TERMINOLOGY ===",
+          "",
+          "- \"job\" = workflow = pipeline",
+          "- \"failure\" = error = crash = FAILED state",
+          "- \"success rate\" = successful_runs / total_runs",
+          "- \"duration\" = run_duration_minutes",
+          "",
+          "=== SORTING & LIMITS ===",
+          "",
+          "- Default LIMIT: 10 for ranking queries, 20 for lists",
+          "- Sort by: failure_rate DESC for failures, duration DESC for slowest"
         ]
       }
     ],
     "sql_functions": [
       {
-        "id": "459ad5bbdfba47fb826e14f1439367ba",
-        "identifier": "${catalog}.${gold_schema}.get_failed_jobs"
+        "id": "1191ab22dda34edea6c7c14bd99854ea",
+        "identifier": "${catalog}.${gold_schema}.get_job_duration_percentiles"
       },
       {
         "id": "287a5bb1d61348239d928bcb3a7345f9",
         "identifier": "${catalog}.${gold_schema}.get_job_success_rate"
       },
       {
-        "id": "1191ab22dda34edea6c7c14bd99854ea",
-        "identifier": "${catalog}.${gold_schema}.get_job_duration_percentiles"
+        "id": "459ad5bbdfba47fb826e14f1439367ba",
+        "identifier": "${catalog}.${gold_schema}.get_failed_jobs"
+      },
+      {
+        "id": "45cd3781ed984ef797fd3be5a5eca0a4",
+        "identifier": "${catalog}.${gold_schema}.get_jobs_without_autoscaling"
       },
       {
         "id": "637750495ce449d4b62fced27557c994",
         "identifier": "${catalog}.${gold_schema}.get_job_sla_compliance"
-      },
-      {
-        "id": "cf4bec8354c7433f91354c0e75aa1ea3",
-        "identifier": "${catalog}.${gold_schema}.get_job_failure_trends"
-      },
-      {
-        "id": "d239f087768940558d56213685d02f63",
-        "identifier": "${catalog}.${gold_schema}.get_job_outlier_runs"
-      },
-      {
-        "id": "96a48a12f527401cbbf91995b2025e65",
-        "identifier": "${catalog}.${gold_schema}.get_job_retry_analysis"
       },
       {
         "id": "835b681d506e45c387ffb8be4520dd37",
@@ -203,77 +256,43 @@
         "identifier": "${catalog}.${gold_schema}.get_job_repair_costs"
       },
       {
-        "id": "dc580b3bc0704a6783a01d22c8d9bf4a",
-        "identifier": "${catalog}.${gold_schema}.get_job_run_details"
+        "id": "96a48a12f527401cbbf91995b2025e65",
+        "identifier": "${catalog}.${gold_schema}.get_job_retry_analysis"
+      },
+      {
+        "id": "ad5000093c584589993a9a75f61a5bf4",
+        "identifier": "${catalog}.${gold_schema}.get_jobs_on_legacy_dbr"
+      },
+      {
+        "id": "cf4bec8354c7433f91354c0e75aa1ea3",
+        "identifier": "${catalog}.${gold_schema}.get_job_failure_trends"
+      },
+      {
+        "id": "d239f087768940558d56213685d02f63",
+        "identifier": "${catalog}.${gold_schema}.get_job_outlier_runs"
       },
       {
         "id": "d751c099676445208ae7509865c7fc9c",
         "identifier": "${catalog}.${gold_schema}.get_job_run_duration_analysis"
       },
       {
-        "id": "45cd3781ed984ef797fd3be5a5eca0a4",
-        "identifier": "${catalog}.${gold_schema}.get_jobs_without_autoscaling"
-      },
-      {
-        "id": "ad5000093c584589993a9a75f61a5bf4",
-        "identifier": "${catalog}.${gold_schema}.get_jobs_on_legacy_dbr"
+        "id": "dc580b3bc0704a6783a01d22c8d9bf4a",
+        "identifier": "${catalog}.${gold_schema}.get_job_run_details"
       }
     ]
   },
   "benchmarks": {
     "questions": [
       {
-        "id": "af2840281fbf42b18057b194b7cf44b4",
+        "id": "0152e7294b684ef493df2437f92cf898",
         "question": [
-          "Query get_failed_jobs"
+          "Get duration predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_failed_jobs(\"2025-12-15\", \"2026-01-14\", \"ALL\") LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "295f305ef451435c904f5eaf1b6bf449",
-        "question": [
-          "Query get_job_success_rate"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_job_success_rate(\"2025-12-15\", \"2026-01-14\", 5) LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "0eaa11ec86b64ef290289d86b65206b6",
-        "question": [
-          "Query get_job_duration_percentiles"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_job_duration_percentiles(30, \"ALL\") LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "b293d7a335074c41a561d2ec8875fa66",
-        "question": [
-          "Query get_job_sla_compliance"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_job_sla_compliance(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}_ml.duration_predictions LIMIT 20;"
             ]
           }
         ]
@@ -293,225 +312,15 @@
         ]
       },
       {
-        "id": "85a54635634841f08b48c31aad7eda37",
+        "id": "0eaa11ec86b64ef290289d86b65206b6",
         "question": [
-          "Query get_job_outlier_runs"
+          "Query get_job_duration_percentiles"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_job_outlier_runs(30, 1.0, 30) LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "4b6154809c3a4a44934c74a4cc706ea1",
-        "question": [
-          "Query get_job_retry_analysis"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_job_retry_analysis(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "fb7533bffc784034a85581f67ea6401f",
-        "question": [
-          "Query get_job_failure_costs"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_job_failure_costs(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "29b71f5ca3674057ade80bac1fe33560",
-        "question": [
-          "What is the job success rate by workspace?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT workspace_name, MEASURE(success_rate) AS success_rate FROM ${catalog}.${gold_schema}.mv_job_performance GROUP BY workspace_name ORDER BY success_rate ASC LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "977d878c0e054889b965361b708e2fdc",
-        "question": [
-          "Show predictions from job_failure_predictions"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${feature_schema}.job_failure_predictions LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "7cc6c0908fe64813aa34ac8d68301d4d",
-        "question": [
-          "Show predictions from retry_success_predictions"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${feature_schema}.retry_success_predictions LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "c9c9a98619504b55aa78bf556eabb260",
-        "question": [
-          "Show predictions from sla_breach_predictions"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${feature_schema}.sla_breach_predictions LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "0152e7294b684ef493df2437f92cf898",
-        "question": [
-          "Get duration predictions"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${feature_schema}.duration_predictions LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "3dc01a0bfe7646e696cf196bd8801610",
-        "question": [
-          "Show monitoring data from fact_job_run_timeline_profile_metrics"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "b8024f02111b4a818d1066c711ed786a",
-        "question": [
-          "Show monitoring data from fact_job_run_timeline_drift_metrics"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "ee90544444c34122857cfa1a293ac3d9",
-        "question": [
-          "Show data from fact_job_run_timeline"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.fact_job_run_timeline LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "6822226bdf5c45d793d39bae0d8f5c9e",
-        "question": [
-          "Show data from fact_job_task_run_timeline"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.fact_job_task_run_timeline LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "efbb2859dfee4c9baab7da18b4804abb",
-        "question": [
-          "Show dim_job"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.dim_job LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "2057d47db7d740fb9effc1fc99def007",
-        "question": [
-          "Show dim_job_task"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.dim_job_task LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "e068bb6351874922aa206c9e1d254b84",
-        "question": [
-          "Get workspace dimension"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.dim_workspace LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "a593229f1e0f4116913a91a2f41d872f",
-        "question": [
-          "Which jobs have the highest failure rates and what are the root causes?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT 'Deep research: Which jobs have the highest failure rates and what are the root causes?' AS analysis;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_duration_percentiles(30, \"ALL\") LIMIT 20;"
             ]
           }
         ]
@@ -531,15 +340,127 @@
         ]
       },
       {
-        "id": "d311a63a46ad424ab891ba57949b68a5",
+        "id": "2057d47db7d740fb9effc1fc99def007",
         "question": [
-          "Which jobs would benefit most from retry configuration changes?"
+          "Show dim_job_task"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT 'Deep research: Which jobs would benefit most from retry configuration changes?' AS analysis;"
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_job_task LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "23c9f8b1ac7e42778392b378092d1ee5",
+        "question": [
+          "How can we optimize job scheduling to reduce resource contention?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: How can we optimize job scheduling to reduce resource contention?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "295f305ef451435c904f5eaf1b6bf449",
+        "question": [
+          "Query get_job_success_rate"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_success_rate(\"2025-12-15\", \"2026-01-14\", 5) LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "29b71f5ca3674057ade80bac1fe33560",
+        "question": [
+          "What is the job success rate by workspace?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT workspace_name, MEASURE(success_rate) AS success_rate FROM ${catalog}.${gold_schema}.mv_job_performance GROUP BY workspace_name ORDER BY success_rate ASC LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3dc01a0bfe7646e696cf196bd8801610",
+        "question": [
+          "Show monitoring data from fact_job_run_timeline_profile_metrics"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_profile_metrics LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "4b6154809c3a4a44934c74a4cc706ea1",
+        "question": [
+          "Query get_job_retry_analysis"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_retry_analysis(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "6822226bdf5c45d793d39bae0d8f5c9e",
+        "question": [
+          "Show data from fact_job_task_run_timeline"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_job_task_run_timeline LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "7cc6c0908fe64813aa34ac8d68301d4d",
+        "question": [
+          "Show predictions from retry_success_predictions"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}_ml.retry_success_predictions LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "85a54635634841f08b48c31aad7eda37",
+        "question": [
+          "Query get_job_outlier_runs"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_outlier_runs(30, 1.0, 30) LIMIT 20;"
             ]
           }
         ]
@@ -559,15 +480,155 @@
         ]
       },
       {
-        "id": "23c9f8b1ac7e42778392b378092d1ee5",
+        "id": "977d878c0e054889b965361b708e2fdc",
         "question": [
-          "How can we optimize job scheduling to reduce resource contention?"
+          "Show predictions from job_failure_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT 'Deep research: How can we optimize job scheduling to reduce resource contention?' AS analysis;"
+              "SELECT * FROM ${catalog}.${gold_schema}_ml.job_failure_predictions LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "a593229f1e0f4116913a91a2f41d872f",
+        "question": [
+          "Which jobs have the highest failure rates and what are the root causes?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Which jobs have the highest failure rates and what are the root causes?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "af2840281fbf42b18057b194b7cf44b4",
+        "question": [
+          "Query get_failed_jobs"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_failed_jobs(\"2025-12-15\", \"2026-01-14\", \"ALL\") LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b293d7a335074c41a561d2ec8875fa66",
+        "question": [
+          "Query get_job_sla_compliance"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_sla_compliance(\"2025-12-15\", \"2026-01-14\") LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b8024f02111b4a818d1066c711ed786a",
+        "question": [
+          "Show monitoring data from fact_job_run_timeline_drift_metrics"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_job_run_timeline_drift_metrics LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c9c9a98619504b55aa78bf556eabb260",
+        "question": [
+          "Show predictions from sla_breach_predictions"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}_ml.sla_breach_predictions LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "d311a63a46ad424ab891ba57949b68a5",
+        "question": [
+          "Which jobs would benefit most from retry configuration changes?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Which jobs would benefit most from retry configuration changes?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "e068bb6351874922aa206c9e1d254b84",
+        "question": [
+          "Get workspace dimension"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_workspace LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ee90544444c34122857cfa1a293ac3d9",
+        "question": [
+          "Show data from fact_job_run_timeline"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_job_run_timeline LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "efbb2859dfee4c9baab7da18b4804abb",
+        "question": [
+          "Show dim_job"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_job LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "fb7533bffc784034a85581f67ea6401f",
+        "question": [
+          "Query get_job_failure_costs"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_job_failure_costs(\"2025-12-15\", \"2026-01-14\", 20) LIMIT 20;"
             ]
           }
         ]

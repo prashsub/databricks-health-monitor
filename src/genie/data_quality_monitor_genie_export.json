@@ -3,18 +3,6 @@
   "config": {
     "sample_questions": [
       {
-        "id": "d371587d68871652ae8d4fa97532f50c",
-        "question": [
-          "Which tables are stale?"
-        ]
-      },
-      {
-        "id": "b31439665b7be139a89de37b6b26c1d1",
-        "question": [
-          "What is our data freshness by domain?"
-        ]
-      },
-      {
         "id": "1f8741583eef22c63e8627695e1dda9d",
         "question": [
           "Show me tables not updated in 24 hours"
@@ -27,15 +15,9 @@
         ]
       },
       {
-        "id": "aeb1c3ce0a59028f97df64557677fc2b",
+        "id": "43e6a52ce111f673716bf093b59147bc",
         "question": [
-          "What is our overall data quality score?"
-        ]
-      },
-      {
-        "id": "7ec81617fbda0a8335d9d831c8eb7b95",
-        "question": [
-          "Which tables are failing quality checks?"
+          "Show me table activity status"
         ]
       },
       {
@@ -45,15 +27,9 @@
         ]
       },
       {
-        "id": "cc4776afe3578980d03a851b35332f4d",
+        "id": "50fe5f0848190eba2a4712e451ce6531",
         "question": [
-          "What is the quality trend this week?"
-        ]
-      },
-      {
-        "id": "ca3bc3a23871696a90ab3a45ebdba6ec",
-        "question": [
-          "Show me inactive tables"
+          "Which tables have degrading quality?"
         ]
       },
       {
@@ -63,33 +39,57 @@
         ]
       },
       {
+        "id": "7ec81617fbda0a8335d9d831c8eb7b95",
+        "question": [
+          "Which tables are failing quality checks?"
+        ]
+      },
+      {
         "id": "8a44d8b760ed72eb029ee81c555dbfc0",
         "question": [
           "Which pipelines have the most dependencies?"
         ]
       },
       {
-        "id": "43e6a52ce111f673716bf093b59147bc",
+        "id": "aeb1c3ce0a59028f97df64557677fc2b",
         "question": [
-          "Show me table activity status"
+          "What is our overall data quality score?"
         ]
       },
       {
-        "id": "eb832ce5950ced1abeb31aa84520e446",
+        "id": "b31439665b7be139a89de37b6b26c1d1",
         "question": [
-          "Are there any quality anomalies?"
-        ]
-      },
-      {
-        "id": "50fe5f0848190eba2a4712e451ce6531",
-        "question": [
-          "Which tables have degrading quality?"
+          "What is our data freshness by domain?"
         ]
       },
       {
         "id": "c90fe2b15f4f982dfacfe58bd16eb40c",
         "question": [
           "Predict data freshness issues"
+        ]
+      },
+      {
+        "id": "ca3bc3a23871696a90ab3a45ebdba6ec",
+        "question": [
+          "Show me inactive tables"
+        ]
+      },
+      {
+        "id": "cc4776afe3578980d03a851b35332f4d",
+        "question": [
+          "What is the quality trend this week?"
+        ]
+      },
+      {
+        "id": "d371587d68871652ae8d4fa97532f50c",
+        "question": [
+          "Which tables are stale?"
+        ]
+      },
+      {
+        "id": "eb832ce5950ced1abeb31aa84520e446",
+        "question": [
+          "Are there any quality anomalies?"
         ]
       }
     ]
@@ -100,28 +100,28 @@
         "identifier": "${catalog}.${gold_schema}.dim_workspace"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_table_lineage"
+        "identifier": "${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results"
       },
       {
         "identifier": "${catalog}.${gold_schema}.fact_dq_monitoring"
       },
       {
-        "identifier": "${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results"
+        "identifier": "${catalog}.${gold_schema}.fact_table_lineage"
       },
       {
-        "identifier": "${catalog}.${feature_schema}.data_drift_predictions"
+        "identifier": "${catalog}.${gold_schema}_ml.data_drift_predictions"
       },
       {
-        "identifier": "${catalog}.${feature_schema}.freshness_predictions"
+        "identifier": "${catalog}.${gold_schema}_ml.freshness_predictions"
       },
       {
-        "identifier": "${catalog}.${feature_schema}.pipeline_health_predictions"
-      },
-      {
-        "identifier": "${catalog}.${gold_schema}_monitoring.fact_table_lineage_profile_metrics"
+        "identifier": "${catalog}.${gold_schema}_ml.pipeline_health_predictions"
       },
       {
         "identifier": "${catalog}.${gold_schema}_monitoring.fact_table_lineage_drift_metrics"
+      },
+      {
+        "identifier": "${catalog}.${gold_schema}_monitoring.fact_table_lineage_profile_metrics"
       }
     ],
     "metric_views": [
@@ -138,48 +138,100 @@
       {
         "id": "489de56d571e635e9f4cae6449f06e45",
         "content": [
-          "ROLE: You are a data quality and governance analyst.\n",
-          "\n",
-          "ASSET SELECTION RULES:\n",
-          "1. Current state aggregates (overall quality score, freshness rate) \u2192 Use data_quality METRIC VIEW\n",
-          "2. Trend/drift queries (is quality degrading?) \u2192 Use _drift_metrics TABLE\n",
-          "3. List queries (stale tables, failing tables) \u2192 Use TVF functions\n",
-          "4. Predictions (quality anomalies, freshness alerts) \u2192 Use ML prediction tables\n",
-          "\n",
-          "PRIORITY ORDER:\n",
-          "- If user asks for a LIST \u2192 TVF (get_table_freshness, get_table_activity_status)\n",
-          "- If user asks about TREND \u2192 Custom Metrics (_drift_metrics)\n",
-          "- If user asks for CURRENT VALUE \u2192 Metric View (data_quality)\n",
-          "- If user asks for PREDICTION \u2192 ML tables\n",
-          "\n",
-          "\u26a0\ufe0f CUSTOM METRICS QUERY RULES:\n",
-          "- _profile_metrics: ALWAYS include column_name=':table' AND log_type='INPUT'\n",
-          "- _drift_metrics: ALWAYS include drift_type='CONSECUTIVE' AND column_name=':table'\n",
-          "\n",
-          "FORMATTING:\n",
-          "- Quality scores as 0-100 scale\n",
-          "- Percentages with 1 decimal (85.3%)\n",
-          "- Sort by quality_score ASC for problem tables\n",
-          "- Default to last 7 days if no date specified\n",
-          "\n",
-          "FRESHNESS RULES:\n",
-          "- Fresh: <24 hours\n",
-          "- Stale: >24 hours\n",
-          "- Critical: >72 hours\n",
-          "\n",
-          "ACTIVITY RULES:\n",
-          "- Active: accessed in last 14 days\n",
-          "- Inactive: no access in 14+ days\n",
-          "- Orphaned: no access in 30+ days\n",
-          "\n",
-          "SYNONYMS:\n",
-          "- quality = health = status\n",
-          "- stale = outdated = old\n",
-          "- fresh = current = updated\n"
+          "ROLE: You are a data quality and governance analyst. Follow these STRICT rules:",
+          "",
+          "=== CRITICAL ASSET ROUTING (ALWAYS FOLLOW) ===",
+          "",
+          "1. **Stale tables / freshness issues / old tables**",
+          "   \u2192 USE: get_table_freshness TVF with TABLE() wrapper",
+          "   \u2192 Example: SELECT * FROM TABLE(get_table_freshness(7, 24)) WHERE hours_since_update > 24",
+          "",
+          "2. **Data quality summary / overall quality**",
+          "   \u2192 USE: get_data_quality_summary TVF",
+          "   \u2192 Example: SELECT * FROM TABLE(get_data_quality_summary())",
+          "",
+          "3. **Tables failing quality checks**",
+          "   \u2192 USE: get_tables_failing_quality TVF",
+          "   \u2192 Example: SELECT * FROM TABLE(get_tables_failing_quality(24))",
+          "",
+          "4. **Data freshness by domain / freshness breakdown**",
+          "   \u2192 USE: get_data_freshness_by_domain TVF (NOT metric view)",
+          "   \u2192 Example: SELECT * FROM TABLE(get_data_freshness_by_domain(24))",
+          "",
+          "5. **Job data quality status**",
+          "   \u2192 USE: get_job_data_quality_status TVF",
+          "   \u2192 Example: SELECT * FROM TABLE(get_job_data_quality_status(30))",
+          "",
+          "6. **Table activity / inactive tables / orphaned tables**",
+          "   \u2192 USE: get_table_activity_status TVF",
+          "   \u2192 Example: SELECT * FROM TABLE(get_table_activity_status(30, 90))",
+          "",
+          "7. **Pipeline lineage / dependencies**",
+          "   \u2192 USE: get_pipeline_data_lineage TVF",
+          "   \u2192 Example: SELECT * FROM TABLE(get_pipeline_data_lineage(30, 'ALL'))",
+          "",
+          "8. **ML predictions (drift, freshness)**",
+          "   \u2192 USE: data_drift_predictions or freshness_predictions from feature schema",
+          "",
+          "=== METRIC VIEW USAGE ===",
+          "",
+          "Only use mv_data_quality metric view for:",
+          "- High-level dashboard KPIs",
+          "- Questions explicitly asking for \"MEASURE\" aggregations",
+          "- NOT for list queries or \"by domain\" breakdowns",
+          "",
+          "=== TVF PREFERENCE ===",
+          "",
+          "TVFs are ALWAYS preferred for:",
+          "- \"Which\", \"Show me\", \"List\", \"Top N\" queries",
+          "- Domain breakdowns",
+          "- Parameterized queries with date filters",
+          "",
+          "=== CUSTOM METRICS QUERY RULES ===",
+          "",
+          "For _profile_metrics tables:",
+          "- ALWAYS include: column_name=':table' AND log_type='INPUT'",
+          "",
+          "For _drift_metrics tables:",
+          "- ALWAYS include: drift_type='CONSECUTIVE' AND column_name=':table'",
+          "",
+          "=== FRESHNESS DEFINITIONS ===",
+          "",
+          "- Fresh: <24 hours since last update",
+          "- Stale: >24 hours since last update",
+          "- Critical: >72 hours since last update",
+          "",
+          "=== ACTIVITY DEFINITIONS ===",
+          "",
+          "- Active: accessed in last 14 days",
+          "- Inactive: no access in 14+ days",
+          "- Orphaned: no access in 30+ days",
+          "",
+          "=== FORMATTING ===",
+          "",
+          "- Quality scores: 0-100 scale",
+          "- Percentages: 1 decimal (85.3%)",
+          "- Sorting: quality_score ASC for problems, DESC for healthy",
+          "- Default time range: last 7 days if not specified"
         ]
       }
     ],
     "example_question_sqls": [
+      {
+        "id": "89da2e0133054923afcea29e7d7ac6a8",
+        "question": [
+          "Show me tables with freshness issues"
+        ],
+        "sql": [
+          "SELECT * FROM TABLE(get_table_freshness(7, 24))",
+          "WHERE hours_since_update > 24",
+          "ORDER BY hours_since_update DESC",
+          "LIMIT 20;"
+        ],
+        "usage_guidance": [
+          "Use for listing stale tables"
+        ]
+      },
       {
         "id": "d585c41d3761c940d0eb8ffd8e0b82c6",
         "question": [
@@ -195,21 +247,6 @@
         "usage_guidance": [
           "Use for current state overall quality queries"
         ]
-      },
-      {
-        "id": "89da2e0133054923afcea29e7d7ac6a8",
-        "question": [
-          "Show me tables with freshness issues"
-        ],
-        "sql": [
-          "SELECT * FROM TABLE(get_table_freshness(7, 24))",
-          "WHERE hours_since_update > 24",
-          "ORDER BY hours_since_update DESC",
-          "LIMIT 20;"
-        ],
-        "usage_guidance": [
-          "Use for listing stale tables"
-        ]
       }
     ],
     "sql_functions": [
@@ -218,33 +255,103 @@
         "identifier": "${catalog}.${gold_schema}.get_table_freshness"
       },
       {
-        "id": "bfad9ccf043d46328cc66d1f6c3368f8",
-        "identifier": "${catalog}.${gold_schema}.get_data_freshness_by_domain"
+        "id": "2205520322be491293d64d2ebcf661e5",
+        "identifier": "${catalog}.${gold_schema}.get_job_data_quality_status"
       },
       {
         "id": "961871b2e3624ae0aa979c7959c73f25",
         "identifier": "${catalog}.${gold_schema}.get_tables_failing_quality"
       },
       {
-        "id": "c8775c3de1ad4859874d90f9c209cfab",
-        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
-      },
-      {
         "id": "a33fa6c6877b4d33a59fb9b7606612b2",
         "identifier": "${catalog}.${gold_schema}.get_data_quality_summary"
       },
       {
-        "id": "2205520322be491293d64d2ebcf661e5",
-        "identifier": "${catalog}.${gold_schema}.get_job_data_quality_status"
-      },
-      {
         "id": "b38a5f3eb1bf493c9bc9185b24ea426f",
         "identifier": "${catalog}.${gold_schema}.get_table_activity_status"
+      },
+      {
+        "id": "bfad9ccf043d46328cc66d1f6c3368f8",
+        "identifier": "${catalog}.${gold_schema}.get_data_freshness_by_domain"
+      },
+      {
+        "id": "c8775c3de1ad4859874d90f9c209cfab",
+        "identifier": "${catalog}.${gold_schema}.get_pipeline_data_lineage"
       }
     ]
   },
   "benchmarks": {
     "questions": [
+      {
+        "id": "0ed3ba7a6f6349f39b906795dc5772bb",
+        "question": [
+          "Show dim_workspace"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.dim_workspace LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "131660bb764e4689a058cfab04d9e9c7",
+        "question": [
+          "Which tables have the highest data quality issues?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: Which tables have the highest data quality issues?' AS analysis;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1422e397a28f42d49384c179c09da2db",
+        "question": [
+          "Show predictions from pipeline_health_predictions"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}_ml.pipeline_health_predictions LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "15b9ffd78cf34dba8b5907219c26b0ab",
+        "question": [
+          "What is the table freshness status by schema?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT table_schema, MEASURE(total_tables) AS table_count, MEASURE(fresh_tables) AS fresh_count FROM ${catalog}.${gold_schema}.mv_data_quality GROUP BY table_schema ORDER BY table_count DESC LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1ff486669ce9484ebec26cb2a1c2ba5e",
+        "question": [
+          "What is the impact of data freshness on downstream consumers?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: What is the impact of data freshness on downstream consumers?' AS analysis;"
+            ]
+          }
+        ]
+      },
       {
         "id": "28963671b2a34ab68609034bd5f447d3",
         "question": [
@@ -260,29 +367,57 @@
         ]
       },
       {
-        "id": "73431d675584426eaac5efa41abdcd39",
+        "id": "3118aec8f3c24ebca9e0d3aed53c02c0",
         "question": [
-          "Query get_data_freshness_by_domain"
+          "Additional analysis query 25"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_data_freshness_by_domain(24) LIMIT 20;"
+              "SELECT 'Placeholder' AS result;"
             ]
           }
         ]
       },
       {
-        "id": "f955099bb4604782a1eb77acb157a0c8",
+        "id": "3675ecb4ee724a298f4407a0b053b8e1",
         "question": [
-          "Query get_tables_failing_quality"
+          "Show predictions from data_drift_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_tables_failing_quality(24) LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}_ml.data_drift_predictions LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3dc629ef499449228bb2d4f71cb7594e",
+        "question": [
+          "What are the data access events by source table?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT source_table_name, MEASURE(total_events) AS access_count FROM ${catalog}.${gold_schema}.mv_governance_analytics GROUP BY source_table_name ORDER BY access_count DESC LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "54d8e1afb0294d50b84452e4af3474ff",
+        "question": [
+          "Additional analysis query 24"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Placeholder' AS result;"
             ]
           }
         ]
@@ -297,20 +432,6 @@
             "format": "SQL",
             "content": [
               "SELECT * FROM ${catalog}.${gold_schema}.get_pipeline_data_lineage(30, \"ALL\") LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "6d90fe0004444b11a4a7dfc617a3f4a1",
-        "question": [
-          "Query get_data_quality_summary"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.get_data_quality_summary() LIMIT 20;"
             ]
           }
         ]
@@ -344,85 +465,43 @@
         ]
       },
       {
-        "id": "15b9ffd78cf34dba8b5907219c26b0ab",
+        "id": "6d90fe0004444b11a4a7dfc617a3f4a1",
         "question": [
-          "What is the table freshness status by schema?"
+          "Query get_data_quality_summary"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT table_schema, MEASURE(total_tables) AS table_count, MEASURE(fresh_tables) AS fresh_count FROM ${catalog}.${gold_schema}.mv_data_quality GROUP BY table_schema ORDER BY table_count DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_data_quality_summary() LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "3dc629ef499449228bb2d4f71cb7594e",
+        "id": "73431d675584426eaac5efa41abdcd39",
         "question": [
-          "What are the data access events by source table?"
+          "Query get_data_freshness_by_domain"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT source_table_name, MEASURE(total_events) AS access_count FROM ${catalog}.${gold_schema}.mv_governance_analytics GROUP BY source_table_name ORDER BY access_count DESC LIMIT 20;"
+              "SELECT * FROM ${catalog}.${gold_schema}.get_data_freshness_by_domain(24) LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "3675ecb4ee724a298f4407a0b053b8e1",
+        "id": "835007b38db64d54aeb1426a78cf3963",
         "question": [
-          "Show predictions from data_drift_predictions"
+          "Which pipelines are most likely to have data quality failures?"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT * FROM ${catalog}.${feature_schema}.data_drift_predictions LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "cb6b5d8639d3453e9651148e0acc8d05",
-        "question": [
-          "Show predictions from freshness_predictions"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${feature_schema}.freshness_predictions LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "1422e397a28f42d49384c179c09da2db",
-        "question": [
-          "Show predictions from pipeline_health_predictions"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${feature_schema}.pipeline_health_predictions LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "e0e11ccbd0f64cbca560c2bcccdf264b",
-        "question": [
-          "Show monitoring data from fact_table_lineage_profile_metrics"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_table_lineage_profile_metrics LIMIT 20;"
+              "SELECT 'Deep research: Which pipelines are most likely to have data quality failures?' AS analysis;"
             ]
           }
         ]
@@ -437,6 +516,20 @@
             "format": "SQL",
             "content": [
               "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_table_lineage_drift_metrics LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9af429e099e54a808530947959882fd0",
+        "question": [
+          "How has our overall data quality score trended over time?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT 'Deep research: How has our overall data quality score trended over time?' AS analysis;"
             ]
           }
         ]
@@ -470,90 +563,6 @@
         ]
       },
       {
-        "id": "c8728e71cc414ca59e227aab5fbd0515",
-        "question": [
-          "Show data from fact_data_quality_monitoring_table_results"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "0ed3ba7a6f6349f39b906795dc5772bb",
-        "question": [
-          "Show dim_workspace"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT * FROM ${catalog}.${gold_schema}.dim_workspace LIMIT 20;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "131660bb764e4689a058cfab04d9e9c7",
-        "question": [
-          "Which tables have the highest data quality issues?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT 'Deep research: Which tables have the highest data quality issues?' AS analysis;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "1ff486669ce9484ebec26cb2a1c2ba5e",
-        "question": [
-          "What is the impact of data freshness on downstream consumers?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT 'Deep research: What is the impact of data freshness on downstream consumers?' AS analysis;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "835007b38db64d54aeb1426a78cf3963",
-        "question": [
-          "Which pipelines are most likely to have data quality failures?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT 'Deep research: Which pipelines are most likely to have data quality failures?' AS analysis;"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "9af429e099e54a808530947959882fd0",
-        "question": [
-          "How has our overall data quality score trended over time?"
-        ],
-        "answer": [
-          {
-            "format": "SQL",
-            "content": [
-              "SELECT 'Deep research: How has our overall data quality score trended over time?' AS analysis;"
-            ]
-          }
-        ]
-      },
-      {
         "id": "bf706b6eb3c044b0aacaf1cbbf45d5da",
         "question": [
           "What governance gaps exist in our data lineage?"
@@ -568,29 +577,57 @@
         ]
       },
       {
-        "id": "54d8e1afb0294d50b84452e4af3474ff",
+        "id": "c8728e71cc414ca59e227aab5fbd0515",
         "question": [
-          "Additional analysis query 24"
+          "Show data from fact_data_quality_monitoring_table_results"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT 'Placeholder' AS result;"
+              "SELECT * FROM ${catalog}.${gold_schema}.fact_data_quality_monitoring_table_results LIMIT 20;"
             ]
           }
         ]
       },
       {
-        "id": "3118aec8f3c24ebca9e0d3aed53c02c0",
+        "id": "cb6b5d8639d3453e9651148e0acc8d05",
         "question": [
-          "Additional analysis query 25"
+          "Show predictions from freshness_predictions"
         ],
         "answer": [
           {
             "format": "SQL",
             "content": [
-              "SELECT 'Placeholder' AS result;"
+              "SELECT * FROM ${catalog}.${gold_schema}_ml.freshness_predictions LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "e0e11ccbd0f64cbca560c2bcccdf264b",
+        "question": [
+          "Show monitoring data from fact_table_lineage_profile_metrics"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}_monitoring.fact_table_lineage_profile_metrics LIMIT 20;"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "f955099bb4604782a1eb77acb157a0c8",
+        "question": [
+          "Query get_tables_failing_quality"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT * FROM ${catalog}.${gold_schema}.get_tables_failing_quality(24) LIMIT 20;"
             ]
           }
         ]

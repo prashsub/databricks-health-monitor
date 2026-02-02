@@ -1,10 +1,16 @@
 # 15 - Frontend Integration Guide
 
-> **📋 Implementation Status**: GUIDE FOR FRONTEND DEVELOPERS
+> ⚠️ **DEPRECATED**: This guide has been reorganized and updated.
 > 
-> **Purpose**: Comprehensive guide for frontend developers to integrate with the Health Monitor Agent.
+> **👉 NEW LOCATION**: See `frontend-guides/01-overview-and-quickstart.md`
 > 
-> **Audience**: Frontend developers, UI/UX engineers
+> **Why Moved**: Frontend guides reorganized into sequential series (01-06) with improved structure and verified implementation details.
+> 
+> **All Frontend Guides**: See `frontend-guides/00-README.md`
+
+---
+
+**This file is kept for backward compatibility but will not be updated.**
 
 ---
 

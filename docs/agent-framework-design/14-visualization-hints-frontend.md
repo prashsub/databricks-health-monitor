@@ -1,12 +1,22 @@
 # 14B - Visualization Hints: Frontend Implementation
 
-> **📋 Implementation Status**: PLANNED
+> ⚠️ **DEPRECATED**: This guide has been reorganized and updated.
 > 
-> **Purpose**: Render agent responses as charts or tables based on visualization hints.
+> **👉 NEW LOCATION**: See `frontend-guides/06-visualization-rendering.md`
 > 
-> **Audience**: Frontend developers building the Health Monitor UI
+> **Why Moved**: Part of reorganized frontend guide series (01-06) with complete, verified implementations.
+> 
+> **Status Changed**: From PLANNED to COMPLETE with working code examples.
+> 
+> **All Frontend Guides**: See `frontend-guides/00-README.md`
 
-## Overview
+---
+
+**This file is kept for backward compatibility but will not be updated.**
+
+---
+
+## Overview (Original Content Below)
 
 The frontend receives agent responses with visualization hints and tabular data. It renders the appropriate chart type (bar, line, pie) or falls back to a table view. Users can toggle between chart and table views.
 

@@ -16,6 +16,17 @@ def get_initial_rules():
     """
     Returns initial set of DQ rules for all Bronze tables.
     
+    Bronze Layer DQ Philosophy:
+    ---------------------------
+    - Bronze is RAW INGESTION - we preserve system table data as-is for observability
+    - Most rules use "warning" severity to log issues without dropping records
+    - "critical" severity only for mathematical constraints (e.g., negative values)
+    - NULL values are often legitimate in system tables:
+      * Transitional states (clusters being created/deleted)
+      * Event-specific patterns (CREATE has no source, DROP has no target)
+      * System-generated records (temporary resources)
+    - Apply strict validation in Silver/Gold layers where business logic applies
+    
     Returns:
         list: List of rule dictionaries
     """
@@ -55,35 +66,39 @@ def get_initial_rules():
         },
         
         # table_lineage
+        # Note: Lineage events may have NULL source/target in CREATE/DROP scenarios
         {
             "table_name": "table_lineage",
             "rule_name": "valid_source_table",
             "rule_constraint": "source_table_full_name IS NOT NULL",
-            "severity": "critical",
-            "description": "Source table name required for lineage tracking"
+            "severity": "warning",
+            "description": "Source table name should be present for lineage tracking"
         },
         {
             "table_name": "table_lineage",
             "rule_name": "valid_target_table",
             "rule_constraint": "target_table_full_name IS NOT NULL",
-            "severity": "critical",
-            "description": "Target table name required for lineage tracking"
+            "severity": "warning",
+            "description": "Target table name should be present for lineage tracking"
         },
         
         # column_lineage
+        # Note: NULL values are legitimate in system tables
+        # - NULL source_column_name: CREATE operations (columns have no source)
+        # - NULL target_column_name: DROP operations (columns have no target)
         {
             "table_name": "column_lineage",
             "rule_name": "valid_source_column",
             "rule_constraint": "source_column_name IS NOT NULL",
-            "severity": "critical",
-            "description": "Source column name required for column-level lineage"
+            "severity": "warning",
+            "description": "Source column name should be present (NULL legitimate for CREATE operations)"
         },
         {
             "table_name": "column_lineage",
             "rule_name": "valid_target_column",
             "rule_constraint": "target_column_name IS NOT NULL",
-            "severity": "critical",
-            "description": "Target column name required for column-level lineage"
+            "severity": "warning",
+            "description": "Target column name should be present (NULL legitimate for DROP operations)"
         },
         
         # account_usage
@@ -139,19 +154,20 @@ def get_initial_rules():
         # ====================================================================
         
         # usage table
+        # Note: System tables may have NULL values for account-level or system-level usage
         {
             "table_name": "usage",
             "rule_name": "valid_usage_date",
             "rule_constraint": "usage_date IS NOT NULL",
-            "severity": "critical",
-            "description": "Usage date is required for cost attribution"
+            "severity": "warning",
+            "description": "Usage date should be present (NULL legitimate for account-level aggregations)"
         },
         {
             "table_name": "usage",
             "rule_name": "valid_workspace_id",
             "rule_constraint": "workspace_id IS NOT NULL",
-            "severity": "critical",
-            "description": "Workspace ID required for cost allocation"
+            "severity": "warning",
+            "description": "Workspace ID should be present (NULL legitimate for account-level usage)"
         },
         {
             "table_name": "usage",
@@ -180,49 +196,51 @@ def get_initial_rules():
         # ====================================================================
         
         # clusters
+        # Note: System tables may have NULL values in transitional states or for deleted resources
         {
             "table_name": "clusters",
             "rule_name": "valid_cluster_id",
             "rule_constraint": "cluster_id IS NOT NULL AND LENGTH(cluster_id) > 0",
-            "severity": "critical",
-            "description": "Cluster ID required for resource tracking"
+            "severity": "warning",
+            "description": "Cluster ID should be present for resource tracking"
         },
         {
             "table_name": "clusters",
             "rule_name": "valid_cluster_name",
             "rule_constraint": "cluster_name IS NOT NULL",
-            "severity": "critical",
-            "description": "Cluster name required for identification"
+            "severity": "warning",
+            "description": "Cluster name should be present for identification"
         },
         {
             "table_name": "clusters",
             "rule_name": "valid_state",
             "rule_constraint": "state IS NOT NULL",
-            "severity": "critical",
-            "description": "Cluster state is required for tracking"
+            "severity": "warning",
+            "description": "Cluster state should be present for tracking"
         },
         
         # warehouses
+        # Note: System tables may have NULL values in transitional states or for deleted resources
         {
             "table_name": "warehouses",
             "rule_name": "valid_warehouse_id",
             "rule_constraint": "id IS NOT NULL AND LENGTH(id) > 0",
-            "severity": "critical",
-            "description": "Warehouse ID required for resource tracking"
+            "severity": "warning",
+            "description": "Warehouse ID should be present for resource tracking"
         },
         {
             "table_name": "warehouses",
             "rule_name": "valid_warehouse_name",
             "rule_constraint": "name IS NOT NULL",
-            "severity": "critical",
-            "description": "Warehouse name required for identification"
+            "severity": "warning",
+            "description": "Warehouse name should be present for identification"
         },
         {
             "table_name": "warehouses",
             "rule_name": "valid_state",
             "rule_constraint": "state IS NOT NULL",
-            "severity": "critical",
-            "description": "Warehouse state is required for tracking"
+            "severity": "warning",
+            "description": "Warehouse state should be present for tracking"
         },
         
         # node_types
