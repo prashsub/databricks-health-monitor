@@ -2,7 +2,43 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - MLflow Domain
 # MAGIC
-# MAGIC Merges MLflow experiment and run tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: Graceful Handling of Missing Tables
+# MAGIC
+# MAGIC This notebook demonstrates defensive coding for optional source tables.
+# MAGIC MLflow system tables may not exist if MLflow is not used in all workspaces.
+# MAGIC
+# MAGIC ### The Problem
+# MAGIC
+# MAGIC ```python
+# MAGIC # This will FAIL if table doesn't exist
+# MAGIC bronze_df = spark.table(bronze_table)  # AnalysisException!
+# MAGIC ```
+# MAGIC
+# MAGIC ### The Solution: Try/Except Pattern
+# MAGIC
+# MAGIC ```python
+# MAGIC def merge_dim_experiment(...):
+# MAGIC     bronze_table = f"{catalog}.{bronze_schema}.experiments_latest"
+# MAGIC     
+# MAGIC     # Graceful handling of missing source
+# MAGIC     try:
+# MAGIC         bronze_raw = spark.table(bronze_table)
+# MAGIC     except Exception as e:
+# MAGIC         print(f"  ⚠️ Bronze table not found: {bronze_table}")
+# MAGIC         print(f"  Skipping dim_experiment")
+# MAGIC         return 0  # Return 0 records merged
+# MAGIC     
+# MAGIC     # Continue with normal processing...
+# MAGIC ```
+# MAGIC
+# MAGIC ### When to Use This Pattern
+# MAGIC
+# MAGIC | Table Type | Use Pattern? | Reason |
+# MAGIC |------------|--------------|--------|
+# MAGIC | Core system tables | No | Always exist |
+# MAGIC | MLflow tables | Yes | MLflow may not be enabled |
+# MAGIC | Marketplace tables | Yes | Marketplace optional |
+# MAGIC | Model Serving tables | Yes | Serving may not be used |
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - dim_experiment (from mlflow.experiments_latest)

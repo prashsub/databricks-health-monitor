@@ -1,7 +1,47 @@
 # Databricks notebook source
 """
-Cost Monitor Configuration
-==========================
+TRAINING MATERIAL: Custom Metrics for Business KPIs
+===================================================
+
+This monitor demonstrates defining custom metrics for FinOps analysis,
+beyond the built-in profile metrics (null%, distinct values, etc.).
+
+CUSTOM METRIC TYPES:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  METRIC TYPE     │  FORMULA                    │  USE CASE               │
+├──────────────────┼─────────────────────────────┼─────────────────────────┤
+│  AGGREGATE       │  SUM(list_cost)             │  Total daily cost       │
+│                  │  COUNT(DISTINCT workspace)  │  Workspace coverage     │
+├──────────────────┼─────────────────────────────┼─────────────────────────┤
+│  DERIVED         │  tagged/total               │  Tag compliance %       │
+│                  │  serverless/total           │  Serverless adoption %  │
+├──────────────────┼─────────────────────────────┼─────────────────────────┤
+│  DRIFT           │  current - baseline         │  Cost trend direction   │
+│                  │  (current-prev)/prev        │  Week-over-week change  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+AGGREGATE vs DERIVED:
+---------------------
+
+AGGREGATE: Raw SQL aggregation on table columns
+    create_aggregate_metric("total_cost", "SUM(list_cost)", "DOUBLE")
+
+DERIVED: Calculation using aggregate metric results
+    create_derived_metric("tag_coverage_pct", "tagged_records / record_count")
+
+Note: DERIVED metrics reference AGGREGATE metric NAMES, not SQL columns.
+
+COST MONITORING KPIs:
+---------------------
+
+| KPI | Formula | Alert Threshold |
+|-----|---------|-----------------|
+| Tag Coverage | tagged/total | < 80% |
+| Serverless Ratio | serverless_cost/total_cost | target > 50% |
+| DBU Efficiency | usage_quantity/list_cost | trending down |
+| Workspace Activity | COUNT(DISTINCT workspace_id) | sudden drop |
 
 Lakehouse Monitor for fact_usage table.
 Tracks billing data quality, cost trends, and tag compliance.

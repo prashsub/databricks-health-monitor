@@ -1,7 +1,49 @@
 # Databricks notebook source
 """
-Security Access Monitor Configuration
-=====================================
+TRAINING MATERIAL: Security Audit Trail Monitoring
+==================================================
+
+This monitor tracks security-relevant events from audit logs,
+enabling compliance monitoring and threat detection.
+
+SECURITY METRIC CATEGORIES:
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  CATEGORY           │  METRICS                   │  ALERT THRESHOLD     │
+├─────────────────────┼────────────────────────────┼──────────────────────┤
+│  Access Patterns    │  distinct_users,           │  Sudden user spike   │
+│                     │  events_per_user           │                      │
+├─────────────────────┼────────────────────────────┼──────────────────────┤
+│  Service Activity   │  distinct_services,        │  New service appears │
+│                     │  actions_per_service       │                      │
+├─────────────────────┼────────────────────────────┼──────────────────────┤
+│  Risk Events        │  denied_events,            │  > 0 for CRITICAL    │
+│                     │  sensitive_actions         │                      │
+├─────────────────────┼────────────────────────────┼──────────────────────┤
+│  Privileged Access  │  admin_events,             │  After-hours spike   │
+│                     │  permission_changes        │                      │
+└─────────────────────┴────────────────────────────┴──────────────────────┘
+
+AUDIT LOG EVENT TYPES:
+----------------------
+
+High-risk actions to monitor closely:
+- accounts.updateConfiguration → Workspace settings changed
+- unity-catalog.updatePermissions → Permission modified
+- clusters.delete → Compute resources removed
+- secrets.readSecret → Secret accessed
+- clusters.create with admin → Escalated privileges
+
+COMPLIANCE USE CASES:
+---------------------
+
+| Standard | Relevant Metrics |
+|----------|------------------|
+| SOC2 | Access logs, permission changes |
+| HIPAA | PHI access patterns |
+| GDPR | Data subject access requests |
+| PCI-DSS | Cardholder data access |
 
 Lakehouse Monitor for fact_audit_logs table.
 Tracks user activity, permission changes, and security events.

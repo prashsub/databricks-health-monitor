@@ -19,8 +19,47 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Schema Change Predictor Model
-=========================================
+TRAINING MATERIAL: Proactive Schema Change Prediction
+=====================================================
+
+This model predicts which tables are likely to have schema changes
+in the next 7 days, enabling proactive governance.
+
+SCHEMA CHANGE DETECTION:
+------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PROBLEM: Schema changes often break downstream pipelines               │
+│                                                                         │
+│  Day 0: Table has schema V1                                             │
+│  Day 3: Schema change to V2 (column added/renamed)                      │
+│  Day 3: Downstream pipelines fail ❌                                    │
+│  Day 4: On-call engineer pages, debugging starts                        │
+│                                                                         │
+│  WITH PREDICTION:                                                        │
+│                                                                         │
+│  Day 0: Model predicts 85% chance of schema change in 7 days            │
+│  Day 1: Alert sent, team reviews upcoming changes                       │
+│  Day 3: Schema change happens (expected)                                │
+│  Day 3: Pipelines handle change gracefully ✅                           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: schema_changes_7d (binary)
+---------------------------------
+
+| Value | Meaning |
+|-------|---------|
+| 1 | Schema will change in next 7 days |
+| 0 | Schema will remain stable |
+
+PREDICTIVE FEATURES:
+--------------------
+
+Historical patterns that indicate upcoming changes:
+- Recent schema change frequency
+- Table activity patterns (write frequency)
+- Owner activity (active development)
+- Column count (more columns = more likely to change)
 
 Problem: Classification
 Algorithm: RANDOM_FOREST

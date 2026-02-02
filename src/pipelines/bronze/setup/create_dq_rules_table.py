@@ -1,9 +1,45 @@
 # Databricks notebook source
 """
-Create Data Quality Rules Configuration Table
+TRAINING MATERIAL: Configuration-as-Data Pattern
+=================================================
 
-Creates Delta table to store all DQ rules for Bronze layer.
-Rules are queried at runtime by DLT pipelines.
+This script creates the DQ rules configuration table, demonstrating
+the "Configuration-as-Data" pattern for runtime-configurable systems.
+
+WHY CONFIGURATION-AS-DATA:
+--------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PATTERN              │  CHANGE PROCESS                │  DOWNTIME     │
+├───────────────────────┼────────────────────────────────┼───────────────┤
+│  Hardcoded in Python  │  Code change → PR → Deploy     │  Yes          │
+│  Config file (YAML)   │  File change → Deploy          │  Yes          │
+│  Delta Table ✅        │  SQL UPDATE → Immediate        │  No           │
+└───────────────────────┴────────────────────────────────┴───────────────┘
+
+RUNTIME QUERY PATTERN:
+----------------------
+
+DLT pipelines query rules at runtime (not at deploy time):
+
+    @dlt.expect_all_or_drop(get_critical_rules_for_table("audit"))
+    def audit():
+        ...
+
+get_critical_rules_for_table() queries the Delta table at pipeline start,
+so rule changes take effect on next pipeline run without redeployment.
+
+TABLE PROPERTIES FOR CHANGE TRACKING:
+-------------------------------------
+
+    'delta.enableChangeDataFeed' = 'true'    # Audit trail of rule changes
+    'delta.enableRowTracking' = 'true'       # Track row-level modifications
+    'delta.enableDeletionVectors' = 'true'   # Fast deletes
+
+These properties enable:
+- Audit history of who changed what rule when
+- Frontend app can show rule change history
+- Compliance reporting on DQ configuration changes
 
 Usage:
     databricks bundle run dq_rules_setup_job

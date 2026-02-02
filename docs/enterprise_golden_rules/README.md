@@ -46,9 +46,16 @@ enterprise_golden_rules/
 │       ├── 51-genai-agent-patterns.md
 │       └── 52-genai-standards.md
 │
-├── onboarding/                  # 🎓 New Hire Training
+├── onboarding/                  # 🎓 New Hire Quick Start
 │   ├── 40-new-hire-week1.md
 │   └── 41-new-hire-week2.md
+│
+├── training/                    # 📚 Structured Training Curriculum
+│   ├── 00-training-curriculum-overview.md
+│   ├── 01-module-platform-foundations.md
+│   ├── 02-module-data-engineering.md
+│   ├── 03-module-gold-layer-semantic.md
+│   └── 04-module-operations-deployment.md
 │
 ├── templates/                   # 📝 Reusable Templates
 │   ├── architecture-review-checklist.md
@@ -103,10 +110,21 @@ enterprise_golden_rules/
 | 🟡 Required | [Data Governance](enterprise-architecture/01-data-governance.md) | Classification, compliance |
 
 ### New Team Members
-| Week | Document | Focus |
-|------|----------|-------|
-| Week 1 | [Onboarding Week 1](onboarding/40-new-hire-week1.md) | Concepts, reading, setup |
-| Week 2 | [Onboarding Week 2](onboarding/41-new-hire-week2.md) | Hands-on labs, full pipeline |
+
+**Quick Start (First Week):**
+| Day | Document | Focus |
+|-----|----------|-------|
+| Day 1-2 | [Onboarding Week 1](onboarding/40-new-hire-week1.md) | Concepts, reading, setup |
+| Day 3-5 | [Onboarding Week 2](onboarding/41-new-hire-week2.md) | Hands-on labs, full pipeline |
+
+**Structured Training (40 hours):**
+| Module | Duration | Document | Topics |
+|--------|----------|----------|--------|
+| Overview | - | [Curriculum](training/00-training-curriculum-overview.md) | Learning path, prerequisites |
+| Module 1 | 8 hrs | [Platform Foundations](training/01-module-platform-foundations.md) | Unity Catalog, governance, architecture |
+| Module 2 | 12 hrs | [Data Engineering](training/02-module-data-engineering.md) | Bronze, Silver, DLT, data quality |
+| Module 3 | 12 hrs | [Gold & Semantic](training/03-module-gold-layer-semantic.md) | Dimensional modeling, TVFs, Metric Views |
+| Module 4 | 8 hrs | [Operations](training/04-module-operations-deployment.md) | Asset Bundles, deployment, monitoring |
 
 ---
 
@@ -175,13 +193,14 @@ enterprise_golden_rules/
 
 | Metric | Count |
 |--------|-------|
-| Total Documents | 32 |
+| Total Documents | 37 |
 | Architecture Domains | 3 |
 | Platform Architecture Docs | 7 |
 | Solution Architecture Docs | 12 |
+| Training Modules | 5 |
 | Golden Rules | 60+ |
 | Templates | 5 |
-| Onboarding Days | 10 |
+| Total Training Hours | 40 |
 
 ---
 

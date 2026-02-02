@@ -19,11 +19,45 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Score Cost Anomalies - Batch Inference
-======================================
+TRAINING MATERIAL: Signature-Driven Batch Inference
+===================================================
 
-Runs batch inference using the trained Cost Anomaly Detector model
-and stores predictions in an inference table for monitoring.
+This script demonstrates model signature validation during batch inference,
+ensuring consistent feature preprocessing between training and inference.
+
+SIGNATURE-DRIVEN PREPROCESSING:
+-------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PROBLEM: Training vs Inference Feature Mismatch                         │
+│                                                                         │
+│  Training:                                                               │
+│    features = ["daily_cost", "daily_dbu", "avg_cost_7d", ...]           │
+│                                                                         │
+│  Inference:                                                              │
+│    features = ["daily_cost", "DAILY_DBU", ...]  ← Case mismatch!        │
+│    features = ["daily_cost", "daily_dbu", "NEW_COL"]  ← Extra column!   │
+│                                                                         │
+│  Result: Silent failures, wrong predictions                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│  SOLUTION: Extract expected features from model signature                │
+│                                                                         │
+│  signature = model.metadata.signature                                    │
+│  expected_features = [col.name for col in signature.inputs]             │
+│                                                                         │
+│  # Validate and select only expected features                            │
+│  inference_df = raw_df.select(expected_features)                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+ANOMALY SCORE INTERPRETATION:
+-----------------------------
+
+Isolation Forest returns anomaly_score in [-1, 1]:
+- score = -1: Definite anomaly (short average path)
+- score = 0: Borderline
+- score = 1: Definite normal (long average path)
+
+We convert to probability with: anomaly_probability = (1 - score) / 2
 
 MLflow 3.1+ Best Practices:
 - Loads model from Unity Catalog

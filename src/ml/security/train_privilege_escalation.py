@@ -19,8 +19,63 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Privilege Escalation Detector Model
-=========================================
+TRAINING MATERIAL: Security Anomaly Detection Pattern
+=====================================================
+
+This script demonstrates anomaly detection for security use cases,
+specifically detecting unusual permission/access patterns.
+
+WHY UNSUPERVISED FOR SECURITY:
+------------------------------
+
+Security anomalies are rare by definition. Labeled datasets are:
+- Expensive to create (requires security analyst review)
+- Incomplete (can't label unknown attack types)
+- Quickly outdated (new attack vectors emerge)
+
+Unsupervised detection learns "normal" behavior and flags deviations.
+
+PRIVILEGE ESCALATION DETECTION:
+-------------------------------
+
+What we're detecting:
+- Sudden increase in admin permissions
+- Access to sensitive resources not accessed before
+- Actions outside normal working patterns
+- Unusual sequence of operations
+
+Features used (from security_features):
+- failed_login_count: Authentication failures
+- sensitive_action_count: High-privilege operations
+- unique_resource_count: Resources accessed
+- after_hours_activity_rate: Off-hours actions
+
+SECURITY DOMAIN MODEL INVENTORY:
+--------------------------------
+
+| Model | Algorithm | Use Case |
+|-------|-----------|----------|
+| security_threat_detector | Isolation Forest | General threat detection |
+| privilege_escalation_detector | Isolation Forest | Permission abuse |
+| exfiltration_detector | Isolation Forest | Data theft patterns |
+| user_behavior_baseline | Isolation Forest | Per-user normal behavior |
+
+All use Isolation Forest because:
+1. No labeled data required
+2. Handles high-dimensional feature space
+3. Fast training and inference
+4. Interpretable anomaly scores
+
+FEATURE REGISTRY INTEGRATION:
+-----------------------------
+
+    # Dynamic feature lookup
+    registry = FeatureRegistry(spark, catalog, feature_schema)
+    feature_names = registry.get_feature_columns(FEATURE_TABLE)
+    lookup_keys = registry.get_primary_keys(FEATURE_TABLE)
+    
+    # Features auto-discovered from Unity Catalog schema
+    # No hardcoded feature lists!
 
 Problem: Anomaly Detection (Unsupervised)
 Algorithm: Isolation Forest

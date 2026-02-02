@@ -1,17 +1,96 @@
 # Databricks notebook source
 """
-MLflow 3.0 Utilities for Databricks Health Monitor
-==================================================
+TRAINING MATERIAL: MLflow 3.0 Integration Pattern for Unity Catalog
+====================================================================
 
-This module provides utilities for MLflow 3.0 integration with Unity Catalog,
-following official Databricks best practices for model lifecycle management.
+This module provides utilities for MLflow 3.0 integration with Unity Catalog.
+MLflow 3.0 introduced significant changes that affect model logging, registration,
+and evaluation.
 
-MLflow 3.0 Key Changes:
-- Default registry URI is now 'databricks-uc' (Unity Catalog)
-- Use 'name' parameter instead of 'artifact_path' in log_model
-- Models are first-class citizens - don't require active run
-- mlflow.evaluate is deprecated - use mlflow.models.evaluate
-- Model signatures are REQUIRED for Unity Catalog registration
+MLFLOW 3.0 KEY CHANGES (CRITICAL):
+----------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  MLflow 2.x vs MLflow 3.0                                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│  REGISTRY URI                                                            │
+│  ──────────────                                                          │
+│  2.x: Default was local file store or databricks registry                │
+│  3.0: Default is 'databricks-uc' (Unity Catalog)  ✅                     │
+│                                                                         │
+│  MODEL LOGGING                                                           │
+│  ─────────────                                                           │
+│  2.x: mlflow.sklearn.log_model(model, artifact_path="model")             │
+│  3.0: mlflow.sklearn.log_model(model, name="model")  ✅                  │
+│       ⚠️ 'artifact_path' still works but 'name' is preferred             │
+│                                                                         │
+│  MODEL SIGNATURES                                                        │
+│  ────────────────                                                        │
+│  2.x: Optional (but recommended)                                        │
+│  3.0: REQUIRED for Unity Catalog registration  ⚠️                        │
+│       Without signature → registration fails!                           │
+│                                                                         │
+│  MODEL EVALUATION                                                        │
+│  ─────────────────                                                       │
+│  2.x: mlflow.evaluate(model_uri, data, ...)                             │
+│  3.0: mlflow.models.evaluate(model_uri, data, ...)  ✅                   │
+│       mlflow.evaluate is DEPRECATED                                     │
+│                                                                         │
+│  LOGGEDMODEL OBJECT                                                      │
+│  ────────────────────                                                    │
+│  2.x: LoggedModel was not a first-class object                          │
+│  3.0: LoggedModel is a first-class citizen  ✅                           │
+│       Can be created without active run                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+UNITY CATALOG MODEL NAMING:
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Three-Level Naming Required for Unity Catalog:                          │
+│                                                                         │
+│  {catalog}.{schema}.{model_name}                                        │
+│                                                                         │
+│  Example: health_monitor.ml.cost_anomaly_detector                       │
+│                                                                         │
+│  This provides:                                                         │
+│  - Governance: Access control at model level                            │
+│  - Lineage: Track model data dependencies                               │
+│  - Discovery: Models visible in Unity Catalog UI                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+MODEL SIGNATURE PATTERN:
+------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  SIGNATURE IS REQUIRED:                                                  │
+│                                                                         │
+│  from mlflow.models import infer_signature                               │
+│                                                                         │
+│  # For supervised models:                                               │
+│  signature = infer_signature(X_train, y_train)                          │
+│                                                                         │
+│  # For unsupervised models (e.g., anomaly detection):                   │
+│  predictions = model.predict(X_sample)                                  │
+│  signature = infer_signature(X_sample, predictions)                     │
+│                                                                         │
+│  mlflow.sklearn.log_model(                                              │
+│      model,                                                             │
+│      name="model_name",                                                 │
+│      signature=signature,  ← REQUIRED!                                  │
+│      registered_model_name="catalog.schema.model_name"                  │
+│  )                                                                      │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY FUNCTIONS IN THIS MODULE:
+-----------------------------
+
+1. MLflowConfig - Configuration dataclass for consistent naming
+2. setup_mlflow_experiment() - Initialize experiment with UC registry
+3. log_model_with_signature() - Log model with required signature
+4. evaluate_logged_model() - Use mlflow.models.evaluate (3.0 pattern)
+5. get_latest_model_version() - Get latest version from UC registry
+6. load_model_for_inference() - Load model for prediction
 
 Reference: https://learn.microsoft.com/en-us/azure/databricks/mlflow/mlflow-3-install
 """

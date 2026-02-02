@@ -1,13 +1,44 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # System Serving Tables - DLT Streaming Pipeline
-# MAGIC 
-# MAGIC Bronze layer ingestion of system.serving.* tables with schema evolution.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: Model Serving Observability Data
+# MAGIC
+# MAGIC This notebook ingests Model Serving system tables for
+# MAGIC monitoring ML deployments and inference costs.
+# MAGIC
+# MAGIC ### Model Serving Architecture
+# MAGIC
+# MAGIC ```
+# MAGIC ┌─────────────────────────────────────────────────────────────────────────┐
+# MAGIC │                     Model Serving Endpoint                              │
+# MAGIC │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐          │
+# MAGIC │  │ Served Entity 1 │ │ Served Entity 2 │ │ Served Entity 3 │          │
+# MAGIC │  │ (model v1)      │ │ (model v2)      │ │ (model v3)      │          │
+# MAGIC │  │ Traffic: 70%    │ │ Traffic: 20%    │ │ Traffic: 10%    │          │
+# MAGIC │  └─────────────────┘ └─────────────────┘ └─────────────────┘          │
+# MAGIC └─────────────────────────────────────────────────────────────────────────┘
+# MAGIC                                    │
+# MAGIC                 ┌──────────────────┴──────────────────┐
+# MAGIC                 ▼                                      ▼
+# MAGIC        served_entities                        endpoint_usage
+# MAGIC        (SCD2 config history)                  (invocation metrics)
+# MAGIC ```
+# MAGIC
+# MAGIC ### Key Metrics Available
+# MAGIC
+# MAGIC | Metric | Source | Use |
+# MAGIC |--------|--------|-----|
+# MAGIC | Request count | endpoint_usage | Traffic monitoring |
+# MAGIC | Latency (p50/p99) | endpoint_usage | SLA compliance |
+# MAGIC | Error rate | endpoint_usage | Health monitoring |
+# MAGIC | Token usage | endpoint_usage | LLM cost tracking |
+# MAGIC | Model version | served_entities | Deployment tracking |
+# MAGIC
 # MAGIC **Tables ingested:**
 # MAGIC - served_entities (system.serving.served_entities)
 # MAGIC - endpoint_usage (system.serving.endpoint_usage)
-# MAGIC 
+# MAGIC
 # MAGIC **Pattern:** Stream from system tables with skipChangeCommits and schema evolution enabled
 
 # COMMAND ----------

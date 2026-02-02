@@ -1,16 +1,81 @@
 """
-ML Prediction Table Metadata
-============================
+TRAINING MATERIAL: ML Prediction Metadata Pattern for Genie/LLM Integration
+============================================================================
 
-Centralized metadata definitions for all ML prediction/inference tables.
-Used to add table and column descriptions after table creation.
+This module provides centralized metadata definitions for all ML prediction/inference
+tables. The metadata is applied to tables after creation to enable natural language
+queries via Genie Spaces and AI/BI dashboards.
 
-This enables:
-- Genie Space natural language queries about ML predictions
-- AI/BI dashboard auto-complete with semantic understanding
-- Data catalog discoverability with business context
-- LLM-friendly documentation for ML inference results
-- ML governance and lineage tracking
+WHY PREDICTION METADATA MATTERS:
+--------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WITHOUT METADATA                      │  WITH METADATA                  │
+├────────────────────────────────────────┼─────────────────────────────────┤
+│  User: "Show me security threats"      │  User: "Show me security threats│
+│  Genie: ❌ "I don't know what          │  Genie: ✅ "Here are users with │
+│         prediction=-1 means"           │         threat predictions..."  │
+│                                        │                                 │
+│  prediction column has no context      │  prediction column has:         │
+│                                        │  - Business description         │
+│                                        │  - Interpretation guide         │
+│                                        │  - Valid values                 │
+│                                        │  - Join table references        │
+└────────────────────────────────────────┴─────────────────────────────────┘
+
+METADATA STRUCTURE:
+-------------------
+
+Each prediction table has:
+1. table_comment: Comprehensive description including:
+   - What the model predicts
+   - Interpretation guide
+   - Business use cases
+   - Recommended actions
+   - Model type, domain, source, refresh frequency
+
+2. columns: Dictionary of column metadata including:
+   - business_description: What the column represents
+   - interpretation: How to use/interpret values
+   - data_type: Expected type
+   - valid_values: Possible values
+   - join_table: Related dimension for joins
+
+PREDICTION INTERPRETATION PATTERNS:
+-----------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ANOMALY DETECTION (Isolation Forest):                                   │
+│  prediction = -1 → ANOMALY (unusual, investigate)                       │
+│  prediction =  1 → NORMAL (expected behavior)                           │
+│                                                                         │
+│  BINARY CLASSIFICATION (XGBoost/RF):                                    │
+│  prediction = 0 → NEGATIVE class (e.g., no risk)                        │
+│  prediction = 1 → POSITIVE class (e.g., high risk)                      │
+│                                                                         │
+│  REGRESSION (Gradient Boosting):                                        │
+│  prediction = continuous value (e.g., cost in USD, duration in seconds) │
+│                                                                         │
+│  SCORING (0-1 scale):                                                   │
+│  prediction > 0.7 → HIGH (immediate attention)                          │
+│  prediction 0.4-0.7 → MEDIUM (schedule review)                          │
+│  prediction < 0.4 → LOW (acceptable)                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+USAGE PATTERN:
+--------------
+
+    from ml.utils.prediction_metadata import (
+        apply_table_metadata,
+        get_prediction_interpretation
+    )
+    
+    # After batch inference creates tables
+    apply_table_metadata(spark, "catalog.schema.cost_anomaly_predictions")
+    
+    # Get interpretation for UI display
+    interp = get_prediction_interpretation("cost_anomaly_predictions")
+    # Returns: "-1 = ANOMALY: Cost significantly deviates..."
 
 Design Principles:
 - Each table has: purpose, domain, model, source_features, refresh_frequency, usage_guidance

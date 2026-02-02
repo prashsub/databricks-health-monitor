@@ -15,10 +15,73 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Budget Forecaster Model
-===================================
+TRAINING MATERIAL: Regression Model with Local log_model Pattern
+================================================================
 
-Uses LOCAL log_model function to avoid training_base signature issues.
+This script demonstrates training a regression model (GradientBoostingRegressor)
+with a LOCAL log_model function that handles fe.log_model correctly.
+
+WHY LOCAL log_model:
+--------------------
+
+The training_base.log_model_with_features() function is designed for
+classification models with output_schema=DataType.long. Regression models
+need output_schema=DataType.double.
+
+Rather than complicate training_base with conditional logic, we use a
+LOCAL log_model function that explicitly sets the correct output schema.
+
+REGRESSION vs CLASSIFICATION OUTPUT SCHEMA:
+-------------------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  MODEL TYPE        │  OUTPUT            │  OUTPUT_SCHEMA                 │
+├────────────────────┼────────────────────┼────────────────────────────────┤
+│  Classification    │  Class labels      │  DataType.long (0, 1, 2...)    │
+│  Regression        │  Continuous values │  DataType.double               │
+│  Anomaly Detection │  -1 or 1           │  DataType.long                 │
+│  Probability       │  0.0 to 1.0        │  DataType.double               │
+└────────────────────┴────────────────────┴────────────────────────────────┘
+
+GRADIENT BOOSTING FOR COST FORECASTING:
+---------------------------------------
+
+GradientBoostingRegressor is ideal for cost forecasting because:
+
+1. HANDLES NON-LINEAR PATTERNS
+   - Cost spikes, seasonal trends, step changes
+   - Tree-based = no assumption of linearity
+
+2. FEATURE IMPORTANCE
+   - Built-in feature_importances_ attribute
+   - Explains which factors drive costs
+
+3. ROBUST TO OUTLIERS
+   - Better than linear regression for cost data
+   - Handles occasional high-cost days
+
+4. NO SCALING REQUIRED
+   - Trees don't need standardization
+   - Simplifies preprocessing
+
+LOCAL LOG_MODEL PATTERN:
+------------------------
+
+    def log_model(fe, model, training_set, X_train, ...):
+        from mlflow.types import ColSpec, DataType, Schema
+        
+        # Explicit output schema for regression
+        output_schema = Schema([ColSpec(DataType.double)])
+        
+        fe.log_model(
+            model=model,
+            artifact_path="model",
+            flavor=mlflow.sklearn,
+            training_set=training_set,
+            infer_input_example=True,
+            output_schema=output_schema,  # Regression-specific!
+            registered_model_name=registered_name
+        )
 """
 
 # COMMAND ----------

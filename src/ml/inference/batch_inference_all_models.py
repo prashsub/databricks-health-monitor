@@ -3,6 +3,96 @@
 Batch Inference - Feature Store Models (23 models)
 ==================================================
 
+TRAINING MATERIAL: Production Batch Inference Pattern
+-----------------------------------------------------
+
+This script demonstrates the official Databricks pattern for running batch
+inference with Unity Catalog models and Feature Engineering.
+
+BATCH INFERENCE ARCHITECTURE:
+-----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    BATCH INFERENCE FLOW                                  │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  FEATURE TABLES (Unity Catalog)                                  │   │
+│  │  cost_features, security_features, performance_features, etc.    │   │
+│  │  PRIMARY KEY = lookup keys for inference                         │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  Step 1: Extract lookup keys only        │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  LOOKUP DATAFRAME (keys only)                                    │   │
+│  │  df.select("workspace_id", "usage_date").distinct()              │   │
+│  │  NO feature columns - fe.score_batch() handles that!             │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  Step 2: fe.score_batch()                │
+│                              │  (auto feature lookup + model predict)   │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  PREDICTIONS DATAFRAME                                           │   │
+│  │  lookup_keys + prediction column (named "prediction")            │   │
+│  │  Features looked up automatically from feature tables!           │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  Step 3: Save to prediction table        │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  PREDICTION TABLES (Unity Catalog)                               │   │
+│  │  cost_anomaly_predictions, security_threat_predictions, etc.     │   │
+│  │  Includes metadata for Genie/AI-BI discoverability               │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+THE SIMPLE PATTERN (CRITICAL):
+------------------------------
+
+```python
+# Step 1: Lookup keys ONLY (not features!)
+lookup_df = spark.table(feature_table).select("id", "date").distinct()
+
+# Step 2: fe.score_batch() does EVERYTHING else
+predictions = fe.score_batch(
+    model_uri="models:/catalog.schema.model/1",
+    df=lookup_df  # Just the keys!
+)
+
+# Step 3: Save
+predictions.write.saveAsTable(output_table)
+```
+
+WHY THIS WORKS:
+---------------
+1. Model was trained with fe.create_training_set() - features are linked
+2. fe.score_batch() knows which features the model needs
+3. It automatically looks up features from the feature table
+4. It joins features to lookup_df, calls model.predict(), returns results
+
+COMMON MISTAKES:
+----------------
+❌ Passing full feature DataFrame to fe.score_batch()
+   → Causes schema conflicts if types don't match exactly
+
+❌ Passing feature columns in lookup_df
+   → Features are ignored; fe.score_batch() looks them up anyway
+
+❌ Using @latest alias for model version
+   → Can cause "model not found" errors; use explicit version
+
+METADATA FOR GENIE/AI-BI:
+-------------------------
+After saving predictions, we apply table and column comments:
+- Table comment: What model, what domain, what source
+- Column comments: Business meaning and interpretation
+
+This enables:
+- Genie natural language queries: "Show anomalies from last week"
+- AI/BI dashboard auto-complete
+- Data catalog discoverability
+
 Uses the official Databricks pattern for batch inference with fe.score_batch():
 1. Create DataFrame with lookup keys only
 2. Call fe.score_batch() - it handles feature lookup automatically  

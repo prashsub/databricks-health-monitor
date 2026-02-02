@@ -1,9 +1,57 @@
 """
-Metric Views for Databricks Health Monitor
-==========================================
+TRAINING MATERIAL: Metric Views Semantic Layer
+==============================================
 
-Metric Views provide a semantic layer for natural language queries via Genie.
-Each view is defined in YAML v1.1 format with dimensions, measures, and synonyms.
+This module contains Metric View definitions for the semantic layer,
+enabling natural language queries via Genie and AI/BI dashboards.
+
+METRIC VIEWS vs REGULAR VIEWS:
+------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  REGULAR VIEW                     │  METRIC VIEW ✅                     │
+├───────────────────────────────────┼─────────────────────────────────────┤
+│  SQL SELECT definition            │  YAML semantic definition           │
+│  No metadata for dimensions       │  Dimensions with synonyms           │
+│  No measure aggregations          │  Measures with formats              │
+│  BI tool interprets schema        │  Genie understands semantics        │
+│  Hardcoded joins                  │  Declarative relationships          │
+└───────────────────────────────────┴─────────────────────────────────────┘
+
+METRIC VIEW STRUCTURE:
+----------------------
+
+    version: "1.1"
+    comment: "Cost analytics for FinOps"
+    source: ${catalog}.${gold_schema}.fact_usage
+    
+    dimensions:
+      - name: workspace_name
+        expr: dim_workspace.workspace_name
+        synonyms: ["workspace", "ws"]
+    
+    measures:
+      - name: total_cost
+        expr: SUM(source.list_cost)
+        format:
+          type: currency
+          currency_code: USD
+        synonyms: ["cost", "spend", "bill"]
+
+WHY METRIC VIEWS FOR GENIE:
+---------------------------
+
+1. NATURAL LANGUAGE
+   User: "What's our serverless cost by workspace?"
+   Genie knows "cost" = total_cost measure, "workspace" = workspace_name dimension
+
+2. CONSISTENT AGGREGATIONS
+   Measures define how to aggregate (SUM, AVG, COUNT)
+   No ambiguity in "total cost" vs "average cost"
+
+3. LLM-FRIENDLY METADATA
+   Synonyms help LLM match user vocabulary to schema
+   Comments explain business meaning
 
 Available metric views:
 - cost_analytics: Cost and DBU consumption metrics for FinOps analysis

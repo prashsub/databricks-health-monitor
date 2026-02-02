@@ -1,10 +1,38 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Non-Streaming System Tables MERGE
-# MAGIC 
-# MAGIC Performs MERGE operations to sync non-streaming system tables to Bronze layer.
-# MAGIC Uses natural keys for deduplication and handles incremental updates.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: Handling Tables Without Change Data Feed
+# MAGIC
+# MAGIC Not all Databricks system tables support streaming. 8 tables require
+# MAGIC batch MERGE operations for incremental sync.
+# MAGIC
+# MAGIC ### Why Non-Streaming?
+# MAGIC
+# MAGIC These tables don't have Change Data Feed enabled:
+# MAGIC
+# MAGIC | Table | Reason | Sync Strategy |
+# MAGIC |-------|--------|---------------|
+# MAGIC | list_prices | Reference data, infrequent changes | Full refresh + MERGE |
+# MAGIC | query_history | Very large, special partitioning | Incremental MERGE |
+# MAGIC | workspaces_latest | Snapshot table (no history) | Full MERGE |
+# MAGIC | node_types | Reference data, rarely changes | Full MERGE |
+# MAGIC
+# MAGIC ### MERGE Pattern for Non-Streaming
+# MAGIC
+# MAGIC ```python
+# MAGIC def merge_with_natural_key(spark, source_table, target_table, natural_key):
+# MAGIC     source_df = spark.table(source_table).withColumn("ingestion_ts", current_timestamp())
+# MAGIC     delta_table = DeltaTable.forName(spark, target_table)
+# MAGIC     
+# MAGIC     delta_table.alias("target").merge(
+# MAGIC         source_df.alias("source"),
+# MAGIC         f"target.{natural_key} = source.{natural_key}"
+# MAGIC     ).whenMatchedUpdateAll(
+# MAGIC     ).whenNotMatchedInsertAll(
+# MAGIC     ).execute()
+# MAGIC ```
+# MAGIC
 # MAGIC **Tables synced:**
 # MAGIC - assistant_events (event_id)
 # MAGIC - workspaces_latest (workspace_id - SCD Type 1)

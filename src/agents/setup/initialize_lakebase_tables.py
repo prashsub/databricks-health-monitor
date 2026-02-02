@@ -1,14 +1,53 @@
 """
-Initialize Lakebase Memory Tables for Health Monitor Agent
-===========================================================
+TRAINING MATERIAL: Lakebase Memory Schema Design
+=================================================
 
-This script manually creates the Lakebase memory tables if they don't exist.
-Normally, tables auto-create on first agent query, but this script allows
-pre-initialization for testing or troubleshooting.
+This script demonstrates manual initialization of Lakebase memory tables,
+providing visibility into the schema that powers agent memory.
 
-Creates:
-1. checkpoints table (short-term memory - 24h retention)
-2. store table (long-term memory - 1yr retention)
+LAKEBASE MEMORY ARCHITECTURE:
+-----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  AGENT MEMORY SYSTEM                                                     │
+│                                                                         │
+│  ┌─────────────────────────┐    ┌─────────────────────────────────────┐│
+│  │  SHORT-TERM MEMORY      │    │  LONG-TERM MEMORY                   ││
+│  │  (checkpoints table)    │    │  (store table)                      ││
+│  ├─────────────────────────┤    ├─────────────────────────────────────┤│
+│  │  • Conversation state   │    │  • User preferences                 ││
+│  │  • LangGraph checkpoints│    │  • Learned insights                 ││
+│  │  • Thread-based         │    │  • User namespace isolation         ││
+│  │  • 24h retention        │    │  • 1 year retention                 ││
+│  │  • Per-conversation     │    │  • Cross-conversation               ││
+│  └─────────────────────────┘    └─────────────────────────────────────┘│
+│                                                                         │
+│  Key: thread_id + checkpoint_ns  Key: namespace + key                  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+CHECKPOINTS TABLE (Short-Term):
+
+    Schema matches langgraph-checkpoint-databricks requirements:
+    - thread_id: Conversation identifier
+    - checkpoint_ns: Namespace for isolation
+    - checkpoint_id: Unique checkpoint ID
+    - checkpoint: Serialized LangGraph state (JSON)
+    - metadata: Additional context
+
+STORE TABLE (Long-Term):
+
+    Schema matches DatabricksStore requirements:
+    - namespace: User isolation (e.g., "user_123")
+    - key: Memory key (e.g., "preferences", "insights")
+    - value: Serialized memory content (JSON)
+    - Vector embedding for semantic search
+
+AUTO-CREATION vs MANUAL:
+
+Normally tables auto-create on first agent query. Manual creation is useful for:
+- Pre-initialization in CI/CD pipelines
+- Schema validation before deployment
+- Testing memory isolation
 
 Usage:
     databricks bundle exec python src/agents/setup/initialize_lakebase_tables.py

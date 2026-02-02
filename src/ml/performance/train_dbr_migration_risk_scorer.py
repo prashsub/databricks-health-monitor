@@ -19,8 +19,50 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train DBR Migration Risk Scorer Model
-=====================================
+TRAINING MATERIAL: DBR Version Migration Risk Assessment
+========================================================
+
+This model predicts the risk of migrating jobs to a new Databricks
+Runtime (DBR) version, enabling safer upgrade planning.
+
+DBR MIGRATION RISKS:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  MIGRATION CHALLENGES                                                    │
+│                                                                         │
+│  New DBR Version released (e.g., 15.4 LTS)                              │
+│                                                                         │
+│  Risk factors per job:                                                   │
+│  └── Spark API changes (deprecated methods)                             │
+│  └── Library version changes (pandas, numpy)                            │
+│  └── Behavior changes (partition pruning, optimizer)                    │
+│  └── Performance changes (faster/slower)                                │
+│                                                                         │
+│  MODEL OUTPUT: Risk Score 0-100                                          │
+│  └── 0-30: Low risk, migrate confidently                                │
+│  └── 30-70: Medium risk, test thoroughly                                │
+│  └── 70-100: High risk, requires detailed analysis                      │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY REGRESSION (not classification):
+------------------------------------
+
+| Approach | Output | Problem |
+|----------|--------|---------|
+| Binary | Safe/Risky | Too coarse |
+| Multi-class | Low/Med/High | Hard to interpret |
+| Regression ✅ | 0-100 score | Granular prioritization |
+
+RISK FACTORS CAPTURED:
+----------------------
+
+| Feature | Risk Interpretation |
+|---------|-------------------|
+| Job complexity | More code = more risk |
+| Library usage | External deps = risk |
+| Spark version gap | Bigger jump = more risk |
+| Historical stability | Unstable jobs = more risk |
 
 Problem: Regression (Risk Score 0-100)
 Algorithm: Gradient Boosting Regressor

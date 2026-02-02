@@ -2,7 +2,39 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Security Domain
 # MAGIC
-# MAGIC Merges Security audit tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: Chunked Processing for Large Tables
+# MAGIC
+# MAGIC This notebook demonstrates **chunked processing** for tables with billions of records.
+# MAGIC The audit table is one of the largest, requiring special handling.
+# MAGIC
+# MAGIC ### Why Chunked Processing?
+# MAGIC
+# MAGIC | Table Size | Simple MERGE | Chunked MERGE |
+# MAGIC |------------|--------------|---------------|
+# MAGIC | 1M records | ✅ Works fine | Overkill |
+# MAGIC | 100M records | ⚠️ May timeout | ✅ Recommended |
+# MAGIC | 1B+ records | ❌ OOM/Timeout | ✅ Required |
+# MAGIC
+# MAGIC ### Chunking Pattern
+# MAGIC
+# MAGIC ```python
+# MAGIC # Generate weekly chunks
+# MAGIC chunks = generate_weekly_chunks(start_date, end_date)
+# MAGIC # e.g., [("2024-01-01", "2024-01-07"), ("2024-01-08", "2024-01-14"), ...]
+# MAGIC
+# MAGIC # Process each chunk
+# MAGIC for start, end in chunks:
+# MAGIC     bronze_chunk = bronze_df.filter(
+# MAGIC         (col("event_time") >= start) & (col("event_time") < end)
+# MAGIC     )
+# MAGIC     merge_into_gold(bronze_chunk)
+# MAGIC ```
+# MAGIC
+# MAGIC ### Key Benefits:
+# MAGIC - **Memory bounded**: Each chunk fits in memory
+# MAGIC - **Restartable**: Failed chunks can be retried individually
+# MAGIC - **Progress tracking**: Can see progress as chunks complete
+# MAGIC - **SLA friendly**: Can stop after N chunks for partial updates
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - fact_audit_logs (from access.audit)

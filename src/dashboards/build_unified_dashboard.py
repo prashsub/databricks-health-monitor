@@ -1,16 +1,52 @@
 """
-Build Unified Dashboard
-========================
+TRAINING MATERIAL: Dashboard Consolidation Architecture
+=======================================================
 
-Consolidates individual dashboard JSON files into a single unified
-Health Monitor dashboard with rationalized pages from each domain.
+This module demonstrates building a unified executive dashboard by
+extracting overview pages from domain-specific dashboards.
 
-ARCHITECTURE:
-- Each domain dashboard (cost_management, job_reliability, etc.) is enriched 
-  with full ML, Monitoring, TVFs, and Metric Views (up to 100 datasets each)
-- The unified dashboard selects ONLY the OVERVIEW PAGE from each domain
-- This keeps the unified dashboard under 100 datasets while providing 
-  a comprehensive executive summary
+LAKEVIEW 100 DATASET LIMIT:
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PROBLEM: Each domain dashboard has ~100 datasets                        │
+│                                                                         │
+│  Cost Dashboard:        98 datasets                                     │
+│  Reliability Dashboard: 95 datasets                                     │
+│  Performance Dashboard: 87 datasets                                     │
+│  Security Dashboard:    92 datasets                                     │
+│  Quality Dashboard:     76 datasets                                     │
+│  ─────────────────────────────────                                      │
+│  Total if combined:    448 datasets  ← EXCEEDS LIMIT!                   │
+│                                                                         │
+│  SOLUTION: Extract only OVERVIEW pages                                   │
+│                                                                         │
+│  Cost Overview:         15 datasets                                     │
+│  Reliability Overview:  12 datasets                                     │
+│  Performance Overview:  14 datasets                                     │
+│  Security Overview:     10 datasets                                     │
+│  Quality Overview:       9 datasets                                     │
+│  ─────────────────────────────────                                      │
+│  Unified Dashboard:     60 datasets  ← UNDER LIMIT ✅                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+CONSOLIDATION PATTERN:
+----------------------
+
+    1. Load each domain dashboard JSON
+    2. Extract overview page widgets and datasets
+    3. Rename to avoid collisions (prefix with domain)
+    4. Merge into single JSON with 5 pages
+    5. Add cross-domain links for drill-down
+
+ML EXCLUSION STRATEGY:
+----------------------
+
+ML datasets excluded until inference pipeline creates tables:
+- ds_ml_* datasets → excluded
+- chart_ml_* widgets → excluded
+
+After ML inference runs, these can be re-enabled.
 
 Users can drill down to individual domain dashboards for full detail.
 """

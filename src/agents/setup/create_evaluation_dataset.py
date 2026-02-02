@@ -3,13 +3,49 @@
 # Create Manual Evaluation Dataset for Health Monitor Agent
 # ===========================================================================
 """
-Creates a hand-crafted evaluation dataset with domain-specific questions
-for evaluating the Databricks Health Monitor Agent.
+TRAINING MATERIAL: Manual vs Synthetic Evaluation Datasets
+==========================================================
 
-NOTE: We don't use generate_evals_df (synthetic evaluation) because:
-- That API is designed for document-based RAG agents
-- Our agent queries Genie Spaces backed by system tables
-- Hand-crafted domain-specific questions are more appropriate
+This script demonstrates creating hand-crafted evaluation datasets
+for agents that don't fit the standard RAG pattern.
+
+WHY MANUAL EVALUATION:
+----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  APPROACH              │  BEST FOR                │  OUR AGENT          │
+├────────────────────────┼──────────────────────────┼─────────────────────┤
+│  Synthetic (LLM-gen)   │  Document RAG, Q&A       │  ❌ Not applicable   │
+│  Manual (Hand-crafted) │  Tool-using, Multi-step  │  ✅ Recommended      │
+│  Production Logs       │  Existing deployments    │  ✅ Supplement       │
+└────────────────────────┴──────────────────────────┴─────────────────────┘
+
+Our agent queries Genie Spaces (not documents), so synthetic generation
+(which assumes document retrieval) produces irrelevant questions.
+
+EVALUATION DATASET STRUCTURE:
+-----------------------------
+
+    {
+        "request": "What's our daily DBU spend?",  # User question
+        "expected_response": "...",                # Ground truth (optional)
+        "expected_facts": ["DBU", "cost"],         # Required concepts
+        "domain": "cost",                          # For domain-specific analysis
+    }
+
+DATASET REGISTRATION:
+---------------------
+
+Datasets are registered to MLflow for:
+- Version tracking
+- UI visibility (Experiment → Datasets tab)
+- Reproducible evaluation runs
+
+    mlflow.genai.datasets.create_eval_dataset(
+        uc_table_name=f"{catalog}.{schema}.eval_questions",
+        experiment_id=experiment.experiment_id,
+        name="manual_evaluation_v1"
+    )
 
 This makes evaluation datasets visible in the MLflow UI under:
   Experiment → Datasets tab

@@ -1,7 +1,50 @@
 # Databricks notebook source
 """
-Job Reliability Monitor Configuration
-=====================================
+TRAINING MATERIAL: Reliability Metrics Pattern
+==============================================
+
+This monitor demonstrates SRE-style reliability metrics for job execution,
+following industry-standard SLI/SLO patterns.
+
+SLI (Service Level Indicator) DEFINITIONS:
+------------------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  SLI NAME           │  FORMULA                       │  GOOD THRESHOLD  │
+├─────────────────────┼────────────────────────────────┼──────────────────┤
+│  Availability       │  success_count / total_runs    │  > 99%           │
+│  Duration P95       │  PERCENTILE(duration_ms, 0.95) │  < 2x median     │
+│  Error Rate         │  failure_count / total_runs    │  < 1%            │
+│  Timeout Rate       │  timeout_count / total_runs    │  < 0.5%          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+RELIABILITY METRIC HIERARCHY:
+-----------------------------
+
+    AGGREGATE (base measurements)
+    ├── total_runs = COUNT(*)
+    ├── success_count = SUM(is_success)
+    ├── failure_count = SUM(result_state='FAILED')
+    └── timeout_count = SUM(termination='TIMED_OUT')
+    
+    DERIVED (calculated from aggregates)
+    ├── success_rate = success_count / total_runs
+    ├── failure_rate = failure_count / total_runs
+    └── timeout_rate = timeout_count / total_runs
+    
+    DRIFT (change detection)
+    ├── success_rate_drift = current_rate - baseline_rate
+    └── duration_drift = current_p95 - baseline_p95
+
+FAILURE CATEGORIZATION:
+-----------------------
+
+result_state values and what they indicate:
+- FAILED: Code/logic error
+- ERROR: Infrastructure/resource issue
+- TIMED_OUT: Duration exceeded limit
+- CANCELED: User/system cancellation
+- SKIPPED: Conditional skip (not a failure)
 
 Lakehouse Monitor for fact_job_run_timeline table.
 Tracks job success rates, failures, and duration patterns.

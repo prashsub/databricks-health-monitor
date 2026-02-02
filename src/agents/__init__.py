@@ -1,12 +1,65 @@
 """
-Databricks Health Monitor Agent Framework
-=========================================
+TRAINING MATERIAL: Agent Framework Package Architecture
+=======================================================
 
-Multi-agent system for Databricks platform observability using:
-- LangGraph orchestrator for multi-agent coordination
-- Genie Spaces as the sole data interface
-- Lakebase for short-term and long-term memory
-- MLflow 3.0 for tracing, evaluation, and prompt registry
+This is the root package for the Databricks Health Monitor Agent,
+implementing a multi-agent system with production best practices.
+
+AGENT ARCHITECTURE OVERVIEW:
+----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        USER QUERY                                        │
+│                            │                                            │
+│                            ▼                                            │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                     ORCHESTRATOR (LangGraph)                      │  │
+│  │  ┌─────────────────────────────────────────────────────────────┐ │  │
+│  │  │  Intent Classification → Route to Domain                    │ │  │
+│  │  └─────────────────────────────────────────────────────────────┘ │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                            │                                            │
+│       ┌────────────────────┼────────────────────┐                      │
+│       ▼                    ▼                    ▼                      │
+│  ┌─────────┐         ┌─────────┐         ┌─────────┐                  │
+│  │  Cost   │         │Security │         │Perform  │  ... 5 domains   │
+│  │  Agent  │         │ Agent   │         │ Agent   │                  │
+│  └────┬────┘         └────┬────┘         └────┬────┘                  │
+│       │                   │                   │                        │
+│       └───────────────────┴───────────────────┘                        │
+│                            │                                            │
+│                            ▼                                            │
+│                    GENIE SPACES (Data)                                  │
+│                            │                                            │
+│                            ▼                                            │
+│               RESPONSE SYNTHESIS + MEMORY                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY PRODUCTION PATTERNS:
+------------------------
+
+1. MLflow autolog at module level (not function level)
+2. ChatAgent interface for Model Serving compatibility
+3. Lakebase memory (short-term + long-term)
+4. Span types for tracing (AGENT, CHAIN, TOOL, RETRIEVER)
+5. Prompt registry with versioning
+
+MODULE-LEVEL AUTOLOG:
+---------------------
+
+    import mlflow
+    mlflow.langchain.autolog()  # BEFORE any LangChain imports!
+
+This must be at the TOP of the module, before any LangChain imports,
+to ensure all LangChain operations are automatically traced.
+
+EXPERIMENT ORGANIZATION:
+------------------------
+
+Three experiments for clean separation:
+- /Shared/health_monitor_agent_development - Dev/iteration runs
+- /Shared/health_monitor_agent_evaluation - Formal evaluation
+- /Shared/health_monitor_agent_deployment - Production deployment logs
 
 Architecture:
     User Query -> Orchestrator -> Intent Classification -> Worker Agents -> Genie Spaces -> Response

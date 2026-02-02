@@ -19,8 +19,52 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Cache Hit Predictor Model
-=====================================
+TRAINING MATERIAL: Query Cache Performance Prediction
+====================================================
+
+This model predicts cache hit probability for queries, enabling
+proactive caching strategies and performance optimization.
+
+CACHING IMPACT:
+---------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  QUERY EXECUTION PATHS                                                   │
+│                                                                         │
+│  Cache HIT:                                                              │
+│  └── Query → Cache → Result (milliseconds)                              │
+│  └── No compute cost, instant response                                  │
+│                                                                         │
+│  Cache MISS:                                                             │
+│  └── Query → Compute → Storage → Result (seconds-minutes)               │
+│  └── Full compute cost, user waits                                      │
+│                                                                         │
+│  PREDICTION VALUE:                                                       │
+│  └── Predict which queries will miss → Pre-warm cache                   │
+│  └── Predict high-miss patterns → Optimize warehouse config             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: spill_rate (proxy for cache performance)
+-----------------------------------------------
+
+High spill rate indicates queries exceeding memory, causing:
+- Disk spills (slow)
+- Cache misses
+- Poor performance
+
+We classify:
+- spill_rate > threshold → Poor cache performance (1)
+- spill_rate <= threshold → Good cache performance (0)
+
+FEATURES FOR CACHE PREDICTION:
+------------------------------
+
+| Feature | Impact on Cache |
+|---------|-----------------|
+| Data size | Larger = more misses |
+| Query complexity | Complex = harder to cache |
+| Data freshness | Recent changes = invalidation |
+| Warehouse size | Smaller = more spills |
 
 Problem: Classification
 Algorithm: XGBOOST

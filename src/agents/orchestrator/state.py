@@ -1,6 +1,80 @@
 """
-Agent State Definition
-======================
+TRAINING MATERIAL: LangGraph State Management Pattern
+======================================================
+
+This module defines the state schema for the LangGraph orchestrator. State is
+the core data structure that flows through the graph, being transformed by
+each node.
+
+WHY STATE-BASED ARCHITECTURE:
+-----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  STATELESS FUNCTIONS                  │  STATEFUL GRAPH (LangGraph)      │
+├───────────────────────────────────────┼──────────────────────────────────┤
+│  classify(query) → intent             │  State flows through nodes        │
+│  respond(query, intent) → response    │  Each node reads/writes state     │
+│  → Need to pass all context manually  │  → Context automatically available│
+│  → Hard to add new steps              │  → Easy to insert new nodes       │
+│  → Difficult to debug mid-flow        │  → State is inspectable           │
+└───────────────────────────────────────┴──────────────────────────────────┘
+
+STATE FLOW THROUGH THE GRAPH:
+-----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  INITIAL STATE                                                           │
+│  ──────────────                                                          │
+│  query: "Why did costs spike?"                                          │
+│  user_id: "user@company.com"                                            │
+│  intent: {}        ← Empty, will be filled                               │
+│  agent_responses: {}                                                    │
+│                                                                         │
+│       ↓ classify_intent node                                            │
+│                                                                         │
+│  AFTER CLASSIFICATION                                                    │
+│  ────────────────────                                                    │
+│  intent: {"domains": ["COST"], "confidence": 0.95}  ← Now filled!       │
+│                                                                         │
+│       ↓ route_to_workers node                                           │
+│                                                                         │
+│  AFTER WORKERS                                                           │
+│  ─────────────                                                           │
+│  agent_responses: {                                                     │
+│    "cost": {"response": "...", "sources": [...], "confidence": 0.9}     │
+│  }                                                                      │
+│                                                                         │
+│       ↓ synthesize node                                                 │
+│                                                                         │
+│  FINAL STATE                                                             │
+│  ───────────                                                             │
+│  synthesized_response: "Your costs spiked because..."                   │
+│  sources: ["Cost Intelligence", "fact_usage"]                           │
+│  confidence: 0.92                                                       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY DESIGN DECISIONS:
+---------------------
+
+1. TypedDict (Not Pydantic)
+   - LangGraph works best with TypedDict
+   - Easier serialization/checkpointing
+   - Compatible with reducer functions
+
+2. Annotated with add_messages
+   - messages: Annotated[List[BaseMessage], add_messages]
+   - The add_messages reducer automatically merges message lists
+   - Prevents accidental message overwriting
+
+3. Optional vs Required Fields
+   - Input fields (query, user_id): Required
+   - Output fields (synthesized_response): Start empty
+   - Error field: Optional for graceful error handling
+
+4. Separate agent_responses and utility_results
+   - agent_responses: Domain worker outputs
+   - utility_results: Web search, dashboard links
+   - Why: Different merge strategies needed
 
 Defines the state schema for the LangGraph orchestrator.
 """

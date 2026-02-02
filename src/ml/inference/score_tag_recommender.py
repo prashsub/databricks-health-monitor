@@ -1,14 +1,58 @@
 # Databricks notebook source
 """
-Tag Recommender Inference
-=========================
+TRAINING MATERIAL: Custom Inference Without Feature Store
+=========================================================
 
-Custom inference for the tag_recommender model which uses TF-IDF features.
+This script demonstrates inference for models that use features NOT in
+the Feature Store (e.g., TF-IDF text features).
 
-This model cannot use fe.score_batch() because:
-1. TF-IDF features are computed at runtime from job names
-2. These features are not stored in feature tables
-3. Model was logged with mlflow.sklearn.log_model() (not fe.log_model())
+WHY CUSTOM INFERENCE:
+---------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  STANDARD INFERENCE (fe.score_batch)                                     │
+│  ──────────────────────────────────────                                  │
+│  - Model logged with fe.log_model()                                     │
+│  - All features in Feature Store                                        │
+│  - fe.score_batch() auto-joins features                                 │
+│  - Simple, automatic                                                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  CUSTOM INFERENCE (this script)                                          │
+│  ────────────────────────────────                                        │
+│  - Model logged with mlflow.sklearn.log_model()                         │
+│  - Some features computed at runtime (TF-IDF)                           │
+│  - Must manually load model + artifacts                                 │
+│  - Must manually compute runtime features                               │
+│  - More complex, but necessary for NLP models                           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+TF-IDF AT INFERENCE TIME:
+-------------------------
+
+    # Training: TF-IDF vectorizer fit on training job names
+    vectorizer.fit(train_job_names)
+    
+    # Inference: Transform new job names with SAME vectorizer
+    tfidf_features = vectorizer.transform(new_job_names)
+    
+    # CRITICAL: Must load SAME vectorizer used at training!
+    # Stored as MLflow artifact
+
+ARTIFACT LOADING PATTERN:
+-------------------------
+
+    # Load model from Unity Catalog
+    model = mlflow.pyfunc.load_model(f"models:/{model_name}/latest")
+    
+    # Get run_id from model metadata to download artifacts
+    run_id = model.metadata.run_id
+    
+    # Download TF-IDF vectorizer artifact
+    vectorizer_path = mlflow.artifacts.download_artifacts(
+        run_id=run_id,
+        artifact_path="tfidf_vectorizer.pkl"
+    )
+    vectorizer = pickle.load(open(vectorizer_path, 'rb'))
 
 Pipeline:
 1. Load model and artifacts (TF-IDF vectorizer, label encoder) from MLflow

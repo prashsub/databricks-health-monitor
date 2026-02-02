@@ -1,10 +1,86 @@
 # Databricks notebook source
 """
-Register All ML Models to Unity Catalog
-=======================================
+TRAINING MATERIAL: Model Registration and Alias Management Pattern
+===================================================================
 
-This script registers all trained models to the Unity Catalog Model Registry
-and optionally promotes them to the appropriate stage.
+This script verifies ML model registration and manages model aliases in
+Unity Catalog. It's a post-training step that ensures all models are
+properly registered and accessible for inference.
+
+WHY SEPARATE REGISTRATION VERIFICATION:
+---------------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  TRAINING PIPELINE                     │  REGISTRATION VERIFICATION      │
+├────────────────────────────────────────┼─────────────────────────────────┤
+│  25 training scripts run in parallel   │  Single verification job after  │
+│  Each logs with registered_model_name  │  Verifies ALL 25 models exist   │
+│  May fail silently on registration     │  Catches any registration fails │
+│  No alias assignment                   │  Assigns 'champion' alias       │
+│                                        │  Provides summary report        │
+└────────────────────────────────────────┴─────────────────────────────────┘
+
+MODEL ALIASES (MLflow 3.0):
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ALIASES vs STAGES                                                       │
+│                                                                         │
+│  MLflow 2.x: Model Stages (Staging, Production, Archived)               │
+│  MLflow 3.0: Model Aliases (custom, flexible)  ✅                        │
+│                                                                         │
+│  Common Aliases:                                                        │
+│  - "champion": Current production model                                 │
+│  - "challenger": Model being evaluated for promotion                    │
+│  - "baseline": Reference model for comparison                           │
+│                                                                         │
+│  Usage in inference:                                                    │
+│  model_uri = f"models:/{model_name}@champion"                           │
+│  model = mlflow.pyfunc.load_model(model_uri)                            │
+│                                                                         │
+│  Benefits:                                                              │
+│  - Multiple models can have different aliases                           │
+│  - Aliases are human-readable                                           │
+│  - Easy to change without version numbers                               │
+│  - Supports A/B testing patterns                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+MODEL INVENTORY:
+----------------
+
+This project has 25 ML models across 5 agent domains:
+
+Cost Agent (6):
+- cost_anomaly_detector, budget_forecaster, job_cost_optimizer
+- chargeback_attribution, commitment_recommender, tag_recommender
+
+Security Agent (4):
+- security_threat_detector, exfiltration_detector
+- privilege_escalation_detector, user_behavior_baseline
+
+Performance Agent (7):
+- query_performance_forecaster, warehouse_optimizer
+- performance_regression_detector, cluster_capacity_planner
+- dbr_migration_risk_scorer, cache_hit_predictor
+- query_optimization_recommender
+
+Reliability Agent (5):
+- job_failure_predictor, job_duration_forecaster
+- sla_breach_predictor, retry_success_predictor
+- pipeline_health_scorer
+
+Quality Agent (3):
+- data_drift_detector, schema_change_predictor
+- data_freshness_predictor
+
+VERIFICATION WORKFLOW:
+----------------------
+
+1. Iterate through all 25 model names
+2. Query Unity Catalog for each model
+3. If found: Print version info, assign 'champion' alias
+4. If not found: Log as missing (training may have failed)
+5. Generate summary report
 
 MLflow 3.0 Best Practices:
 - Models are registered during training with registered_model_name

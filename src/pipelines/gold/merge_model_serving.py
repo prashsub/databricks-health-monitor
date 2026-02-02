@@ -2,7 +2,36 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Model Serving Domain
 # MAGIC
-# MAGIC Merges model serving endpoint and usage tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: Model Serving Cost Attribution
+# MAGIC
+# MAGIC This notebook processes Model Serving tables for ML deployment
+# MAGIC observability and cost tracking.
+# MAGIC
+# MAGIC ### Model Serving Cost Components
+# MAGIC
+# MAGIC ```
+# MAGIC Total Serving Cost = Compute + Token Usage (for LLMs)
+# MAGIC
+# MAGIC ┌─────────────────────────────────────────────────────────────────────────┐
+# MAGIC │  COMPONENT         │  SOURCE                  │  COST DRIVER            │
+# MAGIC ├────────────────────┼──────────────────────────┼─────────────────────────┤
+# MAGIC │  Compute           │  endpoint_usage          │  GPU hours × price      │
+# MAGIC │  Foundation Model  │  endpoint_usage          │  Tokens × token price   │
+# MAGIC │  External Model    │  endpoint_usage          │  Tokens × provider rate │
+# MAGIC └────────────────────┴──────────────────────────┴─────────────────────────┘
+# MAGIC ```
+# MAGIC
+# MAGIC ### Served Entities Dimension
+# MAGIC
+# MAGIC `dim_served_entities` tracks model deployment configurations:
+# MAGIC
+# MAGIC | Field | Description |
+# MAGIC |-------|-------------|
+# MAGIC | endpoint_name | Logical endpoint name |
+# MAGIC | entity_name | Model name in UC |
+# MAGIC | entity_version | Model version deployed |
+# MAGIC | workload_size | Small/Medium/Large |
+# MAGIC | scale_to_zero | Cost optimization setting |
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - dim_served_entities (from serving.served_entities)

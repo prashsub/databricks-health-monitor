@@ -1,6 +1,76 @@
 # Databricks notebook source
 """
-Genie Space Benchmark SQL Validation Notebook
+TRAINING MATERIAL: SQL Query Validation Pattern for Genie Spaces
+================================================================
+
+This notebook validates SQL queries in Genie Space benchmark sections BEFORE
+deployment. It catches errors early, preventing broken queries in production.
+
+WHY VALIDATION BEFORE DEPLOYMENT:
+---------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WITHOUT VALIDATION                   │  WITH VALIDATION (This Pattern)  │
+├───────────────────────────────────────┼─────────────────────────────────┤
+│  Deploy Genie Space with 50 queries   │  Run validation notebook first   │
+│  User asks question                   │  Find: 5 queries have errors     │
+│  Genie executes broken query          │  Fix errors in JSON export       │
+│  User gets error message              │  Deploy with 100% working queries│
+│  Bad user experience!                 │  User gets correct results!      │
+└───────────────────────────────────────┴─────────────────────────────────┘
+
+WHY EXECUTE WITH LIMIT 1 (NOT EXPLAIN):
+---------------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  EXPLAIN ONLY catches:                │  EXECUTE LIMIT 1 catches:        │
+├───────────────────────────────────────┼─────────────────────────────────┤
+│  ✅ Syntax errors                     │  ✅ Syntax errors                │
+│  ✅ Missing tables                    │  ✅ Missing tables               │
+│  ❌ Type mismatches (runtime)         │  ✅ Type mismatches              │
+│  ❌ NULL handling errors              │  ✅ NULL handling errors         │
+│  ❌ Division by zero                  │  ✅ Division by zero             │
+│  ❌ Ambiguous column (sometimes)      │  ✅ Ambiguous column             │
+│  ❌ Invalid function arguments        │  ✅ Invalid function arguments   │
+│                                       │                                  │
+│  Fast but misses runtime errors       │  Full validation, still fast     │
+└───────────────────────────────────────┴─────────────────────────────────┘
+
+LIMIT 1 is the key: executes full query path but returns only 1 row.
+Typical runtime: ~1 second per query, ~2-3 minutes for 150+ queries.
+
+ERROR CATEGORIZATION:
+---------------------
+The validator categorizes errors for easier debugging:
+
+1. COLUMN_NOT_FOUND
+   - Column name doesn't exist in table
+   - Fix: Check column name against deployed table schema
+
+2. TABLE_NOT_FOUND
+   - Table or view doesn't exist
+   - Fix: Deploy missing table first, or fix name
+
+3. FUNCTION_NOT_FOUND
+   - TVF doesn't exist or wrong signature
+   - Fix: Deploy TVF, or fix function call
+
+4. AMBIGUOUS_COLUMN
+   - Column exists in multiple tables
+   - Fix: Qualify with table alias (table.column)
+
+5. SYNTAX_ERROR
+   - SQL syntax issue
+   - Fix: Review SQL in JSON export
+
+OUTPUT PATTERN:
+---------------
+All results go to STDOUT (logs), NOT to tables.
+
+Why no table storage:
+- Validation is ephemeral (run before deploy)
+- Detailed errors need full text (not truncated)
+- Job logs are easier to debug from
 
 Validates SQL queries in Genie Space benchmark sections before deployment by:
 1. EXECUTING each query with LIMIT 1 (catches all errors)
@@ -8,11 +78,6 @@ Validates SQL queries in Genie Space benchmark sections before deployment by:
 3. Checking function calls (TVFs, MEASURE())
 4. Catching runtime errors (type mismatches, NULL handling, etc.)
 5. Detecting ambiguous references and logic errors
-
-Why EXECUTE instead of EXPLAIN:
-- EXPLAIN may miss runtime errors (type mismatches, NULL handling)
-- LIMIT 1 catches ALL errors while being fast (returns only 1 row)
-- Full execution path ensures queries work identically in production
 
 Output:
 - Detailed error logs printed to stdout for troubleshooting

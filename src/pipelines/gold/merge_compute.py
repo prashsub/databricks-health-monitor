@@ -2,7 +2,44 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Compute Domain
 # MAGIC
-# MAGIC Merges Compute infrastructure dimension and fact tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: Dimension vs Fact Table MERGE Patterns
+# MAGIC
+# MAGIC This notebook demonstrates different MERGE strategies for:
+# MAGIC - **Reference dimensions** (SCD Type 1) - node_types
+# MAGIC - **Slowly changing dimensions** (SCD Type 2) - clusters
+# MAGIC - **Fact tables** (append/upsert) - node_timeline
+# MAGIC
+# MAGIC ### SCD Type 1 vs Type 2
+# MAGIC
+# MAGIC | Pattern | History | Use Case | Example |
+# MAGIC |---------|---------|----------|---------|
+# MAGIC | **SCD Type 1** | No history | Reference data, current state | Node types, SKUs |
+# MAGIC | **SCD Type 2** | Full history | Track changes over time | Clusters, users |
+# MAGIC
+# MAGIC ### merge_helpers Functions
+# MAGIC
+# MAGIC ```python
+# MAGIC # SCD Type 1 - overwrite current record
+# MAGIC merge_dimension_table(spark, updates_df, gold_table, pk_columns, scd_type=1)
+# MAGIC
+# MAGIC # SCD Type 2 - close old record, insert new version
+# MAGIC merge_dimension_table(spark, updates_df, gold_table, pk_columns, scd_type=2)
+# MAGIC
+# MAGIC # Fact table - upsert based on composite key
+# MAGIC merge_fact_table(spark, updates_df, gold_table, pk_columns)
+# MAGIC ```
+# MAGIC
+# MAGIC ### Deduplication Pattern
+# MAGIC
+# MAGIC Bronze tables may have duplicates from incremental loads. Always deduplicate:
+# MAGIC
+# MAGIC ```python
+# MAGIC bronze_df, original, deduped = deduplicate_bronze(
+# MAGIC     bronze_raw,
+# MAGIC     business_keys=["cluster_id"],           # Natural key
+# MAGIC     order_by_column="bronze_ingestion_timestamp"  # Keep latest
+# MAGIC )
+# MAGIC ```
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - dim_node_type (from compute.node_types) - reference data

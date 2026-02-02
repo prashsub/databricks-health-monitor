@@ -3,8 +3,120 @@
 # Log Agent Model to MLflow Registry (MLflow 3.0 Pattern)
 # ===========================================================================
 """
-Log Health Monitor Agent to Unity Catalog Model Registry using MLflow 3.0
-LoggedModel pattern.
+TRAINING MATERIAL: Agent Model Registration Pattern (MLflow 3.0)
+================================================================
+
+This notebook logs the Health Monitor Agent to Unity Catalog Model Registry
+using the MLflow 3.0 LoggedModel pattern, making it deployable to Databricks
+Model Serving.
+
+AGENT DEPLOYMENT ARCHITECTURE:
+------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    AGENT DEPLOYMENT FLOW                                 │
+│                                                                         │
+│  1. DEFINE AGENT (This notebook)                                        │
+│     ┌────────────────────────────────────────────────────────────────┐ │
+│     │  class HealthMonitorAgent(mlflow.pyfunc.ResponsesAgent):        │ │
+│     │      def predict_stream(self, request, context):                │ │
+│     │          # Process user query                                    │ │
+│     │          # Route to Genie Spaces                                 │ │
+│     │          # Stream response chunks                                │ │
+│     │          yield ResponsesAgentStreamEvent(...)                    │ │
+│     └────────────────────────────────────────────────────────────────┘ │
+│                             ↓                                           │
+│  2. LOG TO MLFLOW (mlflow.pyfunc.log_model)                            │
+│     - Serializes agent code to MLflow artifacts                         │
+│     - Captures dependencies (requirements.txt, code files)              │
+│     - Creates model version in Unity Catalog registry                   │
+│                             ↓                                           │
+│  3. UNITY CATALOG MODEL REGISTRY                                        │
+│     catalog.schema.health_monitor_agent                                 │
+│     └─ Version 1, Version 2, ...                                        │
+│                             ↓                                           │
+│  4. DEPLOY TO MODEL SERVING                                             │
+│     Endpoint: "health-monitor-agent"                                    │
+│     - GPU or CPU (LLM routing to Databricks Foundation Model)          │
+│     - Environment variables (Genie Space IDs)                          │
+│     - Authentication (OBO for user credentials)                        │
+│                             ↓                                           │
+│  5. CONSUME VIA API                                                     │
+│     POST /serving-endpoints/health-monitor-agent/invocations           │
+│     {"messages": [{"role": "user", "content": "Show cost trends"}]}    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY ResponsesAgent (NOT ChatAgent):
+------------------------------------
+MLflow provides two agent interfaces:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  INTERFACE        │  STREAMING     │  AI PLAYGROUND  │  RECOMMENDED     │
+├───────────────────┼────────────────┼─────────────────┼──────────────────┤
+│  ChatAgent        │  ❌ No         │  ✅ Yes         │  Simple agents   │
+│  ResponsesAgent   │  ✅ Yes        │  ✅ Yes         │  Production ✓    │
+└───────────────────┴────────────────┴─────────────────┴──────────────────┘
+
+ResponsesAgent advantages:
+- predict_stream() for real-time token streaming
+- Automatic signature inference (no manual schema)
+- Better user experience with progressive response display
+
+STREAMING IMPLEMENTATION:
+-------------------------
+ResponsesAgent streams via predict_stream() method:
+
+1. Receive request: {"messages": [...]}
+2. Process and generate response
+3. yield ResponsesAgentStreamEvent for each chunk:
+   - output_item.added: New response item started
+   - output_item.delta: Text chunk update  
+   - output_item.done: Response complete
+
+This enables:
+- Real-time feedback to users
+- Lower perceived latency
+- Progressive response rendering
+
+AUTHENTICATION PATTERN (OBO):
+-----------------------------
+On-Behalf-Of (OBO) authentication allows the agent to execute Genie
+queries with the calling user's permissions:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WITHOUT OBO                          │  WITH OBO                       │
+│  User A calls agent                   │  User A calls agent              │
+│  Agent uses SERVICE ACCOUNT           │  Agent uses USER A's credentials │
+│  → Sees all data (or none!)           │  → Sees only User A's data      │
+└───────────────────────────────────────┴─────────────────────────────────┘
+
+OBO is configured via:
+- AuthPolicy with UserAuthPolicy scopes
+- SystemAuthPolicy with resources (Genie Spaces, SQL Warehouses)
+- mlflow.pyfunc.log_model(auth_policy=...)
+
+ENVIRONMENT VARIABLE PATTERN:
+------------------------------
+Agent configuration via environment variables (not hardcoded):
+
+Why environment variables?
+- Same code works in dev/staging/prod
+- Secrets never in source code
+- Configuration managed at serving level
+- Different Genie Spaces per environment
+
+Set at serving endpoint creation:
+  os.environ["COST_GENIE_SPACE_ID"] = "01ef..."
+  os.environ["LLM_ENDPOINT"] = "databricks-claude-sonnet-4-5"
+
+KEY CONCEPTS IN THIS FILE:
+---------------------------
+1. ResponsesAgent class definition with predict_stream()
+2. Genie Space integration via GenieAgent (lazy loaded)
+3. MLflow tracing for observability
+4. OBO authentication for user-level permissions
+5. Lakebase memory (optional) for conversation state
+6. Model registration to Unity Catalog
 
 References:
 - https://docs.databricks.com/aws/en/mlflow/logged-model

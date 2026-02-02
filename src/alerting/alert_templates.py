@@ -1,8 +1,57 @@
 """
-Alert Template Library
+TRAINING MATERIAL: Alert Template Pattern for Self-Service Monitoring
+=====================================================================
 
-Pre-built alert templates for common monitoring patterns.
-Templates can be customized with parameters and deployed to alert_configurations.
+This module provides pre-built alert templates that non-engineers can
+customize and deploy without writing SQL.
+
+TEMPLATE ARCHITECTURE:
+----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  TEMPLATE LIBRARY (this file)                                            │
+│  ────────────────────────────                                            │
+│  AlertTemplate(                                                          │
+│      template_id="COST_SPIKE",                                           │
+│      query_template="SELECT daily_cost FROM ... WHERE date > {date}",   │
+│      required_params=["threshold_usd"],                                  │
+│      optional_params={"lookback_days": 7},                               │
+│  )                                                                       │
+│                                                                         │
+│       │ User selects template + provides params                         │
+│       ▼                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Frontend App / seed_all_alerts.py                               │   │
+│  │  - Instantiates template with params                             │   │
+│  │  - Writes to alert_configurations table                          │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│       │                                                                  │
+│       ▼                                                                  │
+│  alert_configurations Delta table                                        │
+│  (fully hydrated SQL, ready for sync)                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+TEMPLATE COMPONENTS:
+--------------------
+
+| Field | Purpose | Example |
+|-------|---------|---------|
+| template_id | Unique identifier | "COST_SPIKE" |
+| required_params | Must be provided | ["threshold_usd"] |
+| optional_params | Have defaults | {"lookback_days": 7} |
+| query_template | SQL with {param} | "SELECT ... WHERE cost > {threshold_usd}" |
+| threshold_column | Column to evaluate | "daily_cost" |
+| schedule_cron | Quartz cron | "0 0 8 * * ?" |
+
+TEMPLATE INSTANTIATION:
+-----------------------
+
+    template = COST_SPIKE
+    alert = template.instantiate(
+        threshold_usd=10000,  # Required
+        # lookback_days uses default (7)
+    )
+    # alert.query = "SELECT ... WHERE cost > 10000 AND date > CURRENT_DATE - 7"
 
 Templates are organized by domain:
 - COST: Cost monitoring and FinOps

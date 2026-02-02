@@ -19,8 +19,49 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Chargeback Attribution Model
-========================================
+TRAINING MATERIAL: FinOps Chargeback Attribution
+================================================
+
+This model attributes platform costs to business units, enabling
+accurate chargeback and cost accountability.
+
+CHARGEBACK CHALLENGE:
+---------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PROBLEM: Who should pay for shared platform costs?                      │
+│                                                                         │
+│  Total Platform Cost: $100,000/month                                    │
+│                                                                         │
+│  Simple attribution (by usage):                                          │
+│  └── Team A: 60% compute → $60,000                                      │
+│  └── Team B: 40% compute → $40,000                                      │
+│                                                                         │
+│  But... Team A uses expensive GPU instances                              │
+│  And... Team B causes most storage costs                                 │
+│                                                                         │
+│  ML ATTRIBUTION:                                                         │
+│  └── Model learns cost drivers per team                                 │
+│  └── Predicts fair cost allocation                                      │
+│  └── More accurate than simple usage-based split                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: daily_cost
+-----------------
+
+The target variable is the actual daily cost.
+Model learns to predict cost from usage patterns.
+
+ATTRIBUTION FEATURES:
+---------------------
+
+| Feature | Cost Impact |
+|---------|-------------|
+| Compute DBUs | Direct correlation |
+| Storage GB | Storage tier dependent |
+| Instance type | GPU vs CPU |
+| Time of day | Spot pricing variation |
+| Data transfer | Egress costs |
 
 Problem: Regression
 Algorithm: Gradient Boosting Regressor

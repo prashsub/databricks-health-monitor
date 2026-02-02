@@ -1,11 +1,50 @@
 """
-Alert Query Validator
+TRAINING MATERIAL: Pre-Deployment Query Validation
+==================================================
 
-Validates SQL queries before deployment to catch:
-1. Syntax errors (via EXPLAIN)
-2. Security risks (DROP, DELETE, etc.)
-3. Missing table references
-4. Invalid column references
+This module validates SQL queries BEFORE deploying to SQL Alerts,
+catching errors that would otherwise cause silent failures.
+
+VALIDATION LAYERS:
+------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  LAYER           │  WHAT IT CATCHES              │  HOW IT WORKS        │
+├──────────────────┼───────────────────────────────┼──────────────────────┤
+│  1. Security     │  DROP, DELETE, TRUNCATE       │  Regex pattern match │
+│  2. Syntax       │  SQL errors, typos            │  EXPLAIN statement   │
+│  3. Schema       │  Missing tables/columns       │  EXPLAIN statement   │
+│  4. Template     │  Unreplaced ${var} placeholders│  Regex scan         │
+└──────────────────┴───────────────────────────────┴──────────────────────┘
+
+SECURITY PATTERN DETECTION:
+---------------------------
+
+Dangerous operations categorized by severity:
+
+    ERROR (blocks deployment):
+    - DROP TABLE/SCHEMA/DATABASE
+    - DELETE FROM
+    - TRUNCATE
+    - UPDATE ... SET
+    
+    WARNING (logs but allows):
+    - ALTER TABLE
+    - CREATE OR REPLACE
+    - INSERT INTO
+    - MERGE INTO
+
+WHY PRE-VALIDATE:
+-----------------
+
+SQL Alert failures are SILENT - no notification if query syntax is wrong.
+The alert just never fires. Pre-validation catches these issues.
+
+    Without validation:
+        Deploy alert → Query has typo → Alert never triggers → Incident missed
+    
+    With validation:
+        Validate query → Catch typo → Fix before deploy → Alert works
 
 This module is intentionally free of Databricks SDK imports for testability.
 """

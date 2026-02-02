@@ -1,19 +1,76 @@
 # Databricks notebook source
 """
-Deploy Model Serving Endpoints
-==============================
+TRAINING MATERIAL: Model Serving Endpoint Deployment
+====================================================
 
-This script deploys models to Mosaic AI Model Serving endpoints
-with inference tables enabled for monitoring.
+This script deploys ML models to Mosaic AI Model Serving endpoints,
+demonstrating the Databricks SDK pattern for endpoint management.
+
+MODEL SERVING ARCHITECTURE:
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Unity Catalog (Models)          Model Serving                          │
+│  ──────────────────────          ─────────────                          │
+│  catalog.schema.cost_anomaly     health-monitor-cost-anomaly endpoint   │
+│  catalog.schema.security_threat  health-monitor-security-threat         │
+│                                                                         │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │  ServedEntityInput(                                                │  │
+│  │      entity_name="catalog.schema.model_name",                     │  │
+│  │      entity_version="1",           # or use alias                 │  │
+│  │      workload_size="Small",        # Small/Medium/Large           │  │
+│  │      scale_to_zero_enabled=True,   # Cost optimization            │  │
+│  │  )                                                                │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │  AutoCaptureConfigInput(                                           │  │
+│  │      catalog=catalog,                                             │  │
+│  │      schema=feature_schema,        # Inference table location     │  │
+│  │      enabled=True,                                                │  │
+│  │  )                                                                │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+ENDPOINT CONFIGURATION PATTERN:
+-------------------------------
+
+    ENDPOINT_CONFIG = {
+        "realtime": [
+            {
+                "name": "endpoint-name",
+                "model_name": "model_in_uc",
+                "scale_to_zero": True,    # Cost optimization
+                "workload_size": "Small", # Small = $0.07/hr
+            }
+        ],
+        "batch": [...]  # Scored via fe.score_batch, not endpoints
+    }
+
+SCALE-TO-ZERO DECISION:
+-----------------------
+
+| Endpoint | Scale-to-Zero | Why |
+|----------|---------------|-----|
+| cost-anomaly | True | Occasional scoring, cost-sensitive |
+| security-threat | **False** | Always-on for security SLA |
+| job-failure | True | Pre-run only, infrequent |
+
+INFERENCE TABLES:
+-----------------
+
+AutoCaptureConfigInput enables automatic logging of:
+- Input features
+- Model predictions
+- Latency metrics
+- Timestamp
+
+Used for drift detection and retraining triggers.
 
 Endpoint Types:
 - Real-time: cost-anomaly, security-threat, job-failure, query-perf (<100ms latency)
 - Batch: budget-forecast, capacity-plan (via scheduled jobs)
-
-MLflow 3.0 Features:
-- Automatic inference table creation in Unity Catalog
-- Model lineage from Feature Engineering preserved
-- Deployment jobs for orchestrated model lifecycle
 
 Reference: https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-serving/
 """

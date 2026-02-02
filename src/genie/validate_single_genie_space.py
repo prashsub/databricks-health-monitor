@@ -1,6 +1,49 @@
 # Databricks notebook source
 """
-Validate SQL benchmark questions for a single Genie Space.
+TRAINING MATERIAL: Single Genie Space Validation Notebook
+=========================================================
+
+This notebook validates ONE Genie Space at a time, useful for
+iterative development and debugging.
+
+VALIDATION WORKFLOW:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  DEVELOPMENT CYCLE                                                       │
+│                                                                         │
+│  1. Edit Genie Space JSON                                               │
+│        ↓                                                                 │
+│  2. Run validate_single_genie_space (this notebook)                     │
+│        ↓                                                                 │
+│  3. Fix errors                                                           │
+│        ↓                                                                 │
+│  4. Repeat until all pass                                               │
+│        ↓                                                                 │
+│  5. Run validate_all_genie_spaces (batch validation)                    │
+│        ↓                                                                 │
+│  6. Deploy                                                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+ERROR CATEGORIZATION:
+---------------------
+
+| Error Type | Meaning | Fix |
+|------------|---------|-----|
+| COLUMN_NOT_FOUND | Wrong column name | Check Gold schema |
+| TABLE_NOT_FOUND | Table doesn't exist | Check catalog/schema |
+| TVF_NOT_FOUND | TVF not deployed | Run TVF deployment |
+| WRONG_NUM_ARGS | TVF parameter count | Check TVF signature |
+| OTHER | General SQL error | Review query syntax |
+
+EXPLAIN vs SELECT LIMIT 1:
+--------------------------
+
+EXPLAIN catches syntax but misses runtime errors.
+SELECT LIMIT 1 catches both (but takes slightly longer).
+
+We use EXPLAIN for speed during development, SELECT LIMIT 1 for final validation.
+
 Parameters:
   - catalog: Catalog name
   - gold_schema: Gold schema name

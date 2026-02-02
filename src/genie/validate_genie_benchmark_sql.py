@@ -1,9 +1,46 @@
 """
-Genie Space Benchmark SQL Validator
-====================================
+TRAINING MATERIAL: Genie Benchmark SQL Validation
+=================================================
 
-Validates SQL queries in Genie Space JSON export benchmark sections.
-Catches syntax, column resolution, table reference, and runtime errors before deployment.
+This module validates benchmark SQL queries BEFORE deploying Genie Spaces,
+catching errors that would cause benchmark tests to fail.
+
+GENIE BENCHMARK STRUCTURE:
+--------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  genie_export.json                                                       │
+│  ├── tables[]              # Data assets                                │
+│  ├── metric_views[]        # Semantic layer                             │
+│  ├── sql_functions[]       # TVFs                                       │
+│  ├── instructions          # LLM guidance                               │
+│  └── benchmarks            # Validation suite                           │
+│      └── questions[]       # Each question with SQL answer              │
+│          ├── question: "What's the daily cost?"                         │
+│          └── answer: [{format: "SQL", content: ["SELECT..."]}]          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY VALIDATE BENCHMARK SQL:
+---------------------------
+
+1. Genie uses benchmarks to self-evaluate query accuracy
+2. Bad benchmark SQL → inaccurate Genie confidence scores
+3. Benchmark failures block Genie Space deployment validation
+4. Catch errors early, before LLM testing
+
+JSON FORMAT VARIATIONS:
+-----------------------
+
+Different Genie Spaces use different JSON structures:
+
+| Format | Field Path | Example Space |
+|--------|------------|---------------|
+| answer[] | answer[0].content | data_quality, job_health |
+| sql | sql | cost_intelligence |
+| query | query | security_auditor |
+| curated_questions | curated_questions[].query | performance |
+
+This validator handles ALL variations automatically.
 
 Extracts SQL from JSON export files' benchmarks.questions section and validates using SELECT LIMIT 1.
 """

@@ -19,8 +19,54 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Performance Regression Detector Model
-=================================================
+TRAINING MATERIAL: Performance Regression Detection
+===================================================
+
+This model detects when performance suddenly degrades (regresses),
+enabling rapid identification of root causes.
+
+PERFORMANCE REGRESSION:
+-----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WHAT IS A PERFORMANCE REGRESSION?                                       │
+│                                                                         │
+│  Before:                                                                 │
+│  └── Query X: 2 seconds                                                 │
+│  └── Job Y: 5 minutes                                                   │
+│                                                                         │
+│  After (code change, config change, data growth):                        │
+│  └── Query X: 20 seconds  ← 10x regression!                             │
+│  └── Job Y: 50 minutes    ← 10x regression!                             │
+│                                                                         │
+│  CHALLENGE:                                                              │
+│  └── Hard to detect manually across 1000s of queries/jobs               │
+│  └── Normal variance vs true regression?                                │
+│                                                                         │
+│  SOLUTION: Anomaly detection                                             │
+│  └── Learn normal performance patterns                                  │
+│  └── Flag significant deviations as regressions                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY ISOLATION FOREST:
+---------------------
+
+Regressions are anomalies - deviations from normal performance.
+Isolation Forest excels at finding these outliers:
+
+1. No labels needed (we don't manually tag every regression)
+2. Learns what "normal" performance looks like
+3. Flags sudden changes automatically
+4. Handles multiple metrics simultaneously
+
+REGRESSION SIGNALS:
+-------------------
+
+| Metric | Normal | Regression |
+|--------|--------|------------|
+| Duration | Consistent | Sudden increase |
+| Memory | Steady | Spike |
+| Shuffle | Predictable | Explosion |
 
 Problem: Anomaly Detection (Unsupervised)
 Algorithm: Isolation Forest

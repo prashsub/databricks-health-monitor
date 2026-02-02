@@ -1,8 +1,68 @@
 """
-Prompt Manager for Production
-=============================
+TRAINING MATERIAL: Production Prompt Management with Caching
+============================================================
 
-Centralized prompt management with automatic loading, caching, and refresh.
+This module implements a thread-safe prompt manager with automatic
+caching, TTL-based refresh, and graceful fallback to defaults.
+
+PROMPT CACHING ARCHITECTURE:
+----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PromptManager (Singleton)                                               │
+│  ─────────────────────────                                               │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  prompt_cache: Dict[str, CachedPrompt]                          │   │
+│  │  ┌──────────────┬───────────┬───────────┬──────────────────┐   │   │
+│  │  │ orchestrator │ version=3 │ loaded_at │ age_seconds=120  │   │   │
+│  │  │ synthesizer  │ version=2 │ loaded_at │ age_seconds=300  │   │   │
+│  │  │ intent_clf   │ version=1 │ loaded_at │ age_seconds=50   │   │   │
+│  │  └──────────────┴───────────┴───────────┴──────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  cache_ttl_seconds: 3600  (refresh after 1 hour)                       │
+│  default_alias: "production"                                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+CACHING BENEFITS:
+-----------------
+
+1. PERFORMANCE
+   - Prompts loaded once, served from memory
+   - No database query per agent invocation
+
+2. RESILIENCE
+   - If registry unavailable, serve cached
+   - Fallback to embedded defaults if cache empty
+
+3. CONSISTENCY
+   - TTL prevents stale prompts in long-running endpoints
+   - Background refresh doesn't block requests
+
+THREAD SAFETY:
+--------------
+
+    # Lock protects cache updates
+    with self._lock:
+        self._prompts[name] = cached_prompt
+
+    # Get is lock-free (atomic dict access)
+    return self._prompts.get(name)
+
+LAZY LOADING PATTERN:
+---------------------
+
+    def get_prompt(self, name: str) -> str:
+        # Check cache first
+        if name in self._prompts:
+            cached = self._prompts[name]
+            if cached.age_seconds < self.cache_ttl_seconds:
+                return cached.prompt  # Cache hit
+        
+        # Cache miss - load from registry
+        self._load_prompt(name)
+        return self._prompts[name].prompt
 
 Reference:
     28-mlflow-genai-patterns.mdc cursor rule

@@ -1,14 +1,37 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # System MLflow Tables - DLT Streaming Pipeline
-# MAGIC 
-# MAGIC Bronze layer ingestion of system.mlflow.* tables with schema evolution.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: MLflow System Table Ingestion
+# MAGIC
+# MAGIC This notebook ingests MLflow-related system tables for ML governance and
+# MAGIC experiment tracking analytics.
+# MAGIC
+# MAGIC ### MLflow System Tables Overview
+# MAGIC
+# MAGIC | Table | Type | Content | Use Case |
+# MAGIC |-------|------|---------|----------|
+# MAGIC | experiments_latest | Dimension | Experiment metadata | Experiment governance |
+# MAGIC | runs_latest | Fact | Run executions | Training analytics |
+# MAGIC | run_metrics_history | Fact | Metric values over time | Training monitoring |
+# MAGIC
+# MAGIC ### Why Ingest MLflow Tables?
+# MAGIC
+# MAGIC 1. **Cross-workspace visibility** - Aggregate experiments across workspaces
+# MAGIC 2. **Historical analytics** - Track ML adoption over time
+# MAGIC 3. **Cost attribution** - Link experiments to compute usage
+# MAGIC 4. **Governance compliance** - Audit ML activities
+# MAGIC
+# MAGIC ### Optional Tables Pattern
+# MAGIC
+# MAGIC MLflow tables may not exist if MLflow isn't enabled. The Gold layer handles
+# MAGIC this gracefully with try/except pattern (see merge_mlflow.py).
+# MAGIC
 # MAGIC **Tables ingested:**
 # MAGIC - experiments_latest (system.mlflow.experiments_latest)
 # MAGIC - runs_latest (system.mlflow.runs_latest)
 # MAGIC - run_metrics_history (system.mlflow.run_metrics_history)
-# MAGIC 
+# MAGIC
 # MAGIC **Pattern:** Stream from system tables with skipChangeCommits and schema evolution enabled
 
 # COMMAND ----------

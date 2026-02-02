@@ -1,5 +1,76 @@
 """
-Genie Space API Client for the Optimizer.
+TRAINING MATERIAL: Genie Space API Client Pattern
+==================================================
+
+This module provides a high-level client for interacting with Databricks Genie
+Spaces via the REST API. It handles the complexity of conversation management,
+rate limiting, and response parsing.
+
+GENIE API ARCHITECTURE:
+-----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    GENIE API CONVERSATION FLOW                           │
+│                                                                         │
+│  1. START CONVERSATION                                                  │
+│     POST /genie/spaces/{id}/start-conversation                          │
+│     {"content": "What is our total spend?"}                             │
+│     → Returns: conversation_id, message_id                              │
+│                                                                         │
+│  2. POLL FOR COMPLETION                                                 │
+│     GET /genie/spaces/{id}/conversations/{conv}/messages/{msg}          │
+│     → Status: IN_PROGRESS, EXECUTING_QUERY, COMPLETED, FAILED           │
+│                                                                         │
+│  3. GET QUERY RESULTS                                                   │
+│     GET .../messages/{msg}/attachments/{att}/query-result               │
+│     → Returns: SQL query, columns, data rows                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+RATE LIMITING (CRITICAL):
+-------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Genie API Rate Limits:                                                  │
+│                                                                         │
+│  POST requests: 5 per minute per workspace                              │
+│  GET requests:  Unlimited                                               │
+│                                                                         │
+│  This means:                                                            │
+│  - Wait 12+ seconds between POST requests (60s / 5 = 12s)               │
+│  - Polling via GET is safe                                              │
+│  - PATCH requests also count as POST (same limit)                       │
+│                                                                         │
+│  Implementation: _enforce_rate_limit() tracks last POST time            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY METHODS:
+------------
+
+1. ask_question(question) → GenieResponse
+   - Full flow: start → poll → get results
+   - Returns SQL, data, and metadata
+   - Handles timeouts and errors
+
+2. add_instruction(instruction)
+   - Add routing instructions to Genie Space
+   - ⚠️ Limited to ~4000 chars total
+   - Prefer UC metadata updates instead
+
+3. add_sample_query(question, sql)
+   - Add example Q&A pairs
+   - Helps Genie learn correct patterns
+   - More effective than instructions
+
+4. get_space_config() / clear_instructions()
+   - Read and modify Genie Space configuration
+   - Uses PATCH to update serialized_space
+
+ERROR HANDLING:
+---------------
+The client implements retry logic with exponential backoff:
+- Network errors: retry with increasing delays
+- Rate limits: automatic waiting
+- Timeouts: configurable per-request
 
 Provides a high-level interface for:
 - Asking questions to Genie Spaces

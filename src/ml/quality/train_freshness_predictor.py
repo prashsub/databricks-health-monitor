@@ -19,8 +19,48 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Data Freshness Predictor Model
-==========================================
+TRAINING MATERIAL: Data Freshness Prediction for SLA
+====================================================
+
+This model predicts data freshness metrics, enabling proactive
+detection of stale data before it impacts consumers.
+
+DATA FRESHNESS IMPORTANCE:
+--------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  FRESHNESS SLA EXAMPLE                                                   │
+│                                                                         │
+│  Gold table: sales_daily_summary                                        │
+│  SLA: Data must be <4 hours old during business hours                   │
+│                                                                         │
+│  DAY 1:                                                                  │
+│  └── Pipeline completes at 6 AM, data is 2 hours old ✅                 │
+│                                                                         │
+│  DAY 2:                                                                  │
+│  └── Pipeline delayed, data is 8 hours old at 10 AM ❌                  │
+│  └── Executives see stale data, decisions affected                      │
+│                                                                         │
+│  WITH PREDICTION:                                                        │
+│  └── Model predicts freshness risk at 5 AM                              │
+│  └── On-call investigates, fixes issue before 9 AM standup              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: table_count (proxy for data activity)
+--------------------------------------------
+
+Higher table activity generally correlates with better freshness.
+The model predicts data activity patterns to identify freshness risks.
+
+FRESHNESS SIGNALS:
+------------------
+
+| Signal | Interpretation |
+|--------|----------------|
+| Last update time | Direct freshness measure |
+| Update frequency | Expected refresh cadence |
+| Upstream delays | Cascade effect on freshness |
+| Pipeline health | Reliability impacts freshness |
 
 Problem: Regression
 Algorithm: Gradient Boosting Regressor

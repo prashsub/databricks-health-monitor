@@ -19,8 +19,78 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Job Failure Predictor Model
-=======================================
+TRAINING MATERIAL: Standardized ML Training Script Pattern
+==========================================================
+
+This is the **reference implementation** for all 25 ML models in this project.
+All training scripts follow this exact pattern for consistency.
+
+SCRIPT STRUCTURE:
+-----------------
+
+1. PATH SETUP (above)
+   - Enables imports from src.ml.* when deployed via Asset Bundles
+   - Computes bundle root dynamically from notebook path
+   - Handles local execution gracefully
+
+2. CONFIGURATION CONSTANTS
+   - MODEL_NAME, DOMAIN, FEATURE_TABLE, LABEL_COLUMN, ALGORITHM
+   - Single place to change model identity
+   - Used for experiment naming, model registration, logging
+
+3. get_parameters() FUNCTION
+   - Uses dbutils.widgets.get() (NOT argparse!)
+   - Returns catalog, gold_schema, feature_schema
+   - Works with Asset Bundle job parameters
+
+4. train_model() FUNCTION
+   - Defines hyperparameters (logged to MLflow)
+   - Instantiates and fits the model
+   - Calculates metrics using standardized functions
+
+5. main() FUNCTION
+   - Orchestrates the full training pipeline
+   - Uses training_base utilities for consistency
+   - Handles all MLflow logging and model registration
+
+STANDARDIZED TRAINING PIPELINE:
+-------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  setup_training_environment()                                            │
+│  ─────────────────────────────                                          │
+│  Creates MLflow experiment: /Shared/health_monitor_ml_{model_name}       │
+│  Initializes FeatureRegistry for schema queries                          │
+│                                                                         │
+│       ↓                                                                 │
+│                                                                         │
+│  create_feature_lookup_training_set()                                    │
+│  ─────────────────────────────────────                                   │
+│  Uses FeatureLookup to join features to labels                          │
+│  Returns training_set with feature lineage                              │
+│                                                                         │
+│       ↓                                                                 │
+│                                                                         │
+│  prepare_training_data()                                                 │
+│  ───────────────────────                                                 │
+│  Splits into train/test, handles NaN/Inf                                │
+│  Converts to correct types, creates label column                        │
+│                                                                         │
+│       ↓                                                                 │
+│                                                                         │
+│  train_model() [model-specific]                                          │
+│  ─────────────────────────────                                           │
+│  Defines hyperparameters, trains model                                  │
+│  Calculates metrics using standardized functions                        │
+│                                                                         │
+│       ↓                                                                 │
+│                                                                         │
+│  log_model_with_features()                                               │
+│  ─────────────────────────                                               │
+│  Logs to MLflow with fe.log_model()                                     │
+│  Registers to Unity Catalog with output_schema                          │
+│  Packages feature lookups for inference                                 │
+└─────────────────────────────────────────────────────────────────────────┘
 
 Problem: Classification
 Algorithm: XGBOOST

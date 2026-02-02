@@ -19,8 +19,45 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Sla Breach Predictor Model
-======================================
+TRAINING MATERIAL: SLA Breach Early Warning System
+==================================================
+
+This model predicts which jobs/pipelines are at risk of breaching
+their SLA in the next run, enabling proactive intervention.
+
+SLA PREDICTION VALUE:
+---------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WITHOUT PREDICTION (Reactive)                                           │
+│  ─────────────────────────────                                           │
+│  SLA Breach → Alert → Investigate → Fix → Impact already happened       │
+│                                                                         │
+│  WITH PREDICTION (Proactive)                                             │
+│  ───────────────────────────                                             │
+│  Model: "Job X has 80% chance of SLA breach"                            │
+│  Action: Investigate preemptively                                        │
+│  Result: Fix issue before breach, no impact                              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: failure_rate (as proxy for SLA breach risk)
+--------------------------------------------------
+
+Higher failure rate → Higher SLA breach risk
+
+We classify:
+- failure_rate > threshold → High risk (1)
+- failure_rate <= threshold → Low risk (0)
+
+PREDICTIVE SIGNALS:
+-------------------
+
+| Signal | Interpretation |
+|--------|----------------|
+| Recent failures | Pattern of instability |
+| Duration trend | Getting slower = risk |
+| Resource contention | Cluster issues |
+| Upstream delays | Dependency problems |
 
 Problem: Classification
 Algorithm: XGBOOST

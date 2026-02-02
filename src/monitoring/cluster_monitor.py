@@ -1,7 +1,49 @@
 # Databricks notebook source
 """
-Cluster Utilization Monitor Configuration
-=========================================
+TRAINING MATERIAL: Infrastructure Right-Sizing Monitoring
+=========================================================
+
+This monitor tracks compute resource utilization at the node level,
+enabling right-sizing recommendations and cost optimization.
+
+UTILIZATION METRICS:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  METRIC               │  INTERPRETATION                │  RIGHT-SIZE    │
+├───────────────────────┼────────────────────────────────┼────────────────┤
+│  CPU < 20%            │  Over-provisioned              │  Smaller nodes │
+│  CPU 40-70%           │  Well-sized                    │  Keep current  │
+│  CPU > 90%            │  Under-provisioned             │  Larger nodes  │
+│                       │                                │                │
+│  Memory < 30%         │  Memory over-provisioned       │  Less memory   │
+│  Memory > 90%         │  Memory-bound workload         │  More memory   │
+└───────────────────────┴────────────────────────────────┴────────────────┘
+
+NODE TIMELINE GRAIN:
+--------------------
+
+fact_node_timeline has HOURLY grain per node:
+
+    | timestamp | cluster_id | instance_id | cpu_avg | memory_avg |
+    |-----------|------------|-------------|---------|------------|
+    | 2024-01-15 10:00 | cls-123 | i-abc | 0.45 | 0.62 |
+    | 2024-01-15 11:00 | cls-123 | i-abc | 0.52 | 0.65 |
+
+This allows:
+- Peak utilization analysis (max across hours)
+- Average utilization (mean across hours)
+- Idle detection (hours with near-zero usage)
+
+DRIVER vs WORKER ANALYSIS:
+--------------------------
+
+Separate metrics for drivers and workers because:
+- Driver: Orchestration, single-threaded operations
+- Worker: Parallel processing, data operations
+
+Driver CPU high + Worker CPU low = Bottleneck in driver code
+Worker CPU high + Driver CPU low = Good parallelization
 
 Lakehouse Monitor for fact_node_timeline table.
 Tracks CPU, memory, and network utilization for right-sizing.

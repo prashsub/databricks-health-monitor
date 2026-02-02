@@ -3,6 +3,83 @@
 Dashboard Deployment Script
 ===========================
 
+TRAINING MATERIAL: AI/BI Dashboard Deployment Patterns
+------------------------------------------------------
+
+This notebook demonstrates production-grade deployment of Databricks Lakeview
+(AI/BI) dashboards using the Workspace Import API with variable substitution.
+
+ARCHITECTURE OVERVIEW:
+----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    DASHBOARD DEPLOYMENT FLOW                             │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  SOURCE: Static JSON Files (in repository)                       │   │
+│  │  ├── cost.lvdash.json     → Cost Intelligence                   │   │
+│  │  ├── performance.lvdash.json → Performance Analytics            │   │
+│  │  ├── reliability.lvdash.json → Reliability Monitor              │   │
+│  │  ├── security.lvdash.json → Security & Compliance               │   │
+│  │  ├── quality.lvdash.json  → Data Quality Hub                    │   │
+│  │  └── unified.lvdash.json  → Executive Overview                  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  VARIABLE SUBSTITUTION                   │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  TEMPLATE RENDERING                                              │   │
+│  │  ${catalog}      → health_monitor                               │   │
+│  │  ${gold_schema}  → gold                                         │   │
+│  │  ${warehouse_id} → abc123...                                    │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  WORKSPACE IMPORT API                    │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  DATABRICKS WORKSPACE                                            │   │
+│  │  /Shared/health_monitor/dashboards/                             │   │
+│  │  ├── cost.lvdash.json (deployable)                              │   │
+│  │  ├── performance.lvdash.json                                    │   │
+│  │  └── ... more dashboards                                        │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY CONCEPTS DEMONSTRATED:
+--------------------------
+1. VARIABLE SUBSTITUTION: ${catalog}, ${gold_schema} placeholder replacement
+2. UPDATE-OR-CREATE: Overwrite existing or create new (preserves URLs)
+3. WORKSPACE IMPORT API: Recommended API for dashboard deployment
+4. CLEANUP: Remove old/duplicate dashboards before deployment
+5. BASE64 ENCODING: Required format for Workspace Import API
+6. ERROR HANDLING: Graceful handling of missing files, API errors
+
+WHY STATIC JSON (Not Runtime Generation):
+-----------------------------------------
+1. VERSION CONTROL: Dashboards tracked in git like code
+2. CODE REVIEW: Changes can be reviewed before deployment
+3. ROLLBACK: Easy to revert to previous versions
+4. DEBUGGING: Edit JSON directly to fix SQL errors
+5. CONSISTENCY: Same dashboards across environments
+
+UPDATE-OR-CREATE PATTERN:
+-------------------------
+The Workspace Import API with overwrite=True provides:
+- If dashboard exists → UPDATE (preserves URL, permissions, shares)
+- If dashboard doesn't exist → CREATE new
+- Atomic operation (no separate check needed)
+
+WHY NOT Lakeview Dashboard API:
+-------------------------------
+Lakeview API (POST /api/2.0/lakeview/dashboards) is for:
+- Creating dashboards from scratch programmatically
+- Dynamic dashboard generation
+
+Workspace Import API is better for:
+- Deploying pre-built static dashboards
+- Maintaining consistent deployments
+- Update-or-create semantics
+
 Deploys the 6 Health Monitor Lakeview AI/BI dashboards using UPDATE-or-CREATE pattern.
 
 **Deployment Strategy:**

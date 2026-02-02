@@ -2,7 +2,36 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Storage Domain
 # MAGIC
-# MAGIC Merges predictive optimization tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: Predictive Optimization Tracking
+# MAGIC
+# MAGIC This notebook processes Predictive Optimization operations history,
+# MAGIC tracking automatic OPTIMIZE, VACUUM, and ZORDER operations.
+# MAGIC
+# MAGIC ### What is Predictive Optimization?
+# MAGIC
+# MAGIC ```
+# MAGIC Databricks Predictive Optimization automatically:
+# MAGIC
+# MAGIC ┌─────────────────────────────────────────────────────────────────────────┐
+# MAGIC │  OPTIMIZE        │  Compacts small files into optimal sizes            │
+# MAGIC │  VACUUM          │  Removes old versions and deleted files             │
+# MAGIC │  ZORDER          │  Co-locates related data for faster queries         │
+# MAGIC └─────────────────────────────────────────────────────────────────────────┘
+# MAGIC
+# MAGIC System tables track all automatic operations for:
+# MAGIC - Cost attribution (each operation has usage_quantity)
+# MAGIC - Performance analysis (before/after metrics)
+# MAGIC - Governance (who enabled it, when)
+# MAGIC ```
+# MAGIC
+# MAGIC ### Operation Metrics Structure
+# MAGIC
+# MAGIC The `operation_metrics` column contains operation-specific metrics:
+# MAGIC - OPTIMIZE: files_before, files_after, bytes_rewritten
+# MAGIC - VACUUM: files_deleted, bytes_freed
+# MAGIC - ZORDER: columns_ordered, data_skipping_effectiveness
+# MAGIC
+# MAGIC We serialize this to `operation_metrics_json` for BI compatibility.
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - fact_predictive_optimization (from storage.predictive_optimization_operations_history)

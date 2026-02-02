@@ -19,8 +19,48 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Cluster Capacity Planner Model
-====================================
+TRAINING MATERIAL: Cluster Capacity Planning
+============================================
+
+This model predicts future cluster capacity needs, enabling proactive
+scaling and avoiding over/under-provisioning.
+
+CAPACITY PLANNING PROBLEM:
+--------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  REACTIVE SCALING (Current)                                              │
+│  ──────────────────────────                                              │
+│  1. Traffic spike occurs                                                 │
+│  2. Autoscaling kicks in (1-5 min delay)                                │
+│  3. Users experience slow queries during spin-up                        │
+│                                                                         │
+│  PREDICTIVE SCALING (With this model)                                    │
+│  ─────────────────────────────────────                                   │
+│  1. Model predicts traffic spike in 30 min                              │
+│  2. Pre-scale clusters before spike                                     │
+│  3. Users experience no degradation                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+PREDICTION HORIZON:
+-------------------
+
+| Horizon | Use Case | Accuracy |
+|---------|----------|----------|
+| 30 min | Immediate scaling | Highest |
+| 1 hour | Short-term planning | High |
+| 24 hours | Next-day planning | Medium |
+| 7 days | Weekly planning | Lower |
+
+PREDICTIVE FEATURES:
+--------------------
+
+| Feature | Signal |
+|---------|--------|
+| Hour of day | Daily patterns |
+| Day of week | Weekly patterns |
+| Historical load | Trend continuation |
+| Scheduled jobs | Known future load |
 
 Problem: Regression
 Algorithm: Gradient Boosting Regressor

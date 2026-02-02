@@ -2,7 +2,37 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Shared Domain
 # MAGIC
-# MAGIC Merges shared dimension tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: Shared Dimension Pattern
+# MAGIC
+# MAGIC This notebook processes shared dimension tables that are used across
+# MAGIC multiple domains and fact tables.
+# MAGIC
+# MAGIC ### Why Shared Dimensions?
+# MAGIC
+# MAGIC ```
+# MAGIC ┌─────────────────────────────────────────────────────────────────────────┐
+# MAGIC │                           dim_workspace                                  │
+# MAGIC │  ┌─────────────────────────────────────────────────────────────────┐    │
+# MAGIC │  │  workspace_id (PK)                                              │    │
+# MAGIC │  │  workspace_name                                                 │    │
+# MAGIC │  │  region, cloud, pricing_tier                                    │    │
+# MAGIC │  └─────────────────────────────────────────────────────────────────┘    │
+# MAGIC │                               ▲                                         │
+# MAGIC │          ┌────────────────────┼────────────────────┐                   │
+# MAGIC │          │                    │                    │                   │
+# MAGIC │   fact_usage        fact_audit_logs      fact_query_history           │
+# MAGIC │   (billing)         (security)           (performance)                 │
+# MAGIC │                                                                         │
+# MAGIC │  Same workspace_id used across ALL domains                             │
+# MAGIC └─────────────────────────────────────────────────────────────────────────┘
+# MAGIC ```
+# MAGIC
+# MAGIC ### SCD Type 1 for Workspaces
+# MAGIC
+# MAGIC Workspaces use SCD Type 1 (overwrite) because:
+# MAGIC - Workspace attributes (name, region) are current state
+# MAGIC - Historical workspace names not needed for analytics
+# MAGIC - Simpler querying (no is_current filter needed)
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - dim_workspace (from access.workspaces_latest)

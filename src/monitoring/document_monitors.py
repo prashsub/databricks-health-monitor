@@ -1,13 +1,86 @@
 # Databricks notebook source
 """
-Document Lakehouse Monitor Output Tables
-========================================
+TRAINING MATERIAL: Lakehouse Monitor Documentation Pattern for AI/LLM
+=====================================================================
 
-Adds detailed table and column descriptions to Lakehouse Monitoring output tables
-to enable Genie and LLMs to understand the metrics for natural language queries.
+This notebook adds detailed table and column descriptions to Lakehouse
+Monitoring output tables to enable Genie and LLMs to understand the
+metrics for natural language queries.
 
-Run this notebook AFTER monitors have initialized (typically 15+ minutes after creation).
-Can be run independently or as part of the monitoring setup workflow.
+WHY DOCUMENTATION IS CRITICAL FOR GENIE:
+----------------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WITHOUT DOCUMENTATION                │  WITH DOCUMENTATION             │
+├───────────────────────────────────────┼─────────────────────────────────┤
+│  Genie sees: "total_daily_cost"       │  Genie sees:                    │
+│  Genie thinks: "???"                  │  "Total daily cost in USD.      │
+│  Genie responds: "I don't understand" │   Business: Primary KPI for     │
+│                                       │   cost monitoring and trends.   │
+│                                       │   Technical: SUM of             │
+│                                       │   cost_value by day."           │
+│                                       │  Genie responds correctly!      │
+└───────────────────────────────────────┴─────────────────────────────────┘
+
+LAKEHOUSE MONITORING OUTPUT TABLES:
+-----------------------------------
+When you create a Lakehouse Monitor on a table, Databricks creates:
+
+1. {table}_profile_metrics:
+   - Contains statistical profiles of your data
+   - Your custom AGGREGATE and DERIVED metrics appear as COLUMNS
+   - Has slicing dimensions for "by workspace", "by SKU" queries
+
+2. {table}_drift_metrics:
+   - Contains comparisons between time periods
+   - DRIFT metrics compare consecutive or baseline periods
+   - Enables "how has X changed?" queries
+
+CUSTOM METRIC STORAGE PATTERNS:
+-------------------------------
+Understanding WHERE to find your custom metrics:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  METRIC TYPE     │  TABLE               │  WHERE CLAUSE                  │
+├──────────────────┼──────────────────────┼────────────────────────────────┤
+│  AGGREGATE       │  _profile_metrics    │  column_name=':table'          │
+│  (SUM, AVG, etc) │                      │  log_type='INPUT'              │
+│                  │                      │                                │
+│  DERIVED         │  _profile_metrics    │  column_name=':table'          │
+│  (calculated)    │                      │  log_type='INPUT'              │
+│                  │                      │                                │
+│  DRIFT           │  _drift_metrics      │  drift_type='CONSECUTIVE'      │
+│  (change over    │                      │  column_name=':table'          │
+│   time)          │                      │                                │
+└──────────────────┴──────────────────────┴────────────────────────────────┘
+
+SLICING FOR DIMENSIONAL ANALYSIS:
+---------------------------------
+Lakehouse Monitors can slice metrics by dimensions:
+
+"Show cost by workspace"
+→ WHERE slice_key='workspace_id' AND slice_value='your_workspace'
+
+"Show overall cost"
+→ WHERE slice_key IS NULL (or COALESCE(slice_key, 'No Slice')='No Slice')
+
+DOCUMENTATION CONTENT PATTERN:
+-------------------------------
+For each metric column, we add a comment like:
+
+"Total daily cost in USD. Business: Primary KPI for cost monitoring and 
+executive dashboards. Used for budget tracking. Technical: SUM(cost_value) 
+grouped by day. Source: fact_usage table."
+
+This dual-purpose format enables:
+- Business users: Understand meaning and usage
+- Genie/LLM: Understand calculation and semantics
+- Developers: Know data lineage
+
+TIMING REQUIREMENT:
+-------------------
+Monitors create output tables ASYNCHRONOUSLY (~15 minutes).
+This notebook must run AFTER tables exist, hence the NOT_READY handling.
 
 Output Tables Documented:
 - {table}_profile_metrics: Contains AGGREGATE and DERIVED custom metrics as columns

@@ -1,10 +1,77 @@
 # Databricks notebook source
 """
-Feature Engineering Utilities for Databricks Health Monitor
-============================================================
+TRAINING MATERIAL: Feature Engineering in Unity Catalog
+=======================================================
 
 This module provides utilities for Feature Engineering in Unity Catalog,
-following official Databricks best practices for feature store integration.
+the modern Databricks approach to feature store functionality.
+
+WHY UNITY CATALOG FEATURE ENGINEERING:
+--------------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  LEGACY WORKSPACE FEATURE STORE  │  UNITY CATALOG FEATURE ENGINEERING   │
+├──────────────────────────────────┼──────────────────────────────────────┤
+│  Separate feature store registry │  Any Delta table with PK = feature   │
+│  Workspace-scoped                │  Cross-workspace, governed           │
+│  Limited lineage                 │  Full UC lineage and tags            │
+│  Manual version management       │  Automatic with Delta                │
+│  Separate SDK                    │  Integrated with ML workflows        │
+└──────────────────────────────────┴──────────────────────────────────────┘
+
+KEY CONCEPTS:
+-------------
+
+1. FEATURE TABLE = DELTA TABLE WITH PRIMARY KEY
+   
+   In Unity Catalog Feature Engineering, any Delta table with a primary key
+   can be used as a feature table. No special registration needed!
+   
+   CREATE TABLE features.cost_features (
+     workspace_id STRING NOT NULL,
+     usage_date DATE NOT NULL,
+     daily_cost DOUBLE,
+     ...
+     CONSTRAINT pk PRIMARY KEY (workspace_id, usage_date)
+   )
+
+2. FEATURELOOKUP FOR TRAINING
+   
+   FeatureLookup automatically joins features to your training data:
+   
+   lookups = [
+       FeatureLookup(
+           table_name="catalog.features.cost_features",
+           lookup_key=["workspace_id", "usage_date"],
+           feature_names=["daily_cost", "daily_dbu"]
+       )
+   ]
+   training_set = fe.create_training_set(
+       df=labels_df,
+       feature_lookups=lookups
+   )
+
+3. POINT-IN-TIME LOOKUPS
+   
+   For time-series features, use timestamp_lookup_key to prevent data leakage:
+   
+   FeatureLookup(
+       table_name="catalog.features.rolling_features",
+       lookup_key=["workspace_id"],
+       timestamp_lookup_key="event_timestamp",  # Join on this time
+       feature_names=["rolling_7d_cost"]
+   )
+
+4. fe.log_model() FOR INFERENCE
+   
+   When logging model with features, fe.log_model() packages feature specs:
+   
+   fe.log_model(
+       model=trained_model,
+       name="cost_anomaly_detector",
+       feature_lookups=lookups,  # Features packaged with model
+       output_schema=Schema([ColSpec(DataType.double)])
+   )
 
 Key Features:
 - Feature tables in Unity Catalog

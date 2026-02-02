@@ -3,23 +3,65 @@
 # Create Serving Endpoint with AI Gateway
 # ===========================================================================
 """
-Creates the Model Serving endpoint for the Health Monitor Agent.
+TRAINING MATERIAL: AI Gateway Configuration for Agent Endpoints
+===============================================================
 
-This script uses the Databricks SDK to programmatically create the endpoint
-AFTER the model has been registered.
+This script demonstrates creating a Model Serving endpoint with AI Gateway,
+the recommended approach for production agent deployments.
 
-## AI Gateway vs auto_capture_config
+AI GATEWAY vs AUTO_CAPTURE_CONFIG:
+----------------------------------
 
-| Feature              | auto_capture_config | AI Gateway         |
-|---------------------|--------------------|--------------------|
-| Inference Logging    | ✅                  | ✅ (built-in)       |
-| Rate Limiting        | ❌                  | ✅                  |
-| Usage Tracking       | ❌                  | ✅                  |
-| Guardrails           | ❌                  | ✅                  |
-| A/B Testing/Routing  | ❌                  | ✅                  |
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Feature              │  auto_capture_config  │  AI Gateway ✅          │
+├───────────────────────┼───────────────────────┼─────────────────────────┤
+│  Inference Logging    │  ✅                    │  ✅ (built-in)          │
+│  Rate Limiting        │  ❌                    │  ✅ per-user/endpoint   │
+│  Usage Tracking       │  ❌                    │  ✅ token counting      │
+│  Guardrails           │  ❌                    │  ✅ PII, toxicity       │
+│  A/B Testing/Routing  │  ❌                    │  ✅                     │
+│  Cost Attribution     │  ❌                    │  ✅ per-user tracking   │
+└───────────────────────┴───────────────────────┴─────────────────────────┘
 
-**Important:** You cannot use both together - Databricks prevents this to avoid
-duplicate logging. AI Gateway is the recommended choice for production.
+CANNOT USE BOTH: Databricks prevents combined usage to avoid duplicate logging.
+AI Gateway is the recommended choice for production.
+
+ENDPOINT CREATION PATTERN:
+--------------------------
+
+    from databricks.sdk.service.serving import (
+        EndpointCoreConfigInput,
+        ServedEntityInput,
+        AiGatewayConfig,
+        AiGatewayRateLimit,
+        AiGatewayUsageTrackingConfig,
+        AiGatewayInferenceTableConfig,
+    )
+    
+    # Define served entity (the registered model)
+    served_entity = ServedEntityInput(
+        entity_name=f"{catalog}.{schema}.{model_name}",
+        entity_version="1",
+        workload_size="Small",
+        scale_to_zero_enabled=True,  # Cost optimization
+    )
+    
+    # Configure AI Gateway for production features
+    ai_gateway = AiGatewayConfig(
+        rate_limits=[
+            AiGatewayRateLimit(
+                key="user",
+                calls=60,
+                renewal_period="minute"
+            )
+        ],
+        usage_tracking=AiGatewayUsageTrackingConfig(enabled=True),
+        inference_table=AiGatewayInferenceTableConfig(
+            catalog_name=catalog,
+            schema_name=schema,
+            enabled=True
+        )
+    )
 
 Reference: 
 - https://docs.databricks.com/aws/en/generative-ai/ai-gateway/

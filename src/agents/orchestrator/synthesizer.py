@@ -1,6 +1,103 @@
 """
-Response Synthesizer
-====================
+TRAINING MATERIAL: Multi-Agent Response Synthesis Pattern
+==========================================================
+
+This module combines responses from multiple domain agents into a unified,
+coherent answer. It's the final step in the orchestration pipeline that
+creates the user-facing response.
+
+WHY SYNTHESIS IS NEEDED:
+------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE PROBLEM: Multiple Agent Responses                                   │
+│                                                                         │
+│  User: "Which expensive jobs are also failing?"                         │
+│                                                                         │
+│  Cost Agent says:                                                       │
+│  "Top 5 expensive jobs: ETL_Daily ($450/day), ML_Train ($320/day)..."   │
+│                                                                         │
+│  Reliability Agent says:                                                │
+│  "Frequently failing jobs: ML_Train (15% failure), Data_Load (12%)..."  │
+│                                                                         │
+│  WITHOUT Synthesis:                                                     │
+│  → Show both responses separately                                       │
+│  → User has to mentally combine them                                    │
+│  → No insight into the intersection                                     │
+│                                                                         │
+│  WITH Synthesis:                                                        │
+│  "ML_Train is both expensive ($320/day) AND unreliable (15% failures).  │
+│   This job costs ~$450/week in wasted compute. Consider optimizing..."  │
+│  → Cross-domain insight, actionable recommendation                      │
+└─────────────────────────────────────────────────────────────────────────┘
+
+SYNTHESIS PROCESS:
+------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  1. COLLECT AGENT RESPONSES                                              │
+│     agent_responses = {                                                 │
+│       "cost": {"response": "...", "sources": [...], "confidence": 0.9}, │
+│       "reliability": {"response": "...", "sources": [...]}              │
+│     }                                                                   │
+│                                                                         │
+│  2. FORMAT FOR LLM                                                       │
+│     Structured prompt with all domain responses                         │
+│                                                                         │
+│  3. LLM SYNTHESIZES                                                      │
+│     - Identifies cross-domain correlations                              │
+│     - Generates unified narrative                                       │
+│     - Adds actionable recommendations                                   │
+│                                                                         │
+│  4. STRUCTURE OUTPUT                                                     │
+│     ## Summary                                                          │
+│     ## Details (by domain)                                              │
+│     ## Recommendations                                                  │
+│     ## Sources                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+OUTPUT FORMAT:
+--------------
+
+The synthesizer produces structured responses:
+
+## Summary
+[1-2 sentence direct answer to the question]
+
+## Details
+[Domain-specific breakdown with data]
+
+## Recommendations  
+[Actionable next steps based on analysis]
+
+## Sources
+[Data sources cited, e.g., Cost Intelligence, Job Health Monitor]
+
+CONFIDENCE AGGREGATION:
+-----------------------
+
+Overall confidence is calculated from agent confidences:
+- Average of all non-error agent confidences
+- Errors reduce overall confidence implicitly
+- Used for response quality assessment
+
+KEY DESIGN DECISIONS:
+---------------------
+
+1. Temperature 0.3 (vs 0.1 for classifier)
+   - Synthesis benefits from some creativity
+   - Too low = robotic responses
+   - Too high = inconsistent formatting
+
+2. User Context Integration
+   - Role-based response tailoring
+   - Workspace preferences
+   - Cost thresholds for alerts
+
+3. Source Citation
+   - Every claim backed by source
+   - Builds user trust
+   - Enables verification
 
 Combines responses from multiple domain agents into a unified answer.
 """

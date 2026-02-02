@@ -1,8 +1,95 @@
 # Databricks notebook source
 """
 Genie Space Deployment Script
+=============================
 
-This script deploys Genie Spaces using the Export/Import API format.
+TRAINING MATERIAL: Genie Space Export/Import API Pattern
+---------------------------------------------------------
+
+This script demonstrates production deployment of Databricks Genie Spaces
+using the REST API Export/Import format.
+
+WHAT ARE GENIE SPACES:
+----------------------
+Genie Spaces are natural language interfaces to your data. They allow users
+to ask questions in plain English and get SQL-powered answers.
+
+GENIE SPACE ARCHITECTURE:
+-------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    GENIE SPACE DEPLOYMENT                                │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  JSON EXPORT FILES (Repository)                                  │   │
+│  │  cost_intelligence_genie_export.json                            │   │
+│  │  job_health_monitor_genie_export.json                           │   │
+│  │  Contains: ${catalog} and ${gold_schema} template variables      │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  VARIABLE SUBSTITUTION                   │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  SUBSTITUTE VARIABLES                                            │   │
+│  │  ${catalog} → prashanth_subrahmanyam_catalog                    │   │
+│  │  ${gold_schema} → dev_prashanth_subrahmanyam_system_gold        │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  REST API CALL                           │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  DATABRICKS REST API                                             │   │
+│  │  POST /api/2.0/genie/spaces                                      │   │
+│  │  PATCH /api/2.0/genie/spaces/{space_id}                          │   │
+│  │  Payload: {title, description, warehouse_id, serialized_space}   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  GENIE SPACE CREATED                     │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  DATABRICKS GENIE SPACE                                          │   │
+│  │  - Space ID: 01f0f1a3c2dc1c8897de11d27ca2cb6f                   │   │
+│  │  - Linked to SQL Warehouse for compute                          │   │
+│  │  - References tables, metric views, TVFs                        │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+GENIE SPACE JSON STRUCTURE:
+---------------------------
+{
+  "version": 1,
+  "config": {
+    "sample_questions": [...]    # Example questions for users
+  },
+  "data_sources": {
+    "tables": [...],             # UC tables
+    "metric_views": [...]        # UC metric views
+  },
+  "instructions": {
+    "text_instructions": [...],  # LLM routing instructions
+    "sql_functions": [...],      # TVFs available to Genie
+    "join_specs": [...]          # How to join tables
+  },
+  "benchmarks": {
+    "questions": [...]           # Expected SQL for evaluation
+  }
+}
+
+KEY PATTERNS DEMONSTRATED:
+--------------------------
+1. TEMPLATE VARIABLES: ${catalog}, ${gold_schema} for environment-agnostic JSON
+2. ARRAY SORTING: API requires sorted arrays (tables, functions, etc.)
+3. UPDATE-OR-CREATE: Check existing space ID before creating new
+4. SPACE ID MANAGEMENT: Store IDs in databricks.yml for consistency
+5. VALIDATION: Pre-deployment JSON structure validation
+
+WHY UPDATE-OR-CREATE PATTERN:
+-----------------------------
+- Genie Spaces have permanent IDs (like 01f0f1a3c2dc1c8897de11d27ca2cb6f)
+- Creating new → generates new ID → breaks bookmarks, dashboards, agents
+- Updating existing → preserves ID → preserves all references
+- Store Space IDs in databricks.yml as variables
+
 Reference: .cursor/rules/semantic-layer/29-genie-space-export-import-api.mdc
 
 Usage:

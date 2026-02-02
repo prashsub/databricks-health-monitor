@@ -1,12 +1,46 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # System Sharing Tables - DLT Streaming Pipeline
-# MAGIC 
-# MAGIC Bronze layer ingestion of system.sharing.* tables with schema evolution.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: Delta Sharing Governance Data
+# MAGIC
+# MAGIC This notebook ingests Delta Sharing system tables for
+# MAGIC tracking data exchange and materialization events.
+# MAGIC
+# MAGIC ### Delta Sharing Architecture
+# MAGIC
+# MAGIC ```
+# MAGIC Provider Workspace                    Recipient Workspace
+# MAGIC ─────────────────                     ───────────────────
+# MAGIC ┌─────────────────┐                   ┌─────────────────┐
+# MAGIC │  Source Table   │                   │ Materialized    │
+# MAGIC │  (Gold layer)   │═══════════════════│ View/Table      │
+# MAGIC └─────────────────┘   Delta Sharing   └─────────────────┘
+# MAGIC                              │
+# MAGIC                              ▼
+# MAGIC                   materialization_history
+# MAGIC                   (tracks all exchanges)
+# MAGIC ```
+# MAGIC
+# MAGIC ### What is Materialization?
+# MAGIC
+# MAGIC When a recipient accesses shared data that requires computation
+# MAGIC (views, streaming tables), Delta Sharing creates a **materialization**:
+# MAGIC
+# MAGIC 1. **Views** - Computed on-demand at recipient
+# MAGIC 2. **Materialized Views** - Pre-computed and refreshed
+# MAGIC 3. **Streaming Tables** - Continuous replication
+# MAGIC
+# MAGIC ### Governance Use Cases
+# MAGIC
+# MAGIC 1. **Data lineage** - Track where data flows across organizations
+# MAGIC 2. **Cost attribution** - Bill back materialization costs
+# MAGIC 3. **Compliance audit** - Document data sharing activities
+# MAGIC 4. **Usage analytics** - Understand data product consumption
+# MAGIC
 # MAGIC **Tables ingested:**
 # MAGIC - materialization_history (system.sharing.materialization_history)
-# MAGIC 
+# MAGIC
 # MAGIC **Pattern:** Stream from system tables with skipChangeCommits and schema evolution enabled
 
 # COMMAND ----------

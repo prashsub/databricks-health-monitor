@@ -2,8 +2,23 @@
 # ===========================================================================
 # PATH SETUP FOR ASSET BUNDLE IMPORTS
 # ===========================================================================
-# This enables imports from src.ml.config and src.ml.utils when deployed
-# via Databricks Asset Bundles. The bundle root is computed dynamically.
+# TRAINING MATERIAL: Asset Bundle Import Pattern
+# -----------------------------------------------
+# When notebooks are deployed via Databricks Asset Bundles, the working
+# directory is different from the notebook location. This pattern computes
+# the bundle root dynamically from the notebook path and adds it to sys.path.
+#
+# WHY THIS IS NEEDED:
+# - Asset Bundles deploy notebooks to /Workspace/Users/.bundle/...
+# - Imports like "from src.ml.utils" need the project root in sys.path
+# - Without this, ModuleNotFoundError occurs at runtime
+#
+# THE PATTERN:
+# 1. Get current notebook path from dbutils context
+# 2. Strip "/src/..." suffix to get bundle root
+# 3. Add /Workspace prefix for filesystem access
+# 4. Insert into sys.path[0] for highest priority
+#
 # Reference: https://docs.databricks.com/aws/en/notebooks/share-code
 import sys
 import os
@@ -21,6 +36,79 @@ except Exception as e:
 """
 Create Feature Tables for Databricks Health Monitor ML Models
 =============================================================
+
+TRAINING MATERIAL: Feature Engineering Pattern for ML Pipelines
+---------------------------------------------------------------
+
+This script demonstrates production-grade feature engineering for ML using
+Databricks Unity Catalog Feature Engineering.
+
+FEATURE ENGINEERING ARCHITECTURE:
+---------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    FEATURE ENGINEERING FLOW                              │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  GOLD LAYER (Source)                                            │   │
+│  │  fact_usage, fact_audit_logs, fact_query_history, etc.          │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  FEATURE COMPUTATION                     │
+│                              │  (aggregations, rolling stats, z-scores) │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  FEATURE TABLES (Unity Catalog)                                  │   │
+│  │  cost_features, security_features, performance_features, etc.    │   │
+│  │  PRIMARY KEY constraint required for Feature Engineering         │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  CONSUMED BY                             │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  TRAINING                      INFERENCE                         │   │
+│  │  fe.create_training_set()      fe.score_batch()                  │   │
+│  │  → auto feature lookup         → auto feature lookup             │   │
+│  │  → lineage tracking            → model+features together         │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY CONCEPTS:
+-------------
+
+1. FEATURE TABLE REQUIREMENTS:
+   - Must be Delta table in Unity Catalog
+   - MUST have PRIMARY KEY constraint (NOT ENFORCED is fine)
+   - Primary keys = lookup keys for training/inference
+
+2. FEATURE COMPUTATION PATTERNS:
+   - Rolling statistics: 7d, 30d averages and std devs
+   - Z-scores: (value - mean) / stddev for anomaly detection
+   - Lag features: Previous day/week values
+   - Derived ratios: error_rate, success_rate, etc.
+
+3. DATA TYPE CONSISTENCY (CRITICAL):
+   - All numeric columns MUST be DOUBLE type
+   - Training uses float64, inference expects same types
+   - Schema mismatch = inference failure
+
+4. NaN HANDLING (CRITICAL):
+   - sklearn models DO NOT handle NaN natively
+   - Fill NaN/Inf with 0 at feature table creation
+   - Ensures consistency between training and inference
+
+5. PRIMARY KEY REQUIREMENTS:
+   - Domain-specific keys (workspace_id+date, user_id+date, etc.)
+   - Keys used for feature lookup during inference
+   - Must not contain NULL values
+
+WHY UNITY CATALOG FEATURE ENGINEERING:
+--------------------------------------
+1. LINEAGE: Automatic tracking from features → model → predictions
+2. LOOKUP: Automatic feature lookup at inference time
+3. GOVERNANCE: UC permissions apply to features
+4. VERSIONING: Feature tables are versioned Delta tables
+5. DISCOVERABILITY: Features searchable in UC
 
 This script creates and populates feature tables in Unity Catalog
 for all ML agent domains: Cost, Security, Performance, Reliability, Quality.

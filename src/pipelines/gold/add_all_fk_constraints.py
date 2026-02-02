@@ -1,9 +1,79 @@
 # Databricks notebook source
 """
-Health Monitor - Gold Layer: Add All FK Constraints
+TRAINING MATERIAL: Foreign Key Constraint Management Pattern
+=============================================================
 
-This script runs AFTER all domain tables are created.
-It adds ALL foreign key constraints across all Gold layer tables.
+This script adds ALL foreign key constraints across Gold layer tables.
+It runs AFTER table creation to avoid circular dependency issues.
+
+WHY SEPARATE FK CONSTRAINT SCRIPT:
+----------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE PROBLEM: Constraint Timing Dependencies                             │
+│                                                                         │
+│  If you define FK constraints inline with CREATE TABLE:                 │
+│                                                                         │
+│  CREATE TABLE fact_usage (...                                           │
+│    FOREIGN KEY (workspace_id) REFERENCES dim_workspace(workspace_id)    │
+│  );                                                                     │
+│                                                                         │
+│  This FAILS if dim_workspace doesn't exist yet!                         │
+│                                                                         │
+│  Even worse: dim_workspace might need FK to fact_usage (circular)       │
+│                                                                         │
+│  THE SOLUTION: Two-Phase Deployment                                     │
+│  ────────────────────────────────────────────────────────────────────── │
+│  Phase 1: Create ALL tables with PK constraints                         │
+│  Phase 2: Add ALL FK constraints (this script)                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+FK CONSTRAINT PATTERNS:
+-----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  1. WORKSPACE FK (Most Common)                                           │
+│     fact_usage.workspace_id → dim_workspace.workspace_id                │
+│     Almost every table has this FK                                      │
+│                                                                         │
+│  2. COMPOSITE FK (Lakeflow, MLflow)                                      │
+│     fact_job_run.(workspace_id, job_id) → dim_job.(workspace_id, job_id)│
+│     Why composite: job_id alone is not unique across workspaces         │
+│                                                                         │
+│  3. SKU FK (Billing)                                                     │
+│     fact_usage.sku_name → dim_sku.sku_name                              │
+│     Simple string match on SKU name                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+NOT ENFORCED CLAUSE:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  FOREIGN KEY (...) REFERENCES ... NOT ENFORCED                           │
+│                                                                         │
+│  Why "NOT ENFORCED"?                                                    │
+│  - Unity Catalog FKs are for documentation and query optimization       │
+│  - Actual enforcement would slow down writes                            │
+│  - Data comes from Databricks system tables (already consistent)        │
+│                                                                         │
+│  Benefits even without enforcement:                                     │
+│  - Query optimizer can use FK for join optimization                     │
+│  - Documentation in DESCRIBE TABLE output                               │
+│  - Lineage tracking in Unity Catalog                                    │
+│  - BI tools can infer relationships                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+IDEMPOTENCY PATTERN:
+--------------------
+
+The add_fk_constraint() function handles all edge cases:
+- Table doesn't exist → skip
+- Column doesn't exist → skip
+- FK already exists → skip (no error)
+- PK missing on reference table → skip
+- Any other error → log and continue
+
+This makes the script safe to run multiple times.
 
 Prerequisites: All Gold layer tables and PKs must be created first.
 

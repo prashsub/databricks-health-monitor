@@ -1,12 +1,78 @@
 """
-Feature Registry - Single Source of Truth for Feature Table Schemas
-====================================================================
+TRAINING MATERIAL: Dynamic Feature Registry Pattern
+====================================================
 
 This module dynamically queries feature table schemas from Unity Catalog
 at runtime, eliminating the need to hardcode feature names in training scripts.
 
-KEY PRINCIPLE: Feature tables ARE the registry. Training scripts should QUERY
-the schema, not duplicate it.
+WHY DYNAMIC REGISTRY:
+---------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE PROBLEM: Feature List Drift                                         │
+│                                                                         │
+│  create_feature_tables.py:              train_cost_model.py:            │
+│  ─────────────────────────              ─────────────────────           │
+│  Features: [A, B, C, D, E]              Features: [A, B, C, D] ← Stale! │
+│           ↓ (added E)                                                   │
+│  Features: [A, B, C, D, E, F]           Features: [A, B, C, D] ← Broken!│
+│                                                                         │
+│  HARDCODED LISTS DRIFT OUT OF SYNC!                                     │
+│                                                                         │
+│  THE SOLUTION: Query the table at runtime                               │
+│  ─────────────────────────────────────────                              │
+│  registry.get_feature_columns("cost_features")                          │
+│  → Returns [A, B, C, D, E, F]  ← Always current!                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY PRINCIPLE: Feature tables ARE the registry.
+
+Training scripts should QUERY the schema, not duplicate it.
+
+ARCHITECTURE:
+-------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    FEATURE REGISTRY FLOW                                 │
+│                                                                         │
+│  create_feature_tables.py                                               │
+│  ────────────────────────                                               │
+│  1. Create cost_features table with columns [A, B, C, D, E]             │
+│  2. Table is the source of truth                                        │
+│           │                                                             │
+│           ▼                                                             │
+│  ┌──────────────────────────────────────────────────────────────┐      │
+│  │  Unity Catalog: catalog.schema.cost_features                  │      │
+│  │  Schema: [workspace_id, usage_date, A, B, C, D, E, ...]       │      │
+│  └──────────────────────────────────────────────────────────────┘      │
+│           │                                                             │
+│           ▼                                                             │
+│  train_cost_model.py                                                    │
+│  ──────────────────                                                     │
+│  registry = FeatureRegistry(spark, catalog, schema)                     │
+│  features = registry.get_feature_columns("cost_features")               │
+│  → Queries actual table schema                                          │
+│  → Returns [A, B, C, D, E] (always current!)                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHAT'S IN THE REGISTRY:
+-----------------------
+Static configuration (doesn't change):
+- Primary keys: Which columns uniquely identify a row
+- Timestamp column: For point-in-time lookups
+- Exclude columns: Metadata columns that aren't features
+
+Dynamic from Unity Catalog:
+- Feature columns: Queried at runtime from actual table schema
+
+EXCLUDE COLUMNS:
+----------------
+Some columns aren't features but exist in the table:
+- Primary keys (workspace_id, usage_date) → Used for lookups, not features
+- Metadata (feature_timestamp) → Housekeeping, not features
+- Identifiers (user_id, job_id) → Can't use as features (leakage risk)
+
+The registry automatically excludes these when returning feature columns.
 
 Benefits:
 - No more hardcoded feature lists that drift out of sync

@@ -2,7 +2,41 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Query Performance Domain
 # MAGIC
-# MAGIC Merges Query Performance dimension and fact tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: Large Table Incremental Processing
+# MAGIC
+# MAGIC This notebook demonstrates incremental processing for query history -
+# MAGIC one of the largest tables (68M+ records).
+# MAGIC
+# MAGIC ### Incremental Filter Pattern
+# MAGIC
+# MAGIC ```python
+# MAGIC def get_incremental_filter(spark, gold_table, date_column):
+# MAGIC     '''Get max date from Gold to filter Bronze increments.'''
+# MAGIC     max_date = spark.sql(f"SELECT MAX({date_column}) FROM {gold_table}").first()[0]
+# MAGIC     if max_date:
+# MAGIC         return f"{date_column} > '{max_date}'"
+# MAGIC     return None  # Full load if Gold is empty
+# MAGIC
+# MAGIC # Apply filter to Bronze
+# MAGIC filter_expr = get_incremental_filter(spark, gold_table, "start_time")
+# MAGIC if filter_expr:
+# MAGIC     bronze_df = bronze_raw.filter(filter_expr)
+# MAGIC else:
+# MAGIC     bronze_df = bronze_raw  # Full load
+# MAGIC ```
+# MAGIC
+# MAGIC ### Query History Data Model
+# MAGIC
+# MAGIC ```
+# MAGIC fact_query_history (68M+ records)
+# MAGIC ├── statement_id (PK) - Unique query identifier
+# MAGIC ├── executed_by - User who ran query
+# MAGIC ├── warehouse_id - SQL Warehouse (FK → dim_warehouse)
+# MAGIC ├── start_time - Query start
+# MAGIC ├── end_time - Query end
+# MAGIC ├── duration_ms - Execution time
+# MAGIC └── read_bytes/rows - Data scanned
+# MAGIC ```
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - dim_warehouse (from compute.warehouses)

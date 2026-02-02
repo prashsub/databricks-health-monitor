@@ -1,10 +1,84 @@
 # Databricks notebook source
 """
-Training Utilities for Databricks Health Monitor
-=================================================
+TRAINING MATERIAL: ML Training Utilities Pattern
+================================================
 
-This module provides utilities for model training, evaluation, and validation,
-following MLflow 3.0 and scikit-learn best practices.
+This module provides standardized utilities for model training, ensuring
+consistent evaluation and validation across all 25 models in the project.
+
+WHY STANDARDIZED TRAINING UTILITIES:
+------------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE PROBLEM: 25 Models with Inconsistent Patterns                       │
+│                                                                         │
+│  Without standardization:                                               │
+│  - Model A uses test_size=0.2                                           │
+│  - Model B uses test_size=0.3                                           │
+│  - Model C forgets to set random_state                                  │
+│  - Model D uses different metrics                                       │
+│                                                                         │
+│  Result: Inconsistent evaluation, hard to compare models                │
+│                                                                         │
+│  WITH STANDARDIZATION:                                                   │
+│  - All models use TrainingConfig dataclass                              │
+│  - Consistent split_data() function                                     │
+│  - evaluate_model() returns standard metrics dict                       │
+│  - All models comparable and reproducible                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY COMPONENTS:
+---------------
+
+1. TrainingConfig (Dataclass)
+   - test_size, validation_size, random_state
+   - n_cv_splits, time_series_cv
+   - classification_threshold, anomaly_contamination
+   - Single source of truth for training parameters
+
+2. split_data() Function
+   - Handles both random and time-series splits
+   - Time-series: chronological split prevents data leakage
+   - Returns: X_train, X_val, X_test, y_train, y_val, y_test
+
+3. evaluate_model() Function
+   - Classification: accuracy, precision, recall, f1, roc_auc
+   - Regression: mse, rmse, mae, mape, r2
+   - Anomaly: contamination-adjusted metrics
+
+TIME SERIES SPLITTING (CRITICAL):
+---------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  RANDOM SPLIT (BAD for time series):                                     │
+│                                                                         │
+│  Timeline: ─────────────────────────────────────────────────►           │
+│  Data:     [Jan] [Feb] [Mar] [Apr] [May] [Jun] [Jul] [Aug]              │
+│  Split:    Train Train Test  Train Test  Train Test  Train              │
+│                                                                         │
+│  Problem: Model sees future data during training (data leakage!)        │
+│                                                                         │
+│  CHRONOLOGICAL SPLIT (GOOD for time series):                            │
+│                                                                         │
+│  Timeline: ─────────────────────────────────────────────────►           │
+│  Data:     [Jan] [Feb] [Mar] [Apr] [May] [Jun] [Jul] [Aug]              │
+│  Split:    Train Train Train Train Train  Val   Val  Test               │
+│                                                                         │
+│  Correct: Model only trained on past, validated/tested on future        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+USAGE PATTERN:
+--------------
+
+    from ml.common.training_utils import TrainingConfig, split_data, evaluate_model
+    
+    config = TrainingConfig(test_size=0.2, time_series_cv=True)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(
+        X, y, config, timestamp_column="usage_date"
+    )
+    
+    model.fit(X_train, y_train)
+    metrics = evaluate_model(model, X_test, y_test, problem_type="classification")
 
 Features:
 - Consistent train/test splitting with temporal awareness

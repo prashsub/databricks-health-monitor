@@ -2,8 +2,81 @@
 Long-Term Memory with Lakebase DatabricksStore
 =============================================
 
-Implements user-based persistent memory using vector embeddings.
-Based on the official Databricks long-term memory agent pattern.
+TRAINING MATERIAL: Long-Term Memory Pattern for AI Agents
+----------------------------------------------------------
+
+This module implements user-based persistent memory using vector embeddings.
+Long-term memory enables the agent to remember user preferences and insights
+across multiple conversations and sessions.
+
+LONG-TERM MEMORY ARCHITECTURE:
+------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    LONG-TERM MEMORY FLOW                                 │
+│                                                                         │
+│  SAVE MEMORY (User sets preference)                                     │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  1. User: "I prefer to see costs for prod workspace only"        │   │
+│  │  2. Agent extracts preference                                    │   │
+│  │  3. save_memory(user_id, "preferred_workspace", {"value":"prod"})│   │
+│  │  4. DatabricksStore → Embeds text → Stores in vector index       │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  SEARCH MEMORY (Next session, different conversation)                   │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  1. User: "Show me the costs"                                    │   │
+│  │  2. Agent: search_memories(user_id, "workspace preferences")     │   │
+│  │  3. DatabricksStore → Semantic search → Returns relevant memories│   │
+│  │  4. Agent: "Based on your preference, showing prod workspace..." │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY VECTOR SEARCH FOR MEMORIES:
+-------------------------------
+Memories are stored with embeddings, enabling SEMANTIC search:
+
+Traditional: Search by exact key
+  "preferred_workspace" → {"value": "prod"}
+
+Semantic: Search by meaning
+  "What workspace does the user like?" → Finds "preferred_workspace"!
+  "user's favorite environment" → Also finds "preferred_workspace"!
+
+This is powerful because:
+- Users don't remember exact keys
+- Related memories are found together
+- Context-aware retrieval
+
+NAMESPACE ISOLATION:
+--------------------
+Each user has their own namespace, preventing memory leakage:
+
+user1@company.com → namespace: ("user_memories", "user1-at-company-com")
+user2@company.com → namespace: ("user_memories", "user2-at-company-com")
+
+Search in user1's namespace ONLY returns user1's memories.
+
+MEMORY TYPES TO STORE:
+----------------------
+┌─────────────────────────────────────────────────────────────────────────┐
+│  MEMORY TYPE        │  KEY PATTERN           │  EXAMPLE                 │
+├─────────────────────┼────────────────────────┼──────────────────────────┤
+│  Preferences        │  pref_<topic>          │  pref_workspace: "prod"  │
+│  Thresholds         │  threshold_<metric>    │  threshold_cost: 10000   │
+│  Insights           │  insight_<date>        │  insight_2025-01: "..."  │
+│  Relationships      │  team_<name>           │  team_finance: [users]   │
+│  Context            │  context_<topic>       │  context_project: "X"    │
+└─────────────────────┴────────────────────────┴──────────────────────────┘
+
+LANGCHAIN TOOL INTEGRATION:
+---------------------------
+Memory operations are exposed as LangChain tools, allowing the agent
+to autonomously decide when to save or retrieve memories:
+
+- get_user_memory: Semantic search for relevant memories
+- save_user_memory: Store new preference/insight
+- delete_user_memory: Remove a memory (user request)
 
 Key Features:
     - Semantic search over stored memories
@@ -33,17 +106,37 @@ Usage:
     )
 """
 
+# =============================================================================
+# IMPORTS
+# =============================================================================
+# TRAINING MATERIAL: Import Organization for Memory Module
+#
+# typing: For type hints
+# dataclasses: For MemoryItem dataclass
+# json: For serializing memory data
+# mlflow: For tracing memory operations
+
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 import json
 import mlflow
 
+# DATABRICKS-SPECIFIC IMPORTS:
+# DatabricksStore: Vector store for long-term memory
 from databricks_langchain import DatabricksStore
+
+# LANGCHAIN IMPORTS:
+# tool: Decorator to create LangChain tools from functions
+# RunnableConfig: Config object passed to tools (contains user_id)
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
 
 from ..config import settings
 
+
+# =============================================================================
+# DATA CLASSES
+# =============================================================================
 
 @dataclass
 class MemoryItem:

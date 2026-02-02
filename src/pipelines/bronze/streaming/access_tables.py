@@ -1,16 +1,45 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # System Access Tables - DLT Streaming Pipeline
-# MAGIC 
-# MAGIC Bronze layer ingestion of system.access.* tables with schema evolution.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: DLT Streaming with Centralized Data Quality
+# MAGIC
+# MAGIC This notebook demonstrates the **recommended pattern** for Bronze layer ingestion:
+# MAGIC - **DLT Streaming** with Change Data Feed for incremental processing
+# MAGIC - **Centralized DQ Rules** stored in Delta table (not hardcoded)
+# MAGIC - **Schema Evolution** via `mergeSchema` option
+# MAGIC
+# MAGIC ### DLT Streaming Pattern
+# MAGIC
+# MAGIC ```python
+# MAGIC @dlt.table(name="catalog.schema.table", ...)
+# MAGIC @dlt.expect_all_or_drop(get_critical_rules())  # CRITICAL: Drop bad records
+# MAGIC @dlt.expect_all(get_warning_rules())           # WARNING: Log but keep records
+# MAGIC def my_table():
+# MAGIC     return (
+# MAGIC         spark.readStream
+# MAGIC         .option("skipChangeCommits", "true")   # Ignore CDF on commits
+# MAGIC         .option("mergeSchema", "true")         # Handle schema evolution
+# MAGIC         .table("system.domain.table")
+# MAGIC         .withColumn("bronze_ingestion_timestamp", current_timestamp())
+# MAGIC     )
+# MAGIC ```
+# MAGIC
+# MAGIC ### Why Centralized DQ Rules?
+# MAGIC
+# MAGIC | Approach | Pros | Cons |
+# MAGIC |----------|------|------|
+# MAGIC | **Hardcoded** in Python | Simple | Changes require code deploy |
+# MAGIC | **Config file** (YAML) | Easy to edit | Still requires redeploy |
+# MAGIC | **Delta Table** ✅ | Runtime updates, audit trail | Slightly more complex |
+# MAGIC
 # MAGIC **Tables ingested:**
 # MAGIC - audit (system.access.audit)
 # MAGIC - clean_room_events (system.access.clean_room_events)
 # MAGIC - column_lineage (system.access.column_lineage)
 # MAGIC - outbound_network (system.access.outbound_network) - **✅ HAS DQ RULES (Centralized Delta Table Pattern)**
 # MAGIC - table_lineage (system.access.table_lineage)
-# MAGIC 
+# MAGIC
 # MAGIC **DQ Pattern:** Centralized Delta Table
 # MAGIC - Rules stored in: catalog.schema.dq_rules (Delta table)
 # MAGIC - Loaded via: dq_rules_loader module

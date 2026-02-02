@@ -1,9 +1,53 @@
 """
-Model Logging Utilities for Feature Engineering
-================================================
+TRAINING MATERIAL: MLflow Signature Compatibility
+=================================================
 
-Provides utilities for logging models with Feature Engineering that are compatible
-with Unity Catalog registration requirements.
+This module handles the tricky interplay between Unity Catalog requirements
+and MLflow signature limitations.
+
+THE DECIMAL TYPE PROBLEM:
+-------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  SPARK/DELTA DATA TYPE       │  MLFLOW SIGNATURE SUPPORT                │
+├──────────────────────────────┼──────────────────────────────────────────┤
+│  STRING                      │  ✅ Supported                             │
+│  DOUBLE                      │  ✅ Supported                             │
+│  DECIMAL(38,14)              │  ❌ NOT SUPPORTED - causes errors!        │
+│  BIGINT                      │  ✅ Supported                             │
+│  TIMESTAMP                   │  ✅ Supported                             │
+└──────────────────────────────┴──────────────────────────────────────────┘
+
+PROBLEM: Gold layer tables use DECIMAL for precision (billing data).
+PROBLEM: MLflow infer_signature() fails on DECIMAL columns.
+PROBLEM: Unity Catalog REQUIRES valid signatures.
+
+SOLUTION: Cast all numeric columns to float64 before signature inference.
+
+    def cast_to_float64(df: pd.DataFrame) -> pd.DataFrame:
+        for col in df.columns:
+            try:
+                df[col] = df[col].astype('float64')
+            except (ValueError, TypeError):
+                pass
+        return df
+
+SIGNATURE WORKFLOW:
+-------------------
+
+    1. Load training data from Feature Store (Spark DataFrame)
+    2. Convert to Pandas (toPandas())
+    3. Cast DECIMAL → float64 (cast_to_float64())
+    4. Create signature (infer_signature())
+    5. Log model with signature (fe.log_model(..., signature=signature))
+
+WHY SEPARATE X_train_for_signature:
+-----------------------------------
+
+We keep a separate DataFrame for signature inference because:
+- Training can use the original types
+- Only signature inference needs float64 cast
+- Preserves precision during training
 
 CRITICAL: Unity Catalog requires models with BOTH input AND output signatures.
 MLflow does NOT support DECIMAL types in signatures - must cast to float64.

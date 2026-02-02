@@ -1,7 +1,54 @@
 # Databricks notebook source
 """
-Lakehouse Monitor Refresh Script
-================================
+TRAINING MATERIAL: On-Demand Monitor Refresh Pattern
+====================================================
+
+This script demonstrates manually triggering Lakehouse Monitor refreshes,
+useful for debugging, testing, and on-demand reporting.
+
+MONITOR REFRESH SCENARIOS:
+--------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  SCENARIO             │  ACTION                    │  WHEN TO USE       │
+├───────────────────────┼────────────────────────────┼────────────────────┤
+│  Scheduled Refresh    │  Automatic (cron)          │  Daily/hourly      │
+│  On-Demand Refresh    │  run_refresh() API         │  Debug, demo, test │
+│  Full Recompute       │  delete + recreate monitor │  Schema changes    │
+└───────────────────────┴────────────────────────────┴────────────────────┘
+
+SDK API PATTERN:
+----------------
+
+    from databricks.sdk import WorkspaceClient
+    
+    ws = WorkspaceClient()
+    
+    # Trigger refresh (returns immediately, runs async)
+    ws.quality_monitors.run_refresh(table_name="catalog.schema.table")
+    
+    # Check refresh status
+    monitor = ws.quality_monitors.get(table_name="catalog.schema.table")
+    print(monitor.status)  # "MONITOR_STATUS_PENDING" | "MONITOR_STATUS_ACTIVE"
+
+ERROR HANDLING:
+---------------
+
+Common errors and how to handle them:
+
+    "does not have a monitor" - Table hasn't been monitored yet
+    "refresh already in progress" - Wait for current refresh to complete
+    "table not found" - Table was dropped or renamed
+
+REFRESH TIMING:
+---------------
+
+Monitor refresh duration depends on:
+- Table size (more rows = longer)
+- Number of custom metrics
+- Drift computation complexity
+
+Typical refresh: 2-15 minutes for Gold tables.
 
 Manually triggers a refresh for all Lakehouse Monitors.
 Use this to force an immediate update of monitor metrics.

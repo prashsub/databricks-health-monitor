@@ -19,8 +19,50 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Data Exfiltration Detector Model
-======================================
+TRAINING MATERIAL: Data Exfiltration Anomaly Detection
+======================================================
+
+This model detects unusual data access patterns that may indicate
+data exfiltration attempts.
+
+EXFILTRATION DETECTION APPROACH:
+--------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WHY ANOMALY DETECTION (Unsupervised)                                    │
+│                                                                         │
+│  Challenge: No labeled "exfiltration" examples                          │
+│  └── Actual breaches are rare                                           │
+│  └── Can't train supervised model without positive examples             │
+│                                                                         │
+│  Solution: Learn "normal" patterns, flag deviations                     │
+│  └── Train on historical access patterns                                │
+│  └── Anomalous = potential exfiltration                                 │
+│  └── Security team reviews flagged events                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+ISOLATION FOREST FOR SECURITY:
+------------------------------
+
+Why Isolation Forest excels at exfiltration detection:
+
+1. UNSUPERVISED: No labels needed
+2. ISOLATION: Anomalies are "easy to isolate" (short tree paths)
+3. HIGH-DIMENSIONAL: Handles many security features
+4. FAST: Efficient for large audit log volumes
+
+EXFILTRATION INDICATORS:
+------------------------
+
+| Pattern | Normal | Suspicious |
+|---------|--------|------------|
+| Data volume | Consistent | Sudden spike |
+| Access time | Business hours | 3 AM on Sunday |
+| Table types | User's domain | Cross-domain access |
+| Download count | Occasional | Bulk export |
+
+The model scores each access event 0-1 (normal to anomalous).
+Events above threshold are flagged for security review.
 
 Problem: Anomaly Detection (Unsupervised)
 Algorithm: Isolation Forest

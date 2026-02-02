@@ -1,23 +1,52 @@
 #!/usr/bin/env python3
 """
-Anti-Regression Validation for Dashboard Widget Encodings
+TRAINING MATERIAL: Anti-Regression Testing for Dashboard JSON
+=============================================================
 
-This script validates that all widget field references (encodings) 
-match the columns returned by their associated queries.
+This script implements "snapshot testing" for dashboard widget configurations,
+catching breaking changes during dashboard development.
 
-Run BEFORE every dashboard edit to capture baseline:
+THE ENCODING PROBLEM:
+---------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Widget encodings reference query result columns:                        │
+│                                                                         │
+│  Query:                                                                  │
+│    SELECT usage_date, SUM(cost) AS total_cost FROM fact_usage           │
+│           ↓          ↓                  ↓                               │
+│  Widget:             Returns columns:                                    │
+│    x: "usage_date"    ["usage_date", "total_cost"]                      │
+│    y: "total_cost"                                                       │
+│                                                                         │
+│  PROBLEM: If you edit the query to rename "total_cost" → "daily_cost"   │
+│           the widget encoding still references "total_cost"              │
+│           → Dashboard breaks silently (no error, just empty chart)       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+SNAPSHOT TESTING PATTERN:
+-------------------------
+
+    # Before editing dashboard
     python validate_widget_encodings.py --snapshot
-
-Run AFTER every edit to check for regressions:
-    python validate_widget_encodings.py --validate
-
-Usage:
-    python validate_widget_encodings.py [--snapshot | --validate | --check]
+    # Creates baseline: .dashboard_baseline.json
     
-Options:
-    --snapshot  Save current state as baseline (run before editing)
-    --validate  Compare current state against baseline (run after editing)  
-    --check     Just check for column mismatches (default, no baseline comparison)
+    # After editing dashboard
+    python validate_widget_encodings.py --validate
+    # Compares current state to baseline
+    # Reports any columns that disappeared
+
+VALIDATION CATEGORIES:
+----------------------
+
+| Issue | Severity | Cause |
+|-------|----------|-------|
+| Missing column | ERROR | Query no longer returns column that widget uses |
+| New column | INFO | Query returns more columns (usually OK) |
+| Widget removed | WARNING | Widget was deleted (check if intentional) |
+
+Run BEFORE every dashboard edit to capture baseline.
+Run AFTER every edit to check for regressions.
 """
 
 import json

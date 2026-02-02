@@ -1,14 +1,87 @@
 """
-Genie Space Optimizer Toolkit
+TRAINING MATERIAL: Genie Space Optimizer Toolkit
+=================================================
 
-An LLM-driven interactive optimization toolkit for improving Genie Space accuracy.
-This module provides tools for Claude (or other LLMs) to:
+An LLM-driven interactive optimization toolkit for improving Genie Space
+accuracy and repeatability. This is a unique tool that enables AI-assisted
+optimization of AI systems (Genie Spaces).
 
-1. Test Genie Spaces with golden queries
-2. Analyze failures and determine root causes
-3. Apply surgical fixes to UC metadata, Genie instructions, etc.
-4. Track progress and checkpoint state
-5. Test repeatability by running same questions multiple times
+WHAT IS GENIE SPACE OPTIMIZATION:
+---------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE CHALLENGE: Making Genie Accurate and Consistent                     │
+│                                                                         │
+│  Genie Space takes natural language → generates SQL                     │
+│  But accuracy depends on many factors:                                  │
+│  - Unity Catalog metadata (table/column comments)                       │
+│  - Genie Space instructions                                             │
+│  - Sample queries                                                       │
+│  - TVF design                                                           │
+│  - Metric View structure                                                │
+│                                                                         │
+│  OPTIMIZATION GOAL: Tune these "control levers" for:                    │
+│  - Accuracy: Correct SQL for questions                                  │
+│  - Repeatability: Same SQL every time                                   │
+│  - Coverage: Handle wide range of questions                             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+CONTROL LEVERS (Priority Order):
+--------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  1. UC METADATA         (Most effective, scales to all queries)         │
+│     Table/column comments guide Genie's understanding                   │
+│                                                                         │
+│  2. METRIC VIEWS        (Semantic layer for common aggregations)        │
+│     Pre-defined measures that Genie can use                             │
+│                                                                         │
+│  3. TVFs                (Parameterized queries for complex logic)       │
+│     Functions that handle tricky calculations                           │
+│                                                                         │
+│  4. SAMPLE QUERIES      (Few-shot learning for Genie)                   │
+│     Example Q&A pairs that show correct patterns                        │
+│                                                                         │
+│  5. GENIE INSTRUCTIONS  (Explicit routing rules)                        │
+│     "For cost questions, prefer get_daily_cost_summary TVF"             │
+│     ⚠️ Limited to ~4000 chars, use sparingly!                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+OPTIMIZATION WORKFLOW:
+----------------------
+
+1. LOAD TEST CASES
+   test_cases = load_test_cases_by_domain("cost")
+   
+2. RUN TESTS
+   client = GenieClient(space_id="...")
+   response = client.ask_question(test_case.question)
+   
+3. ANALYZE RESULTS
+   - Compare generated SQL to expected
+   - Identify variance patterns
+   - Determine root cause
+
+4. APPLY FIXES
+   - Update UC metadata
+   - Add Genie instructions
+   - Add sample queries
+
+5. RETEST
+   - Verify fix worked
+   - Check for regressions
+
+6. TEST REPEATABILITY
+   tester = RepeatabilityTester(space_id="...")
+   report = tester.test_repeatability(test_cases)
+
+MODULE STRUCTURE:
+-----------------
+- genie_client.py: API client for Genie Space interactions
+- repeatability.py: Repeatability testing and analysis
+- test_loader.py: Load test cases from JSON/exports
+- models.py: Data classes for responses, tests, fixes
+- config.py: Configuration and Genie Space registry
 
 Usage:
     from src.optimizer import GenieClient, OptimizerConfig, TestResult

@@ -1,15 +1,58 @@
 """
-Prompt Registry Module
-======================
+TRAINING MATERIAL: Prompt Registry Architecture
+===============================================
 
-Versioned prompts for the Health Monitor agent system.
-All prompts are registered to MLflow for tracking and deployment.
+This module implements a production-grade prompt management system
+with versioning, caching, AB testing, and MLflow integration.
 
-Includes:
-- Prompt templates (orchestrator, intent classifier, synthesizer)
-- Prompt registry functions (register, load, alias management)
-- PromptManager for production prompt management with caching
-- PromptABTest for A/B testing prompt variants
+PROMPT LIFECYCLE:
+-----------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        PROMPT LIFECYCLE                                  │
+│                                                                         │
+│  1. DEFINE         2. REGISTER         3. LOAD           4. EVALUATE   │
+│  ────────          ──────────          ─────             ──────────    │
+│  registry.py  →  register_prompts  →  PromptManager  →  AB Testing     │
+│  (templates)      (Unity Catalog)      (runtime)         (champion/    │
+│                   (MLflow)             (cached)          challenger)    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+STORAGE PATTERN:
+----------------
+
+| Storage | Purpose | Benefits |
+|---|---|---|
+| Unity Catalog Table | Runtime retrieval | Fast reads, SQL queryable |
+| MLflow Artifacts | Version tracking | History, rollback, lineage |
+
+COMPONENT OVERVIEW:
+-------------------
+
+1. registry.py - Prompt template definitions
+   - ORCHESTRATOR_PROMPT: Multi-domain coordinator
+   - WORKER_AGENT_PROMPT: Domain-specific template
+   - SYNTHESIZER_PROMPT: Response composer
+
+2. manager.py - Production prompt loading
+   - PromptManager: Singleton with caching
+   - get_prompt_manager(): Get global instance
+   - CachedPrompt: Metadata + TTL
+
+3. ab_testing.py - Prompt experimentation
+   - PromptABTest: Champion vs challenger
+   - select_variant(): User-based routing
+   - evaluate_variants(): Compare metrics
+
+AB TESTING PATTERN:
+-------------------
+
+    ab_test = create_ab_test("orchestrator", treatment_version="v3")
+    variant, prompt = ab_test.select_variant(user_id)
+    
+    # 90% champion (production), 10% challenger (experimental)
+    # Track metrics per variant
+    # Promote challenger to champion if better
 
 Reference:
     28-mlflow-genai-patterns.mdc cursor rule

@@ -1,8 +1,85 @@
 """
-Gold Layer Merge Helpers
+TRAINING MATERIAL: Gold Layer MERGE Helper Patterns
+===================================================
 
-Shared utilities for Bronze→Gold MERGE operations.
-Implements patterns from cursor rules to prevent common bugs.
+This module provides shared utilities for Bronze→Gold MERGE operations.
+It implements patterns from cursor rules to prevent common bugs that occur
+when each merge script implements its own logic.
+
+WHY CENTRALIZED MERGE HELPERS:
+------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE PROBLEM: Copy-Paste Bugs in MERGE Scripts                           │
+│                                                                         │
+│  merge_billing.py:                    merge_security.py:                │
+│  ─────────────────                    ──────────────────                │
+│  # Dedup pattern A                    # Dedup pattern B (different!)    │
+│  df.dropDuplicates(keys)              df.distinct()  ← Wrong!           │
+│  ← Correct order by timestamp         ← Lost ordering!                  │
+│                                                                         │
+│  Each file implements its own patterns → Inconsistent behavior          │
+│  88 bugs found during Gold layer implementation (Dec 2025)              │
+│                                                                         │
+│  THE SOLUTION: Centralized, tested helper functions                     │
+│  ────────────────────────────────────────────────────────────────────── │
+│  from merge_helpers import deduplicate_bronze, merge_fact_table         │
+│  deduped = deduplicate_bronze(df, keys)  ← Same pattern everywhere!     │
+│  merge_fact_table(spark, df, ...)        ← Validated, consistent        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY PATTERNS IN THIS MODULE:
+----------------------------
+
+1. DEDUPLICATION (deduplicate_bronze)
+   - Orders by timestamp (latest first)
+   - Then drops duplicates on business keys
+   - Returns count for logging
+
+2. INCREMENTAL LOADING (get_incremental_filter)
+   - High-water mark pattern
+   - Only process new data since last run
+   - Prevents reprocessing entire history
+
+3. STRUCT FLATTENING (flatten_usage_metadata, etc.)
+   - Converts nested structs to flat columns
+   - Handles NULL structs gracefully
+   - Consistent naming: {parent}_{field}
+
+4. SCHEMA VALIDATION (validate_merge_schema)
+   - Compares DataFrame to target table
+   - Catches missing/extra columns
+   - Catches type mismatches
+   - Prevents runtime MERGE failures
+
+5. GENERIC MERGE (merge_dimension_table, merge_fact_table)
+   - Builds MERGE condition from keys
+   - Handles SCD Type 1 vs Type 2
+   - Validates schema before MERGE
+
+DEDUPLICATION PATTERN (CRITICAL):
+---------------------------------
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ❌ WRONG: Just dropDuplicates (arbitrary row kept)                      │
+│                                                                         │
+│  df.dropDuplicates(["job_id"])  # Which row? Unknown!                   │
+│                                                                         │
+│  ✅ CORRECT: Order by timestamp THEN dropDuplicates (latest kept)        │
+│                                                                         │
+│  df.orderBy(col("timestamp").desc())                                    │
+│    .dropDuplicates(["job_id"])  # Always keeps latest!                  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+INCREMENTAL LOADING PATTERN:
+----------------------------
+┌─────────────────────────────────────────────────────────────────────────┐
+│  First Run (Gold empty):           Subsequent Runs (Gold has data):     │
+│  ──────────────────────            ────────────────────────────────     │
+│  Process ALL Bronze data           Get MAX(usage_date) from Gold        │
+│  (or last N days if large)         Process WHERE usage_date > max_date  │
+│                                                                         │
+│  This prevents reprocessing 1 year of data on every run!                │
+└─────────────────────────────────────────────────────────────────────────┘
 
 References:
 - 10-gold-layer-merge-patterns.mdc

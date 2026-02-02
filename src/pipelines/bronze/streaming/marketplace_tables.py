@@ -1,13 +1,41 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # System Marketplace Tables - DLT Streaming Pipeline
-# MAGIC 
-# MAGIC Bronze layer ingestion of system.marketplace.* tables with schema evolution.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: Marketplace Analytics Data Ingestion
+# MAGIC
+# MAGIC This notebook ingests Databricks Marketplace system tables for
+# MAGIC tracking listing performance and consumer behavior.
+# MAGIC
+# MAGIC ### Marketplace Funnel Analytics
+# MAGIC
+# MAGIC ```
+# MAGIC Consumer Journey:
+# MAGIC ─────────────────────────────────────────────────────────────────►
+# MAGIC
+# MAGIC  [Impression]  →  [View]  →  [Click]  →  [Install]  →  [Access]
+# MAGIC      ↑              ↑           ↑            ↑           ↑
+# MAGIC   listing_     listing_    listing_    listing_    listing_
+# MAGIC   funnel_      funnel_     funnel_     funnel_     access_
+# MAGIC   events       events      events      events      events
+# MAGIC ```
+# MAGIC
+# MAGIC ### Use Cases
+# MAGIC
+# MAGIC 1. **Provider Analytics** - Track your listing performance
+# MAGIC 2. **Consumer Intelligence** - Understand data product usage
+# MAGIC 3. **ROI Measurement** - Link marketplace activity to value
+# MAGIC 4. **Adoption Tracking** - Monitor data sharing growth
+# MAGIC
+# MAGIC ### Optional Tables Pattern
+# MAGIC
+# MAGIC Marketplace tables only exist if your organization uses Databricks Marketplace.
+# MAGIC The Gold layer handles missing tables gracefully.
+# MAGIC
 # MAGIC **Tables ingested:**
 # MAGIC - listing_funnel_events (system.marketplace.listing_funnel_events)
 # MAGIC - listing_access_events (system.marketplace.listing_access_events)
-# MAGIC 
+# MAGIC
 # MAGIC **Pattern:** Stream from system tables with skipChangeCommits and schema evolution enabled
 
 # COMMAND ----------

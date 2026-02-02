@@ -19,8 +19,49 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Job Cost Optimizer Model
-====================================
+TRAINING MATERIAL: Job-Level Cost Optimization
+==============================================
+
+This model predicts potential cost savings from optimizing job
+cluster configurations.
+
+JOB CLUSTER OPTIMIZATION:
+-------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  COMMON ANTI-PATTERNS                                                    │
+│                                                                         │
+│  1. Jobs on All-Purpose Clusters                                        │
+│     └── Pay interactive cluster rates for batch jobs                    │
+│     └── Potential savings: 30-60%                                       │
+│                                                                         │
+│  2. Over-provisioned Job Clusters                                        │
+│     └── More nodes than workload needs                                  │
+│     └── Potential savings: 20-40%                                       │
+│                                                                         │
+│  3. On-demand when Spot would work                                       │
+│     └── Missing spot instance opportunities                             │
+│     └── Potential savings: 50-80%                                       │
+│                                                                         │
+│  MODEL PREDICTS: potential_job_cluster_savings                           │
+│  └── Dollar amount that could be saved per job                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: potential_job_cluster_savings
+------------------------------------
+
+Calculated during feature engineering as:
+actual_cost - optimal_cost_if_using_best_practice
+
+OPTIMIZATION SIGNALS:
+---------------------
+
+| Feature | High Savings If |
+|---------|-----------------|
+| jobs_on_all_purpose | Using interactive for batch |
+| cluster_size | Larger than needed |
+| spot_ratio | Low (all on-demand) |
+| runtime_efficiency | Low utilization |
 
 Problem: Regression
 Algorithm: Gradient Boosting Regressor

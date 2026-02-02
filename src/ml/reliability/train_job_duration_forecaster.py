@@ -19,8 +19,47 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Job Duration Forecaster Model
-=========================================
+TRAINING MATERIAL: Job Duration Prediction for Scheduling
+=========================================================
+
+This model predicts job execution duration, enabling intelligent
+scheduling and dependency management.
+
+SCHEDULING OPTIMIZATION:
+------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  JOB DEPENDENCY CHAIN                                                    │
+│                                                                         │
+│  Job A → Job B → Job C → Job D                                          │
+│  (ETL)   (ML)    (Report) (Alert)                                       │
+│                                                                         │
+│  WITHOUT PREDICTION:                                                     │
+│  └── Schedule conservatively with padding                               │
+│  └── Job D starts 2 hours after Job A (wastes time)                     │
+│                                                                         │
+│  WITH PREDICTION:                                                        │
+│  └── Predict: A=15min, B=30min, C=10min, D=5min                         │
+│  └── Total predicted: 1 hour                                            │
+│  └── Schedule Job D to start 1hr after Job A (tight, efficient)        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: avg_duration_sec
+-----------------------
+
+The target variable is average job duration in seconds.
+We predict this from job characteristics and historical patterns.
+
+DURATION FACTORS:
+-----------------
+
+| Factor | Impact on Duration |
+|--------|-------------------|
+| Data volume | More data = longer |
+| Job complexity | More stages = longer |
+| Cluster size | More nodes = faster |
+| Concurrent jobs | More contention = slower |
+| Time since last run | More new data to process |
 
 Problem: Regression
 Algorithm: Gradient Boosting Regressor

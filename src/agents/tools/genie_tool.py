@@ -2,7 +2,97 @@
 Genie Tool for LangGraph
 ========================
 
-LangChain tool wrapper for Genie Space interactions using GenieAgent.
+TRAINING MATERIAL: Tool Pattern for LangGraph Agent Integration
+----------------------------------------------------------------
+
+This module implements a LangChain tool that wraps Genie Space interactions,
+enabling natural language data queries within a LangGraph multi-agent system.
+
+WHY TOOLS ARE CRITICAL FOR AGENTS:
+-----------------------------------
+In LangGraph, tools are the "hands" of an agent:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    AGENT TOOL INTERACTION                                │
+│                                                                         │
+│  User: "How much did we spend last month?"                              │
+│                                                                         │
+│  ┌─────────────┐    Tool Selection     ┌──────────────────────────────┐ │
+│  │   Agent     │ ─────────────────────→│   cost_genie                  │ │
+│  │   (Brain)   │                        │   (Hand for cost queries)    │ │
+│  └─────────────┘                        └──────────────────────────────┘ │
+│        ↓                                          ↓                      │
+│  "This is a cost question"             "Execute: SELECT SUM(cost)..."    │
+│                                                   ↓                      │
+│                                         ┌──────────────────────────────┐ │
+│                                         │   Genie Space (Data Source)  │ │
+│                                         │   - Unity Catalog tables      │ │
+│                                         │   - SQL generation           │ │
+│                                         │   - Natural language → SQL   │ │
+│                                         └──────────────────────────────┘ │
+│                                                   ↓                      │
+│                                         "Formatted response"             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+GENIEAGENT VS DIRECT GENIE API:
+-------------------------------
+Two ways to call Genie from an agent:
+
+1. Direct Genie API (Not Recommended for LangGraph)
+   - databricks.sdk.service.dashboards.genie.GenieClient
+   - Low-level API, manual SQL execution
+   - More control but more complexity
+
+2. GenieAgent (Recommended for LangGraph) ✓
+   - databricks_langchain.genie.GenieAgent
+   - LangGraph-native, proper state management
+   - Handles conversation history
+   - Works with checkpointers
+   - Official Databricks pattern
+
+TOOL DESCRIPTION BEST PRACTICES:
+--------------------------------
+The tool description is critical for agent routing:
+
+GOOD (Specific, action-oriented):
+    "Query cost and billing data. Use for questions about:
+     spending, DBU usage, budgets, cost allocation, pricing."
+
+BAD (Vague):
+    "A tool for cost stuff."
+
+Why it matters:
+- LLM reads description to decide WHICH tool to use
+- More specific = better routing
+- Include example question types
+
+LAZY INITIALIZATION PATTERN:
+-----------------------------
+GenieAgent is created lazily (on first use) for several reasons:
+1. Import time: Don't slow down module loading
+2. Resource efficiency: Only create agents that are actually used
+3. Error isolation: One bad Genie Space doesn't break the whole tool set
+
+```python
+@property
+def genie_agent(self):
+    if self._genie_agent is None:  # First access
+        self._genie_agent = GenieAgent(...)  # Create now
+    return self._genie_agent
+```
+
+MLFLOW TRACING:
+---------------
+All tool invocations are traced for observability:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  TRACE: genie_tool_query                                                 │
+│  ├─ Input: {"query": "monthly spend", "domain": "cost"}                 │
+│  ├─ Span: genie_cost                                                    │
+│  │    ├─ GenieAgent.invoke()                                            │
+│  │    └─ Response parsing                                               │
+│  └─ Output: {"response_length": 256, "domain": "cost"}                  │
+└─────────────────────────────────────────────────────────────────────────┘
 
 Aligned with the official LangGraph Multi-Agent Genie pattern:
 - https://docs.databricks.com/aws/en/generative-ai/agent-framework/multi-agent-genie
@@ -14,6 +104,16 @@ natural language, with Genie handling the SQL generation.
 Uses GenieAgent for proper LangGraph integration.
 """
 
+# =============================================================================
+# IMPORTS
+# =============================================================================
+# TRAINING MATERIAL: Import Organization for Tool Modules
+#
+# typing: For type hints (Dict, List, Optional, Any)
+# mlflow: For tracing tool invocations
+# BaseTool: LangChain's base class for tools (MUST inherit from this)
+# BaseModel, Field: Pydantic for input schema validation
+
 from typing import Dict, List, Optional, Any
 import mlflow
 
@@ -22,6 +122,17 @@ from pydantic import BaseModel, Field
 
 from ..config import settings
 
+
+# =============================================================================
+# INPUT SCHEMA
+# =============================================================================
+# TRAINING MATERIAL: Pydantic Input Schema Pattern
+#
+# LangChain tools can define structured input schemas using Pydantic.
+# This enables:
+# - Type validation at runtime
+# - Better error messages
+# - Schema documentation for the LLM
 
 class GenieQueryInput(BaseModel):
     """Input schema for Genie query tool."""

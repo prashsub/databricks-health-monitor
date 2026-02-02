@@ -1,7 +1,44 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Dashboard SQL Query Validator
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: SELECT LIMIT 1 Validation Strategy
+# MAGIC
+# MAGIC This script validates dashboard queries BEFORE deployment by executing
+# MAGIC them with LIMIT 1. This catches 90%+ of errors in seconds, not minutes.
+# MAGIC
+# MAGIC ### WHY NOT EXPLAIN?
+# MAGIC
+# MAGIC | Validation | Catches | Misses |
+# MAGIC |---|---|---|
+# MAGIC | EXPLAIN ONLY | Syntax errors | Runtime type errors |
+# MAGIC | SELECT LIMIT 1 ✅ | All of the above + column resolution, ambiguous refs | Full data errors |
+# MAGIC | Full Query | Everything | Takes 20-50 minutes |
+# MAGIC
+# MAGIC ### Common Errors Caught
+# MAGIC
+# MAGIC 1. **Column Resolution**: `workspace_owner not found` → Need to check schema
+# MAGIC 2. **Ambiguous Reference**: `ambiguous column owner` → Need table alias
+# MAGIC 3. **Type Mismatch**: `cannot cast STRING to TIMESTAMP` → Need explicit cast
+# MAGIC 4. **Missing Table**: `Table not found` → Wrong schema or table name
+# MAGIC
+# MAGIC ### Root Cause Analysis Pattern
+# MAGIC
+# MAGIC When a query fails, don't blind fix - investigate:
+# MAGIC
+# MAGIC ```
+# MAGIC Error: workspace_owner cannot be resolved
+# MAGIC
+# MAGIC Step 1: Check dim_workspace schema
+# MAGIC    DESCRIBE catalog.gold.dim_workspace
+# MAGIC
+# MAGIC Step 2: Find actual column name
+# MAGIC    → "workspace_owner" not in columns, but "owner" exists
+# MAGIC
+# MAGIC Step 3: Fix dashboard JSON
+# MAGIC    → Change "workspace_owner" to "owner"
+# MAGIC ```
+# MAGIC
 # MAGIC Pre-deployment validation of all dashboard SQL queries.
 # MAGIC Catches column resolution, syntax, and ambiguous reference errors before deployment.
 

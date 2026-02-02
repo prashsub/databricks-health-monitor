@@ -1,7 +1,80 @@
 # Databricks notebook source
 """
-Alerting Tables Setup (Gold)
-===========================
+TRAINING MATERIAL: Config-Driven Alerting Table Design Pattern
+===============================================================
+
+This notebook creates the Gold-layer tables that enable config-driven SQL
+Alerting. Rather than defining alerts in code, alerts are stored as data
+in Delta tables and deployed via sync jobs.
+
+WHY CONFIG-DRIVEN ALERTING:
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  CODE-DRIVEN ALERTS                   │  CONFIG-DRIVEN ALERTS            │
+├───────────────────────────────────────┼──────────────────────────────────┤
+│  Alert defined in Python/YAML code    │  Alert defined in Delta table    │
+│  Change requires code deploy          │  Change requires table UPDATE    │
+│  Version control via Git              │  Version control via Delta CDF   │
+│  Hard to audit changes                │  Full audit via Delta history    │
+│  All-or-nothing deployment            │  Per-alert enable/disable        │
+│  Static thresholds                    │  Dynamic thresholds possible     │
+│                                       │                                  │
+│  ❌ Rigid                              │  ✅ Flexible                      │
+└───────────────────────────────────────┴──────────────────────────────────┘
+
+TABLE ARCHITECTURE:
+-------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    ALERTING DATA MODEL                                   │
+│                                                                         │
+│  notification_destinations    alert_configurations    alert_history     │
+│  ────────────────────────    ─────────────────────   ───────────────    │
+│  PK: destination_id          PK: alert_id            PK: evaluation_id  │
+│  destination_name            alert_name              FK: alert_id       │
+│  destination_type            agent_domain            evaluation_time    │
+│  databricks_dest_id ←───────→notification_channels   evaluation_status  │
+│                              alert_query_template    query_result       │
+│                              threshold_*             threshold_snapshot │
+│                              schedule_*                                 │
+│                              databricks_alert_id ←──(deployed to)       │
+│                                                                         │
+│  Config Tables (Reference)   Config Table (Main)     Fact Table (Audit) │
+└─────────────────────────────────────────────────────────────────────────┘
+
+SYNC WORKFLOW:
+--------------
+
+1. Developer/User updates alert_configurations table
+2. Sync job reads enabled configurations
+3. For each config:
+   - If databricks_alert_id is NULL → CREATE alert
+   - If databricks_alert_id exists → UPDATE alert
+   - If is_enabled=FALSE → DELETE alert
+4. Update last_synced_at, last_sync_status
+
+KEY DESIGN DECISIONS:
+---------------------
+
+1. THRESHOLD FLEXIBILITY
+   - Supports DOUBLE, STRING, BOOLEAN thresholds
+   - Uses separate columns (threshold_value_double, etc.)
+   - Why: SQL Alerts V2 API requires typed values
+
+2. TEMPLATE VARIABLES
+   - alert_query_template uses ${catalog}, ${gold_schema}
+   - Rendered at sync time, not stored
+   - Why: Same config works across dev/prod
+
+3. DENORMALIZED HISTORY
+   - alert_history stores snapshot of alert config
+   - Why: Historical analysis needs config at evaluation time
+
+4. SYNC METADATA
+   - databricks_alert_id tracks deployed alert
+   - last_sync_status enables reconciliation
+   - Why: Supports incremental sync, error recovery
 
 Creates the Gold-layer tables used by the SQL Alerting Framework:
 - {catalog}.{gold_schema}.alert_configurations

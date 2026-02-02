@@ -1,9 +1,53 @@
 # Databricks notebook source
 """
-Setup DQ Rules Table
+TRAINING MATERIAL: Comprehensive DQ Rules Seeding
+=================================================
 
-Creates and populates the dq_rules Delta table with comprehensive data quality rules
-for all Bronze streaming tables.
+This notebook creates AND populates the dq_rules table with comprehensive
+rules for all Bronze tables in a single operation.
+
+COMPREHENSIVE RULES STRATEGY:
+-----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  RULE CATEGORY        │  EXAMPLES                    │  SEVERITY        │
+├───────────────────────┼──────────────────────────────┼──────────────────┤
+│  Identity             │  pk IS NOT NULL              │  CRITICAL        │
+│  Timestamps           │  timestamp IS NOT NULL       │  CRITICAL        │
+│  Referential          │  fk EXISTS IN parent         │  WARNING         │
+│  Domain               │  status IN ('A','B','C')     │  WARNING         │
+│  Business Logic       │  amount >= 0                 │  WARNING         │
+└───────────────────────┴──────────────────────────────┴──────────────────┘
+
+RULE DESIGN PHILOSOPHY:
+-----------------------
+
+Bronze layer is RAW INGESTION - preserve data for observability.
+
+1. CRITICAL rules (expect_or_drop):
+   - Only for absolute requirements (PKs, mandatory timestamps)
+   - Data can't be processed without these
+
+2. WARNING rules (expect only):
+   - Log issues but keep records
+   - Most rules should be warnings in Bronze
+   - Apply stricter rules in Silver/Gold
+
+SEEDING PATTERN:
+----------------
+
+    def seed_rules(spark, catalog, schema):
+        # 1. Create table (if not exists)
+        create_dq_rules_table(spark, catalog, schema)
+        
+        # 2. Generate rules for all tables
+        all_rules = []
+        for table in BRONZE_TABLES:
+            rules = get_rules_for_table(table)
+            all_rules.extend(rules)
+        
+        # 3. Bulk insert
+        spark.createDataFrame(all_rules).write.insertInto(...)
 
 This table is used by the dq_rules_loader module to dynamically load rules at DLT runtime.
 """

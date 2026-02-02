@@ -1,9 +1,77 @@
 """
-Dashboard Linker Tool
-=====================
+TRAINING MATERIAL: Dashboard Deep Linking Pattern
+==================================================
+
+This tool generates deep links to AI/BI dashboards, allowing the agent
+to direct users to relevant visualizations for their queries.
+
+WHY DASHBOARD LINKS IN AGENT RESPONSES:
+---------------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  User: "Show me the cost trends"                                         │
+│                                                                         │
+│  ❌ WITHOUT Dashboard Links:                                             │
+│     "Your costs increased 15% last month. The main drivers were..."     │
+│     (Text-only response, user can't explore further)                    │
+│                                                                         │
+│  ✅ WITH Dashboard Links:                                                │
+│     "Your costs increased 15% last month. The main drivers were..."     │
+│     "[Open Cost Dashboard →](https://workspace/dashboards/cost)"        │
+│     (User can drill down into visualizations!)                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+DASHBOARD REGISTRY PATTERN:
+---------------------------
+Dashboards are registered with metadata for intelligent linking:
+
+DASHBOARDS = {
+    "cost": {
+        "id": "DASHBOARD_ID",           # Actual Lakeview dashboard ID
+        "name": "Cost Analysis",        # Display name
+        "description": "DBU usage...",  # What it shows
+        "tabs": ["Overview", "..."]     # Available tabs
+    }
+}
+
+This allows:
+- Linking to specific domains
+- Tab-level deep links
+- Dynamic filter parameters
+
+URL STRUCTURE:
+--------------
+Databricks Lakeview dashboard URLs follow this pattern:
+
+{host}/sql/dashboards/{dashboard_id}?tab={tab}&filter1={value1}
+
+Examples:
+- Basic: https://workspace.cloud.databricks.com/sql/dashboards/abc123
+- With tab: .../abc123?tab=Cost+Management
+- With filter: .../abc123?tab=Overview&workspace=prod
+
+SINGLETON PATTERN:
+------------------
+The tool uses a singleton to avoid recreating the dashboard registry:
+
+_dashboard_linker = None
+
+def get_dashboard_linker():
+    if _dashboard_linker is None:
+        _dashboard_linker = DashboardLinkerTool()
+    return _dashboard_linker
 
 Tool for generating deep links to AI/BI dashboards.
 """
+
+# =============================================================================
+# IMPORTS
+# =============================================================================
+# TRAINING MATERIAL: Import Organization
+#
+# typing: For type hints
+# mlflow: For tracing tool invocations
+# tool: LangChain decorator for creating tools
 
 from typing import Dict, List, Optional
 import mlflow
@@ -12,6 +80,10 @@ from langchain_core.tools import tool
 
 from ..config import settings
 
+
+# =============================================================================
+# DASHBOARD LINKER TOOL CLASS
+# =============================================================================
 
 class DashboardLinkerTool:
     """

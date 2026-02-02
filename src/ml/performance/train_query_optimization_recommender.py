@@ -19,8 +19,65 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Query Optimization Recommender Model
-================================================
+TRAINING MATERIAL: XGBoost Classification Pattern
+=================================================
+
+This script demonstrates the standard XGBoost classification pattern used
+across multiple models in the Performance domain.
+
+WHY XGBOOST FOR CLASSIFICATION:
+-------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ALGORITHM COMPARISON FOR CLASSIFICATION                                 │
+├────────────────────┬───────────────────────────────────────────────────┤
+│  Logistic Reg.     │  Simple, interpretable, but assumes linearity     │
+│  Random Forest     │  Good, but slower training than XGBoost           │
+│  XGBoost ✅         │  Best accuracy, fast, handles imbalanced data     │
+│  Neural Network    │  Overkill for tabular data, needs more tuning     │
+└────────────────────┴───────────────────────────────────────────────────┘
+
+KEY XGBOOST HYPERPARAMETERS:
+----------------------------
+
+    hyperparams = {
+        "n_estimators": 100,      # Number of boosting rounds
+        "max_depth": 6,           # Tree depth (prevents overfitting)
+        "learning_rate": 0.1,     # Shrinkage (lower = more robust)
+        "random_state": 42,       # Reproducibility
+        "eval_metric": "logloss", # Binary classification metric
+    }
+
+FEATURE REGISTRY PATTERN:
+-------------------------
+
+Instead of hardcoding feature schemas:
+
+    # OLD: Hardcoded schema (fragile)
+    features = ["daily_dbu", "daily_cost", "serverless_cost"]
+
+We query Unity Catalog at runtime:
+
+    # NEW: Dynamic schema from UC
+    registry = FeatureRegistry(spark, catalog, feature_schema)
+    schema = registry.get_feature_table_schema(FEATURE_TABLE)
+    features = registry.get_feature_columns(schema, exclude=["workspace_id", ...])
+
+Benefits:
+- No code changes when features are added
+- Single source of truth (Unity Catalog)
+- Schema validation at runtime
+
+LABEL BINARIZATION:
+-------------------
+
+XGBClassifier requires binary (0/1) labels, not continuous rates:
+
+    # WRONG: Continuous rate
+    y = df["sla_breach_rate"]  # 0.0 to 1.0
+
+    # RIGHT: Binarized
+    y = (df["sla_breach_rate"] > 0.1).astype(int)  # 0 or 1
 
 Problem: Classification
 Algorithm: XGBOOST

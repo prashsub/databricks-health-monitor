@@ -1,8 +1,55 @@
 """
-AI/BI Lakeview Dashboards for Databricks Health Monitor
-========================================================
+TRAINING MATERIAL: AI/BI Lakeview Dashboard Deployment
+======================================================
 
-Dashboards for executive, cost, reliability, and performance analysis.
+This module manages Lakeview dashboard deployment using a standardized
+pattern with UPDATE-or-CREATE semantics and variable substitution.
+
+DEPLOYMENT ARCHITECTURE:
+------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  SOURCE FILES                                                            │
+│  ────────────                                                            │
+│  src/dashboards/cost.lvdash.json       (version controlled)             │
+│  src/dashboards/reliability.lvdash.json                                  │
+│  ...                                                                     │
+│                                                                         │
+│       │ Variable Substitution                                           │
+│       │ ${catalog} → prashanth_catalog                                  │
+│       │ ${gold_schema} → gold                                           │
+│       ▼                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  deploy_dashboards.py                                            │   │
+│  │  - Reads JSON files                                              │   │
+│  │  - Substitutes variables                                         │   │
+│  │  - Calls Workspace Import API with overwrite=True                │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│       │                                                                  │
+│       ▼                                                                  │
+│  DATABRICKS WORKSPACE                                                    │
+│  /Users/{email}/Dashboards/cost.lvdash                                  │
+│  (Same URL preserved on updates)                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+UPDATE-or-CREATE PATTERN:
+-------------------------
+
+Using Workspace Import API with overwrite=True:
+- Creates if doesn't exist
+- Updates if exists
+- Preserves dashboard URL
+- Preserves sharing permissions
+- Single code path (no if/else)
+
+VALIDATION STRATEGY:
+--------------------
+
+validate_dashboard_queries.py executes queries with LIMIT 1:
+- Catches column resolution errors
+- Catches ambiguous reference errors
+- Catches type mismatch errors
+- 90% faster than running full dashboards
 
 Available dashboards:
 - Executive Overview: High-level health metrics for leadership

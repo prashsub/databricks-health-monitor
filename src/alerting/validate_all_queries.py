@@ -1,12 +1,50 @@
 # Databricks notebook source
 """
-Alert Query Validation Job
+TRAINING MATERIAL: Gate Pattern for Safe Deployments
+====================================================
 
-Validates all enabled alert queries before deployment.
-This job should run BEFORE the alert sync job to catch:
-1. SQL syntax errors
-2. Security violations (DROP, DELETE, etc.)
-3. Missing table references
+This notebook implements a "validation gate" that MUST pass before
+alert sync can proceed, preventing bad deployments.
+
+DEPLOYMENT PIPELINE:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WORKFLOW TASK SEQUENCE                                                  │
+│                                                                         │
+│  [Seed Alerts] → [VALIDATE QUERIES] → [Sync Alerts]                    │
+│                        │                                                 │
+│                   ┌────┴────┐                                           │
+│                   │ GATE    │                                           │
+│                   │ Pass?   │                                           │
+│                   └────┬────┘                                           │
+│                  ✅ Yes │ ❌ No                                          │
+│                        │      └──► Job fails, sync blocked               │
+│                        ▼                                                 │
+│                  [Sync Alerts]                                           │
+│                        │                                                 │
+│                        ▼                                                 │
+│               Alerts deployed safely                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY VALIDATE BEFORE SYNC:
+-------------------------
+
+1. SQL Alerts fail SILENTLY if query has errors
+2. No notification when alert query itself is broken
+3. Could miss real incidents while thinking alerting works
+
+VALIDATION CATEGORIES:
+----------------------
+
+| Category | Blocks Deployment | Example |
+|----------|-------------------|---------|
+| Syntax error | ✅ Yes | SELECT * FORM table |
+| Security violation | ✅ Yes | DROP TABLE ... |
+| Missing table | ✅ Yes | SELECT * FROM nonexistent |
+| Warning (INSERT) | ⚠️ Configurable | INSERT INTO ... |
+
+fail_on_warning parameter allows strict mode for production.
 
 If any queries fail validation, the job fails to prevent bad deployments.
 """

@@ -19,8 +19,60 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Pipeline Health Scorer Model
-========================================
+TRAINING MATERIAL: Health Score Regression Pattern
+==================================================
+
+This script demonstrates predicting a continuous "health score"
+(0.0 to 1.0) for pipeline reliability assessment.
+
+HEALTH SCORE CONCEPT:
+---------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Pipeline Health Score = f(success_rate, duration_stability, ...)      │
+│                                                                         │
+│  Score Range:                                                           │
+│  ─────────────                                                          │
+│  1.0  ████████████████████  Perfect health                             │
+│  0.8  ████████████████      Good health                                │
+│  0.6  ████████████          Needs attention                            │
+│  0.4  ████████              At risk                                    │
+│  0.2  ████                  Critical                                   │
+│  0.0                        Failed state                               │
+│                                                                         │
+│  Used for:                                                              │
+│  - Dashboard health indicators                                          │
+│  - Alerting thresholds                                                  │
+│  - Prioritization of maintenance                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: success_rate
+-------------------
+
+The target variable is success_rate - the proportion of successful runs
+over a rolling window. We predict this from other reliability features.
+
+WHY REGRESSION FOR HEALTH:
+--------------------------
+
+| Approach | Output | Use Case |
+|---|---|---|
+| Classification | Good/Bad | Simple alerts |
+| Regression ✅ | 0.0-1.0 score | Nuanced dashboard |
+
+Regression allows:
+- Tracking improvement/degradation trends
+- Setting custom alert thresholds
+- Ranking pipelines by health
+
+GRADIENT BOOSTING FOR RELIABILITY:
+----------------------------------
+
+GradientBoostingRegressor chosen because:
+1. Handles feature interactions (job type × duration)
+2. Robust to missing data (tree-based)
+3. Feature importance for explainability
+4. Good balance of accuracy and interpretability
 
 Problem: Regression
 Algorithm: Gradient Boosting Regressor

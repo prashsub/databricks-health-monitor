@@ -2,7 +2,44 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Marketplace Domain
 # MAGIC
-# MAGIC Merges marketplace listing and access tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: High-Cardinality Composite Keys
+# MAGIC
+# MAGIC This notebook demonstrates handling high-cardinality composite keys
+# MAGIC for event-based fact tables.
+# MAGIC
+# MAGIC ### The Challenge: Event Deduplication
+# MAGIC
+# MAGIC Marketplace events can have duplicate records from:
+# MAGIC - Multiple pipeline runs
+# MAGIC - System retries
+# MAGIC - CDC replay
+# MAGIC
+# MAGIC Solution: Use composite key that uniquely identifies each event.
+# MAGIC
+# MAGIC ```python
+# MAGIC # Composite key for listing access events
+# MAGIC business_keys = ["account_id", "listing_id", "consumer_email", "event_time"]
+# MAGIC
+# MAGIC # Deduplication keeps only the latest record per composite key
+# MAGIC bronze_df, original, deduped = deduplicate_bronze(
+# MAGIC     bronze_raw,
+# MAGIC     business_keys=business_keys,
+# MAGIC     order_by_column="bronze_ingestion_timestamp"  # Keep latest ingestion
+# MAGIC )
+# MAGIC ```
+# MAGIC
+# MAGIC ### Funnel Metrics
+# MAGIC
+# MAGIC ```
+# MAGIC Consumer Journey Analytics:
+# MAGIC
+# MAGIC Impressions → Views → Details → Install → Access
+# MAGIC    1000        500      200       50       30
+# MAGIC    (100%)     (50%)    (20%)    (5%)     (3%)
+# MAGIC
+# MAGIC fact_listing_funnel tracks: Impressions → Install
+# MAGIC fact_listing_access tracks: Actual data access
+# MAGIC ```
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - fact_listing_access (from marketplace.listing_access_events)

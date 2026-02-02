@@ -15,8 +15,52 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train User Behavior Baseline Model
-==================================
+TRAINING MATERIAL: User Behavior Analytics (UBA) Baseline
+=========================================================
+
+This model learns normal user behavior patterns to detect anomalies
+that may indicate compromised accounts or insider threats.
+
+UBA CONCEPT:
+------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  USER BEHAVIOR ANALYTICS                                                 │
+│                                                                         │
+│  BASELINE LEARNING:                                                      │
+│  └── User Alice typically:                                              │
+│      - Works 9 AM - 6 PM EST                                            │
+│      - Accesses tables in schema: sales_*                               │
+│      - Runs ~50 queries/day                                             │
+│      - Downloads <1GB data/day                                          │
+│                                                                         │
+│  ANOMALY DETECTION:                                                      │
+│  └── Day X: Alice at 3 AM, accessing hr_salary table, 50GB download     │
+│  └── Model: 95% anomaly score → Alert security team                     │
+│                                                                         │
+│  POSSIBLE SCENARIOS:                                                     │
+│  └── Compromised credentials                                            │
+│  └── Insider threat                                                     │
+│  └── Legitimate but unusual (verify with user)                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY ISOLATION FOREST:
+---------------------
+
+1. No labels needed (no "known bad" behavior examples)
+2. Learns what's "normal" per user
+3. Flags deviations from baseline
+4. Handles high-dimensional feature space
+
+BEHAVIORAL FEATURES:
+--------------------
+
+| Feature | Normal | Suspicious |
+|---------|--------|------------|
+| Access time | Business hours | 3 AM |
+| Data volume | Consistent | Spike |
+| Table types | User's domain | Cross-domain |
+| Query patterns | Familiar | New complex joins |
 
 Uses LOCAL log_model function (like train_cost_anomaly_detector).
 """

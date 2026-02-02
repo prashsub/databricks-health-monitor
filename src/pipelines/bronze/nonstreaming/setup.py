@@ -1,10 +1,45 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Non-Streaming System Tables Setup
-# MAGIC 
-# MAGIC Creates Bronze layer tables for the 8 system tables that don't support streaming.
-# MAGIC These tables will be populated via MERGE operations on a scheduled basis.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: Handling Non-Streaming System Tables
+# MAGIC
+# MAGIC ### Why Non-Streaming?
+# MAGIC
+# MAGIC Most Databricks system tables support streaming via Change Data Feed (CDF):
+# MAGIC ```python
+# MAGIC spark.readStream.option("readChangeFeed", "true").table("system.billing.usage")
+# MAGIC ```
+# MAGIC
+# MAGIC However, **8 system tables don't support streaming**:
+# MAGIC
+# MAGIC | Table | Reason |
+# MAGIC |-------|--------|
+# MAGIC | `list_prices` | Reference data, rarely changes |
+# MAGIC | `node_types` | Reference data, rarely changes |
+# MAGIC | `workspaces_latest` | Snapshot table, no CDF |
+# MAGIC | `query.history` | High volume, CDF not available |
+# MAGIC | `assistant_events` | New table, CDF not yet supported |
+# MAGIC | `data_classification.results` | Snapshot data |
+# MAGIC | `data_quality_monitoring.table_results` | Snapshot data |
+# MAGIC | `pipeline_update_timeline` | Has Deletion Vectors, special handling |
+# MAGIC
+# MAGIC ### Non-Streaming Pattern
+# MAGIC
+# MAGIC Instead of DLT streaming, we use:
+# MAGIC 1. **Setup Job** (this file): Creates empty Bronze tables with schema
+# MAGIC 2. **Merge Job**: Periodically merges new/changed records from system tables
+# MAGIC
+# MAGIC ### Key Pattern: CREATE TABLE AS SELECT
+# MAGIC
+# MAGIC ```sql
+# MAGIC CREATE OR REPLACE TABLE bronze.table_name
+# MAGIC AS SELECT * FROM system.domain.table_name WHERE FALSE
+# MAGIC ```
+# MAGIC
+# MAGIC This creates an empty table with the exact schema of the source.
+# MAGIC The `WHERE FALSE` means no data is copied, just schema.
+# MAGIC
 # MAGIC **Tables created:**
 # MAGIC - assistant_events (system.access.assistant_events)
 # MAGIC - workspaces_latest (system.access.workspaces_latest)

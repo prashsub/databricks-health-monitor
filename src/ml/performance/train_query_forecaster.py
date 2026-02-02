@@ -15,8 +15,47 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Query Performance Forecaster Model
-========================================
+TRAINING MATERIAL: Query Duration Prediction
+============================================
+
+This model predicts query execution time before the query runs,
+enabling capacity planning and SLA management.
+
+QUERY FORECASTING VALUE:
+------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  USE CASES                                                               │
+│                                                                         │
+│  1. SLA MANAGEMENT                                                       │
+│     └── User submits query                                              │
+│     └── Model predicts: "~45 seconds"                                   │
+│     └── If SLA is 30s: warn user before running                         │
+│                                                                         │
+│  2. QUEUE PRIORITIZATION                                                 │
+│     └── Short predicted queries → high priority                         │
+│     └── Long predicted queries → background queue                       │
+│                                                                         │
+│  3. COST ESTIMATION                                                      │
+│     └── Predicted duration × cluster cost/second                        │
+│     └── User sees estimated cost before running                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: avg_duration_ms
+----------------------
+
+The target variable is average query duration in milliseconds.
+We predict this from query and warehouse features.
+
+PREDICTION FEATURES:
+--------------------
+
+| Feature | Impact |
+|---------|--------|
+| Data size | Larger = slower |
+| Query complexity | More joins = slower |
+| Warehouse size | Bigger = faster |
+| Time of day | Peak hours = queueing |
 
 Problem: Regression
 Algorithm: Gradient Boosting

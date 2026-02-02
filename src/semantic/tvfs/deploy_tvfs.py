@@ -3,6 +3,104 @@
 Deploy Table-Valued Functions (TVFs)
 =====================================
 
+TRAINING MATERIAL: Table-Valued Functions Deployment Pattern
+-------------------------------------------------------------
+
+This notebook demonstrates production deployment of Table-Valued Functions
+(TVFs) for the semantic layer of a data platform. TVFs are essential for
+making data accessible to AI agents (Genie Spaces) and dashboards.
+
+WHAT ARE TVFs:
+--------------
+Table-Valued Functions return TABLE results from parameterized SQL.
+They encapsulate complex query logic with a simple interface.
+
+Example:
+  get_daily_cost_summary(start_date DATE, end_date DATE)
+  → Returns TABLE (workspace_name STRING, total_cost DECIMAL, ...)
+
+WHY TVFs FOR AI AGENTS:
+-----------------------
+1. PARAMETERIZED: Accept user input (dates, filters)
+2. SEMANTIC: Function name describes what it returns
+3. GROUNDED: Always returns real data (no hallucinations)
+4. GOVERNED: UC permissions apply
+5. REUSABLE: Same TVF for Genie, dashboards, notebooks
+
+TVF vs VIEWS vs RAW TABLES:
+---------------------------
+┌────────────┬──────────────┬───────────────┬─────────────────┐
+│ Feature    │ Raw Table    │ View          │ TVF             │
+├────────────┼──────────────┼───────────────┼─────────────────┤
+│ Parameters │ ❌ No        │ ❌ No         │ ✅ Yes          │
+│ Flexibility│ Low          │ Medium        │ High            │
+│ Caching    │ ✅ Yes       │ Partial       │ ❌ No           │
+│ Genie Use  │ Good         │ Good          │ Best for Q&A    │
+│ Complexity │ N/A          │ Hidden        │ Hidden          │
+└────────────┴──────────────┴───────────────┴─────────────────┘
+
+DEPLOYMENT ARCHITECTURE:
+------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    TVF DEPLOYMENT FLOW                                   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  SOURCE: SQL Files (in repository)                               │   │
+│  │  ├── cost_tvfs.sql (15 functions)                               │   │
+│  │  ├── reliability_tvfs.sql (12 functions)                        │   │
+│  │  ├── performance_tvfs.sql (10 functions)                        │   │
+│  │  ├── compute_tvfs.sql (6 functions)                             │   │
+│  │  ├── security_tvfs.sql (10 functions)                           │   │
+│  │  └── quality_tvfs.sql (7 functions)                             │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  VARIABLE SUBSTITUTION                   │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  TEMPLATE RENDERING                                              │   │
+│  │  ${catalog}      → health_monitor                               │   │
+│  │  ${gold_schema}  → gold                                         │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  SPARK.SQL() EXECUTION                   │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  UNITY CATALOG                                                   │   │
+│  │  catalog.gold_schema.get_daily_cost_summary()                   │   │
+│  │  catalog.gold_schema.get_failed_jobs()                          │   │
+│  │  ... 60 functions total                                         │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  CONSUMED BY                             │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  CONSUMERS                                                       │   │
+│  │  ├── Genie Spaces (AI Q&A)                                      │   │
+│  │  ├── AI/BI Dashboards                                           │   │
+│  │  ├── Notebooks (ad-hoc analysis)                                │   │
+│  │  └── Agent Workers (cost_agent, etc.)                           │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY PATTERNS DEMONSTRATED:
+--------------------------
+1. STATEMENT EXTRACTION: Parse CREATE FUNCTION from SQL files
+2. VARIABLE SUBSTITUTION: ${catalog}, ${gold_schema} replacement
+3. WORKSPACE FILE ACCESS: Multiple methods for reading files
+4. ERROR CATEGORIZATION: Group errors by type for debugging
+5. VERIFICATION: Query information_schema after deployment
+6. FAIL-FAST: Raise exception if any TVFs fail (job fails)
+
+WHY AGENT DOMAIN ORGANIZATION:
+------------------------------
+TVFs are organized by which agent uses them:
+- Cost Agent → cost_tvfs.sql
+- Reliability Agent → reliability_tvfs.sql
+- etc.
+
+This makes ownership clear and simplifies maintenance.
+
 Deploys all TVFs to the specified catalog and schema organized by Agent Domain.
 
 Agent Domain Organization:

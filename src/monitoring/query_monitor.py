@@ -1,7 +1,44 @@
 # Databricks notebook source
 """
-Query Performance Monitor Configuration
-=======================================
+TRAINING MATERIAL: SQL Query Performance Monitoring
+===================================================
+
+This monitor tracks SQL Warehouse query performance metrics,
+enabling optimization and SLA monitoring.
+
+QUERY PERFORMANCE METRICS:
+--------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  METRIC                │  FORMULA                       │  GOOD VALUE   │
+├────────────────────────┼────────────────────────────────┼───────────────┤
+│  P50 Latency           │  PERCENTILE(duration_ms, 0.5)  │  < 5 seconds  │
+│  P95 Latency           │  PERCENTILE(duration_ms, 0.95) │  < 30 seconds │
+│  Success Rate          │  FINISHED / total              │  > 99%        │
+│  Rows/Second           │  rows_produced / duration      │  trending up  │
+│  Data Scanned/Query    │  read_bytes / query_count      │  trending down│
+└────────────────────────┴────────────────────────────────┴───────────────┘
+
+QUERY CATEGORIES:
+-----------------
+
+execution_status values:
+- FINISHED: Completed successfully
+- FAILED: Error during execution
+- CANCELED: User/timeout cancellation
+- RUNNING: Still executing (shouldn't be in history)
+
+statement_type categories for analysis:
+- SELECT: Read queries (optimize cache)
+- INSERT/MERGE: Write queries (optimize clustering)
+- CREATE/ALTER: DDL operations
+- EXPLAIN: Plan analysis
+
+OPTIMIZATION SIGNALS:
+---------------------
+
+High rows_produced + Low read_bytes = Efficient query (good selectivity)
+Low rows_produced + High read_bytes = Full scan (needs optimization)
 
 Lakehouse Monitor for fact_query_history table.
 Tracks query latency, efficiency, and warehouse utilization.

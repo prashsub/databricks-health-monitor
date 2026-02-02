@@ -1,9 +1,89 @@
 """
-LLM Judges for Agent Evaluation
-===============================
+TRAINING MATERIAL: LLM-as-Judge Pattern for Agent Evaluation
+=============================================================
 
-Custom scorers for evaluating agent response quality.
-Includes both generic judges and domain-specific judges per the MLflow GenAI patterns.
+This module implements custom scorers for evaluating agent response quality
+using the LLM-as-Judge pattern from MLflow GenAI.
+
+WHAT IS LLM-AS-JUDGE:
+---------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE CHALLENGE: How do you test AI agent outputs?                        │
+│                                                                         │
+│  Traditional Testing:                  Agent Testing:                   │
+│  ────────────────────                  ───────────────                   │
+│  assertEqual(result, 42)               ??? (many valid answers)         │
+│  assertTrue(result > 0)                ??? (subjective quality)         │
+│                                                                         │
+│  THE SOLUTION: Use an LLM to judge another LLM's response               │
+│  ────────────────────────────────────────────────────────               │
+│  Judge LLM: "Is this response relevant? Score 0-1"                      │
+│  Judge LLM: "Does this cite data sources? Score 0-1"                    │
+│  Judge LLM: "Is this actionable advice? Score 0-1"                      │
+└─────────────────────────────────────────────────────────────────────────┘
+
+SCORER ANATOMY:
+---------------
+
+@scorer
+def my_judge(inputs, outputs, expectations) -> Score:
+    '''
+    inputs:       What the user asked  {"query": "..."}
+    outputs:      What agent responded {"response": "..."}
+    expectations: What we expect       {"domains": ["cost"]}
+    '''
+    
+    prompt = f"Rate this response..."
+    result = _call_llm(prompt)
+    
+    return Score(
+        value=0.85,           # 0.0 to 1.0
+        rationale="Good..."   # Why this score
+    )
+
+JUDGE CATEGORIES IN THIS MODULE:
+--------------------------------
+
+1. GENERIC JUDGES (apply to all queries):
+   - domain_accuracy_judge: Is the response about the right topic?
+   - response_relevance_judge: Does it answer the question asked?
+   - actionability_judge: Does it include concrete recommendations?
+   - source_citation_judge: Does it reference data sources?
+
+2. DOMAIN-SPECIFIC JUDGES (specialized evaluators):
+   - cost_accuracy_judge: Are cost calculations correct?
+   - security_compliance_judge: Are security recommendations appropriate?
+   - performance_accuracy_judge: Is performance advice valid?
+   - reliability_accuracy_judge: Is job/SLA analysis accurate?
+   - quality_accuracy_judge: Is data quality assessment correct?
+
+PROMPT ENGINEERING FOR JUDGES:
+------------------------------
+Judge prompts should be:
+- Clear about the rating scale (0.0-1.0)
+- Specific about what to evaluate
+- Request JSON output for reliable parsing
+
+GOOD prompt:
+  "Rate domain accuracy (0.0-1.0):
+   - 1.0: Perfectly addresses the domain
+   - 0.5: Partially correct
+   - 0.0: Completely wrong
+   Return JSON: {"score": <float>, "rationale": "<explanation>"}"
+
+BAD prompt:
+  "Is this response good?"
+
+WHY JSON OUTPUT:
+----------------
+We ask the LLM to return JSON for reliable parsing:
+
+Good: {"score": 0.85, "rationale": "Addresses cost but misses..."}
+  → Easy to parse with json.loads()
+
+Bad: "I rate this 0.85 because..."
+  → Requires regex extraction, error-prone
 
 Reference:
     28-mlflow-genai-patterns.mdc cursor rule

@@ -1,16 +1,89 @@
 """
-Training Base Utilities - Standardized Functions for All ML Scripts
-====================================================================
+TRAINING MATERIAL: Standardized ML Training Utilities
+=====================================================
 
 This module provides standardized functions that ALL training scripts should use.
-This eliminates the copy-paste errors that cause recurring issues:
+It eliminates the copy-paste errors that cause recurring issues:
 - Variable naming inconsistencies (X vs X_train)
 - Missing MLflow signature handling
 - Incorrect data type casting
 - Feature validation
 
-EVERY training script should import from this module instead of implementing
-these patterns themselves.
+WHY CENTRALIZED UTILITIES:
+--------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  COPY-PASTE PROBLEMS (Without this module):                              │
+│                                                                         │
+│  Script 1: X = df[features]         Script 2: X_train = df[features]    │
+│  Script 1: y.astype('float')        Script 2: y.astype(float)           │
+│  Script 1: mlflow.sklearn.log_model Script 2: fe.log_model (different!) │
+│                                                                         │
+│  → Inconsistent behavior across models                                  │
+│  → Hard to find bugs                                                    │
+│  → Changes need to be made in 25+ files                                 │
+│                                                                         │
+│  WITH CENTRALIZED UTILITIES:                                            │
+│  - Single implementation, used everywhere                               │
+│  - Fix once, fix all models                                             │
+│  - Guaranteed consistency                                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY PATTERNS IN THIS MODULE:
+----------------------------
+
+1. SETUP FUNCTIONS
+   - setup_training_environment(): Set MLflow experiment
+   - get_run_name(): Generate unique run names
+   - get_standard_tags(): Consistent MLflow tags
+
+2. DATA PREPARATION (CRITICAL)
+   - prepare_training_data(): For supervised models
+   - prepare_anomaly_detection_data(): For unsupervised models
+   
+   Why this matters:
+   - MLflow requires float64 (Spark DECIMAL doesn't work!)
+   - NaN/Inf values crash sklearn
+   - Consistent train/test split with stratification
+
+3. MODEL LOGGING (CRITICAL)
+   - log_model_with_features(): With Feature Store
+   - log_anomaly_model_with_features(): Anomaly detection + Feature Store
+   - log_model_without_features(): Custom preprocessing
+   
+   Why this matters:
+   - Unity Catalog requires proper signatures
+   - Feature Store lineage requires fe.log_model()
+   - Anomaly detection has different output schema
+
+4. METRIC CALCULATION
+   - calculate_classification_metrics()
+   - calculate_regression_metrics()
+   - calculate_anomaly_metrics()
+
+DATA TYPE CASTING PATTERN:
+--------------------------
+MLflow and sklearn have strict type requirements:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  SOURCE DATA TYPE      │  PROBLEM                  │  SOLUTION          │
+├────────────────────────┼───────────────────────────┼────────────────────┤
+│  Spark DECIMAL         │  MLflow can't serialize   │  Cast to float64   │
+│  NaN / Inf             │  sklearn crashes          │  fillna(0)         │
+│  bool                  │  Some models need numeric │  Cast to float64   │
+│  int                   │  Regression needs float   │  Cast to float64   │
+└────────────────────────┴───────────────────────────┴────────────────────┘
+
+The prepare_training_data() function handles ALL of these automatically.
+
+OUTPUT SCHEMA PATTERN:
+----------------------
+Unity Catalog models REQUIRE explicit output schema:
+
+- Regression: Schema([ColSpec(DataType.double)])
+- Classification/Anomaly: Schema([ColSpec(DataType.long)])
+
+The log_model functions handle this automatically based on model_type.
 
 Usage:
     from src.ml.utils.training_base import (

@@ -1,9 +1,34 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Billing Domain
-# MAGIC
-# MAGIC Merges billing dimension and fact tables from Bronze to Gold.
-# MAGIC
+# MAGIC 
+# MAGIC ## TRAINING MATERIAL: Production Data Pipeline Patterns
+# MAGIC 
+# MAGIC This notebook demonstrates production-grade Gold layer data transformation patterns.
+# MAGIC 
+# MAGIC ### Architecture Context
+# MAGIC ```
+# MAGIC ┌─────────────────────────────────────────────────────────────────────────┐
+# MAGIC │  BRONZE          SILVER               GOLD                              │
+# MAGIC │  (Raw)           (Cleaned)            (Business)                        │
+# MAGIC │  ↓               ↓                    ↓                                 │
+# MAGIC │  Landing        DLT Pipeline         THIS NOTEBOOK                     │
+# MAGIC │  Tables         (streaming)          (MERGE operations)                │
+# MAGIC │                 - Deduplication      - Aggregation                     │
+# MAGIC │                 - Validation         - Denormalization                 │
+# MAGIC │                 - Type casting       - Business logic                  │
+# MAGIC │                                      - SCD handling                    │
+# MAGIC └─────────────────────────────────────────────────────────────────────────┘
+# MAGIC ```
+# MAGIC 
+# MAGIC ### Key Concepts Demonstrated
+# MAGIC 1. **MERGE Pattern**: Idempotent upsert operations (vs INSERT/UPDATE)
+# MAGIC 2. **Struct Flattening**: Converting nested structures to flat columns
+# MAGIC 3. **Incremental Processing**: Only process new/changed data
+# MAGIC 4. **Deduplication**: Handle duplicates before MERGE
+# MAGIC 5. **Data Enrichment**: Join with lookup tables (list_prices)
+# MAGIC 6. **Schema Validation**: Ensure source matches target schema
+# MAGIC 
 # MAGIC **Tables:**
 # MAGIC - dim_sku (derived from billing.usage)
 # MAGIC - fact_usage (from billing.usage with price enrichment)
@@ -11,33 +36,83 @@
 
 # COMMAND ----------
 
+# =============================================================================
+# IMPORTS
+# =============================================================================
+# TRAINING MATERIAL: Import Organization for Pipeline Notebooks
+#
+# CATEGORIES:
+# 1. PySpark core (SparkSession)
+# 2. PySpark functions (individual imports for clarity)
+# 3. Local helpers (merge_helpers module)
+#
+# WHY EXPLICIT FUNCTION IMPORTS:
+# - Makes it clear which functions are used
+# - Avoids `from x import *` anti-pattern
+# - Easier to debug and maintain
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, current_timestamp, when, lit, size, coalesce,
     to_date, unix_timestamp, to_json
 )
+
+# Local merge helpers - shared across all domain merge notebooks
+# WHY SHARED HELPERS:
+# - Consistent patterns across domains
+# - DRY principle (Don't Repeat Yourself)
+# - Tested utility functions
 from merge_helpers import (
-    deduplicate_bronze,
-    merge_dimension_table,
-    merge_fact_table,
-    flatten_struct_fields,
-    add_tag_governance_columns,
-    enrich_usage_with_list_prices,
-    flatten_usage_metadata,
-    flatten_identity_metadata,
-    flatten_product_features,
-    print_merge_summary,
-    get_incremental_filter
+    deduplicate_bronze,           # Remove duplicates by business key
+    merge_dimension_table,        # SCD Type 1/2 MERGE for dimensions
+    merge_fact_table,             # Standard MERGE for facts
+    flatten_struct_fields,        # Generic struct flattening
+    add_tag_governance_columns,   # Derive is_tagged, tag_count
+    enrich_usage_with_list_prices, # Join with price lookup
+    flatten_usage_metadata,       # Domain-specific: usage_metadata struct
+    flatten_identity_metadata,    # Domain-specific: identity_metadata struct
+    flatten_product_features,     # Domain-specific: product_features struct
+    print_merge_summary,          # Standardized output formatting
+    get_incremental_filter        # High-water mark logic
 )
 
 # COMMAND ----------
 
+# =============================================================================
+# PARAMETER RETRIEVAL
+# =============================================================================
+# TRAINING MATERIAL: Job Parameter Pattern
+
 def get_parameters():
-    """Get job parameters from dbutils widgets."""
+    """
+    Get job parameters from dbutils widgets.
+    
+    TRAINING MATERIAL: Widget-Based Parameter Passing
+    ==================================================
+    
+    WHY WIDGETS (not argparse):
+    - Databricks Asset Bundles use notebook_task
+    - notebook_task passes parameters via widgets
+    - argparse will FAIL in this execution context
+    
+    PARAMETER SOURCES:
+    1. Job definition (base_parameters in YAML)
+    2. Manual run (interactive input)
+    3. Scheduled run (uses defaults)
+    
+    BEST PRACTICES:
+    - Print parameter values (for job logs)
+    - Return tuple (not dict) for clean unpacking
+    - Use descriptive parameter names
+    
+    Returns:
+        Tuple of (catalog, bronze_schema, gold_schema)
+    """
     catalog = dbutils.widgets.get("catalog")
     bronze_schema = dbutils.widgets.get("bronze_schema")
     gold_schema = dbutils.widgets.get("gold_schema")
     
+    # Print for job log visibility
     print(f"Catalog: {catalog}")
     print(f"Bronze Schema: {bronze_schema}")
     print(f"Gold Schema: {gold_schema}")
@@ -46,9 +121,55 @@ def get_parameters():
 
 # COMMAND ----------
 
+# =============================================================================
+# DIMENSION TABLE MERGE: dim_sku
+# =============================================================================
+# TRAINING MATERIAL: Dimension Table Merge Pattern
+
 def merge_dim_sku(spark: SparkSession, catalog: str, bronze_schema: str, gold_schema: str):
     """
     Merge dim_sku from Bronze to Gold (SCD Type 1).
+    
+    TRAINING MATERIAL: Dimension Table Derivation
+    ==============================================
+    
+    UNIQUE PATTERN: This dimension is DERIVED from a fact source.
+    Most dimensions come from dedicated source tables.
+    Here, we extract distinct SKU values from usage records.
+    
+    WHY DERIVE FROM USAGE:
+    - No separate SKU master in system.billing
+    - SKU data exists within usage records
+    - Extract unique values to normalize
+    
+    SCD TYPE 1 EXPLAINED:
+    ---------------------
+    SCD Type 1 = Overwrite on match (no history)
+    - When SKU attributes change, old values are lost
+    - Simple, efficient for non-critical dimensions
+    - Use when historical tracking isn't needed
+    
+    ALTERNATIVES:
+    - SCD Type 2: Track history with effective dates
+    - SCD Type 3: Keep current + previous value only
+    - SCD Type 6: Hybrid of 1, 2, and 3
+    
+    DEDUPLICATION STRATEGY:
+    -----------------------
+    Same sku_name may appear with different cloud/usage_unit.
+    We deduplicate on PRIMARY KEY (sku_name) only.
+    This means we keep ONE arbitrary cloud/usage_unit per SKU.
+    
+    ALTERNATIVE: Keep most recent based on timestamp
+    sku_df = (
+        bronze_raw
+        .withColumn("rn", row_number().over(
+            Window.partitionBy("sku_name")
+            .orderBy(desc("bronze_ingestion_timestamp"))
+        ))
+        .filter(col("rn") == 1)
+        .drop("rn")
+    )
     
     Bronze Source: DERIVED from billing.usage (DISTINCT sku_name values)
     Gold Table: dim_sku
@@ -67,6 +188,7 @@ def merge_dim_sku(spark: SparkSession, catalog: str, bronze_schema: str, gold_sc
     bronze_table = f"{catalog}.{bronze_schema}.usage"
     
     # Extract distinct SKUs from usage table
+    # WHY usage: No separate SKU dimension source exists
     bronze_raw = spark.table(bronze_table)
     
     # Get distinct SKUs - MUST deduplicate by sku_name (PK)
@@ -74,7 +196,7 @@ def merge_dim_sku(spark: SparkSession, catalog: str, bronze_schema: str, gold_sc
     sku_df = (
         bronze_raw
         .select("sku_name", "cloud", "usage_unit")
-        .filter(col("sku_name").isNotNull())  # Filter out NULLs
+        .filter(col("sku_name").isNotNull())  # Filter out NULLs (PK can't be NULL)
         .dropDuplicates(["sku_name"])  # Deduplicate on PK only
     )
     
@@ -82,16 +204,18 @@ def merge_dim_sku(spark: SparkSession, catalog: str, bronze_schema: str, gold_sc
     print(f"  Found {original_count} distinct SKUs (deduplicated by sku_name)")
     
     # NOTE: Gold table DDLs don't include audit timestamps
+    # If needed, add: .withColumn("record_updated_timestamp", current_timestamp())
     updates_df = sku_df
     
-    # MERGE to Gold (SCD Type 1)
+    # MERGE to Gold (SCD Type 1 = Overwrite on match)
+    # WHY SCD Type 1: SKU attributes rarely change, history not critical
     merged_count = merge_dimension_table(
         spark=spark,
         updates_df=updates_df,
         catalog=catalog,
         gold_schema=gold_schema,
         table_name="dim_sku",
-        business_keys=["sku_name"],
+        business_keys=["sku_name"],  # Natural key, also serves as PK
         scd_type=1,
         validate_schema=True
     )
@@ -102,9 +226,81 @@ def merge_dim_sku(spark: SparkSession, catalog: str, bronze_schema: str, gold_sc
 
 # COMMAND ----------
 
+# =============================================================================
+# FACT TABLE MERGE: fact_usage
+# =============================================================================
+# TRAINING MATERIAL: Complex Fact Table Merge with Incremental Processing
+
 def merge_fact_usage(spark: SparkSession, catalog: str, bronze_schema: str, gold_schema: str):
     """
     Merge fact_usage from Bronze to Gold (TRUE INCREMENTAL).
+    
+    TRAINING MATERIAL: High-Volume Fact Table Processing
+    =====================================================
+    
+    This is the most complex merge in the billing domain:
+    - 100M+ records (requires incremental processing)
+    - 3 nested structs (requires flattening)
+    - Data enrichment (join with list_prices)
+    - Derived columns (list_cost, is_tagged, tag_count)
+    
+    INCREMENTAL PROCESSING PATTERN:
+    -------------------------------
+    
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  HIGH WATER MARK APPROACH                                       │
+    │                                                                 │
+    │  Gold Table: fact_usage                                         │
+    │  ├── Max(usage_date) = 2024-01-15  ← High Water Mark           │
+    │                                                                 │
+    │  Bronze Table: usage                                            │
+    │  ├── Records from 2024-01-01 to 2024-01-20                     │
+    │                                                                 │
+    │  Incremental Filter: usage_date > '2024-01-15'                 │
+    │  Records to Process: 2024-01-16 to 2024-01-20 only            │
+    └─────────────────────────────────────────────────────────────────┘
+    
+    WHY HIGH WATER MARK:
+    - Avoids full table scan on every run
+    - O(new data) instead of O(all data)
+    - Critical for 100M+ record tables
+    
+    FIRST RUN LIMITATION:
+    - Gold is empty → no high water mark
+    - Must process all data (or limit)
+    - max_initial_days=90 limits first run
+    
+    STRUCT FLATTENING:
+    ------------------
+    Bronze has nested structs:
+    ```
+    usage_metadata: STRUCT<cluster_id, job_id, ...>  (35 fields)
+    identity_metadata: STRUCT<run_as, created_by, owned_by>
+    product_features: STRUCT<jobs_tier, sql_tier, ...>  (15 fields)
+    ```
+    
+    Gold has flat columns:
+    ```
+    usage_metadata_cluster_id: STRING
+    usage_metadata_job_id: STRING
+    ...
+    ```
+    
+    WHY FLATTEN:
+    - SQL queries are simpler (no struct traversal)
+    - Better query performance (predicate pushdown)
+    - BI tools work better with flat schemas
+    
+    DATA ENRICHMENT:
+    ----------------
+    Join with list_prices to get:
+    - list_price: Unit price for the SKU
+    - list_cost: usage_quantity * list_price
+    
+    WHY ENRICH IN GOLD:
+    - Avoids join in every query
+    - Pre-computed list_cost for aggregation
+    - Single source of truth for pricing
     
     Bronze Source: system.billing.usage → Bronze: usage
     Gold Table: fact_usage
@@ -382,41 +578,123 @@ def merge_fact_list_prices(spark: SparkSession, catalog: str, bronze_schema: str
 
 # COMMAND ----------
 
+# =============================================================================
+# MAIN FUNCTION
+# =============================================================================
+# TRAINING MATERIAL: Pipeline Entry Point Pattern
+
 def main():
-    """Main entry point for Billing domain Gold layer MERGE."""
+    """
+    Main entry point for Billing domain Gold layer MERGE.
+    
+    TRAINING MATERIAL: Pipeline Execution Pattern
+    ==============================================
+    
+    EXECUTION FLOW:
+    ---------------
+    1. Print banner (for job log visibility)
+    2. Get parameters (from widgets)
+    3. Initialize SparkSession
+    4. Execute merges in DEPENDENCY ORDER
+    5. Handle success/failure
+    6. Cleanup (spark.stop())
+    
+    DEPENDENCY ORDER:
+    -----------------
+    Tables must be merged in dependency order:
+    
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  DEPENDENCY GRAPH                                               │
+    │                                                                 │
+    │  dim_sku (no dependencies)                                      │
+    │     ↑                                                           │
+    │  fact_usage (references dim_sku via sku_name)                  │
+    │                                                                 │
+    │  fact_list_prices (no dependencies)                            │
+    │     ↑                                                           │
+    │  fact_usage (enriched with list_price)                         │
+    └─────────────────────────────────────────────────────────────────┘
+    
+    MERGE ORDER:
+    1. dim_sku - No dependencies, create first
+    2. fact_list_prices - Lookup table for enrichment
+    3. fact_usage - Depends on both (FK + enrichment)
+    
+    ERROR HANDLING:
+    ---------------
+    - try/except for clean error reporting
+    - Traceback printed for debugging
+    - Re-raise exception (job will fail)
+    - finally block ensures cleanup
+    
+    WHY spark.stop():
+    - Releases cluster resources
+    - Clean shutdown in local mode
+    - Note: In Databricks, this is often optional
+    """
     print("\n" + "=" * 80)
     print("HEALTH MONITOR - GOLD LAYER MERGE - BILLING DOMAIN")
     print("=" * 80)
     
+    # Get job parameters
     catalog, bronze_schema, gold_schema = get_parameters()
     
+    # Initialize SparkSession
+    # WHY appName: Appears in Spark UI, aids debugging
     spark = SparkSession.builder.appName("Gold Merge - Billing").getOrCreate()
     
     try:
-        # Merge in dependency order
+        # =====================================================================
+        # MERGE IN DEPENDENCY ORDER
+        # =====================================================================
+        # CRITICAL: Order matters for foreign key relationships
+        
+        # Step 1: Dimension tables first (no dependencies)
         print("\nStep 1: Merging dim_sku (no dependencies)...")
         merge_dim_sku(spark, catalog, bronze_schema, gold_schema)
         
+        # Step 2: Lookup tables for enrichment
         print("\nStep 2: Merging fact_list_prices...")
         merge_fact_list_prices(spark, catalog, bronze_schema, gold_schema)
         
+        # Step 3: Fact tables last (depend on dimensions)
         print("\nStep 3: Merging fact_usage (depends on dim_sku)...")
         merge_fact_usage(spark, catalog, bronze_schema, gold_schema)
         
+        # Success banner
         print("\n" + "=" * 80)
         print("✓ Billing domain MERGE completed successfully!")
         print("=" * 80)
         
     except Exception as e:
+        # =====================================================================
+        # ERROR HANDLING
+        # =====================================================================
+        # Print error and traceback for job logs
         print(f"\n❌ Error during Billing domain MERGE: {str(e)}")
         import traceback
         traceback.print_exc()
+        # Re-raise to ensure job fails (not silent success)
         raise
         
     finally:
+        # =====================================================================
+        # CLEANUP
+        # =====================================================================
+        # Release resources (optional in Databricks, required locally)
         spark.stop()
 
 # COMMAND ----------
+
+# =============================================================================
+# SCRIPT ENTRY POINT
+# =============================================================================
+# TRAINING MATERIAL: Standard Python Entry Point
+#
+# WHY if __name__ == "__main__":
+# - Allows importing this module without executing main()
+# - Standard Python convention
+# - Enables unit testing of individual functions
 
 if __name__ == "__main__":
     main()

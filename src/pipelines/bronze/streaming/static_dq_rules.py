@@ -1,13 +1,55 @@
 """
-Static Data Quality Rules for Bronze Streaming Tables
-======================================================
+TRAINING MATERIAL: Static DQ Rules for Fast Pipeline Startup
+============================================================
 
-Pure static rules that don't require database queries.
+This module provides hardcoded DQ rules as a FALLBACK when the
+dq_rules Delta table is unavailable.
+
+STATIC vs DYNAMIC RULES:
+------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  APPROACH          │  LOAD TIME    │  CONFIGURABILITY │  USE CASE       │
+├────────────────────┼───────────────┼──────────────────┼─────────────────┤
+│  Static (this)     │  Instant      │  Code changes    │  Fallback       │
+│  Dynamic (Delta)   │  ~1 second    │  SQL UPDATE      │  Production     │
+└────────────────────┴───────────────┴──────────────────┴─────────────────┘
+
+WHY STATIC RULES:
+-----------------
+
+1. DLT pipelines may run before Delta table exists
+2. Provides baseline rules without database dependency
+3. Faster pipeline startup (no query overhead)
+4. Unit testable without Spark
+
+PURE PYTHON MODULE REQUIREMENT:
+-------------------------------
+
+This file has NO '# Databricks notebook source' header because:
+- Notebooks can't be imported after restartPython()
+- DLT pipelines need to import this module
+- Pure Python (.py) files are always importable
+
+RULE FORMAT:
+------------
+
+    {
+        "table_name": {
+            "rule_name": "SQL constraint expression",
+        }
+    }
+
+Usage in DLT:
+    
+    from static_dq_rules import get_all_rules_for_table
+    
+    @dlt.expect_all(get_all_rules_for_table("audit"))
+    def audit():
+        ...
+
 Based on official Databricks pattern:
 https://docs.databricks.com/aws/en/ldp/expectation-patterns
-
-This module is importable after restartPython() because it has NO
-'# Databricks notebook source' header.
 """
 
 # COMMAND ----------

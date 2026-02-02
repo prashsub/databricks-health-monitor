@@ -1,14 +1,65 @@
 """
-Worker Agents Module
-====================
+TRAINING MATERIAL: Domain Worker Agent Architecture
+===================================================
 
-Domain-specific worker agents that wrap Genie Spaces.
+This module implements the domain-specific worker agents that serve
+as the interface between the orchestrator and Genie Spaces.
 
-Each worker agent:
-1. Receives queries from the orchestrator
-2. Enhances the query with domain context
-3. Queries the corresponding Genie Space
-4. Formats the response for synthesis
+WORKER AGENT DATA FLOW:
+-----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ORCHESTRATOR                                                            │
+│      │                                                                   │
+│      │ "What's our daily DBU spend?"                                    │
+│      │ → Classified as COST domain                                      │
+│      ▼                                                                   │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │  CostWorkerAgent                                                   │  │
+│  │  ─────────────────                                                 │  │
+│  │  1. Enhance query with domain context                              │  │
+│  │     "For the Cost Genie Space: What's our daily DBU spend?"       │  │
+│  │                                                                    │  │
+│  │  2. Query Genie Space via GenieAgent                               │  │
+│  │     genie_agent.query(enhanced_query)                              │  │
+│  │                                                                    │  │
+│  │  3. Format response for synthesis                                  │  │
+│  │     {"domain": "cost", "findings": [...], "confidence": 0.9}      │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│      │                                                                   │
+│      ▼                                                                   │
+│  COST GENIE SPACE                                                        │
+│  (TVFs, Metric Views, ML Predictions)                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+GENIE-ONLY DATA ACCESS:
+-----------------------
+
+CRITICAL DESIGN DECISION: Workers NEVER query data directly!
+
+    ❌ WRONG: spark.sql("SELECT * FROM fact_usage")
+    ❌ WRONG: call_tvf("get_daily_cost_summary", params)
+    ❌ WRONG: query_metric_view("cost_analytics_metrics")
+    
+    ✅ RIGHT: genie_agent.query("What's our daily DBU spend?")
+
+Why?
+1. Genie has semantic understanding of natural language
+2. Genie knows which TVF/MV/table to use
+3. Genie handles SQL generation and execution
+4. Single interface for all data access
+
+LAZY INITIALIZATION:
+--------------------
+
+Workers are lazily initialized to avoid import overhead:
+
+    def get_worker_agent(domain: str) -> BaseWorkerAgent:
+        if domain not in _WORKER_AGENTS:
+            _WORKER_AGENTS[domain] = agent_classes[domain]()
+        return _WORKER_AGENTS.get(domain)
+
+First call creates the agent; subsequent calls return cached instance.
 
 The agents NEVER query TVFs, Metric Views, or ML tables directly.
 All data access flows through Genie Spaces.

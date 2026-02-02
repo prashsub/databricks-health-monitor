@@ -19,8 +19,49 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Warehouse Optimizer Model
-===============================
+TRAINING MATERIAL: Warehouse Sizing Optimization
+================================================
+
+This model predicts optimal warehouse sizing based on workload
+patterns, enabling automated right-sizing recommendations.
+
+OPTIMIZATION OBJECTIVE:
+-----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PROBLEM: SQL Warehouse sizing is often suboptimal                       │
+│                                                                         │
+│  Over-provisioned (too large):                                          │
+│  └── Cost waste, paying for unused compute                              │
+│                                                                         │
+│  Under-provisioned (too small):                                         │
+│  └── Query queueing, slow performance, user complaints                  │
+│                                                                         │
+│  SOLUTION: Predict optimal size from workload features                   │
+│                                                                         │
+│  Features: avg_query_count, peak_concurrent, avg_duration, ...          │
+│  Target: optimal_cluster_count (continuous, regression)                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: cluster_count (or similar sizing metric)
+-----------------------------------------------
+
+The target variable represents the warehouse size that achieves
+acceptable query latency without excessive cost.
+
+WHY GRADIENT BOOSTING:
+----------------------
+
+| Algorithm | Pros | Cons | Best For |
+|-----------|------|------|----------|
+| Linear Regression | Fast, interpretable | Assumes linearity | Simple relationships |
+| Random Forest | Handles non-linear | Less accurate | Feature importance |
+| Gradient Boosting ✅ | Most accurate | Slower to train | Production predictions |
+
+Gradient Boosting excels at:
+- Capturing complex feature interactions
+- Handling mixed feature types (numeric, categorical)
+- Providing smooth predictions for sizing
 
 Problem: Regression
 Algorithm: Gradient Boosting Regressor

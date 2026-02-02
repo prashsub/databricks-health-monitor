@@ -1,16 +1,54 @@
 # Databricks notebook source
 """
-Notification Destination Sync
+TRAINING MATERIAL: Infrastructure-as-Code for Notification Destinations
+=======================================================================
 
-Auto-creates or verifies notification destinations in the Databricks workspace
-based on the notification_destinations config table.
+This notebook demonstrates auto-creating notification destinations,
+eliminating manual UI configuration.
 
-This eliminates manual setup of destinations in the Databricks UI.
+NOTIFICATION DESTINATION TYPES:
+-------------------------------
 
-Supported destination types:
-- EMAIL: Creates email notification destination
-- SLACK: Creates Slack webhook destination
-- WEBHOOK: Creates custom webhook destination
+┌─────────────────────────────────────────────────────────────────────────┐
+│  TYPE       │  USE CASE                    │  CONFIG REQUIRED           │
+├─────────────┼──────────────────────────────┼────────────────────────────┤
+│  EMAIL      │  Team email lists            │  addresses (comma-sep)     │
+│  SLACK      │  Real-time team alerts       │  webhook_url               │
+│  WEBHOOK    │  Custom integrations         │  url, method, headers      │
+│  PAGERDUTY  │  On-call escalation          │  integration_key           │
+│  TEAMS      │  Microsoft Teams channels    │  webhook_url               │
+└─────────────┴──────────────────────────────┴────────────────────────────┘
+
+CONFIG-DRIVEN DESTINATION MANAGEMENT:
+-------------------------------------
+
+Destinations defined in notification_destinations table:
+
+    | dest_name     | dest_type | config_json                          |
+    |---------------|-----------|--------------------------------------|
+    | data-eng-team | EMAIL     | {"addresses": ["team@company.com"]}  |
+    | urgent-slack  | SLACK     | {"webhook_url": "https://..."}       |
+
+SYNC PATTERN:
+-------------
+
+    1. Read destinations from Delta table
+    2. For each destination:
+       a. Check if exists in workspace
+       b. Create if missing (SDK call)
+       c. Update if changed
+       d. Skip if unchanged
+    3. Report sync summary
+
+PERMISSION REQUIREMENTS:
+------------------------
+
+Admin permissions required for:
+- Creating new notification destinations
+- Modifying existing destinations
+- Listing all destinations
+
+Service principal must have workspace admin or similar role.
 
 Note: Admin permissions required for destination creation.
 """

@@ -1,6 +1,69 @@
 """
-Intent Classifier
-=================
+TRAINING MATERIAL: Intent Classification for Multi-Agent Routing
+================================================================
+
+This module classifies user queries into domain categories for routing to
+the appropriate worker agents. It's the first step in the orchestration
+pipeline that determines which agents will handle a query.
+
+WHY INTENT CLASSIFICATION:
+--------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE PROBLEM: Multiple Domain Experts                                    │
+│                                                                         │
+│  User asks: "Why did costs spike yesterday?"                            │
+│                                                                         │
+│  WITHOUT Classification:                                                │
+│  → Ask ALL 5 domain agents (wasteful, slow, irrelevant answers)         │
+│                                                                         │
+│  WITH Classification:                                                   │
+│  → Classify as COST → Route to Cost Agent ONLY                          │
+│  → Faster response, relevant data, focused answer                       │
+│                                                                         │
+│  User asks: "Which expensive jobs are also failing?"                    │
+│  → Classify as [COST, RELIABILITY] → Route to BOTH agents               │
+│  → Cross-domain query handled correctly                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+CLASSIFICATION FLOW:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  INPUT: "Which expensive jobs are also failing?"                         │
+│                                                                         │
+│       ↓ LLM analyzes query                                              │
+│                                                                         │
+│  LLM REASONING:                                                         │
+│  - "expensive" → Cost domain (billing, spend)                           │
+│  - "jobs" → Could be Cost (job costs) or Reliability (job health)       │
+│  - "failing" → Reliability domain (job failures)                        │
+│  - Combination → Multi-domain query                                     │
+│                                                                         │
+│       ↓ Output structured JSON                                          │
+│                                                                         │
+│  OUTPUT: {"domains": ["COST", "RELIABILITY"], "confidence": 0.88}       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+PROMPT ENGINEERING:
+-------------------
+
+The classification prompt includes:
+1. DOMAIN DEFINITIONS - Clear descriptions of each domain's scope
+2. CLASSIFICATION RULES - Multi-domain support, ordering, confidence
+3. FEW-SHOT EXAMPLES - Sample queries with expected output
+
+Key prompt techniques:
+- Low temperature (0.1) for consistency
+- JSON output format for reliable parsing
+- Domain descriptions prevent confusion
+
+CONFIDENCE SCORES:
+------------------
+- 0.9+ : High confidence, clear single-domain query
+- 0.8-0.9: Good confidence, may involve secondary domain
+- 0.7-0.8: Moderate confidence, ambiguous query
+- <0.7: Low confidence, might need clarification
 
 Classifies user queries into domain categories for routing.
 """

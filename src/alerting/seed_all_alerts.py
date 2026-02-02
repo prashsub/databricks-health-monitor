@@ -1,17 +1,57 @@
 # Databricks notebook source
 """
-Seed All Alerts - Comprehensive Alert Configuration
-===================================================
+TRAINING MATERIAL: Comprehensive Alert Seeding Pattern
+======================================================
 
-Populates the alert_configurations table with all 56 planned alerts from:
-plans/phase3-addendum-3.7-alerting-framework.md
+This notebook populates ALL 56 planned alerts in a single operation,
+demonstrating the "seed-once, update-incrementally" pattern.
 
-Alert Categories:
-- COST (18 alerts): Cost management, budget, commit tracking, tag hygiene
-- SECURITY (8 alerts): Access control, audit, anomaly detection
-- PERFORMANCE (12 alerts): Query performance, warehouse utilization
-- RELIABILITY (10 alerts): Job reliability, SLA, cluster health
-- QUALITY (6 alerts): Data quality, governance, freshness
+ALERT ORGANIZATION BY DOMAIN:
+-----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  DOMAIN         │  COUNT  │  EXAMPLES                                   │
+├─────────────────┼─────────┼─────────────────────────────────────────────┤
+│  COST           │  18     │  Daily spike, budget breach, untagged spend │
+│  SECURITY       │  8      │  Failed access, privilege escalation        │
+│  PERFORMANCE    │  12     │  Slow queries, warehouse saturation         │
+│  RELIABILITY    │  10     │  Job failures, SLA breach, cluster issues   │
+│  QUALITY        │  6      │  Schema drift, data freshness, DQ failures  │
+├─────────────────┼─────────┼─────────────────────────────────────────────┤
+│  TOTAL          │  56     │  Comprehensive platform monitoring          │
+└─────────────────┴─────────┴─────────────────────────────────────────────┘
+
+ALERT ID NAMING CONVENTION:
+---------------------------
+
+    DOMAIN-NNN
+    
+    Examples:
+    - COST-001: Daily Cost Spike
+    - SEC-003: Failed Access Attempts
+    - PERF-007: Slow Query Detection
+    - REL-002: Job SLA Breach
+    - QUAL-001: Schema Drift Detection
+
+QUERY TEMPLATE PATTERN:
+-----------------------
+
+Alert queries follow a consistent structure:
+
+    WITH baseline AS (...)     -- Historical comparison
+    SELECT 
+        identifier_columns,    -- What triggered
+        check_value            -- Value to compare against threshold
+    FROM current_data
+    CROSS JOIN baseline
+    WHERE check_value > threshold  -- Filter to actionable alerts
+
+THRESHOLD PHILOSOPHY:
+---------------------
+
+    CRITICAL: Immediate action required (SLA breach, security incident)
+    WARNING: Attention needed soon (cost spike, performance degradation)
+    INFO: Informational, track trends (new resources, configuration changes)
 
 Reference: https://docs.databricks.com/aws/en/sql/user/alerts
 """

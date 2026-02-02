@@ -2,8 +2,62 @@
 Performance Worker Agent
 ========================
 
+TRAINING MATERIAL: Performance Domain Worker Pattern
+----------------------------------------------------
+
+This module implements the Performance Worker Agent, specializing in
+query optimization and compute resource efficiency analysis.
+
+PERFORMANCE DOMAIN RESPONSIBILITIES:
+------------------------------------
+The Performance Agent handles queries related to:
+
+1. QUERY ANALYSIS: Slow queries, full scans, missing indexes
+2. WAREHOUSE SIZING: Right-sizing SQL warehouses
+3. CLUSTER EFFICIENCY: Utilization, autoscaling, idle time
+4. CACHE OPTIMIZATION: Hit rates, data locality
+5. COST-PERFORMANCE: DBU efficiency, cost per query
+
+PERFORMANCE DATA SOURCES:
+-------------------------
+┌─────────────────────────────────────────────────────────────────────────┐
+│  SYSTEM TABLES (Raw)             │  GOLD LAYER (Enriched)              │
+├──────────────────────────────────┼─────────────────────────────────────┤
+│  system.query.history           │  fact_query_performance              │
+│  system.compute.clusters        │  fact_cluster_utilization            │
+│  system.compute.warehouses      │  fact_warehouse_efficiency           │
+│  system.billing.usage           │  fact_compute_cost                   │
+└──────────────────────────────────┴─────────────────────────────────────┘
+
+KEY TVFs FOR PERFORMANCE:
+-------------------------
+- get_slow_queries(days, threshold_seconds)
+- get_warehouse_utilization(warehouse_id, days)
+- get_cluster_rightsizing_recommendations()
+- get_query_latency_percentiles(days)
+- get_cache_hit_analysis(warehouse_id)
+
+ML MODELS:
+----------
+- query_latency_predictor: Estimate query duration
+- cache_benefit_predictor: Which queries benefit from caching
+- cluster_rightsizer: Optimal cluster size recommendations
+
+PERFORMANCE OPTIMIZATION HIERARCHY:
+-----------------------------------
+When users ask about performance, prioritize in this order:
+1. QUERY OPTIMIZATION: Fix the query (free)
+2. CACHING: Enable/configure caching (low cost)
+3. WAREHOUSE SIZING: Right-size compute (medium cost)
+4. CLUSTER CONFIG: Optimize cluster settings (medium cost)
+5. MORE RESOURCES: Add compute (high cost)
+
 Domain specialist for query and cluster performance optimization.
 """
+
+# =============================================================================
+# IMPORTS
+# =============================================================================
 
 from typing import Dict
 
@@ -11,9 +65,28 @@ from .base import GenieWorkerAgent
 from ..config import settings
 
 
+# =============================================================================
+# PERFORMANCE WORKER AGENT CLASS
+# =============================================================================
+
 class PerformanceWorkerAgent(GenieWorkerAgent):
     """
     Performance domain worker agent.
+    
+    TRAINING MATERIAL: Performance-Specific Enhancements
+    =====================================================
+    
+    This agent specializes in performance queries with:
+    
+    1. THRESHOLD CONTEXT: User-defined latency thresholds
+    2. RESOURCE FOCUS: Specific warehouse/cluster focus
+    3. OPTIMIZATION HINTS: Caching, sizing recommendations
+    
+    PERFORMANCE ANALYSIS PATTERNS:
+    ------------------------------
+    - "What are the slowest queries?" → Sort by duration, group by user/warehouse
+    - "Is my warehouse sized correctly?" → Utilization + queue time analysis
+    - "Why is this query slow?" → Explain plan + resource metrics
 
     Handles queries related to:
     - Query performance and optimization
@@ -33,7 +106,22 @@ class PerformanceWorkerAgent(GenieWorkerAgent):
     GENIE_SPACE_ID_PLACEHOLDER = "PERFORMANCE_GENIE_SPACE_ID"
 
     def __init__(self, genie_space_id: str = None):
-        """Initialize Performance Worker Agent."""
+        """
+        Initialize Performance Worker Agent.
+        
+        TRAINING MATERIAL: Settings Delegation Pattern
+        ===============================================
+        
+        The genie_space_id lookup chain:
+        1. Explicit parameter (for testing)
+        2. settings.performance_genie_space_id (which delegates to genie_spaces.py)
+        3. Environment variable GENIE_SPACE_PERFORMANCE (checked by genie_spaces.py)
+        
+        This chain allows:
+        - Testing with mock Space IDs
+        - Dev/Prod with different Space IDs
+        - Environment-based configuration
+        """
         super().__init__(
             domain="performance",
             genie_space_id=genie_space_id or settings.performance_genie_space_id,

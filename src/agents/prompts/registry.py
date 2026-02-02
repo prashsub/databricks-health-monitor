@@ -1,8 +1,73 @@
 """
-Prompt Registry - World-Class Health Monitor Agent Prompts
-==========================================================
+TRAINING MATERIAL: Agent Prompt Engineering Patterns
+====================================================
 
-Centralized prompt management with MLflow versioning.
+This module contains the core prompt templates for the multi-agent system,
+demonstrating production prompt engineering techniques.
+
+PROMPT HIERARCHY:
+-----------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ORCHESTRATOR_PROMPT                                                     │
+│  ──────────────────                                                      │
+│  "You are the Databricks Platform Health Supervisor..."                 │
+│                                                                         │
+│  Responsibilities:                                                       │
+│  1. Parse user intent → domain classification                           │
+│  2. Route to domain workers → Genie Spaces                              │
+│  3. Synthesize responses → actionable recommendations                   │
+│                                                                         │
+│        ┌──────────┬──────────┬──────────┬──────────┬──────────┐       │
+│        │   Cost   │ Security │ Perform  │ Reliab   │ Quality  │       │
+│        │  Worker  │  Worker  │  Worker  │  Worker  │  Worker  │       │
+│        └────┬─────┴────┬─────┴────┬─────┴────┬─────┴────┬─────┘       │
+│             │          │          │          │          │              │
+│        ┌────▼─────┬────▼─────┬────▼─────┬────▼─────┬────▼─────┐       │
+│        │   Cost   │ Security │ Perform  │ Reliab   │ Quality  │       │
+│        │  Genie   │  Genie   │  Genie   │  Genie   │  Genie   │       │
+│        └──────────┴──────────┴──────────┴──────────┴──────────┘       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+PROMPT ENGINEERING TECHNIQUES:
+------------------------------
+
+1. STRUCTURED MISSION
+   - Clear role definition ("You are the...")
+   - Numbered responsibilities
+   - Explicit domain boundaries
+
+2. DOMAIN CONTEXT
+   - List available Genie Spaces
+   - Capabilities per domain
+   - Example queries per domain
+
+3. OUTPUT FORMATTING
+   - Structured response templates
+   - Required sections (findings, recommendations)
+   - Formatting guidelines (markdown, tables)
+
+4. GUARDRAILS
+   - Out-of-scope redirection
+   - Safety guidelines
+   - Error handling instructions
+
+WORKER PROMPT PATTERN:
+----------------------
+
+    WORKER_PROMPT = '''You are a {domain} specialist for Databricks.
+    
+    YOUR CAPABILITIES:
+    {capabilities}
+    
+    GENIE SPACE:
+    {genie_space_name} - backed by {source_tables}
+    
+    OUTPUT FORMAT:
+    1. Key findings (bulleted)
+    2. Quantitative metrics
+    3. Recommendations with priorities
+    '''
 
 Architecture:
 - ORCHESTRATOR: Multi-domain supervisor that coordinates Genie specialists

@@ -1,7 +1,58 @@
 """
-Alerting Metrics Collection
+TRAINING MATERIAL: Sync Operation Observability
+===============================================
 
-Collects and logs metrics for alert sync operations.
+This module implements observability for alert sync operations,
+tracking success/failure rates and API latencies.
+
+WHY SYNC METRICS:
+-----------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PROBLEM: "How healthy is our alerting system?"                          │
+│                                                                         │
+│  Questions to answer:                                                    │
+│  1. How many alerts succeeded/failed in last sync?                      │
+│  2. What's the average API latency?                                     │
+│  3. Are we hitting rate limits?                                         │
+│  4. What's the error breakdown?                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│  SOLUTION: Structured metrics collection                                 │
+│                                                                         │
+│  AlertSyncMetrics dataclass captures:                                    │
+│  - Sync timestamps (start/end)                                          │
+│  - Counts (total, success, error, created, updated, deleted)            │
+│  - API latencies (for percentile analysis)                              │
+│  - Error messages (for debugging)                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+METRICS STORAGE PATTERN:
+------------------------
+
+    # Start metrics collection
+    metrics = AlertSyncMetrics.start(catalog, gold_schema, dry_run)
+    
+    # Record operations
+    for alert in alerts:
+        start = time.time()
+        try:
+            create_alert(alert)
+            metrics.record_create(time.time() - start)
+        except Exception as e:
+            metrics.record_error(str(e))
+    
+    # Finalize and store
+    metrics.finalize()
+    store_to_delta_table(metrics)
+
+LATENCY PERCENTILES:
+--------------------
+
+API latencies stored as list for percentile calculation:
+- P50: Typical operation time
+- P95: Slow operations
+- P99: Worst case (potential timeout issues)
+
 Metrics are stored in alert_sync_metrics table for monitoring and analytics.
 """
 

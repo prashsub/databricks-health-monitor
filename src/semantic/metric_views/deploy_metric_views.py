@@ -1,10 +1,61 @@
 # Databricks notebook source
 """
-Metric Views Deployment Script
-==============================
+TRAINING MATERIAL: Metric View Deployment Pattern
+=================================================
 
-Deploys all Metric View YAMLs as SQL views with METRICS LANGUAGE extension.
-Metric Views enable Genie natural language queries against Gold layer tables.
+This script deploys Metric Views using the YAML v1.1 specification,
+demonstrating the recommended deployment pattern for semantic layer.
+
+METRIC VIEW DEPLOYMENT FLOW:
+----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  1. READ YAML FILES                                                      │
+│     src/semantic/metric_views/*.yaml                                     │
+│     ─────────────────────────────────                                    │
+│     - cost_analytics.yaml                                                │
+│     - job_performance.yaml                                               │
+│     - ...                                                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│  2. SUBSTITUTE VARIABLES                                                 │
+│     ${catalog} → prashanth_catalog                                       │
+│     ${gold_schema} → gold                                                │
+│     ${feature_schema} → features                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│  3. CREATE VIEW WITH METRICS LANGUAGE                                    │
+│                                                                         │
+│     CREATE VIEW catalog.metric_views.cost_analytics                     │
+│     WITH METRICS                                                         │
+│     LANGUAGE YAML                                                        │
+│     AS $$                                                                │
+│     version: "1.1"                                                       │
+│     ...yaml content...                                                   │
+│     $$                                                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│  4. VALIDATE DEPLOYMENT                                                  │
+│     SELECT * FROM INFORMATION_SCHEMA.VIEWS                              │
+│     WHERE view_name = 'cost_analytics'                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY DEPLOYMENT PATTERNS:
+------------------------
+
+1. YAML FILES AS SOURCE OF TRUTH
+   - Metric views defined in version-controlled YAML
+   - Not hardcoded in Python
+   - Easy to review and update
+
+2. VARIABLE SUBSTITUTION
+   - ${catalog}, ${gold_schema} allow environment-specific deployment
+   - Same YAML works in dev/staging/prod
+
+3. IDEMPOTENT DEPLOYMENT
+   - CREATE OR REPLACE ensures safe re-runs
+   - No need to check if view exists
+
+4. SEPARATE SCHEMA FOR METRIC VIEWS
+   - catalog.metric_views.* (not catalog.gold.*)
+   - Clear separation of semantic layer from data layer
 
 Agent Domain Organization:
 - Cost: cost_analytics, commit_tracking

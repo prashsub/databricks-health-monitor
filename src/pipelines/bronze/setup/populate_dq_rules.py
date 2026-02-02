@@ -1,9 +1,42 @@
 # Databricks notebook source
 """
-Populate Initial DQ Rules
+TRAINING MATERIAL: Data Quality Rules Management System
+=======================================================
 
-Loads 130+ initial DQ rules for all 26 Bronze tables.
-Rules can be modified later via frontend app.
+This script populates the centralized DQ rules table with 130+ rules
+for all 26 Bronze tables. Rules are user-modifiable via frontend app.
+
+DQ RULE ARCHITECTURE:
+---------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  dq_rules Delta Table                                                    │
+│  ────────────────────                                                    │
+│  rule_id (PK)     │ UUID                                                │
+│  table_name       │ Bronze table (e.g., "audit", "usage")               │
+│  rule_name        │ Descriptive name (e.g., "valid_event_id")           │
+│  rule_constraint  │ SQL expression (e.g., "event_id IS NOT NULL")       │
+│  severity         │ "critical" (drop) or "warning" (log)                │
+│  enabled          │ Toggle on/off without deleting                      │
+│  description      │ Human-readable explanation                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+SEVERITY PHILOSOPHY:
+--------------------
+
+| Severity | DLT Behavior | Use When |
+|----------|--------------|----------|
+| critical | @dlt.expect_all_or_drop | Data would break downstream |
+| warning  | @dlt.expect_all | Anomaly worth logging, but keep data |
+
+BRONZE LAYER DQ PHILOSOPHY:
+---------------------------
+
+Bronze is RAW INGESTION - preserve data as-is for observability.
+- Most rules use "warning" severity
+- "critical" only for mathematical constraints (negative values)
+- NULL values are often legitimate in system tables
+- Apply strict validation in Silver/Gold layers
 
 Usage:
     databricks bundle run dq_rules_setup_job

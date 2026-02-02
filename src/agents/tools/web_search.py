@@ -1,10 +1,77 @@
 """
-Web Search Tool
-===============
+TRAINING MATERIAL: External Information Tool Pattern
+=====================================================
+
+This module implements a web search tool that allows the agent to access
+external information beyond what's in the Genie Spaces (structured data).
+
+WHY EXTERNAL SEARCH:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  GENIE SPACES (Structured Data)      │  WEB SEARCH (External Info)      │
+├──────────────────────────────────────┼──────────────────────────────────┤
+│  ✅ Cost data, job metrics, audit    │  ✅ Databricks documentation     │
+│  ✅ Real-time platform telemetry     │  ✅ Platform status/incidents    │
+│  ✅ Historical trends, anomalies     │  ✅ Best practices, tutorials    │
+│  ❌ "How to configure Photon?"       │  ✅ Community Q&A, solutions     │
+│  ❌ "Is Databricks down right now?"  │  ✅ Feature announcements        │
+└──────────────────────────────────────┴──────────────────────────────────┘
+
+Web search complements Genie data for questions like:
+- "Why is Photon not being used for my queries?"
+- "Is there a known issue with Delta Lake today?"
+- "What's the best practice for cluster autoscaling?"
+
+TRUSTED DOMAINS:
+----------------
+Search is restricted to trusted sources only:
+- docs.databricks.com - Official documentation
+- status.databricks.com - Platform status/incidents
+- community.databricks.com - Community discussions
+- learn.microsoft.com - Azure Databricks docs
+
+This prevents the agent from citing unreliable sources.
+
+TAVILY INTEGRATION:
+-------------------
+We use Tavily API for web search because:
+- Designed for AI/LLM applications
+- Returns structured results (not HTML)
+- Supports domain filtering
+- Provides AI-generated summaries
+
+API Pattern:
+┌─────────────────────────────────────────────────────────────────────────┐
+│  response = tavily_client.search(                                        │
+│      query="Databricks Photon configuration",                           │
+│      max_results=5,                                                     │
+│      include_domains=["docs.databricks.com", ...]                       │
+│  )                                                                      │
+│  # Returns: {"answer": "...", "results": [{"title", "url", "content"}]} │
+└─────────────────────────────────────────────────────────────────────────┘
+
+GRACEFUL DEGRADATION:
+---------------------
+The tool handles missing configuration gracefully:
+- No API key → Returns "Web search not configured"
+- Search disabled → Returns "Web search is disabled"
+- API error → Returns error message, doesn't crash
+
+This ensures the agent can still function without web search.
 
 Tool for searching Databricks documentation and status pages.
 Uses Tavily for web search with domain restrictions.
 """
+
+# =============================================================================
+# IMPORTS
+# =============================================================================
+# TRAINING MATERIAL: Import Organization
+#
+# typing: For type hints
+# mlflow: For tracing tool invocations
+# tool: LangChain decorator for creating tools
 
 from typing import List, Optional
 import mlflow
@@ -13,6 +80,10 @@ from langchain_core.tools import tool
 
 from ..config import settings
 
+
+# =============================================================================
+# WEB SEARCH TOOL CLASS
+# =============================================================================
 
 class WebSearchTool:
     """

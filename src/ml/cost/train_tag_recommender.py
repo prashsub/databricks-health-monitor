@@ -19,16 +19,70 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Tag Recommender Model
-===========================
+TRAINING MATERIAL: NLP + Tabular Features Hybrid Model
+======================================================
+
+This script demonstrates combining text features (TF-IDF) with tabular
+features (Feature Store) for a hybrid ML model.
+
+HYBRID FEATURE ARCHITECTURE:
+----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  INPUT: Untagged Job                                                     │
+│  ──────────────────────                                                  │
+│  job_name: "etl_sales_daily_aggregation"                                │
+│  workspace_id: "ws_123"                                                  │
+│  usage_date: "2024-01-15"                                               │
+│                                                                         │
+│       ┌─────────────────────┐     ┌─────────────────────┐              │
+│       │  TEXT FEATURES      │     │  TABULAR FEATURES   │              │
+│       │  (TF-IDF)           │     │  (Feature Store)    │              │
+│       ├─────────────────────┤     ├─────────────────────┤              │
+│       │  "etl" → 0.4        │     │  daily_cost → 150.0 │              │
+│       │  "sales" → 0.3      │     │  daily_dbu → 50.0   │              │
+│       │  "daily" → 0.2      │     │  serverless → 0.3   │              │
+│       │  "aggregation"→ 0.1 │     │  ...                │              │
+│       └─────────────────────┘     └─────────────────────┘              │
+│               │                           │                             │
+│               └───────────┬───────────────┘                             │
+│                           ▼                                             │
+│                  ┌─────────────────┐                                    │
+│                  │  CONCATENATE    │                                    │
+│                  │  FEATURE VECTOR │                                    │
+│                  └────────┬────────┘                                    │
+│                           ▼                                             │
+│                  ┌─────────────────┐                                    │
+│                  │  Random Forest  │                                    │
+│                  │  Classifier     │                                    │
+│                  └────────┬────────┘                                    │
+│                           ▼                                             │
+│                  ┌─────────────────┐                                    │
+│                  │  Predicted Tag  │                                    │
+│                  │  "sales_team"   │                                    │
+│                  └─────────────────┘                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY NOT fe.log_model:
+---------------------
+
+This model uses mlflow.sklearn.log_model instead of fe.log_model because:
+1. TF-IDF features are computed at training time from text
+2. Feature Store doesn't support text vectorization
+3. Need to save TF-IDF vectorizer separately as artifact
+
+INFERENCE PATTERN:
+------------------
+
+At inference time:
+1. Load TF-IDF vectorizer from artifacts
+2. Vectorize job_name → text features
+3. Query Feature Store for tabular features
+4. Concatenate → predict
 
 Problem: Classification + NLP
 Algorithm: Random Forest + TF-IDF
 Domain: Cost
-
-This model recommends tags for untagged resources using:
-- Job naming patterns (TF-IDF embedding)
-- Cost features from feature table
 
 REFACTORED: Uses FeatureRegistry for cost features.
 NOTE: TF-IDF features are custom and computed at training time,

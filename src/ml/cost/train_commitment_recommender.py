@@ -19,8 +19,47 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Commitment Recommender Model
-========================================
+TRAINING MATERIAL: Commitment vs Pay-As-You-Go Recommendation
+=============================================================
+
+This model recommends whether workloads should use committed
+(reserved) capacity or pay-as-you-go pricing.
+
+COMMITMENT ECONOMICS:
+---------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PRICING MODEL COMPARISON                                                │
+│                                                                         │
+│  Pay-As-You-Go:                                                         │
+│  └── Full price per DBU                                                 │
+│  └── Flexible, no commitment                                            │
+│  └── Best for: Sporadic, unpredictable workloads                        │
+│                                                                         │
+│  Committed Capacity:                                                     │
+│  └── 20-50% discount per DBU                                            │
+│  └── 1-3 year commitment                                                │
+│  └── Best for: Steady, predictable workloads                            │
+│                                                                         │
+│  PREDICTION: Which pricing model optimizes total cost?                   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: serverless_adoption_ratio
+--------------------------------
+
+Indicates the proportion of workload suitable for committed capacity:
+- High ratio (>0.7): Steady workload, recommend commitment
+- Low ratio (<0.3): Variable workload, stay pay-as-you-go
+- Medium: Partial commitment recommended
+
+FEATURE IMPORTANCE:
+-------------------
+
+Key features for commitment recommendations:
+- Daily usage variance (low = good for commitment)
+- Workload predictability (high = good for commitment)
+- Total monthly spend (high = bigger savings opportunity)
+- Seasonality patterns
 
 Problem: Classification
 Algorithm: XGBOOST

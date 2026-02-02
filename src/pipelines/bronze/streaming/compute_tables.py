@@ -1,15 +1,50 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # System Compute Tables - DLT Streaming Pipeline
-# MAGIC 
-# MAGIC Bronze layer ingestion of system.compute.* tables with schema evolution.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: DLT Streaming from System Tables
+# MAGIC
+# MAGIC This notebook demonstrates the standard pattern for ingesting Databricks
+# MAGIC system tables into Bronze layer using DLT streaming.
+# MAGIC
+# MAGIC ### Key DLT Options for System Tables
+# MAGIC
+# MAGIC ```python
+# MAGIC spark.readStream
+# MAGIC     .option("skipChangeCommits", "true")   # Ignore CDC commits
+# MAGIC     .option("mergeSchema", "true")         # Handle schema evolution
+# MAGIC     .table("system.compute.clusters")
+# MAGIC ```
+# MAGIC
+# MAGIC **skipChangeCommits**: System tables use Change Data Feed internally.
+# MAGIC Without this option, DLT fails when it encounters CDC records.
+# MAGIC
+# MAGIC **mergeSchema**: Databricks adds columns to system tables over time.
+# MAGIC This option automatically incorporates new columns.
+# MAGIC
+# MAGIC ### Table Properties Pattern
+# MAGIC
+# MAGIC Every Bronze table needs consistent properties for governance:
+# MAGIC
+# MAGIC ```python
+# MAGIC table_properties={
+# MAGIC     "delta.enableChangeDataFeed": "true",      # Enable downstream streaming
+# MAGIC     "delta.autoOptimize.optimizeWrite": "true", # Auto-optimize writes
+# MAGIC     "delta.autoOptimize.autoCompact": "true",   # Auto-compaction
+# MAGIC     "layer": "bronze",                          # Medallion layer tag
+# MAGIC     "source_system": "databricks_system_tables",
+# MAGIC     "domain": "compute",                        # Domain tag
+# MAGIC     "entity_type": "dimension",                 # dim vs fact
+# MAGIC     "source_table": "system.compute.clusters",  # Lineage
+# MAGIC }
+# MAGIC ```
+# MAGIC
 # MAGIC **Tables ingested:**
 # MAGIC - clusters (system.compute.clusters)
 # MAGIC - node_timeline (system.compute.node_timeline)
 # MAGIC - warehouse_events (system.compute.warehouse_events)
 # MAGIC - warehouses (system.compute.warehouses)
-# MAGIC 
+# MAGIC
 # MAGIC **Pattern:** Stream from system tables with skipChangeCommits and schema evolution enabled
 
 # COMMAND ----------

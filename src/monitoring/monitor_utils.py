@@ -1,8 +1,88 @@
 """
-Lakehouse Monitoring Utilities
-==============================
+TRAINING MATERIAL: Lakehouse Monitoring Utilities Pattern
+=========================================================
 
-Shared utilities for creating and managing Lakehouse Monitors.
+Shared utilities for creating and managing Databricks Lakehouse Monitors.
+
+WHAT IS LAKEHOUSE MONITORING:
+-----------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  LAKEHOUSE MONITORING                                                    │
+│  ─────────────────────                                                  │
+│  Automated data quality tracking for Delta tables.                      │
+│                                                                         │
+│  When you create a monitor on fact_usage:                               │
+│                                                                         │
+│  fact_usage (your table)                                                │
+│      ↓ Lakehouse Monitoring                                             │
+│  fact_usage_profile_metrics  ← Statistics, custom metrics               │
+│  fact_usage_drift_metrics    ← Period-over-period comparisons           │
+│                                                                         │
+│  Runs on schedule (e.g., daily) to track:                               │
+│  - Distribution statistics (mean, std, nulls)                           │
+│  - Your custom metrics (total_cost, failure_rate)                       │
+│  - Drift detection (did cost increase 50%?)                             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+CUSTOM METRIC TYPES:
+--------------------
+
+1. AGGREGATE - Simple aggregations
+   MonitorMetric(type=MonitorMetricType.AGGREGATE, expression="SUM(cost)")
+   → Stored in _profile_metrics as column
+
+2. DERIVED - Calculated from aggregates
+   MonitorMetric(type=MonitorMetricType.DERIVED, expression="failure_count/total_runs")
+   → References other metrics
+
+3. DRIFT - Change detection
+   MonitorMetric(type=MonitorMetricType.DRIFT)
+   → Stored in _drift_metrics, compares periods
+
+WHY input_columns=[":table"]:
+-----------------------------
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ❌ WRONG: Per-column metrics                                            │
+│     input_columns=["cost_value"]                                        │
+│     → Metric stored with column_name='cost_value'                       │
+│     → Different row for each column!                                    │
+│     → DERIVED can't reference AGGREGATE metrics in different rows!      │
+│                                                                         │
+│  ✅ CORRECT: Table-level metrics                                         │
+│     input_columns=[":table"]                                            │
+│     → All metrics stored with column_name=':table'                      │
+│     → Same row for related metrics!                                     │
+│     → DERIVED can reference AGGREGATE metrics                           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+SLICING FOR DIMENSIONAL ANALYSIS:
+---------------------------------
+slicing_exprs=["workspace_id", "sku_name"]
+
+Enables queries like:
+  "Show cost by workspace"
+  → WHERE slice_key='workspace_id' AND slice_value='prod'
+
+ASYNC TABLE CREATION:
+---------------------
+Monitors create output tables ASYNCHRONOUSLY (~15 minutes).
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  create_monitor()  →  Returns immediately                               │
+│                       Tables don't exist yet!                           │
+│                                                                         │
+│  wait_for_tables()  →  Poll until tables exist                          │
+│                        (or timeout)                                     │
+│                                                                         │
+│  document_tables()  →  Add descriptions for Genie                       │
+│                        (must wait for tables first!)                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+CLEANUP PATTERN:
+----------------
+Deleting a monitor does NOT delete its output tables.
+Must explicitly drop _profile_metrics and _drift_metrics tables.
 
 NOTE: This is a pure Python module (NOT a Databricks notebook).
 Do NOT add '# Databricks notebook source' header - notebooks cannot be imported.

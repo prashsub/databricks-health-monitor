@@ -2,8 +2,61 @@
 Short-Term Memory with Lakebase CheckpointSaver
 ==============================================
 
-Implements conversation-level state persistence using Databricks Lakebase.
-Based on the official Databricks short-term memory agent pattern.
+TRAINING MATERIAL: Short-Term Memory Pattern for AI Agents
+----------------------------------------------------------
+
+This module implements conversation-level state persistence using Databricks
+Lakebase. Short-term memory enables multi-turn conversations where the agent
+remembers what was said earlier in the same conversation.
+
+SHORT-TERM VS LONG-TERM MEMORY:
+-------------------------------
+┌─────────────────────────────────────────────────────────────────────────┐
+│  MEMORY TYPE       │  SCOPE          │  PERSISTENCE    │  USE CASE     │
+├────────────────────┼─────────────────┼─────────────────┼───────────────┤
+│  SHORT-TERM        │  Conversation   │  Session-based  │  "Earlier     │
+│  (CheckpointSaver) │  (thread_id)    │  (auto-expire)  │   you said.." │
+├────────────────────┼─────────────────┼─────────────────┼───────────────┤
+│  LONG-TERM         │  User           │  Permanent      │  "You prefer  │
+│  (DatabricksStore) │  (user_id)      │  (until delete) │   workspace X"│
+└────────────────────┴─────────────────┴─────────────────┴───────────────┘
+
+HOW CHECKPOINT SAVER WORKS:
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    LANGGRAPH CHECKPOINT FLOW                             │
+│                                                                         │
+│  Turn 1: "What's the cost for workspace A?"                             │
+│    └─→ graph.invoke() → CheckpointSaver.put(state)                      │
+│        State: {messages: [...], domain: "cost", workspace: "A"}         │
+│                                                                         │
+│  Turn 2: "And compare to workspace B"                                   │
+│    └─→ CheckpointSaver.get(thread_id) → Previous state loaded!          │
+│        State: {messages: [...], domain: "cost", workspace: "A"}         │
+│    └─→ Agent knows we're talking about cost and workspace A             │
+│    └─→ graph.invoke() → CheckpointSaver.put(updated state)              │
+│                                                                         │
+│  Turn 3: "Show me a chart"                                              │
+│    └─→ CheckpointSaver.get(thread_id) → Full conversation history!      │
+│        State: {messages: [...], domain: "cost", workspaces: ["A", "B"]} │
+└─────────────────────────────────────────────────────────────────────────┘
+
+THREAD ID RESOLUTION:
+---------------------
+Priority order for getting thread_id:
+
+1. custom_inputs["thread_id"]  - Explicit from client
+2. conversation_id             - From ChatContext (Databricks SDK)
+3. uuid.uuid4()                - New conversation (fresh thread)
+
+LAKEBASE ARCHITECTURE:
+----------------------
+Lakebase is Databricks' managed state store for AI applications:
+- Uses Delta tables under the hood
+- Supports vector search for semantic retrieval
+- Handles concurrency and durability automatically
+- No infrastructure to manage
 
 Key Features:
     - Thread-based conversation continuity
@@ -26,16 +79,33 @@ Usage:
         result = graph.invoke(inputs, config)
 """
 
+# =============================================================================
+# IMPORTS
+# =============================================================================
+# TRAINING MATERIAL: Import Organization
+#
+# typing: For type hints
+# contextmanager: For context manager pattern (with statement)
+# uuid: For generating unique thread IDs
+# mlflow: For tracing memory operations
+
 from typing import Optional, Generator
 from contextlib import contextmanager
 import uuid
 import mlflow
 
+# DATABRICKS-SPECIFIC IMPORTS:
+# CheckpointSaver: Lakebase checkpoint implementation for LangGraph
+# BaseCheckpointSaver: LangGraph's checkpoint interface (for type hints)
 from databricks_langchain import CheckpointSaver
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from ..config import settings
 
+
+# =============================================================================
+# SHORT-TERM MEMORY CLASS
+# =============================================================================
 
 class ShortTermMemory:
     """

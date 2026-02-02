@@ -1,8 +1,55 @@
 """
-DQ Rules Loader
+TRAINING MATERIAL: Centralized DQ Rules Loader Pattern
+======================================================
 
-Helper module to load DQ rules from Delta table at DLT pipeline runtime.
-Pure Python file (importable after restartPython).
+This module loads Data Quality rules from a Delta table at DLT pipeline runtime,
+implementing the "Centralized Delta Table" pattern from official Databricks docs.
+
+WHY CENTRALIZED DQ RULES:
+-------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PATTERN              │  RULES LOCATION     │  CHANGE MANAGEMENT        │
+├───────────────────────┼─────────────────────┼───────────────────────────┤
+│  Hardcoded            │  Python source      │  Code deploy required     │
+│  YAML file            │  Config file        │  File deploy required     │
+│  Delta Table ✅        │  Delta table        │  SQL UPDATE, no deploy    │
+└───────────────────────┴─────────────────────┴───────────────────────────┘
+
+DQ RULES TABLE SCHEMA:
+----------------------
+
+    dq_rules (Delta table)
+    ├── table_name STRING       -- Bronze table this rule applies to
+    ├── rule_name STRING        -- Unique rule identifier
+    ├── rule_constraint STRING  -- SQL expression (e.g., "column IS NOT NULL")
+    ├── severity STRING         -- "CRITICAL" or "WARNING"
+    ├── enabled BOOLEAN         -- Toggle rules on/off without delete
+    └── created_at TIMESTAMP    -- Audit trail
+
+DLT EXPECTATION PATTERNS:
+-------------------------
+
+    # CRITICAL: Drop records that violate these rules
+    @dlt.expect_all_or_drop(get_critical_rules_for_table("audit"))
+    
+    # WARNING: Log violations but keep records
+    @dlt.expect_all(get_warning_rules_for_table("audit"))
+
+HOW IT WORKS:
+-------------
+
+1. DLT pipeline starts
+2. This module queries dq_rules table for the target table
+3. Rules are formatted as {"rule_name": "constraint"} dict
+4. DLT applies rules via @dlt.expect_all_or_drop() and @dlt.expect_all()
+
+PURE PYTHON REQUIREMENT:
+------------------------
+
+This file MUST be a pure Python file (.py), NOT a Databricks notebook.
+Databricks notebooks (with "# Databricks notebook source" header) cannot be
+imported with standard Python imports.
 
 Usage in DLT notebooks:
     from dq_rules_loader import get_critical_rules_for_table, get_warning_rules_for_table

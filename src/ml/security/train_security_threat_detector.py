@@ -2,9 +2,24 @@
 # ===========================================================================
 # PATH SETUP FOR ASSET BUNDLE IMPORTS
 # ===========================================================================
-# This enables imports from src.ml.config and src.ml.utils when deployed
-# via Databricks Asset Bundles. The bundle root is computed dynamically.
-# Reference: https://docs.databricks.com/aws/en/notebooks/share-code
+# TRAINING MATERIAL: Databricks Asset Bundle Import Pattern
+# ----------------------------------------------------------
+# When notebooks are deployed via Asset Bundles, they run in /Workspace/...
+# but local imports (from src.ml.config import...) fail because Python
+# doesn't know where to find the src package.
+#
+# Solution: Dynamically add the bundle root to sys.path at runtime.
+#
+# How it works:
+# 1. Get current notebook path: /Workspace/Repos/user/project/src/ml/train.py
+# 2. Find bundle root: /Workspace/Repos/user/project
+# 3. Add to sys.path: Now "from src.ml.config import X" works!
+#
+# This pattern is necessary because:
+# - Asset Bundles don't automatically configure PYTHONPATH
+# - The notebook path varies between environments
+# - Local imports require the parent directory in sys.path
+# ===========================================================================
 import sys
 import os
 
@@ -19,8 +34,70 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Security Threat Detector Model
-==========================================
+TRAINING MATERIAL: ML Model Training Pattern (Anomaly Detection)
+================================================================
+
+This notebook demonstrates the standard ML training pattern for anomaly
+detection models using Isolation Forest with Databricks Feature Store.
+
+SECURITY THREAT DETECTION USE CASE:
+-----------------------------------
+Detect anomalous behavior patterns that may indicate security threats:
+- Unusual access times (3am access to sensitive data)
+- Abnormal data volumes (user downloading 10x normal amount)
+- Suspicious patterns (multiple failed logins then success)
+- Privilege escalation indicators
+
+WHY ISOLATION FOREST FOR SECURITY:
+----------------------------------
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ALGORITHM CHOICE: ISOLATION FOREST                                      │
+│                                                                         │
+│  SUPERVISED ML:                      UNSUPERVISED (Isolation Forest):   │
+│  ────────────────                    ──────────────────────────────────  │
+│  - Requires labeled threats          - No labels needed!                │
+│  - Can't detect novel threats        - Detects ANY anomaly              │
+│  - Limited by training data          - Finds "unknown unknowns"         │
+│                                                                         │
+│  For security: Most attacks are NEW (zero-day). Isolation Forest        │
+│  excels at finding things that are "different" without needing          │
+│  examples of what threats look like.                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+HOW ISOLATION FOREST WORKS:
+---------------------------
+1. Build random trees that isolate points
+2. Anomalies are easier to isolate (shorter path)
+3. Normal points require more splits to isolate
+4. Score = average path length across all trees
+5. Shorter path → Higher anomaly score
+
+FEATURE STORE INTEGRATION:
+--------------------------
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WHY FEATURE STORE FOR ML?                                               │
+│                                                                         │
+│  WITHOUT Feature Store:            WITH Feature Store:                  │
+│  ────────────────────              ──────────────────                   │
+│  - Training uses raw data           - Training uses curated features    │
+│  - Inference recalculates           - Inference uses same features!    │
+│  - Training/serving skew            - Consistency guaranteed            │
+│  - No feature lineage               - Full lineage in Unity Catalog     │
+│                                                                         │
+│  fe.create_training_set() → fe.log_model() → fe.score_batch()          │
+│  Same feature definitions used everywhere!                              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+MODEL OUTPUT:
+-------------
+Isolation Forest returns:
+- -1 = Anomaly (potential threat)
+- +1 = Normal
+
+We log to Unity Catalog Model Registry for:
+- Version control
+- Lineage tracking
+- Deployment to batch inference
 
 Problem: Anomaly Detection (Unsupervised)
 Algorithm: Isolation Forest

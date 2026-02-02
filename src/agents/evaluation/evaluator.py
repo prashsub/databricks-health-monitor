@@ -1,9 +1,110 @@
 """
-Agent Evaluation Framework
-==========================
+TRAINING MATERIAL: Agent Evaluation Framework Pattern (MLflow GenAI)
+====================================================================
 
-Comprehensive evaluation using MLflow 3.0 GenAI features.
-Includes built-in scorers, domain-specific judges, and batch evaluation.
+This module provides comprehensive evaluation of AI agents using MLflow 3.0
+GenAI features. It demonstrates the LLM-as-Judge pattern for automated
+quality assessment.
+
+WHY LLM-AS-JUDGE:
+-----------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE EVALUATION CHALLENGE                                                │
+│                                                                         │
+│  Traditional Testing:                  Agent Testing (LLM Outputs):     │
+│  ────────────────────                  ────────────────────────────     │
+│  Expected: 42                          User: "What's the cost trend?"   │
+│  Actual: 42                            Agent: "Based on the analysis..." │
+│  Result: PASS ✓                        Expected: ??? (many valid answers)│
+│                                                                         │
+│  LLM outputs are NON-DETERMINISTIC and have MULTIPLE VALID RESPONSES    │
+│  You can't just compare strings!                                        │
+│                                                                         │
+│  SOLUTION: Use an LLM to evaluate another LLM (LLM-as-Judge)            │
+│  ─────────────────────────────────────────────────────────────          │
+│  Judge LLM: "Is this response relevant to the question?"                │
+│  Judge LLM: "Does this answer include actionable recommendations?"      │
+│  Judge LLM: "Is this factually accurate for Databricks?"                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+SCORING PATTERN:
+----------------
+Each scorer returns a Score object with:
+- value: float 0.0 to 1.0 (or boolean)
+- rationale: String explaining the score
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  @scorer                                                                 │
+│  def relevance(inputs, outputs, expectations) -> Score:                 │
+│      # inputs: {"query": "What's the cost trend?"}                      │
+│      # outputs: {"response": "Based on analysis..."}                    │
+│      # expectations: {"expected_domains": ["cost"]}                     │
+│                                                                         │
+│      prompt = f"Is '{outputs['response']}' relevant to '{inputs}'?"     │
+│      result = call_llm(prompt)  # Returns {"score": 0.9, "rationale":..}│
+│                                                                         │
+│      return Score(value=result["score"], rationale=result["rationale"]) │
+└─────────────────────────────────────────────────────────────────────────┘
+
+SCORER TYPES IN THIS MODULE:
+----------------------------
+
+1. BUILT-IN SCORERS (custom implementations for MLflow compatibility):
+   - relevance_builtin: Is the response relevant to the query?
+   - safety_builtin: Is the response safe and appropriate?
+   - guideline_adherence: Does response follow Health Monitor guidelines?
+
+2. DOMAIN-SPECIFIC JUDGES (from judges.py):
+   - domain_accuracy_judge: Correct domain identification
+   - cost_accuracy_judge: Correct cost metrics and calculations
+   - security_compliance_judge: Proper security recommendations
+   - performance_accuracy_judge: Valid performance optimization advice
+   - reliability_accuracy_judge: Correct SLA/job failure analysis
+   - quality_accuracy_judge: Accurate data quality assessments
+
+3. QUALITY SCORERS:
+   - response_relevance_judge: Overall relevance
+   - actionability_judge: Includes actionable recommendations
+   - source_citation_judge: Cites data sources
+
+EVALUATION WORKFLOW:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  1. PREPARE EVAL DATA                                                    │
+│     eval_data = [                                                       │
+│       {"query": "What's the cost for prod?", "expected_domains": ["cost"]},│
+│       {"query": "Show failed jobs", "expected_domains": ["reliability"]}, │
+│     ]                                                                   │
+│                                                                         │
+│  2. RUN AGENT ON EACH QUERY                                             │
+│     for item in eval_data:                                              │
+│       response = agent.predict(item["query"])                           │
+│       item["response"] = response                                       │
+│                                                                         │
+│  3. RUN SCORERS ON EACH RESPONSE                                        │
+│     results = mlflow.genai.evaluate(                                    │
+│       model=agent,                                                      │
+│       data=eval_data,                                                   │
+│       scorers=[relevance_builtin, domain_accuracy_judge, ...]           │
+│     )                                                                   │
+│                                                                         │
+│  4. ANALYZE RESULTS                                                     │
+│     Average relevance: 0.87                                             │
+│     Average domain accuracy: 0.92                                       │
+│     Average actionability: 0.78                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+GUIDELINES ADHERENCE:
+---------------------
+The HEALTH_MONITOR_GUIDELINES constant defines what makes a good response:
+1. Accuracy - Correct Databricks information
+2. Completeness - Answers all parts of questions
+3. Actionability - Specific recommendations
+4. Citations - References data sources
+5. Domain Focus - Stays on topic
+6. Security - No PII exposure
 
 Reference:
     https://docs.databricks.com/en/mlflow/mlflow-genai.html
@@ -19,6 +120,16 @@ Usage:
     cost_results = evaluate_domain(agent, cost_eval_data, "cost")
 """
 
+# =============================================================================
+# IMPORTS
+# =============================================================================
+# TRAINING MATERIAL: Import Organization for Evaluation Module
+#
+# typing: For type hints
+# pandas: For DataFrame manipulation of evaluation results
+# mlflow, mlflow.genai: MLflow GenAI evaluation framework
+# scorer, Score: Decorator and return type for custom scorers
+
 from typing import Dict, List, Optional, Any
 import pandas as pd
 import mlflow
@@ -28,6 +139,8 @@ from mlflow.genai import scorer, Score
 # Note: Built-in scorers (Relevance, Safety, etc.) may not be available in all MLflow versions
 # We use custom implementations from judges.py for compatibility
 
+# DOMAIN-SPECIFIC JUDGES:
+# These are specialized LLM-as-Judge implementations for each Health Monitor domain
 from .judges import (
     domain_accuracy_judge,
     response_relevance_judge,

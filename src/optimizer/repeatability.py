@@ -1,11 +1,85 @@
 """
-Repeatability Testing Module for Genie Space Optimizer.
+TRAINING MATERIAL: Genie Space Repeatability Testing Pattern
+=============================================================
 
-This module tests Genie Space consistency by:
-1. Running the same questions multiple times
-2. Comparing SQL outputs for consistency
-3. Analyzing variance patterns
-4. Providing optimization recommendations to improve repeatability
+This module tests Genie Space consistency by running the same questions
+multiple times and analyzing SQL variance. Repeatability is critical for
+production Genie deployments.
+
+WHY REPEATABILITY MATTERS:
+--------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THE PROBLEM: LLM Non-Determinism                                        │
+│                                                                         │
+│  Same question, 3 runs:                                                 │
+│  ─────────────────────                                                  │
+│  Run 1: SELECT SUM(cost) FROM fact_usage WHERE ...                      │
+│  Run 2: SELECT MEASURE(total_cost) FROM metric_view WHERE ...           │
+│  Run 3: SELECT * FROM get_daily_cost_summary(...)                       │
+│                                                                         │
+│  All might be "correct" but:                                            │
+│  - Different SQL performance                                            │
+│  - Slightly different results (rounding, joins)                         │
+│  - Confusing for users                                                  │
+│  - Hard to debug issues                                                 │
+│                                                                         │
+│  TARGET: 90%+ repeatability (same SQL for same question)                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+VARIANCE CLASSIFICATION:
+------------------------
+
+1. IDENTICAL (100%) - Perfect consistency
+   Same SQL every time. No action needed.
+
+2. SEMANTICALLY_EQUIVALENT (80%+ similar)
+   Different SQL but same tables/aggregations.
+   Example: Different column order, aliases.
+
+3. MINOR_VARIANCE (60-80% similar)
+   Same approach with small differences.
+   May need sample query to standardize.
+
+4. SIGNIFICANT_VARIANCE (30-60% similar)
+   Different tables or joins used.
+   Needs instruction or metadata update.
+
+5. COMPLETE_DIVERGENCE (<30% similar)
+   Completely different approaches.
+   Likely ambiguous metadata or competing assets.
+
+ROOT CAUSE ANALYSIS:
+--------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  CAUSE                    │  FIX                                        │
+├───────────────────────────┼─────────────────────────────────────────────┤
+│  AMBIGUOUS_QUESTION       │  Add sample query to clarify intent         │
+│  AMBIGUOUS_METADATA       │  Update table/column comments               │
+│  COMPETING_ASSETS         │  Add instruction to prefer one asset        │
+│  MISSING_INSTRUCTION      │  Add explicit routing instruction           │
+│  LLM_NONDETERMINISM       │  Accept (minor) or add sample query         │
+└───────────────────────────┴─────────────────────────────────────────────┘
+
+TESTING WORKFLOW:
+-----------------
+
+1. Load test questions (from Genie Space benchmarks)
+2. For each question, run N iterations (default: 3)
+3. Hash SQL outputs for comparison
+4. Classify variance type
+5. Analyze root cause
+6. Generate recommendations
+7. Output markdown report
+
+SQL COMPARISON:
+---------------
+We compare SQL using:
+- Normalization (lowercase, collapse whitespace)
+- MD5 hash for exact match detection
+- SequenceMatcher for similarity ratio
+- Table/aggregation extraction for semantic comparison
 
 Usage:
     from src.optimizer.repeatability import RepeatabilityTester

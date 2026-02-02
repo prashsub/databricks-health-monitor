@@ -19,8 +19,51 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Retry Success Predictor Model
-=========================================
+TRAINING MATERIAL: Retry Strategy Optimization
+==============================================
+
+This model predicts whether a failed job retry will succeed,
+enabling intelligent retry decisions.
+
+RETRY INTELLIGENCE:
+-------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  NAIVE RETRY (Current approach)                                          │
+│  ─────────────────────────────                                           │
+│  Job fails → Retry immediately → Often fails again → Waste resources     │
+│                                                                         │
+│  INTELLIGENT RETRY (With prediction)                                     │
+│  ──────────────────────────────────                                      │
+│  Job fails → Model predicts retry success probability                    │
+│                                                                         │
+│  If P(success) > 0.7:                                                   │
+│  └── Retry immediately (likely transient failure)                       │
+│                                                                         │
+│  If P(success) < 0.3:                                                   │
+│  └── Skip retry, alert team (likely persistent issue)                   │
+│                                                                         │
+│  If 0.3 < P(success) < 0.7:                                             │
+│  └── Retry with backoff (uncertain, give it time)                       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+LABEL: success_rate
+-------------------
+
+The target represents historical retry success rate:
+- High (>0.7): Retries usually succeed
+- Low (<0.3): Retries usually fail
+- Medium: Unpredictable
+
+PREDICTIVE FEATURES:
+--------------------
+
+| Feature | High retry success | Low retry success |
+|---------|-------------------|-------------------|
+| Error type | Transient (timeout) | Persistent (OOM) |
+| Recent pattern | First failure | Repeated failures |
+| Resource state | Resources available | Cluster at capacity |
+| Time of day | Off-peak | Peak load |
 
 Problem: Classification
 Algorithm: XGBOOST

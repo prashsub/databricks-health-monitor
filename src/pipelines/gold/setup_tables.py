@@ -1,9 +1,74 @@
 # Databricks notebook source
 """
-Health Monitor - Gold Layer Setup (YAML-Driven)
+TRAINING MATERIAL: YAML-Driven Gold Layer Schema Pattern
+=========================================================
 
-Creates Gold layer tables directly from YAML schema definitions at runtime.
-YAML files are the single source of truth - no code generation required.
+This notebook creates Gold layer tables dynamically from YAML schema
+definitions at runtime. This is the RECOMMENDED pattern for managing
+many tables with consistent structure.
+
+WHY YAML-DRIVEN SETUP:
+----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  TRADITIONAL (Embedded DDL)          │  YAML-DRIVEN (This Pattern)      │
+├──────────────────────────────────────┼──────────────────────────────────┤
+│  DDL scattered across Python files   │  YAML is single source of truth  │
+│  Changes require code edits          │  Changes require only YAML edit  │
+│  Hard to review schema changes       │  Schema changes are YAML diffs   │
+│  Inconsistent table properties       │  Standard properties enforced    │
+│  ~5000 lines of embedded SQL         │  ~300 lines of generic code      │
+└──────────────────────────────────────┴──────────────────────────────────┘
+
+YAML SCHEMA STRUCTURE:
+----------------------
+Each table is defined in: gold_layer_design/yaml/{domain}/{table}.yaml
+
+```yaml
+table_name: dim_workspace
+comment: "Workspace dimension with SCD Type 2 tracking..."
+columns:
+  - name: workspace_key
+    type: STRING
+    nullable: false
+    description: "Surrogate key for workspace dimension"
+  - name: workspace_id
+    type: STRING
+    nullable: false
+    description: "Business key - natural workspace identifier"
+primary_key:
+  - workspace_key
+foreign_keys:
+  - name: fk_dim_workspace_account
+    columns: [account_id]
+    references: dim_account
+    ref_columns: [account_key]
+```
+
+BENEFITS:
+---------
+1. Schema changes are reviewable YAML diffs (not buried in Python)
+2. Consistent table properties across ALL tables
+3. Single source of truth for schema, documentation, and constraints
+4. Easy to generate documentation from YAML
+5. Can validate schemas before deployment
+
+FLOW:
+-----
+1. find_yaml_base() → Locate gold_layer_design/yaml directory
+2. get_all_domains() → Find all domain directories
+3. get_domain_yamls() → Find all YAML files in domain
+4. load_yaml() → Parse YAML into dict
+5. build_create_table_ddl() → Generate SQL DDL from YAML
+6. spark.sql(ddl) → Execute DDL
+
+KEY DESIGN CHOICES:
+-------------------
+- **Runtime YAML parsing**: Tables reflect current YAML, not generated code
+- **Standard properties**: All tables get consistent optimization settings
+- **Escaping**: SQL escaping handles special characters in comments
+- **Type normalization**: DECIMAL → DECIMAL(38,10) for consistency
+- **Domain separation**: Each domain has its own YAML directory
 
 Usage:
   - Set 'domain' parameter to a specific domain (e.g., 'billing', 'compute')

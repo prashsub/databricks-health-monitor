@@ -1,21 +1,61 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Historical Backfill for Large Gold Tables
-# MAGIC 
-# MAGIC Processes historical data in 1-week chunks to avoid memory issues and timeouts.
-# MAGIC Works alongside the incremental job - backfills data BEFORE the current Gold min date.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: Resumable Backfill Pattern
+# MAGIC
+# MAGIC This notebook demonstrates a **resumable backfill strategy** for tables with
+# MAGIC billions of records. Key insight: the Gold table itself is the checkpoint!
+# MAGIC
+# MAGIC ### Why Resumable Backfills?
+# MAGIC
+# MAGIC Large tables can't be processed in one go:
+# MAGIC - 7B audit records × 5min/1M = 35,000 minutes = 24 days
+# MAGIC - Job timeouts (typically 4-12 hours)
+# MAGIC - Memory pressure from large transforms
+# MAGIC - Serverless compute may scale down
+# MAGIC
+# MAGIC ### Self-Checkpointing Pattern
+# MAGIC
+# MAGIC ```python
+# MAGIC # Gold table IS the checkpoint - no external state needed!
+# MAGIC min_date, max_date, count = get_gold_date_range(spark, gold_table, "event_date")
+# MAGIC
+# MAGIC # Already processed: min_date → max_date
+# MAGIC # Need to backfill: target_start → min_date (going backwards)
+# MAGIC
+# MAGIC # If job restarts, it queries Gold again and continues from where it left off
+# MAGIC ```
+# MAGIC
+# MAGIC ### Processing Direction: Backwards
+# MAGIC
+# MAGIC ```
+# MAGIC Timeline:
+# MAGIC ──────────────────────────────────────────────────────────────►
+# MAGIC [Jan 1]         [Mar 1]              [Jun 1]        [Today]
+# MAGIC    │               │                    │               │
+# MAGIC    │   ◄── Backfill backwards ───      │ Already done  │
+# MAGIC    │               │                    │               │
+# MAGIC    └───────────────┴────────────────────┴───────────────┘
+# MAGIC       Chunks: Week 4 → Week 3 → Week 2 → Week 1 → Gold MIN
+# MAGIC ```
+# MAGIC
+# MAGIC **Why backwards?**
+# MAGIC - Recent data is already in Gold (from incremental job)
+# MAGIC - Backfill extends history without gaps
+# MAGIC - Progress is visible: Gold MIN date moves backwards
+# MAGIC
 # MAGIC **Tables supported:**
 # MAGIC - fact_audit_logs (7B+ records)
-# MAGIC - fact_usage (109M+ records)  
+# MAGIC - fact_usage (109M+ records)
 # MAGIC - fact_query_history (68M+ records)
-# MAGIC 
+# MAGIC
 # MAGIC **Strategy:**
 # MAGIC - Get MIN/MAX date from Gold table (what's already been processed)
 # MAGIC - Process data in 1-week chunks going backwards
 # MAGIC - Uses MERGE to avoid duplicates if chunks overlap
 # MAGIC - **RESUMABLE**: Queries Gold table to find what's already processed - if job times out, it resumes automatically
-# MAGIC 
+# MAGIC
 # MAGIC **No checkpoint table needed** - the Gold table itself is the source of truth!
 
 # COMMAND ----------

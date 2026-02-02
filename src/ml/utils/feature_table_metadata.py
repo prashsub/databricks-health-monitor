@@ -1,16 +1,68 @@
 """
-ML Feature Table Metadata
-=========================
+TRAINING MATERIAL: Feature Table Metadata for Genie/LLM Integration
+====================================================================
 
-Centralized metadata definitions for all ML feature tables.
-Used to add table and column descriptions after table creation.
+This module provides centralized metadata definitions for ML feature tables,
+enabling natural language queries via Genie Spaces and AI/BI dashboards.
 
-This enables:
-- Genie Space natural language queries about ML features
-- AI/BI dashboard auto-complete with semantic understanding
-- Data catalog discoverability with business context
-- LLM-friendly documentation for feature engineering
-- Feature lineage tracking for ML governance
+WHY FEATURE TABLE METADATA:
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WITHOUT METADATA                      │  WITH METADATA                  │
+├────────────────────────────────────────┼─────────────────────────────────┤
+│  User: "What affects cost predictions?"│  User: "What affects cost?"      │
+│  Genie: ❌ "I see columns like         │  Genie: ✅ "Cost predictions     │
+│         daily_dbu, serverless_cost..." │         are affected by:         │
+│                                        │         - daily_dbu (DBU usage)  │
+│                                        │         - serverless_cost        │
+│                                        │         - jobs_on_all_purpose"   │
+└────────────────────────────────────────┴─────────────────────────────────┘
+
+FEATURE TABLE DESIGN PRINCIPLES:
+--------------------------------
+
+1. PRIMARY KEYS FOR FEATURE STORE
+   - Every feature table needs explicit primary keys
+   - Unity Catalog Feature Engineering requires them
+   - Example: (workspace_id, usage_date) for cost_features
+
+2. CONSISTENT DATA TYPES FOR ML
+   - All numeric columns must be DOUBLE (not INT/BIGINT)
+   - sklearn/xgboost require consistent float types
+   - Prevents "float32/float64 mismatch" errors
+
+3. NO NULL VALUES IN FEATURES
+   - ML models can't handle NaN/NULL
+   - Use COALESCE(col, 0) or fillna() during creation
+   - Feature table creation handles this automatically
+
+4. COMPREHENSIVE COLUMN METADATA
+   Each column has:
+   - business_description: What it means to analysts
+   - technical_description: How it's calculated
+   - data_type: Expected type (always DOUBLE for numerics)
+   - unit: USD, DBU, seconds, count, etc.
+   - valid_range: Expected value range
+
+METADATA STRUCTURE:
+-------------------
+
+    FEATURE_TABLE_METADATA = {
+        "cost_features": {
+            "table_comment": "Purpose, domain, PKs, source, refresh...",
+            "columns": {
+                "daily_cost": {
+                    "business_description": "Total cost in USD...",
+                    "technical_description": "SUM(list_cost) from...",
+                    "data_type": "DOUBLE",
+                    "unit": "USD",
+                    "valid_range": ">= 0"
+                },
+                ...
+            }
+        }
+    }
 
 Design Principles:
 - Each column has: business_description, technical_description, data_type, unit, valid_range

@@ -2,6 +2,87 @@
 Agent Configuration Settings
 ============================
 
+TRAINING MATERIAL: Centralized Configuration Pattern
+-----------------------------------------------------
+
+This module demonstrates a production-grade configuration management
+pattern for complex AI agent systems. Key principles:
+
+1. SINGLE SOURCE OF TRUTH: All config in one place
+2. ENVIRONMENT OVERRIDES: All settings overridable via env vars
+3. DATACLASS PATTERN: Type-safe, immutable-like configuration
+4. DELEGATION: Specialized config (Genie) in separate modules
+5. VALIDATION: Built-in config validation
+
+CONFIGURATION ARCHITECTURE:
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    CONFIGURATION HIERARCHY                               │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  ENVIRONMENT VARIABLES (Highest Priority)                        │   │
+│  │  DATABRICKS_HOST, LLM_ENDPOINT, GENIE_SPACE_COST, etc.          │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  Overrides defaults                      │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  DATACLASS DEFAULTS (Fallback)                                   │   │
+│  │  settings.py: llm_endpoint = "databricks-claude-sonnet"         │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  Delegates specialized config            │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  SPECIALIZED MODULES (Domain-specific)                           │   │
+│  │  genie_spaces.py: Genie Space IDs and instructions              │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+KEY PATTERNS DEMONSTRATED:
+--------------------------
+1. DATACLASS: Type safety with @dataclass decorator
+2. FIELD FACTORY: Dynamic defaults with field(default_factory=...)
+3. PROPERTIES: Computed values with @property decorator
+4. DELEGATION: Import from specialized modules
+5. VALIDATION: Built-in validate() method
+
+WHY DATACLASS (not dict or simple class):
+-----------------------------------------
+1. TYPE HINTS: IDE autocomplete and error checking
+2. IMMUTABLE-LIKE: Discourages runtime modification
+3. DEFAULT VALUES: Clean syntax for defaults
+4. REPR: Built-in string representation
+5. EQUALITY: Built-in comparison operators
+
+WHY ENVIRONMENT OVERRIDES:
+--------------------------
+1. DEPLOYMENT FLEXIBILITY: Same code, different configs
+2. SECRETS: Sensitive values not in code
+3. 12-FACTOR APP: Following best practices
+4. TESTING: Easy to mock/override in tests
+
+WHY DELEGATION (genie_spaces.py):
+---------------------------------
+1. SEPARATION OF CONCERNS: Complex Genie config separate
+2. SINGLE SOURCE: One place for all Genie Space IDs
+3. RICH CONFIG: Genie needs name, description, instructions
+
+USAGE PATTERNS:
+---------------
+# Simple access
+from agents.config import settings
+llm = settings.llm_endpoint
+
+# Full path properties
+table = settings.inference_request_table  # Returns full UC path
+
+# Validation
+errors = settings.validate()
+if errors:
+    raise ConfigurationError(errors)
+
 Centralized configuration for the Health Monitor Agent Framework.
 All settings can be overridden via environment variables.
 
@@ -15,11 +96,23 @@ Usage:
     cost_genie_id = settings.cost_genie_space_id  # Delegates to genie_spaces.py
 """
 
+# =============================================================================
+# IMPORTS
+# =============================================================================
+# TRAINING MATERIAL: Import Organization
+#
+# os: For environment variable access
+# dataclasses: For configuration class definition
+# typing: For Optional type hints
+
 import os
 from dataclasses import dataclass, field
 from typing import Optional
 
+# DELEGATION PATTERN:
 # Import Genie Space configuration from single source of truth
+# This avoids duplicating Genie Space IDs in multiple places
+# The underscore prefix (_get_genie_space_id) indicates internal use
 from .genie_spaces import (
     GENIE_SPACE_REGISTRY,
     DOMAINS,

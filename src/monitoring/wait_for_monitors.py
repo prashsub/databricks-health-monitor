@@ -1,10 +1,53 @@
 # Databricks notebook source
 """
-Wait for Lakehouse Monitor Tables
+TRAINING MATERIAL: Async Monitor Table Creation Pattern
+=======================================================
 
-This utility notebook waits for Lakehouse Monitor output tables to be created.
-Monitors create their output tables asynchronously, so we need to wait before
-adding documentation/descriptions to them.
+This utility demonstrates handling Lakehouse Monitor's asynchronous
+table creation in Databricks workflows.
+
+THE ASYNC PROBLEM:
+------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  WORKFLOW TASK SEQUENCE                                                  │
+│                                                                         │
+│  [Create Monitors] ─────► [Document Monitors] ─────► [Validate]         │
+│        │                        │                                       │
+│        ▼                        ▼                                       │
+│  API returns immediately   Tries to ALTER TABLE                         │
+│  Tables created async       ❌ TABLE NOT FOUND!                         │
+│  (10-15 min later)                                                      │
+│                                                                         │
+│  SOLUTION: Wait task between create and document                        │
+│                                                                         │
+│  [Create Monitors] → [WAIT 20min] → [Document Monitors] → [Validate]   │
+│                           │                                             │
+│                           ▼                                             │
+│                   Tables now exist                                      │
+│                   ✅ ALTER TABLE works                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY 20 MINUTES:
+---------------
+
+- Monitor metrics computation: 5-10 minutes
+- Table materialization: 2-5 minutes
+- Safety buffer: 5 minutes
+- Total conservative estimate: 20 minutes
+
+In production, consider polling for table existence instead of fixed wait.
+
+ALTERNATIVE: Polling Pattern
+----------------------------
+
+    while not table_exists(output_table):
+        time.sleep(60)
+        if elapsed > max_wait:
+            raise TimeoutError("Monitor tables not created")
+
+The polling approach is more efficient but requires more complex code.
+For simplicity, this implementation uses a fixed wait.
 
 Conservative delay: 20 minutes (monitors typically ready in 10-15 min)
 """

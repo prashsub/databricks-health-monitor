@@ -1,6 +1,90 @@
 """
-Genie Space Configuration
-==========================
+TRAINING MATERIAL: Genie Space Registry Pattern
+================================================
+
+This module provides centralized configuration for all Genie Space IDs and
+metadata used by the agent framework. It's the single source of truth for
+how domain agents connect to their respective Genie Spaces.
+
+GENIE SPACE ARCHITECTURE:
+-------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    MULTI-DOMAIN GENIE SPACE SYSTEM                       │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  ORCHESTRATOR AGENT                                              │   │
+│  │  (Receives user query, classifies intent)                        │   │
+│  └────────────────────────────┬────────────────────────────────────┘   │
+│                               │                                         │
+│                               ▼                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  GENIE_SPACE_REGISTRY (This file)                                │   │
+│  │  ────────────────────────────────────────────────────────────────│   │
+│  │  Maps domain → Genie Space ID + metadata                         │   │
+│  │  Provides tool descriptions for LangChain                        │   │
+│  │  Supports environment variable overrides                         │   │
+│  └────────────────────────────┬────────────────────────────────────┘   │
+│                               │                                         │
+│       ┌───────────┬───────────┼───────────┬───────────┐                │
+│       ▼           ▼           ▼           ▼           ▼                │
+│   ┌───────┐   ┌───────┐   ┌───────┐   ┌───────┐   ┌───────┐           │
+│   │ COST  │   │SECUR- │   │ PERF  │   │RELIAB │   │QUALITY│           │
+│   │ SPACE │   │ ITY   │   │ SPACE │   │ SPACE │   │ SPACE │           │
+│   │       │   │ SPACE │   │       │   │       │   │       │           │
+│   └───┬───┘   └───┬───┘   └───┬───┘   └───┬───┘   └───┬───┘           │
+│       │           │           │           │           │                │
+│       └───────────┴───────────┼───────────┴───────────┘                │
+│                               ▼                                         │
+│                    ┌────────────────────┐                               │
+│                    │  Gold Layer Tables  │                              │
+│                    │  Metric Views       │                              │
+│                    │  TVFs               │                              │
+│                    └────────────────────┘                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY A CENTRALIZED REGISTRY:
+---------------------------
+
+1. SINGLE SOURCE OF TRUTH
+   - All Genie Space IDs in one place
+   - All metadata (descriptions, keywords, examples) together
+   - No scattered hardcoded values
+
+2. ENVIRONMENT FLEXIBILITY
+   - Development: Use test Genie Spaces
+   - Production: Use production Genie Spaces
+   - Override via environment variables without code changes
+
+3. RICH METADATA FOR ROUTING
+   - routing_keywords: Help intent classifier
+   - agent_instructions: Tell LLM when to use this tool
+   - example_queries: Training data for the orchestrator
+
+4. TOOL DESCRIPTION GENERATION
+   - GenieSpaceConfig.get_tool_description() generates LangChain-compatible
+   - Comprehensive descriptions help LLM choose the right tool
+
+KEY DESIGN DECISIONS:
+---------------------
+
+1. Dataclass over Dict
+   - Type safety and IDE autocompletion
+   - Easy to add new fields
+   - Can have methods (get_id, get_tool_description)
+
+2. Environment Variable Override
+   - COST_GENIE_SPACE_ID, SECURITY_GENIE_SPACE_ID, etc.
+   - Allows different spaces in dev vs prod
+   - No code changes needed
+
+3. Comprehensive Metadata
+   - Each space has: ID, name, description, instructions, examples, keywords
+   - All needed for both routing and tool creation
+
+4. Unified Space for Cross-Domain
+   - UNIFIED domain for queries spanning multiple domains
+   - "What's the overall platform health?" type questions
 
 Centralized configuration for all Genie Space IDs and metadata used by the agent framework.
 

@@ -2,7 +2,40 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Governance Domain
 # MAGIC
-# MAGIC Merges lineage tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: Lineage Data Processing Pattern
+# MAGIC
+# MAGIC This notebook demonstrates handling complex nested data structures (like `entity_metadata`)
+# MAGIC and extracting them into flat columns for analytics.
+# MAGIC
+# MAGIC ### Key Patterns Demonstrated:
+# MAGIC
+# MAGIC 1. **Nested Struct Extraction**
+# MAGIC    - Bronze lineage tables have deeply nested `entity_metadata` structs
+# MAGIC    - Gold layer needs flat columns for SQL analytics and joins
+# MAGIC    - Use `.withColumn("flat_col", col("nested.path.field"))` pattern
+# MAGIC
+# MAGIC 2. **Entity Metadata Structure**:
+# MAGIC    ```
+# MAGIC    entity_metadata
+# MAGIC    ├── job_info
+# MAGIC    │   ├── job_id
+# MAGIC    │   └── job_run_id
+# MAGIC    ├── dlt_pipeline_info
+# MAGIC    │   └── dlt_pipeline_id
+# MAGIC    ├── notebook_id
+# MAGIC    ├── dashboard_id
+# MAGIC    └── sql_query_id
+# MAGIC    ```
+# MAGIC
+# MAGIC 3. **NULL Handling for NOT NULL Constraints**
+# MAGIC    - Gold tables have NOT NULL constraints on key columns
+# MAGIC    - Must filter out NULL records before merge
+# MAGIC    - Prevents constraint violation errors
+# MAGIC
+# MAGIC 4. **Array Column Handling**
+# MAGIC    - Some columns are arrays (e.g., `source_column_ids`)
+# MAGIC    - Use `to_json()` to serialize to string for compatibility
+# MAGIC    - Alternative: explode() for row-per-element
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - fact_column_lineage (from access.column_lineage)
@@ -47,11 +80,19 @@ def merge_fact_column_lineage(spark, catalog, bronze_schema, gold_schema):
         print("  No records to process")
         return 0
     
-    # Filter out records with NULL record_id (required for PK constraint)
-    bronze_filtered = bronze_raw.filter(col("record_id").isNotNull())
+    # Filter out records with NULL required columns (NOT NULL constraints in Gold)
+    # Required: record_id, source_table_name, source_column_name, target_table_name, target_column_name, event_time
+    bronze_filtered = bronze_raw.filter(
+        col("record_id").isNotNull() &
+        col("source_table_name").isNotNull() &
+        col("source_column_name").isNotNull() &
+        col("target_table_name").isNotNull() &
+        col("target_column_name").isNotNull() &
+        col("event_time").isNotNull()
+    )
     null_count = record_count - bronze_filtered.count()
     if null_count > 0:
-        print(f"  Filtered out {null_count:,} records with NULL record_id")
+        print(f"  Filtered out {null_count:,} records with NULL required columns")
     
     bronze_df, original_count, deduped_count = deduplicate_bronze(
         bronze_filtered, business_keys=["record_id"], order_by_column="event_time"

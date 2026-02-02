@@ -1,9 +1,39 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # System Lakeflow Tables - DLT Streaming Pipeline
-# MAGIC 
-# MAGIC Bronze layer ingestion of system.lakeflow.* tables with schema evolution.
-# MAGIC 
+# MAGIC
+# MAGIC ## TRAINING MATERIAL: Job/Pipeline Monitoring Data Ingestion
+# MAGIC
+# MAGIC This notebook ingests Lakeflow (Jobs & Pipelines) system tables for
+# MAGIC reliability and performance monitoring.
+# MAGIC
+# MAGIC ### Lakeflow Domain Tables
+# MAGIC
+# MAGIC | Table | Type | Content | Update Frequency |
+# MAGIC |-------|------|---------|------------------|
+# MAGIC | jobs | Dimension | Job definitions | On change |
+# MAGIC | job_tasks | Dimension | Task configurations | On change |
+# MAGIC | pipelines | Dimension | DLT pipeline configs | On change |
+# MAGIC | job_run_timeline | Fact | Job execution history | Continuous |
+# MAGIC | job_task_run_timeline | Fact | Task execution history | Continuous |
+# MAGIC | pipeline_update_timeline | Fact | Pipeline run history | Continuous |
+# MAGIC
+# MAGIC ### Timeline Table Structure
+# MAGIC
+# MAGIC Timeline tables have a special structure for long-running operations:
+# MAGIC - Jobs running >1 hour are split into hourly intervals
+# MAGIC - Each interval has start_time and end_time
+# MAGIC - Final interval has result_state and termination_code
+# MAGIC
+# MAGIC ```
+# MAGIC Job Run (3 hours):
+# MAGIC ├── Interval 1: [00:00, 01:00) - RUNNING
+# MAGIC ├── Interval 2: [01:00, 02:00) - RUNNING
+# MAGIC └── Interval 3: [02:00, 02:45] - SUCCESS (termination)
+# MAGIC ```
+# MAGIC
+# MAGIC This enables accurate resource attribution per hour for cost analysis.
+# MAGIC
 # MAGIC **Tables ingested:**
 # MAGIC - job_run_timeline (system.lakeflow.job_run_timeline)
 # MAGIC - job_task_run_timeline (system.lakeflow.job_task_run_timeline)
@@ -11,7 +41,7 @@
 # MAGIC - jobs (system.lakeflow.jobs)
 # MAGIC - pipeline_update_timeline (system.lakeflow.pipeline_update_timeline)
 # MAGIC - pipelines (system.lakeflow.pipelines)
-# MAGIC 
+# MAGIC
 # MAGIC **Pattern:** Stream from system tables with skipChangeCommits and schema evolution enabled
 
 # COMMAND ----------

@@ -1,7 +1,48 @@
 """
-Alerting configuration helpers (pure Python).
+TRAINING MATERIAL: Pure Python Configuration Helpers
+====================================================
 
-This module is intentionally free of Databricks SDK imports so it can be unit-tested locally.
+This module demonstrates the "Pure Python for Testability" pattern,
+keeping SDK-free helpers for local unit testing.
+
+TESTABILITY ARCHITECTURE:
+-------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  LAYER                │  SDK IMPORTS?    │  TEST METHOD                 │
+├───────────────────────┼──────────────────┼──────────────────────────────┤
+│  alerting_config.py   │  ❌ None          │  pytest locally              │
+│  query_validator.py   │  ❌ None          │  pytest locally              │
+│  sync_sql_alerts.py   │  ✅ SDK required  │  Integration tests           │
+└───────────────────────┴──────────────────┴──────────────────────────────┘
+
+SQL ALERTS PARAMETER LIMITATION:
+--------------------------------
+
+Databricks SQL Alerts do NOT support ${var} parameter substitution.
+Queries must have fully-qualified table names embedded.
+
+    # Alert query CANNOT use parameters
+    ❌ SELECT * FROM ${catalog}.${gold_schema}.fact_usage
+    
+    # Must embed actual values
+    ✅ SELECT * FROM health_monitor.gold.fact_usage
+
+This is why render_query_template() exists - to do variable substitution
+at deployment time, not query time.
+
+OPERATOR MAPPING:
+-----------------
+
+SQL operators → Alerts V2 API enum values:
+
+    ">"  → "GREATER_THAN"
+    ">=" → "GREATER_THAN_OR_EQUAL"
+    "<"  → "LESS_THAN"
+    "="  → "EQUAL"
+    "!=" → "NOT_EQUAL"
+
+This module is intentionally free of Databricks SDK imports for testability.
 """
 
 from __future__ import annotations

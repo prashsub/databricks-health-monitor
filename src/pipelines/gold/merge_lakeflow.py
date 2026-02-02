@@ -2,7 +2,46 @@
 # MAGIC %md
 # MAGIC # Gold Layer MERGE - Lakeflow Domain
 # MAGIC
-# MAGIC Merges Lakeflow dimension and fact tables from Bronze to Gold.
+# MAGIC ## TRAINING MATERIAL: Complex Type Serialization Pattern
+# MAGIC
+# MAGIC This notebook demonstrates handling complex types (arrays, maps, structs)
+# MAGIC when moving from Bronze to Gold layer.
+# MAGIC
+# MAGIC ### The Problem: Complex Types in Gold
+# MAGIC
+# MAGIC Bronze tables preserve source schema including complex types:
+# MAGIC - `tags` MAP<STRING, STRING>
+# MAGIC - `parameters` ARRAY<STRUCT>
+# MAGIC - `settings` STRUCT<...>
+# MAGIC
+# MAGIC Gold tables often need simpler types for:
+# MAGIC - BI tool compatibility (many don't handle complex types)
+# MAGIC - Metric View queries (simpler predicates)
+# MAGIC - Genie natural language (easier to interpret)
+# MAGIC
+# MAGIC ### Serialization Pattern
+# MAGIC
+# MAGIC ```python
+# MAGIC # Serialize complex type to JSON string
+# MAGIC updates_df = (
+# MAGIC     bronze_df
+# MAGIC     .withColumn("tags_json",
+# MAGIC                 when(col("tags").isNotNull(), to_json(col("tags")))
+# MAGIC                 .otherwise(lit(None)))
+# MAGIC     .withColumn("parameters_json",
+# MAGIC                 when(col("parameters").isNotNull(), to_json(col("parameters")))
+# MAGIC                 .otherwise(lit(None)))
+# MAGIC )
+# MAGIC ```
+# MAGIC
+# MAGIC ### When to Serialize vs Keep Complex
+# MAGIC
+# MAGIC | Keep Complex | Serialize to JSON |
+# MAGIC |--------------|-------------------|
+# MAGIC | Need array functions | BI tool queries |
+# MAGIC | Explode operations | Metric Views |
+# MAGIC | Nested analytics | Genie queries |
+# MAGIC | Internal pipelines | Reporting/dashboards |
 # MAGIC
 # MAGIC **Tables:**
 # MAGIC - dim_job (from lakeflow.jobs)

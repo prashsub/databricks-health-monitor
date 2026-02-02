@@ -15,8 +15,66 @@ except Exception as e:
     print(f"⚠ Path setup skipped (local execution): {e}")
 # ===========================================================================
 """
-Train Data Drift Detector Model
-===============================
+TRAINING MATERIAL: Unsupervised Anomaly Detection with Isolation Forest
+=======================================================================
+
+This script demonstrates the **unsupervised anomaly detection** pattern using
+Isolation Forest, used for drift/anomaly detection without labeled data.
+
+WHY UNSUPERVISED FOR DRIFT DETECTION:
+-------------------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  SUPERVISED                         │  UNSUPERVISED ✅                   │
+├─────────────────────────────────────┼────────────────────────────────────┤
+│  Requires labeled "drift" examples  │  No labels needed                  │
+│  "What is drift?" subjective        │  Learns "normal" from data         │
+│  Labels expensive to obtain         │  Works immediately                 │
+│  Limited to known drift types       │  Detects any deviation             │
+└─────────────────────────────────────┴────────────────────────────────────┘
+
+ISOLATION FOREST ALGORITHM:
+---------------------------
+
+How it works:
+1. Build random trees by randomly selecting feature and split value
+2. "Isolate" each point by splitting until alone
+3. Anomalies require FEWER splits (easier to isolate)
+4. Normal points require MORE splits (similar to neighbors)
+
+    Anomaly Score = Average path length to isolate the point
+    Low score = Anomaly (easy to isolate)
+    High score = Normal (hard to isolate)
+
+KEY PARAMETERS:
+---------------
+
+    model = IsolationForest(
+        n_estimators=100,      # Number of trees (more = more stable)
+        contamination=0.1,     # Expected anomaly rate (10%)
+        max_samples="auto",    # Samples per tree
+        random_state=42,       # Reproducibility
+    )
+
+CONTAMINATION PARAMETER:
+------------------------
+
+`contamination` is the expected proportion of anomalies.
+- Too low: Misses real anomalies
+- Too high: False positives (normal data flagged)
+- Default: 0.1 (10%) is reasonable starting point
+
+LABEL=NONE PATTERN:
+-------------------
+
+For anomaly detection, training_set has NO label:
+
+    training_set = fe.create_training_set(
+        df=base_df,
+        feature_lookups=feature_lookups,
+        label=None,  # ← No label for unsupervised!
+        exclude_columns=lookup_keys
+    )
 
 Uses LOCAL log_model function (like train_cost_anomaly_detector).
 """

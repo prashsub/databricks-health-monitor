@@ -11,6 +11,89 @@
 SQL Alert Sync Engine (Databricks SQL Alerts V2)
 =================================================
 
+TRAINING MATERIAL: Config-Driven Alerting Architecture
+-------------------------------------------------------
+
+This notebook implements a production-grade SQL alerting system that syncs
+alert definitions from a Delta configuration table to Databricks SQL Alerts.
+
+ARCHITECTURE OVERVIEW:
+----------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     CONFIG-DRIVEN ALERTING FLOW                          │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  CONFIG TABLE (Source of Truth)                                  │   │
+│  │  {catalog}.{gold_schema}.alert_configurations                   │   │
+│  │  ├── alert_id: REV-001-CRIT                                     │   │
+│  │  ├── alert_name: Revenue Drop Alert                             │   │
+│  │  ├── alert_query_template: SELECT ... FROM ${catalog}...        │   │
+│  │  ├── threshold_column, threshold_operator, threshold_value      │   │
+│  │  ├── schedule_cron, schedule_timezone                           │   │
+│  │  └── is_enabled: true/false                                     │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  SYNC ENGINE (THIS NOTEBOOK)            │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  DATABRICKS SQL ALERTS (V2 API)                                  │   │
+│  │  ├── [CRITICAL] Revenue Drop Alert                              │   │
+│  │  ├── [WARNING] Low Engagement Alert                             │   │
+│  │  └── [INFO] Daily Summary                                       │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼  ON TRIGGER                              │
+│                              │                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  NOTIFICATIONS                                                   │   │
+│  │  ├── Email to team                                              │   │
+│  │  ├── Slack webhook                                              │   │
+│  │  └── PagerDuty (for CRITICAL)                                   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+WHY CONFIG-DRIVEN:
+------------------
+1. NO CODE CHANGES: Add/modify alerts by updating config table
+2. VERSION HISTORY: Delta time travel for audit
+3. EASY ENABLE/DISABLE: Toggle without deployment
+4. DRY RUN: Test without creating real alerts
+5. CENTRALIZED: All alert definitions in one place
+
+KEY CONCEPTS DEMONSTRATED:
+--------------------------
+1. DATABRICKS SDK: WorkspaceClient with automatic authentication
+2. DELTA CONFIG TABLE: Alert definitions stored in Delta
+3. V2 ALERTS API: Modern alert creation with AlertV2
+4. TEMPLATE RENDERING: ${catalog} placeholder substitution
+5. IDEMPOTENT SYNC: Create new, update existing, optionally delete
+6. METRICS COLLECTION: Timing and error tracking
+7. STATUS TRACKING: Sync status written back to config table
+
+V2 API vs LEGACY API:
+---------------------
+V2 API (this implementation):
+- Endpoint: /api/2.0/alerts
+- Embeds SQL directly via query_text
+- Uses evaluation block for conditions
+- Requires update_mask for PATCH
+- Soft deletes (30-day recovery)
+
+Legacy API (deprecated):
+- Endpoint: /api/2.0/sql/alerts
+- References saved queries via query_id
+- Uses options.column, options.op, options.value
+- Full replacement on update
+- Permanent deletes
+
+CRITICAL LIMITATIONS:
+---------------------
+1. NO QUERY PARAMETERS: SQL Alerts don't support ${param} in queries
+   Solution: Render templates before deployment
+2. SDK VERSION: Requires databricks-sdk>=0.40.0 for AlertV2
+   Solution: %pip install upgrade at notebook start
+
 Reads {catalog}.{gold_schema}.alert_configurations and syncs enabled rows into
 Databricks SQL Alerts using the Databricks SDK.
 
@@ -31,30 +114,48 @@ Note:
 - Requires databricks-sdk>=0.40.0 for AlertV2 types (installed via %pip at runtime)
 """
 
+# =============================================================================
+# IMPORTS
+# =============================================================================
+# TRAINING MATERIAL: Import Organization for Production Notebooks
+#
+# from __future__ import annotations:
+#   - Enables postponed evaluation of annotations
+#   - Allows forward references in type hints
+#   - Required for typing patterns like `def func() -> "ClassName"`
+
 from __future__ import annotations
 
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+# DATABRICKS SDK:
+# WorkspaceClient auto-authenticates in Databricks runtime
+# AlertV2 is the typed object for V2 Alerts API
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import AlertV2
 
+# PYSPARK:
+# SparkSession for reading config tables
+# col() for DataFrame column operations
 from pyspark.sql import SparkSession  # type: ignore[import]
 from pyspark.sql.functions import col  # type: ignore[import]
 
+# LOCAL MODULES:
 # Import from sibling modules (pure Python, no dbutils)
+# Why pure Python? Enables testing outside Databricks runtime
 from alerting_config import (
-    AlertConfigRow,
-    build_subscriptions,
-    build_threshold_value,
-    map_operator_to_comparison_operator,
-    normalize_aggregation,
-    render_query_template,
+    AlertConfigRow,           # Typed dataclass for alert config rows
+    build_subscriptions,      # Build notification subscription list
+    build_threshold_value,    # Convert threshold to V2 API format
+    map_operator_to_comparison_operator,  # > → GREATER_THAN
+    normalize_aggregation,    # SUM, AVG, COUNT, etc.
+    render_query_template,    # Replace ${catalog}, ${gold_schema}
 )
 from alerting_metrics import (
-    AlertSyncMetrics,
-    log_sync_metrics_spark,
-    print_metrics_summary,
+    AlertSyncMetrics,         # Dataclass for timing/counting
+    log_sync_metrics_spark,   # Write metrics to Delta table
+    print_metrics_summary,    # Pretty-print sync results
 )
 
 
