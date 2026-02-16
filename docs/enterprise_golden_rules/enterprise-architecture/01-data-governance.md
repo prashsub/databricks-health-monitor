@@ -1,343 +1,318 @@
 # Enterprise Data Governance
 
-## Document Information
+> **Document Owner:** Chief Data Officer | **Status:** Approved | **Last Updated:** February 2026
 
-| Field | Value |
-|-------|-------|
-| **Document ID** | EA-GOV-001 |
-| **Version** | 2.0 |
-| **Last Updated** | January 2026 |
-| **Owner** | Chief Data Officer |
-| **Status** | Approved |
+## Overview
+
+This document establishes the enterprise data governance framework for our Databricks platform built on Unity Catalog. It defines the policies that ensure data quality, security, compliance, and business value across all data and AI assets.
 
 ---
 
-## Executive Summary
+## Golden Rules
 
-This document establishes the enterprise data governance framework for our Databricks-based data platform. It defines principles, policies, and standards that ensure data quality, security, compliance, and business value across all data assets.
-
----
-
-## Governance Principles
-
-### Principle 1: Data as a Strategic Asset
-
-Data is a critical enterprise asset that requires intentional management, investment, and protection.
-
-**What This Means:**
-- Every data asset has an identified owner
-- Data quality is measured and monitored
-- Data investments are prioritized based on business value
-- Data literacy is promoted across the organization
-
-### Principle 2: Single Source of Truth
-
-For any given business entity, there is one authoritative Gold layer representation.
-
-**What This Means:**
-- No duplicate definitions of customers, products, or other entities
-- Gold layer is the consumption layer for all analytics
-- Changes flow through Bronze → Silver → Gold
-- Semantic layer provides consistent business definitions
-
-### Principle 3: Data Quality by Design
-
-Quality is built into data pipelines, not bolted on afterward.
-
-**What This Means:**
-- DLT expectations validate data at Silver layer
-- Quarantine patterns capture and track bad records
-- Quality metrics are monitored via Lakehouse Monitoring
-- Business rules are documented and enforced
-
-### Principle 4: Privacy and Security by Default
-
-Data protection is embedded in all processes and systems.
-
-**What This Means:**
-- PII is identified, tagged, and protected
-- Access follows least-privilege principle
-- Audit logging is enabled on all sensitive data
-- Secrets are managed via Databricks scopes
-
-### Principle 5: Transparency and Lineage
-
-Data provenance is tracked and visible.
-
-**What This Means:**
-- Unity Catalog lineage enabled for all tables
-- Source systems documented
-- Transformations are traceable
-- Impact analysis is possible for any change
+| ID | Rule | Severity |
+|----|------|----------|
+| **EA-01** | All data assets must have business context documentation | Critical |
+| **EA-02** | PII columns must be tagged and classified | Critical |
+| **EA-03** | Every data domain must have an assigned data steward | Required |
+| **EA-04** | All compute usage must be attributed with tags | Critical |
+| **EA-05** | Required custom tags: team, cost_center, environment | Required |
+| **EA-06** | All serverless workloads must use assigned budget policies | Critical |
+| **EA-07** | All new projects require architecture review | Required |
+| **EA-08** | Rule exceptions require documented approval | Required |
+| **EA-09** | Use Governed Tags for UC object metadata (showback/chargeback) | Critical |
 
 ---
 
-## Governance Framework
+## EA-01: Data Documentation
 
-### Data Domains
+### Rule
+All tables must have LLM-friendly COMMENT documentation at both table and column level.
 
-Data is organized into domains based on business function:
+### Why It Matters
+- Enables discoverability and understanding across teams
+- Powers natural language queries via Genie
+- Supports regulatory compliance documentation
 
-| Domain | Description | Data Steward |
-|--------|-------------|--------------|
-| **Customer** | Customer master, preferences, interactions | Customer Ops |
-| **Product** | Product catalog, pricing, inventory | Product Team |
-| **Sales** | Orders, transactions, revenue | Sales Ops |
-| **Finance** | Billing, costs, financial reporting | Finance Team |
-| **Operations** | Processes, workflows, performance | Platform Team |
-| **Security** | Access, audit, compliance | Security Team |
-
-### Data Classification
-
-| Classification | Description | Examples | Controls |
-|----------------|-------------|----------|----------|
-| **Confidential** | Highly sensitive, PII, financial | SSN, credit card, salary | Encryption, restricted access, audit logging |
-| **Internal** | Business sensitive, not public | Sales figures, strategies | Role-based access, no external sharing |
-| **Public** | Safe for external sharing | Product specs, marketing | Standard access controls |
-
-### Data Lifecycle
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           DATA LIFECYCLE                                     │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐     │
-│   │ CREATE  │──▶│ STORE   │──▶│   USE   │──▶│ ARCHIVE │──▶│ DESTROY │     │
-│   └─────────┘   └─────────┘   └─────────┘   └─────────┘   └─────────┘     │
-│        │             │             │             │             │            │
-│        ▼             ▼             ▼             ▼             ▼            │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                    GOVERNANCE CONTROLS                              │  │
-│   │  • Classification  • Encryption   • Access      • Retention  • Audit│  │
-│   │  • Ownership       • Location     • Quality     • Compliance • Purge│  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Governance Standards
-
-### Standard 1: Data Asset Documentation
-
-**Rule EA-01: All data assets must be documented with business context**
-
-Every table MUST have:
-- Table-level COMMENT describing business purpose
-- Column-level COMMENTs for all columns
-- Tags for layer, domain, classification
-- Owner assignment
-
-**Documentation Format:**
+### Implementation
 
 ```sql
--- Table COMMENT (dual-purpose for business users and LLMs)
-COMMENT 'Gold layer customer dimension with current and historical records. 
-Business: Primary customer reference for all analytics, includes demographics, 
-preferences, and segment assignments. Updated daily from CRM.
-Technical: SCD Type 2 with is_current flag. Grain is one row per customer version.'
+-- Table-level comment (dual-purpose for business users and LLMs)
+COMMENT ON TABLE gold.dim_customer IS 
+'Gold layer customer dimension with current and historical records.
+Business: Primary customer reference for all analytics.
+Technical: SCD Type 2 with is_current flag.';
 
--- Column COMMENT
-COMMENT 'Customer lifetime value in USD. Business: Total revenue attributed to 
-this customer across all orders. Used for segmentation and targeting. 
-Technical: Calculated daily, includes returns.'
+-- Column-level comment
+COMMENT ON COLUMN gold.dim_customer.lifetime_value IS
+'Customer lifetime value in USD. Business: Total revenue attributed 
+to this customer. Technical: Calculated daily, includes returns.';
 ```
 
-### Standard 2: Data Classification and Tagging
+---
 
-**Rule EA-02: PII columns must be tagged and classified**
+## EA-02: PII Classification
+
+### Rule
+All columns containing personally identifiable information must be tagged with `pii = true` and the appropriate `pii_type`.
+
+### Why It Matters
+- Required for GDPR, CCPA, and HIPAA compliance
+- Enables automated data protection policies
+- Supports audit and access control requirements
+
+### Implementation
 
 ```sql
--- Apply PII tag
-ALTER TABLE catalog.schema.dim_customer
+-- Tag PII columns
+ALTER TABLE gold.dim_customer
 ALTER COLUMN email SET TAGS ('pii' = 'true', 'pii_type' = 'email');
 
-ALTER TABLE catalog.schema.dim_customer
+ALTER TABLE gold.dim_customer
 ALTER COLUMN phone SET TAGS ('pii' = 'true', 'pii_type' = 'phone');
 
--- Apply classification tag
-ALTER TABLE catalog.schema.dim_customer
+-- Tag table classification
+ALTER TABLE gold.dim_customer
 SET TAGS ('data_classification' = 'confidential');
 ```
 
-### Standard 3: Data Ownership
+### Classification Levels
 
-**Rule EA-03: Every data domain must have an assigned data steward**
+| Level | Description | Examples |
+|-------|-------------|----------|
+| Confidential | Highly sensitive, PII, financial | SSN, credit card, salary |
+| Internal | Business sensitive, not public | Sales figures, strategies |
+| Public | Safe for external sharing | Product specs, marketing |
+
+---
+
+## EA-03: Data Stewardship
+
+### Rule
+Every data domain must have an assigned data steward responsible for governance within that domain.
+
+### Why It Matters
+- Clear accountability for data quality and access decisions
+- Reduces bottlenecks in access request processing
+- Enables domain expertise in data definitions
+
+### Steward Responsibilities
 
 | Responsibility | Description |
 |----------------|-------------|
-| **Define** | Business definitions, quality rules |
-| **Approve** | Access requests, schema changes |
-| **Monitor** | Quality metrics, usage patterns |
-| **Resolve** | Data issues, conflicting definitions |
+| **Define** | Business definitions and quality rules |
+| **Approve** | Access requests and schema changes |
+| **Monitor** | Quality metrics and usage patterns |
+| **Resolve** | Data issues and conflicting definitions |
 
-### Standard 4: Data Quality Rules
+---
 
-Quality rules must be:
-- Documented in code (DLT expectations, DQX checks)
-- Stored in metadata (dq_rules table)
-- Monitored (Lakehouse Monitoring custom metrics)
-- Alerted (SQL alerts for threshold breaches)
+## EA-04: Usage Attribution Tags
 
-```python
-# DLT Expectation
-@dlt.expect_all_or_drop({
-    "valid_email": "email RLIKE '^[^@]+@[^@]+\\.[^@]+$'",
-    "valid_segment": "segment IN ('premium', 'standard', 'basic')"
-})
+### Rule
+All compute usage must be attributed with tags for cost tracking, reporting, and budgeting.
+
+### Why It Matters
+- Enables accurate cost allocation (showback/chargeback)
+- Supports budget enforcement and anomaly detection
+- Required for capacity planning
+
+### Default Tags (Automatic)
+
+| Tag | Value |
+|-----|-------|
+| `Vendor` | `Databricks` |
+| `ClusterId` | Internal cluster ID |
+| `ClusterName` | Cluster name |
+| `Creator` | User email |
+| `RunName` | Job name (jobs only) |
+
+---
+
+## EA-05: Required Custom Tags
+
+### Rule
+All compute resources must include these custom tags:
+
+| Tag | Required | Example |
+|-----|----------|---------|
+| `team` | Yes | `data-engineering` |
+| `cost_center` | Yes | `CC-1234` |
+| `environment` | Yes | `dev`, `staging`, `prod` |
+| `project` | Recommended | `customer-360` |
+| `workload_type` | Recommended | `etl`, `ml-training`, `analytics` |
+
+### Implementation
+
+**Cluster Policy Enforcement:**
+```json
+{
+  "custom_tags.team": { "type": "required" },
+  "custom_tags.cost_center": { "type": "required" },
+  "custom_tags.environment": {
+    "type": "allowlist",
+    "values": ["dev", "staging", "prod"]
+  }
+}
 ```
 
 ---
 
-## Governance Processes
+## EA-06: Serverless Budget Policies
 
-### Process 1: New Data Asset Onboarding
+### Rule
+All serverless workloads (notebooks, jobs, pipelines, model serving) must use assigned budget policies for cost attribution.
 
-```mermaid
-flowchart TD
-    A[New Data Need] --> B[Business Requirements]
-    B --> C[Data Steward Review]
-    C --> D{Domain Exists?}
-    D -->|Yes| E[Add to Existing Domain]
-    D -->|No| F[Create New Domain]
-    F --> G[Assign Steward]
-    G --> E
-    E --> H[Define Schema in YAML]
-    H --> I[Architecture Review]
-    I --> J{Approved?}
-    J -->|No| K[Remediation]
-    K --> H
-    J -->|Yes| L[Implementation]
-    L --> M[Documentation Review]
-    M --> N[Production Deployment]
+### Why It Matters
+- Enables cost tracking for serverless compute (which doesn't have cluster tags)
+- Tags automatically appear in `system.billing.usage`
+- Supports team-level budget enforcement
+
+### Setup Steps
+
+1. Navigate to **Settings** → **Compute** → **Serverless budget policies**
+2. Create policy with required tags
+3. Assign User or Manager permission to appropriate groups
+4. Users select policy when creating serverless resources
+
+### Query Tagged Usage
+
+```sql
+SELECT 
+    usage_date,
+    custom_tags:team AS team,
+    custom_tags:cost_center AS cost_center,
+    SUM(list_cost) AS total_cost
+FROM system.billing.usage
+WHERE sku_name LIKE '%SERVERLESS%'
+GROUP BY 1, 2, 3;
 ```
 
-### Process 2: Schema Change Management
+---
 
-| Change Type | Approval Required | Process |
-|-------------|-------------------|---------|
-| **Additive** (new column) | Data Steward | PR review → Deploy |
-| **Modification** (type change) | Data Steward + Architect | Impact analysis → PR → Deploy |
-| **Destructive** (drop column) | Data Steward + Architect + Consumers | 90-day deprecation → Remove |
-| **Breaking** (rename, semantic change) | Full review board | Release planning → Migration → Cutover |
+## EA-07: Architecture Review
 
-### Process 3: Access Request
+### Rule
+All new data platform projects must complete architecture review before implementation begins.
 
-1. **Request:** User submits access request with business justification
-2. **Review:** Data Steward reviews against data classification
-3. **Approve/Deny:** Based on need-to-know and least-privilege
-4. **Implement:** Platform team applies Unity Catalog grants
-5. **Audit:** Access logged and reviewed quarterly
+### Why It Matters
+- Ensures alignment with platform standards
+- Identifies potential issues early
+- Reduces rework and technical debt
+
+### Review Checklist
+
+- [ ] Medallion architecture design documented
+- [ ] Gold layer star schema (ERD) reviewed
+- [ ] PII data identified and classification assigned
+- [ ] Data quality rules defined
+- [ ] Security requirements documented
+- [ ] Cost estimates provided
+
+---
+
+## EA-08: Exception Approval
+
+### Rule
+Any deviation from Golden Rules requires documented approval with business justification, risk assessment, and remediation timeline.
+
+### Why It Matters
+- Maintains governance integrity
+- Creates audit trail for compliance
+- Ensures exceptions are temporary, not permanent
+
+### Exception Request Requirements
+
+| Field | Description |
+|-------|-------------|
+| Rule being bypassed | Which Golden Rule |
+| Business justification | Why exception is necessary |
+| Risk assessment | Impact if exception granted |
+| Remediation plan | How/when compliance will be achieved |
+| Approver | Platform Architect or Architecture Board |
+
+---
+
+## EA-09: Governed Tags for UC Objects
+
+### Rule
+Use Governed Tags (account-level tags with enforced allowed values) for consistent metadata on Unity Catalog objects to support showback/chargeback.
+
+### Why It Matters
+- Enforces consistent tagging across all workspaces
+- Supports attribute-based access control (ABAC)
+- Enables accurate cost allocation to data assets
+
+### Required Governed Tags
+
+| Tag | Allowed Values | Apply To |
+|-----|----------------|----------|
+| `cost_center` | Organization-specific codes | Catalogs |
+| `business_unit` | Sales, Engineering, etc. | Catalogs |
+| `data_owner` | Email or team name | Schemas |
+| `data_classification` | public, internal, confidential, restricted | Tables |
+
+### Governed vs User-Defined Tags
+
+| Feature | Governed | User-Defined |
+|---------|----------|--------------|
+| Policy enforcement | ✅ | ❌ |
+| Permission control | ✅ ASSIGN permission | Any user with MANAGE |
+| Predefined values | ✅ | Any value |
+| Inheritance to children | ✅ | ❌ |
+
+### Implementation
+
+```sql
+-- Apply governed tag to catalog
+ALTER CATALOG sales_data SET TAGS ('cost_center' = 'CC-1234');
+
+-- Apply governed tag to schema
+ALTER SCHEMA sales_data.gold SET TAGS ('data_classification' = 'confidential');
+```
+
+---
+
+## Governance Model
+
+Our organization uses a **hybrid governance model**:
+
+| Aspect | Central Governance | Domain Governance |
+|--------|-------------------|-------------------|
+| **Owner** | Platform Team | Data Stewards |
+| **Scope** | Metastore, global policies | Catalog/domain data |
+| **Examples** | Security baselines, naming standards | Access approvals, quality rules |
 
 ---
 
 ## Governance Metrics
 
-### Data Quality Metrics
-
-| Metric | Definition | Target | Alert Threshold |
-|--------|------------|--------|-----------------|
-| **Completeness** | % non-null values | >99% | <95% |
-| **Uniqueness** | % unique values (for keys) | 100% | <100% |
-| **Timeliness** | Hours since last refresh | <24h | >48h |
-| **Accuracy** | % passing business rules | >99% | <95% |
-| **Consistency** | % matching across systems | >99% | <95% |
-
-### Governance Health Metrics
-
-| Metric | Definition | Target |
-|--------|------------|--------|
-| **Documentation Coverage** | % tables with COMMENTs | 100% |
-| **Classification Coverage** | % tables with classification tags | 100% |
-| **Steward Assignment** | % domains with assigned steward | 100% |
-| **Quality Rule Coverage** | % tables with DQ rules | >90% |
-| **Access Review Completion** | % quarterly reviews completed | 100% |
-
----
-
-## Compliance and Audit
-
-### Audit Trail
-
-Unity Catalog provides automatic audit logging:
-
-```sql
--- Query audit logs
-SELECT 
-    event_time,
-    user_identity.email,
-    action_name,
-    request_params.name_arg as table_name
-FROM system.access.audit
-WHERE 
-    action_name IN ('createTable', 'deleteTable', 'grantPrivilege')
-    AND event_date >= current_date - 30
-ORDER BY event_time DESC;
-```
-
-### Compliance Controls
-
-| Regulation | Control | Implementation |
-|------------|---------|----------------|
-| **GDPR** | Right to erasure | Soft delete with purge job |
-| **CCPA** | Data access requests | Export utility |
-| **SOC 2** | Access controls | Unity Catalog RBAC |
-| **PCI-DSS** | Cardholder data protection | Column-level encryption, masking |
-
-### Audit Schedule
-
-| Audit | Frequency | Scope | Owner |
-|-------|-----------|-------|-------|
-| Access Review | Quarterly | All privileged access | Security Team |
-| Data Quality | Monthly | Quality metrics trends | Data Steward |
-| Compliance | Annually | Regulatory requirements | Compliance Officer |
-| Architecture | Per project | New implementations | Platform Architect |
-
----
-
-## Tools and Technologies
-
-### Governance Technology Stack
-
-| Capability | Tool | Usage |
-|------------|------|-------|
-| **Catalog** | Unity Catalog | Central metadata, access control |
-| **Lineage** | Unity Catalog Lineage | Data flow tracking |
-| **Quality** | DLT + DQX | Data validation |
-| **Monitoring** | Lakehouse Monitoring | Quality metrics |
-| **Alerting** | SQL Alerts | Threshold notifications |
-| **Documentation** | Table/Column COMMENTs | Business context |
-| **Classification** | UC Tags | Data sensitivity |
-
----
-
-## Roles and Responsibilities
-
-See: [Roles & Responsibilities](02-roles-responsibilities.md) for detailed RACI matrix.
-
-| Role | Governance Responsibility |
-|------|---------------------------|
-| **Chief Data Officer** | Governance strategy, executive sponsorship |
-| **Data Steward** | Domain governance, quality standards |
-| **Platform Architect** | Technical standards, tooling |
-| **Data Engineer** | Implementation, quality rules |
-| **Security Team** | Access control, compliance |
+| Metric | Target | Alert Threshold |
+|--------|--------|-----------------|
+| Documentation coverage | 100% | <90% |
+| Classification coverage | 100% | <90% |
+| Steward assignment | 100% | <100% |
+| Quality rule coverage | >90% | <80% |
+| Tag compliance | 100% | <95% |
 
 ---
 
 ## Related Documents
 
 - [Roles & Responsibilities](02-roles-responsibilities.md)
-- [Compliance Framework](03-compliance-framework.md)
-- [Unity Catalog Standards](../platform-architecture/11-unity-catalog.md)
-- [Gold Layer Patterns](../solution-architecture/data-pipelines/12-gold-layer-patterns.md)
+- [Implementation Workflow](03-implementation-workflow.md)
+- [Data Modeling](04-data-modeling.md)
+- [Naming & Comment Standards](05-naming-comment-standards.md)
+- [Tagging Standards](06-tagging-standards.md)
+- [Data Quality Standards](07-data-quality-standards.md)
+- [Unity Catalog Standards](../platform-architecture/12-unity-catalog-tables.md)
 
 ---
 
 ## References
 
+- [Best Practices for Data and AI Governance](https://learn.microsoft.com/en-us/azure/databricks/lakehouse-architecture/data-governance/best-practices)
 - [Unity Catalog Governance](https://docs.databricks.com/data-governance/unity-catalog/)
-- [Data Classification](https://docs.databricks.com/data-governance/unity-catalog/tags)
-- [Audit Logging](https://docs.databricks.com/administration-guide/account-settings/audit-logs)
+- [Usage Attribution Tags](https://learn.microsoft.com/en-us/azure/databricks/admin/account-settings/usage-detail-tags)
+- [Serverless Budget Policies](https://learn.microsoft.com/en-us/azure/databricks/admin/usage/budget-policies)
+- [Governed Tags](https://learn.microsoft.com/en-us/azure/databricks/admin/governed-tags/)

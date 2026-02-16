@@ -1788,40 +1788,83 @@ def comprehensive_quality_check(*, inputs: dict = None, outputs: Any = None, **k
 
 def get_evaluation_dataset() -> pd.DataFrame:
     """
-    Get comprehensive evaluation dataset covering all 5 domains.
+    Get comprehensive evaluation dataset covering all 5 domains plus cross-domain queries.
     
     Per https://docs.databricks.com/aws/en/generative-ai/agent-evaluation/synthesize-evaluation-set
+    
+    Cross-domain queries test the agent's ability to:
+    - Query multiple Genie Spaces in parallel
+    - Synthesize results across domains
+    - Identify correlations and provide actionable insights
     """
     data = [
-        # COST DOMAIN
+        # ===========================================================================
+        # COST DOMAIN (4 questions)
+        # ===========================================================================
         {"query": "Why did costs spike yesterday?", "category": "cost", "expected_domains": ["cost"], "difficulty": "simple"},
         {"query": "What are the top 10 most expensive jobs this month?", "category": "cost", "expected_domains": ["cost"], "difficulty": "simple"},
         {"query": "Show DBU usage by workspace for last quarter", "category": "cost", "expected_domains": ["cost"], "difficulty": "moderate"},
         {"query": "Which teams are over budget?", "category": "cost", "expected_domains": ["cost"], "difficulty": "moderate"},
         
-        # SECURITY DOMAIN
+        # ===========================================================================
+        # SECURITY DOMAIN (3 questions)
+        # ===========================================================================
         {"query": "Who accessed sensitive data last week?", "category": "security", "expected_domains": ["security"], "difficulty": "simple"},
         {"query": "Show failed login attempts in the past 24 hours", "category": "security", "expected_domains": ["security"], "difficulty": "simple"},
         {"query": "What permissions changes were made this week?", "category": "security", "expected_domains": ["security"], "difficulty": "moderate"},
         
-        # PERFORMANCE DOMAIN
+        # ===========================================================================
+        # PERFORMANCE DOMAIN (3 questions)
+        # ===========================================================================
         {"query": "What are the slowest queries today?", "category": "performance", "expected_domains": ["performance"], "difficulty": "simple"},
         {"query": "Show cluster utilization trends this week", "category": "performance", "expected_domains": ["performance"], "difficulty": "moderate"},
         {"query": "Which warehouses have low cache hit rates?", "category": "performance", "expected_domains": ["performance"], "difficulty": "moderate"},
         
-        # RELIABILITY DOMAIN
+        # ===========================================================================
+        # RELIABILITY DOMAIN (3 questions)
+        # ===========================================================================
         {"query": "Which jobs failed today?", "category": "reliability", "expected_domains": ["reliability"], "difficulty": "simple"},
         {"query": "What is our SLA compliance this week?", "category": "reliability", "expected_domains": ["reliability"], "difficulty": "simple"},
         {"query": "Show pipeline health across all workspaces", "category": "reliability", "expected_domains": ["reliability"], "difficulty": "moderate"},
         
-        # QUALITY DOMAIN
+        # ===========================================================================
+        # QUALITY DOMAIN (3 questions)
+        # ===========================================================================
         {"query": "Which tables have data quality issues?", "category": "quality", "expected_domains": ["quality"], "difficulty": "simple"},
         {"query": "Show data freshness by schema", "category": "quality", "expected_domains": ["quality"], "difficulty": "moderate"},
         {"query": "What tables have stale data?", "category": "quality", "expected_domains": ["quality"], "difficulty": "simple"},
         
-        # MULTI-DOMAIN
-        {"query": "Are expensive jobs also the ones failing frequently?", "category": "multi_domain", "expected_domains": ["cost", "reliability"], "difficulty": "complex"},
-        {"query": "Give me a complete health check of the platform", "category": "multi_domain", "expected_domains": ["cost", "security", "performance", "reliability", "quality"], "difficulty": "complex"},
+        # ===========================================================================
+        # CROSS-DOMAIN QUERIES (12 questions)
+        # ===========================================================================
+        # These test the agent's ability to query multiple Genie Spaces in parallel
+        # and synthesize insights across domains.
+        
+        # Cost + Reliability
+        {"query": "Are expensive jobs also the ones failing frequently?", "category": "cross_domain", "expected_domains": ["cost", "reliability"], "difficulty": "complex"},
+        {"query": "How much money are we wasting on failed jobs?", "category": "cross_domain", "expected_domains": ["cost", "reliability"], "difficulty": "complex"},
+        
+        # Cost + Performance
+        {"query": "Are slow queries costing us more money?",  "category": "cross_domain", "expected_domains": ["cost", "performance"], "difficulty": "complex"},
+        {"query": "Compare cost efficiency across different warehouse sizes", "category": "cross_domain", "expected_domains": ["cost", "performance"], "difficulty": "complex"},
+        
+        # Security + Reliability
+        {"query": "Are failed jobs related to permission issues?", "category": "cross_domain", "expected_domains": ["security", "reliability"], "difficulty": "complex"},
+        
+        # Performance + Reliability
+        {"query": "Are timeouts causing job failures?", "category": "cross_domain", "expected_domains": ["performance", "reliability"], "difficulty": "complex"},
+        {"query": "What's the relationship between cluster utilization and job success rate?", "category": "cross_domain", "expected_domains": ["performance", "reliability"], "difficulty": "complex"},
+        
+        # Performance + Quality
+        {"query": "What's the relationship between query performance and data quality?", "category": "cross_domain", "expected_domains": ["performance", "quality"], "difficulty": "complex"},
+        
+        # Reliability + Quality
+        {"query": "Are pipelines failing due to data quality issues?", "category": "cross_domain", "expected_domains": ["reliability", "quality"], "difficulty": "complex"},
+        
+        # All Domains - Comprehensive
+        {"query": "Give me a complete health check of the platform", "category": "cross_domain", "expected_domains": ["cost", "security", "performance", "reliability", "quality"], "difficulty": "complex"},
+        {"query": "Show me a summary of issues requiring immediate attention", "category": "cross_domain", "expected_domains": ["cost", "security", "performance", "reliability", "quality"], "difficulty": "complex"},
+        {"query": "What's the overall health of our Databricks workspace?", "category": "cross_domain", "expected_domains": ["cost", "security", "performance", "reliability", "quality"], "difficulty": "complex"},
     ]
     
     return pd.DataFrame(data)

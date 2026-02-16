@@ -421,6 +421,15 @@ def main():
         # Ensure schema exists
         create_catalog_and_schema(spark, catalog, system_bronze_schema)
         
+        # Enable Predictive Optimization at schema level (dedicated DDL)
+        # This automates OPTIMIZE, VACUUM, and ZORDER for all tables in the schema.
+        # Per 03-schema-management-patterns.mdc: use ALTER SCHEMA, NOT SET TBLPROPERTIES.
+        try:
+            spark.sql(f"ALTER SCHEMA {catalog}.{system_bronze_schema} ENABLE PREDICTIVE OPTIMIZATION")
+            print(f"✓ Predictive Optimization enabled for {catalog}.{system_bronze_schema}")
+        except Exception as e:
+            print(f"⚠ Could not enable Predictive Optimization: {e}")
+        
         # Create all 8 non-streaming tables
         create_assistant_events(spark, catalog, system_bronze_schema)
         create_workspaces_latest(spark, catalog, system_bronze_schema)

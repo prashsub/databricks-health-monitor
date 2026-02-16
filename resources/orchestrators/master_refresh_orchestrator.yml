@@ -13,10 +13,16 @@
 # This enables atomic testing at each layer
 #
 # Execution Flow:
-#   1. Bronze Refresh (atomic) - Ingest new data from system tables
+#   1. Bronze Refresh (atomic) - 4-step pipeline:
+#      a. Streaming pipeline (24 tables → Delta sinks via dp.append_flow)
+#      b. Dedup streaming sinks (INSERT OVERWRITE + CLUSTER BY AUTO + TBLPROPERTIES)
+#      c. DQX validation (post-pipeline quality checks, quarantine invalid rows)
+#      d. MERGE non-streaming tables (9 batch tables)
 #   2. Gold Merge (atomic) - Transform Bronze → Gold
 #   3. Monitoring Refresh (composite) → Lakehouse Monitor Refresh job
 #   4. ML Inference (composite) → ML Inference Pipeline job
+#
+# Total: 33 system tables ingested (24 streaming + 9 non-streaming)
 #
 # Usage:
 #   databricks bundle run -t dev master_refresh_orchestrator

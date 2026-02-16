@@ -117,6 +117,18 @@ Before scheduling an architecture review, ensure these artifacts are complete:
 | Resources declared in AuthPolicy | [ ] Pass [ ] Fail [ ] N/A | |
 | API scopes appropriately limited | [ ] Pass [ ] Fail [ ] N/A | |
 
+### SEC-05: Network Security (Production)
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| VNet injection configured | [ ] Pass [ ] Fail [ ] N/A | |
+| Private Link enabled for control plane | [ ] Pass [ ] Fail [ ] N/A | |
+| IP access lists implemented | [ ] Pass [ ] Fail [ ] N/A | |
+| Secure cluster connectivity (no public IPs) | [ ] Pass [ ] Fail [ ] N/A | |
+| Diagnostic logging to Azure Monitor | [ ] Pass [ ] Fail [ ] N/A | |
+| Network egress controls configured | [ ] Pass [ ] Fail [ ] N/A | |
+| Customer-managed keys (CMK) for encryption | [ ] Pass [ ] Fail [ ] N/A | |
+
 ---
 
 ## Section 3: Data Quality (DQ Rules)
@@ -285,6 +297,69 @@ Before scheduling an architecture review, ensure these artifacts are complete:
 
 ---
 
+## Section 7: Semantic Layer (SL Rules)
+
+### SL-01: Metric Views
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| Metric Views use v1.1 YAML (no `name` field) | [ ] Pass [ ] Fail [ ] N/A | |
+| No transitive joins (only direct source → dim) | [ ] Pass [ ] Fail [ ] N/A | |
+| All column references verified against Gold YAML | [ ] Pass [ ] Fail [ ] N/A | |
+| v3.0 comment format (PURPOSE, BEST FOR, NOT FOR) | [ ] Pass [ ] Fail [ ] N/A | |
+
+### SL-02: Table-Valued Functions
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| TVFs use STRING for date parameters (not DATE) | [ ] Pass [ ] Fail [ ] N/A | |
+| Schema validation before SQL deployment | [ ] Pass [ ] Fail [ ] N/A | |
+| v3.0 comment format with "DO NOT wrap in TABLE()" | [ ] Pass [ ] Fail [ ] N/A | |
+| Parameter validation included in function body | [ ] Pass [ ] Fail [ ] N/A | |
+
+### SL-03: Genie Spaces
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| Tables and Metric Views properly registered | [ ] Pass [ ] Fail [ ] N/A | |
+| Sample questions aligned with asset capabilities | [ ] Pass [ ] Fail [ ] N/A | |
+| Instructions provide routing guidance | [ ] Pass [ ] Fail [ ] N/A | |
+| Benchmark testing completed (accuracy/repeatability) | [ ] Pass [ ] Fail [ ] N/A | |
+
+---
+
+## Section 8: ML/AI Extended (ML Rules)
+
+### ML-01: MLflow Model Patterns
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| Experiment paths use `/Shared/` convention | [ ] Pass [ ] Fail [ ] N/A | |
+| `output_schema` defined for Unity Catalog models | [ ] Pass [ ] Fail [ ] N/A | |
+| NaN/Inf cleaned at feature table creation | [ ] Pass [ ] Fail [ ] N/A | |
+| Label binarization for classification models | [ ] Pass [ ] Fail [ ] N/A | |
+
+### ML-02: GenAI Agent Patterns
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| OBO context detection implemented | [ ] Pass [ ] Fail [ ] N/A | |
+| Genie Spaces declared as `DatabricksGenieSpace` resources | [ ] Pass [ ] Fail [ ] N/A | |
+| SQL Warehouse declared as `DatabricksSQLWarehouse` resource | [ ] Pass [ ] Fail [ ] N/A | |
+| MLflow tracing enabled | [ ] Pass [ ] Fail [ ] N/A | |
+
+### ML-03: AI Gateway
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| Payload logging enabled | [ ] Pass [ ] Fail [ ] N/A | |
+| Rate limiting configured | [ ] Pass [ ] Fail [ ] N/A | |
+| AI Guardrails enabled (external-facing endpoints) | [ ] Pass [ ] Fail [ ] N/A | |
+| Usage tracking active for cost management | [ ] Pass [ ] Fail [ ] N/A | |
+| Fallbacks configured for critical LLM endpoints | [ ] Pass [ ] Fail [ ] N/A | |
+
+---
+
 ## Review Summary
 
 ### Overall Assessment
@@ -297,6 +372,8 @@ Before scheduling an architecture review, ensure these artifacts are complete:
 | Performance (PERF) | | | | |
 | Development (DEV) | | | | |
 | Operations (OPS) | | | | |
+| Semantic Layer (SL) | | | | |
+| ML/AI Extended (ML) | | | | |
 | **TOTAL** | | | | |
 
 ### Decision
@@ -341,4 +418,5 @@ Before scheduling an architecture review, ensure these artifacts are complete:
 
 ---
 
-*Checklist Version 1.0 - Based on Enterprise Golden Rules*
+*Checklist Version 2.0 - Based on Enterprise Golden Rules (February 2026)*
+*Added: Network Security (SEC-05), Semantic Layer (SL-01 to SL-03), ML/AI Extended (ML-01 to ML-03)*

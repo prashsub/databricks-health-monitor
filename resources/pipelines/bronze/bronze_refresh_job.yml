@@ -3,33 +3,62 @@
 # Called by Master Refresh Orchestrator
 # 
 # Execution Flow:
-# 1. Run unified DLT streaming pipeline (24 streaming tables)
-# 2. MERGE non-streaming tables (8 tables)
+# 1. Run streaming pipeline (24 tables → Delta sinks via dp.append_flow)
+# 2. Dedup streaming sinks (INSERT OVERWRITE + CLUSTER BY AUTO + TBLPROPERTIES)
+# 3. DQX validation (post-pipeline quality checks, quarantine invalid rows)
+# 4. MERGE non-streaming tables (9 batch tables)
 # 
-# Total: 32 system tables ingested
+# Total: 33 system tables ingested (24 streaming + 9 non-streaming)
 
 resources:
   jobs:
     bronze_refresh_job:
       name: "[${bundle.target}] Health Monitor - Bronze Refresh"
-      description: "Bronze data ingestion: DLT streaming (24 tables) + non-streaming MERGE (8 tables) = 32 total"
+      description: "Bronze data ingestion: streaming sinks (24) + dedup + DQX validation + non-streaming MERGE (9) = 33 total"
       
       environments:
         - environment_key: default
           spec:
             environment_version: "4"
+            dependencies:
+              - "databricks-labs-dqx"
+              - "pyyaml"
       
       tasks:
-        # Run unified DLT streaming pipeline
+        # Step 1: Run streaming pipeline (Delta sinks)
         - task_key: run_streaming_pipeline
           pipeline_task:
             pipeline_id: ${resources.pipelines.bronze_streaming_pipeline.id}
             full_refresh: false
         
-        # MERGE non-streaming tables
-        - task_key: merge_nonstreaming_tables
+        # Step 2: Dedup streaming sink tables
+        # run_if: ALL_DONE ensures dedup runs even if pipeline has warnings
+        - task_key: dedup_streaming_sinks
           depends_on:
             - task_key: run_streaming_pipeline
+          run_if: ALL_DONE
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../../src/pipelines/bronze/dedup/dedup_streaming_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+              system_bronze_schema: ${var.system_bronze_schema}
+        
+        # Step 3: DQX validation (non-blocking — quarantines bad records)
+        - task_key: validate_bronze_dqx
+          depends_on:
+            - task_key: dedup_streaming_sinks
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../../src/pipelines/bronze/dqx/validate_bronze_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+              system_bronze_schema: ${var.system_bronze_schema}
+        
+        # Step 4: MERGE non-streaming tables
+        - task_key: merge_nonstreaming_tables
+          depends_on:
+            - task_key: validate_bronze_dqx
           environment_key: default
           notebook_task:
             notebook_path: ../../../src/pipelines/bronze/nonstreaming/merge.py
@@ -53,8 +82,3 @@ resources:
         compute_type: serverless
         streaming_tables: "24"
         nonstreaming_tables: "9"
-
-
-
-
-

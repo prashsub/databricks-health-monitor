@@ -2,7 +2,8 @@
 
 ## Golden Rules Compliance Verification
 
-**Version:** 1.0  
+**Version:** 2.0  
+**Last Updated:** February 2026  
 **Usage:** Complete before each deployment and during quarterly audits
 
 ---
@@ -231,6 +232,96 @@ silver_df = (
 
 ---
 
+#### Rule 11: Semantic Layer Standards
+
+| Check | Requirement | Pass/Fail |
+|-------|-------------|-----------|
+| 11.1 | Metric Views use v1.1 YAML format | ☐ |
+| 11.2 | No `name` field in Metric View YAML | ☐ |
+| 11.3 | No transitive joins in Metric Views | ☐ |
+| 11.4 | TVFs use STRING for date parameters | ☐ |
+| 11.5 | Schema validation before SQL deployment | ☐ |
+| 11.6 | v3.0 comment format (PURPOSE, BEST FOR) | ☐ |
+| 11.7 | Column references verified against Gold YAML | ☐ |
+| 11.8 | Genie Space benchmark testing completed | ☐ |
+
+**Verification:**
+```bash
+# Check Metric View YAML structure
+grep -r "name:" src/semantic/metric_views/*.yaml
+# Should NOT find 'name' field in view definitions
+```
+
+**Sign-off:** _________________ Date: _________
+
+---
+
+#### Rule 12: ML/AI Standards
+
+| Check | Requirement | Pass/Fail |
+|-------|-------------|-----------|
+| 12.1 | Experiment paths use `/Shared/` convention | ☐ |
+| 12.2 | `output_schema` defined for UC models | ☐ |
+| 12.3 | NaN/Inf cleaned at feature table creation | ☐ |
+| 12.4 | OBO context detection implemented | ☐ |
+| 12.5 | Genie Spaces in AuthPolicy resources | ☐ |
+| 12.6 | SQL Warehouse in AuthPolicy resources | ☐ |
+| 12.7 | MLflow tracing enabled | ☐ |
+
+**Verification (Agent Authentication):**
+```python
+# Check for environment variable detection
+grep -r "IS_IN_DB_MODEL_SERVING_ENV" src/agents/
+# Should find context detection code
+```
+
+**Sign-off:** _________________ Date: _________
+
+---
+
+#### Rule 13: AI Gateway Configuration
+
+| Check | Requirement | Pass/Fail |
+|-------|-------------|-----------|
+| 13.1 | Payload logging enabled for endpoints | ☐ |
+| 13.2 | Rate limiting configured | ☐ |
+| 13.3 | AI Guardrails enabled (external-facing) | ☐ |
+| 13.4 | Usage tracking active | ☐ |
+| 13.5 | Fallbacks for critical LLM endpoints | ☐ |
+
+**Verification:**
+```python
+# Check endpoint configuration
+databricks serving-endpoints get my-endpoint --output JSON | jq '.config'
+```
+
+**Sign-off:** _________________ Date: _________
+
+---
+
+#### Rule 14: Network Security (Production)
+
+| Check | Requirement | Pass/Fail |
+|-------|-------------|-----------|
+| 14.1 | VNet injection configured | ☐ |
+| 14.2 | Private Link enabled | ☐ |
+| 14.3 | IP access lists implemented | ☐ |
+| 14.4 | CMK encryption configured | ☐ |
+| 14.5 | Diagnostic logging enabled | ☐ |
+| 14.6 | Network egress controls in place | ☐ |
+| 14.7 | Secure cluster connectivity (no public IPs) | ☐ |
+
+**Verification:**
+```bash
+# Check workspace network configuration
+az databricks workspace show --name myworkspace -g mygroup \
+  --query "{vnet:parameters.customVirtualNetworkId.value, privateLink:privateEndpointConnections}"
+```
+
+**Sign-off:** _________________ Date: _________
+
+---
+
 ## Production Deployment Checklist
 
 ### Pre-Deployment
@@ -292,6 +383,10 @@ silver_df = (
 | Rule 8: Documentation | | | | |
 | Rule 9: Schema-First | | | | |
 | Rule 10: Deduplication | | | | |
+| Rule 11: Semantic Layer | | | | |
+| Rule 12: ML/AI Standards | | | | |
+| Rule 13: AI Gateway | | | | |
+| Rule 14: Network Security | | | | |
 | **Overall** | | | | |
 
 ### Remediation Plan
@@ -330,6 +425,18 @@ silver_df = (
 | Missing domain tag | Catalog browsing harder | Add `domain` TBLPROPERTY |
 | No quarantine table | Failed records lost | Add quarantine pattern |
 
+### Semantic Layer & ML/AI Violations
+
+| Violation | Severity | Impact | Fix |
+|-----------|----------|--------|-----|
+| `name` field in Metric View YAML | High | Deployment fails | Remove `name` field (v1.1) |
+| Transitive joins in Metric View | High | Query errors | Use direct joins only |
+| DATE type in TVF parameters | High | Parameter conversion fails | Use STRING for dates |
+| Missing OBO context detection | High | Agent evaluation fails | Add environment variable check |
+| Missing Genie Space resources | High | Permission denied errors | Declare in AuthPolicy |
+| No AI Guardrails (external) | Medium | Safety risks | Enable for external endpoints |
+| Missing rate limiting | Medium | Cost overruns | Configure limits per endpoint |
+
 ---
 
 ## Sign-Off Sheet
@@ -353,6 +460,15 @@ silver_df = (
 
 ## Related Documents
 
-- [Golden Rules](../01-golden-rules-enterprise-data-platform.md)
-- [Roles and Responsibilities](./01-roles-and-responsibilities-raci.md)
-- [Implementation Workflow](./02-implementation-workflow.md)
+- [Golden Rules](../README.md)
+- [Roles and Responsibilities](../enterprise-architecture/02-roles-responsibilities.md)
+- [Implementation Workflow](../enterprise-architecture/03-implementation-workflow.md)
+- [Semantic Layer Overview](../solution-architecture/semantic-layer/33-semantic-layer-overview.md)
+- [GenAI Agent Patterns](../solution-architecture/ml-ai/51-genai-agent-patterns.md)
+- [AI Gateway Patterns](../solution-architecture/ml-ai/53-ai-gateway-patterns.md)
+- [Network Security](../platform-architecture/19-network-security.md)
+
+---
+
+*Verification Checklist Version 2.0 - Based on Enterprise Golden Rules (February 2026)*
+*Added: Rule 11 (Semantic Layer), Rule 12 (ML/AI), Rule 13 (AI Gateway), Rule 14 (Network Security)*

@@ -31,6 +31,9 @@
 | Performance (PERF) | ___% | ↑↓→ | |
 | Development (DEV) | ___% | ↑↓→ | |
 | Operations (OPS) | ___% | ↑↓→ | |
+| Semantic Layer (SL) | ___% | ↑↓→ | |
+| ML/AI Extended (ML) | ___% | ↑↓→ | |
+| Network Security (NET) | ___% | ↑↓→ | |
 
 ### Key Findings
 
@@ -178,6 +181,38 @@
 | OPS-03 | MLflow Tracing | | | | 🟢🟡🔴 |
 | OPS-04 | Automated Deployment | | | | 🟢🟡🔴 |
 
+#### Semantic Layer Rules (SL)
+
+| Rule | Description | Compliant | Non-Compliant | % | Status |
+|------|-------------|-----------|---------------|---|--------|
+| SL-01 | Metric Views v1.1 YAML | | | | 🟢🟡🔴 |
+| SL-02 | TVFs STRING for Dates | | | | 🟢🟡🔴 |
+| SL-03 | Schema Validation before SQL | | | | 🟢🟡🔴 |
+| SL-04 | v3.0 Comment Format | | | | 🟢🟡🔴 |
+| SL-05 | No Transitive Joins | | | | 🟢🟡🔴 |
+
+#### ML/AI Extended Rules (ML)
+
+| Rule | Description | Compliant | Non-Compliant | % | Status |
+|------|-------------|-----------|---------------|---|--------|
+| ML-11 | AI Gateway Payload Logging | | | | 🟢🟡🔴 |
+| ML-12 | Rate Limiting Configured | | | | 🟢🟡🔴 |
+| ML-13 | AI Guardrails (external) | | | | 🟢🟡🔴 |
+| ML-14 | Usage Tracking | | | | 🟢🟡🔴 |
+| ML-15 | LLM Fallbacks | | | | 🟢🟡🔴 |
+
+#### Network Security Rules (NET)
+
+| Rule | Description | Compliant | Non-Compliant | % | Status |
+|------|-------------|-----------|---------------|---|--------|
+| NET-01 | VNet Injection (Production) | | | | 🟢🟡🔴 |
+| NET-02 | Private Link | | | | 🟢🟡🔴 |
+| NET-03 | IP Access Lists | | | | 🟢🟡🔴 |
+| NET-04 | CMK Encryption | | | | 🟢🟡🔴 |
+| NET-05 | Diagnostic Logging | | | | 🟢🟡🔴 |
+| NET-06 | Network Egress Controls | | | | 🟢🟡🔴 |
+| NET-07 | Secure Cluster Connectivity | | | | 🟢🟡🔴 |
+
 **Status Legend:** 🟢 ≥95% | 🟡 80-94% | 🔴 <80%
 
 ---
@@ -217,14 +252,14 @@
 
 #### Compliance Trend (Last 6 Periods)
 
-| Period | DA | SEC | DQ | PERF | DEV | OPS | Overall |
-|--------|----|----|----|----|-----|-----|---------|
-| [Current] | | | | | | | |
-| [-1] | | | | | | | |
-| [-2] | | | | | | | |
-| [-3] | | | | | | | |
-| [-4] | | | | | | | |
-| [-5] | | | | | | | |
+| Period | DA | SEC | DQ | PERF | DEV | OPS | SL | ML | NET | Overall |
+|--------|----|----|----|----|-----|-----|----|----|-----|---------|
+| [Current] | | | | | | | | | | |
+| [-1] | | | | | | | | | | |
+| [-2] | | | | | | | | | | |
+| [-3] | | | | | | | | | | |
+| [-4] | | | | | | | | | | |
+| [-5] | | | | | | | | | | |
 
 #### Trend Chart
 
@@ -314,11 +349,19 @@
 - Asset Bundle validation
 - Code repository scan (secrets detection)
 - Lakehouse Monitor health check
+- Metric View YAML validation
+- TVF parameter type validation
+- Genie Space benchmark testing
+- AI Gateway configuration check
+- Network security posture scan
+- Model serving endpoint audit
 
 **Manual Checks:**
 - Architecture review outcomes
 - Access review findings
 - Incident review findings
+- Genie Space accuracy testing results
+- Network egress rule review
 
 #### Appendix C: Definitions
 
@@ -362,4 +405,5 @@ This report is distributed to:
 
 ---
 
-*Compliance Report Template Version 1.0 - Based on Enterprise Golden Rules*
+*Compliance Report Template Version 2.0 - Based on Enterprise Golden Rules (February 2026)*
+*Added: Semantic Layer (SL), ML/AI Extended (ML), Network Security (NET) categories*

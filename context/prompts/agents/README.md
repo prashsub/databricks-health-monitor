@@ -14,8 +14,23 @@ These prompts capture production-proven patterns from the Databricks Health Moni
 
 | Prompt | File | Purpose | Use When |
 |---|---|---|---|
-| **01** | [agent-framework-overview.md](01-agent-framework-overview.md) | Complete agent implementation guidance | Generating new agent classes |
+| **Comprehensive** | [comprehensive-agent-implementation-prompt.md](comprehensive-agent-implementation-prompt.md) | **Complete production agent blueprint** | **Implementing new agents from scratch** |
+| **01** | [agent-framework-overview.md](01-agent-framework-overview.md) | Agent implementation guidance | Generating new agent classes |
 | **02** | [evaluation-and-judging.md](02-evaluation-and-judging.md) | Evaluation system with LLM judges | Setting up agent evaluation |
+
+### Recommended Usage
+
+**Start with the Comprehensive Prompt** for new agent implementations. It contains:
+- Full architecture overview with diagrams
+- ResponsesAgent implementation patterns
+- Genie Space integration with OBO authentication
+- Lakebase memory (short-term and long-term)
+- Cross-domain query synthesis
+- Visualization hints for frontend
+- Complete evaluation framework with LLM judges
+- Deployment patterns with databricks-agents
+- Configuration management patterns
+- Anti-patterns and lessons learned from production
 
 ## Quick Reference: Critical Requirements
 
@@ -192,6 +207,13 @@ Your agent implementation is production-ready when:
 - [MLflow Tracing](https://mlflow.org/docs/latest/llms/tracing/index.html)
 
 ## Version History
+
+- **v2.0** (Jan 26, 2026) - Comprehensive agent implementation prompt
+  - Complete 12-part production blueprint
+  - Covers: ResponsesAgent, Genie, Lakebase Memory, OBO Auth, Evaluation, Deployment
+  - Based on Health Monitor Agent production implementation
+  - Includes cross-domain query handling patterns
+  - Visualization hints for frontend integration
 
 - **v1.0** (Jan 14, 2026) - Initial prompts from Health Monitor Agent
   - Agent framework overview

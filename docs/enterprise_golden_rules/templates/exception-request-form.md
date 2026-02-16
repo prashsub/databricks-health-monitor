@@ -16,11 +16,16 @@
 
 | Rule ID | Rule Name | Category |
 |---------|-----------|----------|
-| | | [ ] DA [ ] SEC [ ] DQ [ ] PERF [ ] DEV [ ] OPS |
-| | | [ ] DA [ ] SEC [ ] DQ [ ] PERF [ ] DEV [ ] OPS |
-| | | [ ] DA [ ] SEC [ ] DQ [ ] PERF [ ] DEV [ ] OPS |
+| | | [ ] DA [ ] SEC [ ] DQ [ ] PERF [ ] DEV [ ] OPS [ ] SL [ ] ML [ ] NET |
+| | | [ ] DA [ ] SEC [ ] DQ [ ] PERF [ ] DEV [ ] OPS [ ] SL [ ] ML [ ] NET |
+| | | [ ] DA [ ] SEC [ ] DQ [ ] PERF [ ] DEV [ ] OPS [ ] SL [ ] ML [ ] NET |
 
-*Refer to Golden Rules Document (01_golden_rules.md) for rule definitions*
+**Category Legend:**
+- **DA** = Data Architecture | **SEC** = Security | **DQ** = Data Quality
+- **PERF** = Performance | **DEV** = Development | **OPS** = Operations
+- **SL** = Semantic Layer | **ML** = ML/AI Extended | **NET** = Network Security
+
+*Refer to Enterprise Golden Rules documentation for rule definitions*
 
 ### 1.2 Scope of Exception
 
@@ -183,7 +188,10 @@ _______________________________________________________________________________
 |------|--------------|-----------------|
 | **Platform Team** | All exceptions | [ ] Pending [ ] Approved [ ] Denied |
 | **Data Steward** | DQ rules, data classification | [ ] Pending [ ] Approved [ ] Denied [ ] N/A |
-| **Security Team** | SEC rules, High/Critical risk | [ ] Pending [ ] Approved [ ] Denied [ ] N/A |
+| **Security Team** | SEC rules, NET rules, High/Critical risk | [ ] Pending [ ] Approved [ ] Denied [ ] N/A |
+| **ML Engineering Lead** | ML rules, AI Gateway exceptions | [ ] Pending [ ] Approved [ ] Denied [ ] N/A |
+| **Analytics Engineering** | SL rules, Genie Space exceptions | [ ] Pending [ ] Approved [ ] Denied [ ] N/A |
+| **Network Security** | NET rules, VNet/Private Link exceptions | [ ] Pending [ ] Approved [ ] Denied [ ] N/A |
 | **Compliance Officer** | Regulatory impact | [ ] Pending [ ] Approved [ ] Denied [ ] N/A |
 | **Platform Architect** | Extended/Permanent duration | [ ] Pending [ ] Approved [ ] Denied [ ] N/A |
 
@@ -194,6 +202,9 @@ _______________________________________________________________________________
 | Platform Team | | [ ] Approve [ ] Deny | | |
 | Data Steward | | [ ] Approve [ ] Deny [ ] N/A | | |
 | Security Team | | [ ] Approve [ ] Deny [ ] N/A | | |
+| ML Engineering Lead | | [ ] Approve [ ] Deny [ ] N/A | | |
+| Analytics Engineering | | [ ] Approve [ ] Deny [ ] N/A | | |
+| Network Security | | [ ] Approve [ ] Deny [ ] N/A | | |
 | Compliance | | [ ] Approve [ ] Deny [ ] N/A | | |
 | Platform Architect | | [ ] Approve [ ] Deny [ ] N/A | | |
 
@@ -286,4 +297,6 @@ A: The exception becomes void, and affected resources are flagged as non-complia
 
 ---
 
-*Exception Request Form Version 1.0 - Based on Enterprise Golden Rules*
+*Exception Request Form Version 2.0 - Based on Enterprise Golden Rules (February 2026)*
+*Added: Semantic Layer (SL), ML/AI Extended (ML), Network Security (NET) categories*
+*Added: ML Engineering Lead, Analytics Engineering, Network Security approvers*

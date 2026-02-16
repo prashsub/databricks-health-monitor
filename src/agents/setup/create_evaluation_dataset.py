@@ -516,6 +516,11 @@ MANUAL_EVALS = [
     # ===========================================================================
     # CROSS-DOMAIN (Complex multi-domain questions)
     # ===========================================================================
+    # These test the agent's ability to query multiple Genie Spaces in parallel
+    # and synthesize results into coherent, actionable insights.
+    # ===========================================================================
+    
+    # COST + RELIABILITY
     {
         "inputs": {"messages": [{"role": "user", "content": "Are expensive jobs also the ones failing frequently?"}]},
         "expectations": {
@@ -529,6 +534,193 @@ MANUAL_EVALS = [
         "category": "cross_domain",
         "difficulty": "complex"
     },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "How much money are we wasting on failed jobs?"}]},
+        "expectations": {
+            "expected_domains": ["cost", "reliability"],
+            "expected_facts": [
+                "Should calculate cost of failed job runs",
+                "Should identify highest-waste jobs",
+                "Should suggest cost recovery opportunities"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # COST + PERFORMANCE
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are slow queries costing us more money?"}]},
+        "expectations": {
+            "expected_domains": ["cost", "performance"],
+            "expected_facts": [
+                "Should correlate query duration with cost",
+                "Should identify expensive slow queries",
+                "Should provide optimization recommendations"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Compare cost efficiency across different warehouse sizes"}]},
+        "expectations": {
+            "expected_domains": ["cost", "performance"],
+            "expected_facts": [
+                "Should analyze cost per query by warehouse size",
+                "Should compare performance metrics",
+                "Should recommend optimal warehouse configuration"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # COST + SECURITY
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Which service principals are generating the most cost?"}]},
+        "expectations": {
+            "expected_domains": ["cost", "security"],
+            "expected_facts": [
+                "Should identify service principals by activity",
+                "Should correlate with cost data",
+                "Should flag any unauthorized high-cost activity"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # COST + QUALITY
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are we spending money processing low-quality data?"}]},
+        "expectations": {
+            "expected_domains": ["cost", "quality"],
+            "expected_facts": [
+                "Should identify jobs processing tables with quality issues",
+                "Should calculate cost impact of quality problems",
+                "Should recommend data quality investments"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # SECURITY + PERFORMANCE
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are there any security events correlated with performance degradation?"}]},
+        "expectations": {
+            "expected_domains": ["security", "performance"],
+            "expected_facts": [
+                "Should analyze timing of security events",
+                "Should correlate with performance metrics",
+                "Should identify potential attack patterns"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # SECURITY + RELIABILITY  
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are failed jobs related to permission issues?"}]},
+        "expectations": {
+            "expected_domains": ["security", "reliability"],
+            "expected_facts": [
+                "Should analyze job failure reasons",
+                "Should identify permission-related failures",
+                "Should correlate with access control changes"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # PERFORMANCE + RELIABILITY
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are timeouts causing job failures?"}]},
+        "expectations": {
+            "expected_domains": ["performance", "reliability"],
+            "expected_facts": [
+                "Should identify timeout-related failures",
+                "Should analyze job duration patterns",
+                "Should recommend timeout adjustments"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What's the relationship between cluster utilization and job success rate?"}]},
+        "expectations": {
+            "expected_domains": ["performance", "reliability"],
+            "expected_facts": [
+                "Should correlate utilization with success metrics",
+                "Should identify resource contention issues",
+                "Should provide capacity recommendations"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # PERFORMANCE + QUALITY
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What's the relationship between query performance and data quality?"}]},
+        "expectations": {
+            "expected_domains": ["performance", "quality"],
+            "expected_facts": [
+                "Should analyze performance on low-quality tables",
+                "Should identify quality issues affecting performance",
+                "Should provide insights on correlation"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are queries slower on tables with schema drift?"}]},
+        "expectations": {
+            "expected_domains": ["performance", "quality"],
+            "expected_facts": [
+                "Should identify tables with schema changes",
+                "Should analyze query performance impact",
+                "Should recommend schema management practices"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # RELIABILITY + QUALITY
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Are pipelines failing due to data quality issues?"}]},
+        "expectations": {
+            "expected_domains": ["reliability", "quality"],
+            "expected_facts": [
+                "Should identify quality-related failures",
+                "Should correlate with data validation rules",
+                "Should recommend data quality improvements"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Which data quality monitors are associated with job failures?"}]},
+        "expectations": {
+            "expected_domains": ["reliability", "quality"],
+            "expected_facts": [
+                "Should link monitor alerts to job failures",
+                "Should identify critical quality thresholds",
+                "Should suggest monitoring improvements"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # ALL DOMAINS - Comprehensive
     {
         "inputs": {"messages": [{"role": "user", "content": "Give me a complete health check of the platform"}]},
         "expectations": {
@@ -544,19 +736,6 @@ MANUAL_EVALS = [
         "difficulty": "complex"
     },
     {
-        "inputs": {"messages": [{"role": "user", "content": "What's the relationship between query performance and data quality?"}]},
-        "expectations": {
-            "expected_domains": ["performance", "quality"],
-            "expected_facts": [
-                "Should analyze performance on low-quality tables",
-                "Should identify quality issues affecting performance",
-                "Should provide insights on correlation"
-            ]
-        },
-        "category": "cross_domain",
-        "difficulty": "complex"
-    },
-    {
         "inputs": {"messages": [{"role": "user", "content": "Show me a summary of issues requiring immediate attention"}]},
         "expectations": {
             "expected_domains": ["cost", "security", "performance", "reliability", "quality"],
@@ -564,6 +743,60 @@ MANUAL_EVALS = [
                 "Should prioritize by severity",
                 "Should list actionable issues",
                 "Should cover multiple domains"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What's the overall health of our Databricks workspace?"}]},
+        "expectations": {
+            "expected_domains": ["cost", "security", "performance", "reliability", "quality"],
+            "expected_facts": [
+                "Should provide holistic assessment",
+                "Should highlight cross-domain concerns",
+                "Should recommend priority actions"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Compare this week's metrics across all domains vs last week"}]},
+        "expectations": {
+            "expected_domains": ["cost", "security", "performance", "reliability", "quality"],
+            "expected_facts": [
+                "Should show week-over-week trends",
+                "Should cover all domains",
+                "Should identify significant changes"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    
+    # CAUSAL/INVESTIGATIVE Cross-Domain
+    {
+        "inputs": {"messages": [{"role": "user", "content": "Why did costs spike when jobs started failing more?"}]},
+        "expectations": {
+            "expected_domains": ["cost", "reliability"],
+            "expected_facts": [
+                "Should establish timeline correlation",
+                "Should identify root cause",
+                "Should quantify impact"
+            ]
+        },
+        "category": "cross_domain",
+        "difficulty": "complex"
+    },
+    {
+        "inputs": {"messages": [{"role": "user", "content": "What's causing our overall platform degradation?"}]},
+        "expectations": {
+            "expected_domains": ["cost", "performance", "reliability"],
+            "expected_facts": [
+                "Should analyze multiple signals",
+                "Should identify common root causes",
+                "Should provide remediation plan"
             ]
         },
         "category": "cross_domain",

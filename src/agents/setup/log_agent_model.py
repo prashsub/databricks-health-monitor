@@ -1973,23 +1973,341 @@ Your analysis:"""
         space_id = self._get_genie_space_id(domain)
         return space_id if space_id else None
     
+    # ================================================================
+    # DOMAIN CLASSIFICATION: Single and Cross-Domain Support
+    # ================================================================
+    # The agent can handle:
+    # 1. Single-domain queries: Route to one Genie Space
+    # 2. Cross-domain queries: Query multiple Genie Spaces in parallel,
+    #    then synthesize results for intelligent insights
+    # 
+    # Cross-domain indicators:
+    # - Explicit: "cost and performance", "security vs reliability"
+    # - Implicit: "why are costs high when jobs are failing?" (cost + reliability)
+    # - Comparative: "compare performance across all domains"
+    # ================================================================
+    
+    DOMAIN_KEYWORDS = {
+        "cost": ["cost", "spend", "budget", "billing", "dbu", "expensive", "price", "money", "dollar", "charge"],
+        "security": ["security", "access", "permission", "audit", "login", "user", "compliance", "role", "privilege", "auth"],
+        "performance": ["slow", "performance", "latency", "cache", "optimize", "query time", "fast", "speed", "efficient"],
+        "reliability": ["fail", "job", "error", "sla", "pipeline", "success", "retry", "crash", "timeout", "availability"],
+        "quality": ["quality", "freshness", "stale", "schema", "null", "drift", "validation", "data quality", "completeness"],
+    }
+    
+    # Patterns that indicate cross-domain queries
+    CROSS_DOMAIN_INDICATORS = [
+        # Explicit conjunctions
+        "and", "vs", "versus", "compared to", "correlation", "relationship",
+        # Holistic requests
+        "overall health", "platform health", "workspace health", "full picture",
+        "comprehensive", "all domains", "everything", "complete overview",
+        # Causal/investigative
+        "why", "root cause", "impact", "affecting", "causing", "because",
+        # Comparative
+        "compare", "trend across", "patterns across",
+    ]
+    
     def _classify_domain(self, query: str) -> str:
-        """Classify query to appropriate domain."""
+        """
+        Classify query to appropriate domain (single domain).
+        
+        For backwards compatibility - returns primary domain only.
+        Use _classify_domains() for cross-domain support.
+        """
+        domains = self._classify_domains(query)
+        return domains[0] if domains else "unified"
+    
+    def _classify_domains(self, query: str) -> list:
+        """
+        Classify query to one or more domains for cross-domain support.
+        
+        Returns:
+            List of domain strings. If multiple domains, query is cross-domain.
+            Examples:
+            - ["cost"] - Single domain query
+            - ["cost", "reliability"] - Cross-domain query
+            - ["unified"] - General query (routes to unified/default space)
+        """
+        q = query.lower()
+        matched_domains = []
+        
+        # Check each domain for keyword matches
+        for domain, keywords in self.DOMAIN_KEYWORDS.items():
+            if any(kw in q for kw in keywords):
+                matched_domains.append(domain)
+        
+        # If no domains matched, return unified
+        if not matched_domains:
+            return ["unified"]
+        
+        # If only one domain matched, return it
+        if len(matched_domains) == 1:
+            return matched_domains
+        
+        # Multiple domains matched - check if query is truly cross-domain
+        # or just happened to contain keywords from multiple domains
+        if self._is_cross_domain_query(query, matched_domains):
+            return matched_domains
+        
+        # If not clearly cross-domain, return the first (most relevant) match
+        return [matched_domains[0]]
+    
+    def _is_cross_domain_query(self, query: str, matched_domains: list) -> bool:
+        """
+        Determine if a query with multiple domain keywords is truly cross-domain.
+        
+        A query is cross-domain if:
+        1. It explicitly asks for multiple domains (e.g., "cost and security")
+        2. It asks for holistic/comprehensive analysis
+        3. It asks about causal relationships across domains
+        4. It asks for comparisons across domains
+        
+        Args:
+            query: The user's query
+            matched_domains: List of domains that matched keywords
+            
+        Returns:
+            True if query requires cross-domain analysis
+        """
         q = query.lower()
         
-        domain_keywords = {
-            "cost": ["cost", "spend", "budget", "billing", "dbu", "expensive", "price"],
-            "security": ["security", "access", "permission", "audit", "login", "user", "compliance"],
-            "performance": ["slow", "performance", "latency", "cache", "optimize", "query time"],
-            "reliability": ["fail", "job", "error", "sla", "pipeline", "success", "retry"],
-            "quality": ["quality", "freshness", "stale", "schema", "null", "drift", "validation"],
+        # Check for cross-domain indicator patterns
+        for indicator in self.CROSS_DOMAIN_INDICATORS:
+            if indicator in q:
+                return True
+        
+        # Check for explicit domain pair mentions (e.g., "cost and performance")
+        domain_names = list(self.DOMAIN_KEYWORDS.keys())
+        for i, d1 in enumerate(domain_names):
+            for d2 in domain_names[i+1:]:
+                # Check for "domain1 and domain2" or "domain1 vs domain2" patterns
+                if (d1 in q and d2 in q):
+                    # Check if they appear near each other (within 50 chars)
+                    pos1 = q.find(d1)
+                    pos2 = q.find(d2)
+                    if abs(pos1 - pos2) < 50:
+                        return True
+        
+        return False
+    
+    def _query_multiple_genie_spaces(
+        self, 
+        domains: list, 
+        query: str, 
+        session_id: str,
+        genie_conversation_ids: dict
+    ) -> dict:
+        """
+        Query multiple Genie Spaces in parallel for cross-domain analysis.
+        
+        Args:
+            domains: List of domains to query
+            query: User's question
+            session_id: Session identifier
+            genie_conversation_ids: Existing conversation IDs per domain
+            
+        Returns:
+            Dict with structure:
+            {
+                "results": {
+                    "cost": {"response": "...", "data": [...], "conversation_id": "..."},
+                    "security": {"response": "...", "data": [...], "conversation_id": "..."},
+                },
+                "errors": {
+                    "reliability": "Error message..."
+                },
+                "updated_conversation_ids": {"cost": "...", "security": "..."}
+            }
+        """
+        import concurrent.futures
+        import mlflow
+        
+        results = {}
+        errors = {}
+        updated_conv_ids = dict(genie_conversation_ids) if genie_conversation_ids else {}
+        
+        def query_single_domain(domain: str) -> tuple:
+            """Query a single domain - runs in parallel."""
+            try:
+                space_id = self._get_genie_space_id(domain)
+                if not space_id:
+                    return (domain, None, f"No Genie Space configured for {domain}")
+                
+                existing_conv_id = genie_conversation_ids.get(domain) if genie_conversation_ids else None
+                response_text, new_conv_id = self._query_genie(
+                    domain=domain,
+                    query=query,
+                    session_id=session_id,
+                    conversation_id=existing_conv_id
+                )
+                
+                # Try to extract tabular data from response
+                data = None
+                try:
+                    data = self._extract_tabular_data(response_text)
+                except:
+                    pass
+                
+                return (domain, {
+                    "response": response_text,
+                    "data": data,
+                    "conversation_id": new_conv_id
+                }, None)
+                
+            except Exception as e:
+                return (domain, None, str(e))
+        
+        # Query all domains in parallel using ThreadPoolExecutor
+        with mlflow.start_span(name="parallel_genie_queries", span_type="TOOL") as span:
+            span.set_inputs({"domains": domains, "query": query[:100]})
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(domains)) as executor:
+                futures = {executor.submit(query_single_domain, domain): domain for domain in domains}
+                
+                for future in concurrent.futures.as_completed(futures, timeout=120):
+                    domain, result, error = future.result()
+                    
+                    if error:
+                        errors[domain] = error
+                        print(f"✗ Cross-domain query failed for {domain}: {error}")
+                    else:
+                        results[domain] = result
+                        if result.get("conversation_id"):
+                            updated_conv_ids[domain] = result["conversation_id"]
+                        print(f"✓ Cross-domain query succeeded for {domain}")
+            
+            span.set_outputs({
+                "successful_domains": list(results.keys()),
+                "failed_domains": list(errors.keys())
+            })
+        
+        return {
+            "results": results,
+            "errors": errors,
+            "updated_conversation_ids": updated_conv_ids
         }
+    
+    def _synthesize_cross_domain_results(
+        self,
+        query: str,
+        domain_results: dict,
+        errors: dict,
+        prompts: dict = None
+    ) -> str:
+        """
+        Synthesize results from multiple Genie Spaces into unified insights.
         
-        for domain, keywords in domain_keywords.items():
-            if any(kw in q for kw in keywords):
-                return domain
+        Uses LLM to:
+        1. Identify correlations across domains
+        2. Highlight cross-domain impacts
+        3. Provide actionable recommendations
+        4. Present a coherent narrative
         
-        return "unified"
+        Args:
+            query: Original user question
+            domain_results: Dict of domain -> result data
+            errors: Dict of domain -> error message
+            prompts: Loaded prompts (optional)
+            
+        Returns:
+            Synthesized response text
+        """
+        import mlflow
+        from databricks_langchain import ChatDatabricks
+        
+        # Build context from all domain results
+        domain_summaries = []
+        all_data = []
+        
+        for domain, result in domain_results.items():
+            response = result.get("response", "")
+            data = result.get("data")
+            
+            domain_summaries.append(f"""
+## {domain.upper()} Domain Results:
+{response[:2000]}{"..." if len(response) > 2000 else ""}
+""")
+            
+            if data:
+                all_data.append(f"**{domain.upper()} Data:** {len(data)} rows")
+        
+        # Build error context if any
+        error_context = ""
+        if errors:
+            error_context = "\n\n**Note:** Some domains could not be queried:\n"
+            for domain, error in errors.items():
+                error_context += f"- {domain}: {error[:100]}\n"
+        
+        # Create synthesis prompt
+        synthesis_prompt = f"""You are a Databricks Platform Health Analyst synthesizing insights from multiple data domains.
+
+## User Question:
+{query}
+
+## Data Retrieved from Multiple Domains:
+{chr(10).join(domain_summaries)}
+{error_context}
+
+## Your Task:
+Synthesize these results into a coherent, insightful response that:
+
+1. **Answers the Question Directly**: Start with the most relevant finding
+2. **Identifies Cross-Domain Patterns**: 
+   - Correlations (e.g., cost spikes during performance issues)
+   - Causal relationships (e.g., failed jobs causing resource waste)
+   - Trade-offs (e.g., security settings impacting performance)
+3. **Provides Actionable Recommendations**: 
+   - Prioritize by impact
+   - Consider cross-domain implications
+4. **Highlights Key Metrics**: Include specific numbers from the data
+
+## Format Guidelines:
+- Use clear headers (##) for sections
+- Use bullet points for lists
+- Include specific data values where available
+- Keep recommendations practical and specific
+- If data is missing from some domains, note this but still provide value from available data
+
+Synthesized Response:"""
+        
+        with mlflow.start_span(name="synthesize_results", span_type="LLM") as span:
+            span.set_inputs({
+                "domains_analyzed": list(domain_results.keys()),
+                "domains_failed": list(errors.keys()),
+                "query": query[:100]
+            })
+            
+            try:
+                llm = ChatDatabricks(
+                    endpoint=self.llm_endpoint,
+                    temperature=0.3,  # Lower temperature for factual synthesis
+                )
+                
+                response = llm.invoke(synthesis_prompt)
+                synthesized = response.content if hasattr(response, 'content') else str(response)
+                
+                span.set_outputs({"synthesis_length": len(synthesized)})
+                
+                # Add cross-domain header
+                domains_queried = ", ".join([d.title() for d in domain_results.keys()])
+                header = f"## Cross-Domain Analysis ({domains_queried})\n\n"
+                
+                return header + synthesized
+                
+            except Exception as e:
+                span.set_outputs({"error": str(e)})
+                
+                # Fallback: Return concatenated results without synthesis
+                fallback = f"## Cross-Domain Results\n\n"
+                fallback += f"*Query analyzed across: {', '.join(domain_results.keys())}*\n\n"
+                for domain, result in domain_results.items():
+                    fallback += f"### {domain.title()}\n{result.get('response', 'No data')[:1000]}\n\n"
+                
+                if errors:
+                    fallback += f"\n**Domains with errors:** {', '.join(errors.keys())}\n"
+                
+                return fallback
     
     @mlflow.trace(name="health_monitor_agent", span_type="AGENT")
     def predict(self, request):
@@ -2227,19 +2545,174 @@ Your analysis:"""
                 )]
             )
         
-        # Classify domain
+        # ================================================================
+        # CLASSIFY DOMAIN(S) - Supports single and cross-domain queries
+        # ================================================================
+        # For cross-domain queries (e.g., "how do costs relate to performance?"),
+        # the agent queries multiple Genie Spaces in parallel and synthesizes results.
+        # ================================================================
         with mlflow.start_span(name="classify_domain", span_type="CLASSIFIER") as cls_span:
-            domain = self._classify_domain(query)
-            cls_span.set_outputs({"domain": domain})
+            domains = self._classify_domains(query)
+            is_cross_domain = len(domains) > 1
+            domain = domains[0]  # Primary domain (for backwards compatibility)
+            
+            cls_span.set_outputs({
+                "domain": domain,
+                "all_domains": domains,
+                "is_cross_domain": is_cross_domain
+            })
             
             # Update trace tag with actual domain (safely, to avoid warnings during evaluation)
             _safe_update_trace(tags={
-                "query_category": domain,
+                "query_category": domain if not is_cross_domain else "cross_domain",
                 "domain": domain,
+                "domains": ",".join(domains),
+                "is_cross_domain": str(is_cross_domain),
             })
             
-        # Try Genie tool - GENIE IS REQUIRED, NO LLM FALLBACK
-        # LLM fallback causes hallucination of fake data - NEVER fall back to LLM for data queries
+            if is_cross_domain:
+                print(f"🔀 Cross-domain query detected: {domains}")
+            else:
+                print(f"→ Single domain query: {domain}")
+        
+        # ================================================================
+        # CROSS-DOMAIN QUERY HANDLING
+        # ================================================================
+        # If multiple domains detected, query them in parallel and synthesize
+        # ================================================================
+        if is_cross_domain:
+            with mlflow.start_span(name="cross_domain_analysis", span_type="CHAIN") as cross_span:
+                cross_span.set_inputs({
+                    "domains": domains,
+                    "query": query[:200]
+                })
+                
+                try:
+                    # Query multiple Genie Spaces in parallel
+                    multi_result = self._query_multiple_genie_spaces(
+                        domains=domains,
+                        query=query,
+                        session_id=session_id,
+                        genie_conversation_ids=genie_conversation_ids
+                    )
+                    
+                    domain_results = multi_result["results"]
+                    errors = multi_result["errors"]
+                    updated_conv_ids = multi_result["updated_conversation_ids"]
+                    
+                    # Synthesize results into unified insights
+                    response_text = self._synthesize_cross_domain_results(
+                        query=query,
+                        domain_results=domain_results,
+                        errors=errors,
+                        prompts=prompts
+                    )
+                    
+                    cross_span.set_outputs({
+                        "successful_domains": list(domain_results.keys()),
+                        "failed_domains": list(errors.keys()),
+                        "response_length": len(response_text)
+                    })
+                    
+                    # ================================================================
+                    # LAKEBASE MEMORY: Save cross-domain conversation
+                    # ================================================================
+                    try:
+                        self._save_to_short_term_memory(
+                            thread_id=thread_id,
+                            user_message=query,
+                            assistant_response=response_text,
+                            domain="cross_domain"
+                        )
+                    except Exception as save_err:
+                        print(f"⚠ Short-term memory save failed (non-fatal): {save_err}")
+                    
+                    try:
+                        self._extract_and_save_insights(
+                            user_id=user_id,
+                            query=query,
+                            response=response_text,
+                            domain="cross_domain"
+                        )
+                    except Exception as insight_err:
+                        print(f"⚠ Long-term memory save failed (non-fatal): {insight_err}")
+                    
+                    # ================================================================
+                    # VISUALIZATION: Combine data from all domains
+                    # ================================================================
+                    visualization_hint = {
+                        "type": "multi_domain",
+                        "domains_analyzed": list(domain_results.keys()),
+                        "reason": "Cross-domain analysis combining multiple data sources",
+                        "domain_preferences": {
+                            "color_scheme": "multi_domain",
+                            "default_sort": "descending"
+                        }
+                    }
+                    
+                    # Collect all tabular data from domains
+                    all_tabular_data = {}
+                    for d, result in domain_results.items():
+                        if result.get("data"):
+                            all_tabular_data[d] = result["data"]
+                    
+                    return ResponsesAgentResponse(
+                        id=f"resp_{uuid.uuid4().hex[:12]}",
+                        output=[self.create_text_output_item(
+                            text=response_text,
+                            id=str(uuid.uuid4())
+                        )],
+                        custom_outputs={
+                            "domain": "cross_domain",
+                            "domains": domains,
+                            "source": "genie_multi",
+                            "thread_id": thread_id,
+                            "genie_conversation_ids": updated_conv_ids,
+                            "memory_status": "saved",
+                            "visualization_hint": visualization_hint,
+                            "data": all_tabular_data if all_tabular_data else None,
+                            "cross_domain_errors": errors if errors else None,
+                        }
+                    )
+                    
+                except Exception as e:
+                    error_msg = f"""## Cross-Domain Query Failed
+
+**Domains Attempted:** {", ".join(domains)}
+**Query:** {query}
+**Error:** {str(e)}
+
+I was unable to complete the cross-domain analysis.
+
+### What you can do:
+1. Try asking about a single domain first (e.g., just "cost" or just "performance")
+2. Check that all relevant Genie Spaces are configured
+3. Try again in a few moments"""
+                    
+                    cross_span.set_outputs({"error": str(e)})
+                    
+                    return ResponsesAgentResponse(
+                        id=f"resp_{uuid.uuid4().hex[:12]}",
+                        output=[self.create_text_output_item(
+                            text=error_msg,
+                            id=str(uuid.uuid4())
+                        )],
+                        custom_outputs={
+                            "domain": "cross_domain",
+                            "domains": domains,
+                            "source": "error",
+                            "thread_id": thread_id,
+                            "genie_conversation_ids": genie_conversation_ids,
+                            "error": str(e)
+                        }
+                    )
+        
+        # ================================================================
+        # SINGLE-DOMAIN QUERY HANDLING (Original Logic)
+        # ================================================================
+        # GENIE IS REQUIRED, NO LLM FALLBACK
+        # LLM fallback causes hallucination of fake data - NEVER fall back to LLM
+        # ================================================================
         with mlflow.start_span(name=f"genie_{domain}", span_type="TOOL") as tool_span:
             space_id = self._get_genie_space_id(domain)
             tool_span.set_inputs({"domain": domain, "query": query, "space_id": space_id[:8] + "..." if space_id else "none"})
@@ -2564,17 +3037,145 @@ No Genie Space ID is configured for the **{domain}** domain.
             print(f"⚠ Long-term memory load failed (non-fatal): {pref_err}")
         
         # ================================================================
-        # STEP 3: Classify domain and query Genie
+        # STEP 3: Classify domain(s) - supports cross-domain queries
         # ================================================================
-        domain = self._classify_domain(query)
+        domains = self._classify_domains(query)
+        is_cross_domain = len(domains) > 1
+        domain = domains[0]  # Primary domain (for backwards compatibility)
         space_id = self._get_genie_space_id(domain)
         
         # Generate unique item_id for this response stream
         item_id = str(uuid.uuid4())
         
+        if is_cross_domain:
+            print(f"🔀 Stream: Cross-domain query detected: {domains}")
+        
         # ================================================================
-        # STEP 4: Stream the response in chunks
+        # STEP 4: Handle cross-domain or single-domain queries
         # ================================================================
+        
+        # CROSS-DOMAIN STREAMING
+        if is_cross_domain:
+            try:
+                # Emit "thinking" delta showing cross-domain analysis
+                domains_str = ", ".join([d.title() for d in domains])
+                yield self.create_text_delta(
+                    delta=f"🔀 Analyzing across multiple domains: {domains_str}...\n\n",
+                    item_id=item_id
+                )
+                
+                # Query multiple Genie Spaces in parallel
+                multi_result = self._query_multiple_genie_spaces(
+                    domains=domains,
+                    query=query,
+                    session_id=session_id,
+                    genie_conversation_ids=genie_conversation_ids
+                )
+                
+                domain_results = multi_result["results"]
+                errors = multi_result["errors"]
+                updated_conv_ids = multi_result["updated_conversation_ids"]
+                
+                # Stream progress updates for each domain
+                for d in domain_results.keys():
+                    yield self.create_text_delta(
+                        delta=f"✓ {d.title()} data retrieved\n",
+                        item_id=item_id
+                    )
+                
+                for d in errors.keys():
+                    yield self.create_text_delta(
+                        delta=f"⚠ {d.title()} query failed\n",
+                        item_id=item_id
+                    )
+                
+                yield self.create_text_delta(
+                    delta="\n🧠 Synthesizing insights...\n\n",
+                    item_id=item_id
+                )
+                
+                # Synthesize results
+                response_text = self._synthesize_cross_domain_results(
+                    query=query,
+                    domain_results=domain_results,
+                    errors=errors
+                )
+                
+                # Stream the synthesized response in chunks
+                if response_text:
+                    chunks = response_text.split('\n\n')
+                    for i, chunk in enumerate(chunks):
+                        if chunk.strip():
+                            text_to_emit = chunk + ('\n\n' if i < len(chunks) - 1 else '')
+                            yield self.create_text_delta(
+                                delta=text_to_emit,
+                                item_id=item_id
+                            )
+                
+                # Build full response for done event
+                full_response = f"🔀 Analyzing across multiple domains: {domains_str}...\n\n"
+                for d in domain_results.keys():
+                    full_response += f"✓ {d.title()} data retrieved\n"
+                for d in errors.keys():
+                    full_response += f"⚠ {d.title()} query failed\n"
+                full_response += "\n🧠 Synthesizing insights...\n\n" + (response_text or "")
+                
+                # Save to memory
+                try:
+                    self._save_to_short_term_memory(
+                        thread_id=thread_id,
+                        user_message=query,
+                        assistant_response=response_text or "No results",
+                        domain="cross_domain"
+                    )
+                except Exception as save_err:
+                    print(f"⚠ Short-term memory save failed (non-fatal): {save_err}")
+                
+                # Visualization hint for cross-domain
+                visualization_hint = {
+                    "type": "multi_domain",
+                    "domains_analyzed": list(domain_results.keys()),
+                    "reason": "Cross-domain analysis combining multiple data sources"
+                }
+                
+                all_tabular_data = {}
+                for d, result in domain_results.items():
+                    if result.get("data"):
+                        all_tabular_data[d] = result["data"]
+                
+                # Emit done event
+                yield ResponsesAgentStreamEvent(
+                    type="response.output_item.done",
+                    item=self.create_text_output_item(text=full_response, id=item_id)
+                )
+                
+                # Emit final response with custom_outputs
+                yield ResponsesAgentResponse(
+                    id=f"resp_{uuid.uuid4().hex[:12]}",
+                    output=[self.create_text_output_item(text=full_response, id=item_id)],
+                    custom_outputs={
+                        "domain": "cross_domain",
+                        "domains": domains,
+                        "source": "genie_multi",
+                        "thread_id": thread_id,
+                        "genie_conversation_ids": updated_conv_ids,
+                        "memory_status": "saved",
+                        "visualization_hint": visualization_hint,
+                        "data": all_tabular_data if all_tabular_data else None,
+                    }
+                )
+                return
+                
+            except Exception as e:
+                error_msg = f"Cross-domain query failed: {str(e)}"
+                yield self.create_text_delta(delta=f"\n\n**Error:** {error_msg}", item_id=item_id)
+                yield ResponsesAgentStreamEvent(
+                    type="response.output_item.done",
+                    item=self.create_text_output_item(text=error_msg, id=item_id)
+                )
+                return
+        
+        # SINGLE-DOMAIN STREAMING (Original Logic)
         if space_id:
             try:
                 # Emit "thinking" delta to show progress immediately

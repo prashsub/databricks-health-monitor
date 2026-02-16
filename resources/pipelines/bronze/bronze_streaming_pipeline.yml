@@ -1,25 +1,26 @@
-# Bronze Layer Unified DLT Streaming Pipeline (Serverless)
-# Reference: https://github.com/databricks/bundle-examples/blob/main/knowledge_base/pipeline_with_schema/resources/pipeline.yml
-# 
-# Delta Live Tables streaming pipeline for system tables (24 streaming-compatible tables)
-# Consolidates 7 domain notebooks into 1 pipeline for easier management
-# Uses serverless compute for automatic scaling and cost optimization
+# Bronze Layer Streaming Pipeline — Delta Sinks (Serverless)
+# Reference: https://github.com/prashsub/databricks-system-tables-archival
 #
-# Ingests from 7 system schema domains (24 tables):
-# - access (3 tables): audit, account_usage, table_acls (inbound_network disabled due to Deletion Vectors)
-# - billing (2 tables): usage, list_prices
-# - compute (4 tables): clusters, node_timeline, warehouse_events, warehouses
-# - lakeflow (3 tables): update_event_metrics, update_table_metrics, pipeline_configs (pipeline_update_timeline disabled)
-# - marketplace (3 tables): consumer_listings, consumer_providers, provider_listings
-# - mlflow (2 tables): experiment_runs, serving_endpoints
-# - serving (1 table): endpoints
-# NOTE: sharing domain excluded - materialization_history table doesn't exist
-# NOTE: 3 tables disabled due to Delta Sharing + Deletion Vectors incompatibility
+# Uses pyspark.pipelines (SDP) with dp.create_sink + dp.append_flow to write
+# to persistent Delta sink tables. Full refresh is SAFE — re-appends data
+# without deleting existing rows; a separate dedup step cleans up duplicates.
+#
+# Ingests 24 streaming-capable system tables from 7 domains:
+# - access (6): audit, clean_room_events, column_lineage, inbound_network, outbound_network, table_lineage
+# - billing (1): usage
+# - compute (4): clusters, node_timeline, warehouse_events, warehouses
+# - lakeflow (6): job_run_timeline, job_task_run_timeline, job_tasks, jobs, pipelines, pipeline_update_timeline
+# - marketplace (2): listing_funnel_events, listing_access_events
+# - mlflow (3): experiments_latest, runs_latest, run_metrics_history
+# - serving (2): served_entities, endpoint_usage
+#
+# Previously disabled tables (inbound_network, pipeline_update_timeline) are
+# now enabled via responseFormat=delta to handle Deletion Vectors.
 
 resources:
   pipelines:
     bronze_streaming_pipeline:
-      name: "[${bundle.target}] Health Monitor - Bronze Streaming Pipeline (All Domains)"
+      name: "[${bundle.target}] Health Monitor - Bronze Streaming Pipeline (Delta Sinks)"
       
       # Pipeline root folder (Lakeflow Pipelines Editor best practice)
       root_path: ../../../src/pipelines/bronze/streaming
@@ -28,25 +29,12 @@ resources:
       catalog: ${var.catalog}
       schema: ${var.system_bronze_schema}
       
-      # DLT Libraries - 7 domain notebooks (excluding sharing due to incompatibility)
+      # Single Python file — defines all 24 sinks + flows
       libraries:
-        - notebook:
-            path: ../../../src/pipelines/bronze/streaming/access_tables.py
-        - notebook:
-            path: ../../../src/pipelines/bronze/streaming/billing_tables.py
-        - notebook:
-            path: ../../../src/pipelines/bronze/streaming/compute_tables.py
-        - notebook:
-            path: ../../../src/pipelines/bronze/streaming/lakeflow_tables.py
-        - notebook:
-            path: ../../../src/pipelines/bronze/streaming/marketplace_tables.py
-        - notebook:
-            path: ../../../src/pipelines/bronze/streaming/mlflow_tables.py
-        - notebook:
-            path: ../../../src/pipelines/bronze/streaming/serving_tables.py
-        # NOTE: sharing_tables.py removed - materialization_history table doesn't exist
+        - file:
+            path: ../../../src/pipelines/bronze/streaming/streaming_archive.py
       
-      # Pipeline Configuration (passed to notebooks)
+      # Pipeline Configuration (read by streaming_archive.py via spark.conf.get)
       configuration:
         catalog: ${var.catalog}
         bronze_schema: ${var.system_bronze_schema}
@@ -67,7 +55,7 @@ resources:
       # Development Mode (faster iteration, auto-recovery)
       development: true
       
-      # Edition (ADVANCED for expectations, SCD, etc.)
+      # Edition (ADVANCED for sinks, expectations, SCD, etc.)
       edition: ADVANCED
       
       # Notifications
@@ -84,14 +72,12 @@ resources:
         environment: ${bundle.target}
         project: databricks_health_monitor
         layer: bronze
-        pipeline_type: streaming
+        pipeline_type: delta_sinks
         compute_type: serverless
         domains: "7"
-        streaming_tables: "21"  # 24 minus 3 disabled
-        disabled_tables: "3"  # inbound_network, pipeline_update_timeline, materialization_history
+        streaming_tables: "24"
       
       # Permissions
       permissions:
         - level: CAN_VIEW
           group_name: users
-

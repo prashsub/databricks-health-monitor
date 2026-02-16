@@ -1,0 +1,194 @@
+---
+description: Bronze layer Delta sink patterns using pyspark.pipelines (SDP) for resilient streaming ingestion with dedup and DQX validation
+globs: src/pipelines/bronze/**/*
+alwaysApply: false
+---
+# Bronze Layer Delta Sink Patterns
+
+## Overview
+
+Bronze streaming ingestion uses **Delta sinks** (`pyspark.pipelines` API) instead of
+DLT streaming tables (`@dlt.table`). Delta sinks are persistent tables *outside* the
+pipeline lifecycle — full refresh re-appends data without destroying history, and a
+dedicated dedup step cleans up duplicates.
+
+**Reference implementation:** [prashsub/databricks-system-tables-archival](https://github.com/prashsub/databricks-system-tables-archival)
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Streaming Pipeline (dp.create_sink + dp.append_flow)                    │
+│  streaming_archive.py → 24 Delta sink tables                             │
+│  Full refresh: re-appends, data preserved                                │
+└───────────────────────────┬──────────────────────────────────────────────┘
+                            │
+┌───────────────────────────▼──────────────────────────────────────────────┐
+│  Dedup Step (INSERT OVERWRITE + ROW_NUMBER)                              │
+│  dedup_streaming_tables.py → removes duplicates, CLUSTER BY AUTO,        │
+│  applies TBLPROPERTIES (CDF, auto-optimize, governance tags)             │
+└───────────────────────────┬──────────────────────────────────────────────┘
+                            │
+┌───────────────────────────▼──────────────────────────────────────────────┐
+│  DQX Validation (post-pipeline quality checks)                           │
+│  validate_bronze_tables.py → quarantine invalid rows                     │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/pipelines/bronze/streaming/streaming_archive.py` | Single SDP script with all 24 sinks + flows |
+| `src/pipelines/bronze/dedup/dedup_streaming_tables.py` | Dedup notebook with DEDUP_KEYS registry |
+| `src/pipelines/bronze/dqx/validate_bronze_tables.py` | DQX validation notebook |
+| `src/pipelines/bronze/dqx/bronze_dqx_checks.yaml` | Declarative DQ check definitions |
+| `resources/pipelines/bronze/bronze_streaming_pipeline.yml` | Pipeline YAML |
+| `resources/pipelines/bronze/bronze_refresh_job.yml` | Refresh job with 4-step workflow |
+
+## Delta Sink Pattern
+
+### Creating a Sink + Flow
+
+```python
+from pyspark import pipelines as dp
+from pyspark.sql.functions import current_timestamp
+
+dp.create_sink(
+    name="usage_sink",
+    format="delta",
+    options={"tableName": f"{catalog}.{schema}.usage"},
+)
+
+@dp.append_flow(name="usage_flow", target="usage_sink")
+def _flow():
+    return (
+        spark.readStream
+        .option("skipChangeCommits", "true")
+        .table("system.billing.usage")
+        .withColumn("bronze_ingestion_timestamp", current_timestamp())
+    )
+```
+
+### Deletion Vectors (responseFormat=delta)
+
+Tables with Deletion Vectors (e.g., `inbound_network`, `pipeline_update_timeline`)
+require `responseFormat=delta` to be read via Delta Sharing streaming:
+
+```python
+reader = spark.readStream.option("skipChangeCommits", "true")
+if needs_delta_format:
+    reader = reader.option("responseFormat", "delta")
+return reader.table(source)
+```
+
+### Critical: bronze_ingestion_timestamp
+
+**ALWAYS** add `bronze_ingestion_timestamp` via `.withColumn()` in the flow function.
+This column is used by downstream Gold layer dedup (`deduplicate_bronze()`).
+
+## Dedup Pattern
+
+### DEDUP_KEYS Registry
+
+Each table entry defines:
+- `keys`: Natural key columns for PARTITION BY
+- `tiebreaker`: Column to ORDER BY DESC (keep latest)
+- `domain`, `entity_type`, `contains_pii`: Governance metadata for TBLPROPERTIES
+
+### Dedup SQL
+
+```sql
+INSERT OVERWRITE {target_fqn}
+SELECT * EXCEPT (_row_num)
+FROM (
+    SELECT *,
+        ROW_NUMBER() OVER (
+            PARTITION BY {natural_keys}
+            ORDER BY {tiebreaker} DESC
+        ) AS _row_num
+    FROM {target_fqn}
+)
+WHERE _row_num = 1
+```
+
+### Optimization: Skip Clean Tables
+
+Before running INSERT OVERWRITE, check for duplicates first:
+
+```sql
+SELECT COUNT(*) AS dup_groups FROM (
+    SELECT {natural_keys}
+    FROM {target_fqn}
+    GROUP BY {natural_keys}
+    HAVING COUNT(*) > 1
+    LIMIT 1
+)
+```
+
+If `dup_groups == 0`, skip the table entirely (no write).
+
+## Table Properties (Post-Creation)
+
+Since `dp.create_sink` creates tables automatically without DDL, the dedup step
+applies CLUSTER BY AUTO and TBLPROPERTIES after the pipeline runs:
+
+```python
+spark.sql(f"ALTER TABLE {fqn} CLUSTER BY AUTO")
+spark.sql(f"""
+    ALTER TABLE {fqn} SET TBLPROPERTIES (
+        'delta.enableChangeDataFeed' = 'true',
+        'delta.autoOptimize.optimizeWrite' = 'true',
+        'delta.autoOptimize.autoCompact' = 'true',
+        'layer' = 'bronze',
+        'source_system' = 'databricks_system_tables',
+        'domain' = '{domain}',
+        'entity_type' = '{entity_type}',
+        'contains_pii' = '{contains_pii}',
+        'data_classification' = 'confidential',
+        'business_owner' = 'Platform Operations',
+        'technical_owner' = 'Data Engineering'
+    )
+""")
+```
+
+## DQX Validation
+
+DQ checks are defined in `bronze_dqx_checks.yaml` and applied via
+`DQEngine.apply_checks_by_metadata_and_split()`. Invalid rows are written
+to `{table}_quarantine` tables. Validation is **non-blocking** — it reports
+issues but does not fail the pipeline.
+
+## Refresh Job Workflow
+
+```yaml
+tasks:
+  1. run_streaming_pipeline      # pipeline_task
+  2. dedup_streaming_sinks       # depends_on: 1, run_if: ALL_DONE
+  3. validate_bronze_dqx         # depends_on: 2
+  4. merge_nonstreaming_tables   # depends_on: 3
+```
+
+## Adding a New Streaming Table
+
+1. Add entry to `STREAMING_TABLES` in `streaming_archive.py`
+2. Add entry to `DEDUP_KEYS` in `dedup_streaming_tables.py`
+3. Add checks to `bronze_dqx_checks.yaml`
+4. Deploy: `databricks bundle deploy -t dev`
+
+## Validation Checklist
+
+- [ ] `streaming_archive.py` has entry for the table
+- [ ] `dedup_streaming_tables.py` has DEDUP_KEYS entry with correct natural keys
+- [ ] `bronze_dqx_checks.yaml` has check definitions
+- [ ] Table name matches existing Bronze naming convention
+- [ ] `bronze_ingestion_timestamp` is added in the flow
+- [ ] Tables with Deletion Vectors use `delta_format: True`
+- [ ] TBLPROPERTIES metadata (domain, entity_type, contains_pii) is correct
+
+## References
+
+- [pyspark.pipelines API](https://docs.databricks.com/aws/en/dlt/python-ref)
+- [Delta Sinks](https://docs.databricks.com/aws/en/dlt/sink)
+- [Databricks Labs DQX](https://databrickslabs.github.io/dqx/)
+- [Reference Implementation](https://github.com/prashsub/databricks-system-tables-archival)

@@ -1,43 +1,31 @@
 # Databricks Asset Bundle Standards
 
-## Document Information
+> **Document Owner:** Platform Engineering | **Status:** Approved | **Last Updated:** February 2026
 
-| Field | Value |
-|-------|-------|
-| **Document ID** | IN-01 through IN-08 |
-| **Version** | 2.0 |
-| **Last Updated** | January 2026 |
-| **Owner** | Platform Engineering Team |
-| **Status** | Approved |
+## Overview
+
+Databricks Asset Bundles (DABs) are the standard for infrastructure-as-code deployment. This document defines mandatory patterns for job configuration, serverless environments, and hierarchical job architecture.
 
 ---
 
-## Executive Summary
+## Golden Rules
 
-Databricks Asset Bundles (DABs) are our standard for infrastructure-as-code deployment. This document defines mandatory patterns for job configuration, serverless environments, parameter passing, and hierarchical job architecture.
-
----
-
-## Golden Rules Summary
-
-| Rule ID | Rule | Severity |
-|---------|------|----------|
-| IN-01 | Serverless compute for all jobs | 🟡 Required |
-| IN-02 | Environment-level dependencies (not task-level) | 🔴 Critical |
-| IN-03 | Use `notebook_task` (never `python_task`) | 🔴 Critical |
-| IN-04 | Use `dbutils.widgets.get()` for parameters | 🔴 Critical |
-| IN-05 | Hierarchical job architecture (atomic → composite → orchestrator) | 🟡 Required |
-| IN-06 | Notebooks appear in exactly ONE atomic job | 🔴 Critical |
-| IN-07 | Use `run_job_task` for job references | 🔴 Critical |
-| IN-08 | Include `[${bundle.target}]` prefix in job names | 🟡 Required |
+| ID | Rule | Severity |
+|----|------|----------|
+| **IN-01** | Serverless compute for all jobs | Required |
+| **IN-02** | Environment-level dependencies (not task) | Critical |
+| **IN-03** | Use `notebook_task` (never `python_task`) | Critical |
+| **IN-04** | Use `dbutils.widgets.get()` for parameters | Critical |
+| **IN-05** | Hierarchical job architecture | Required |
+| **IN-06** | Notebooks in exactly ONE atomic job | Critical |
+| **IN-07** | Use `run_job_task` for job references | Critical |
+| **IN-08** | Include `[${bundle.target}]` prefix | Required |
 
 ---
 
-## Rule IN-01: Serverless Environment Configuration
+## Serverless Job Template
 
-**EVERY job MUST include serverless environment configuration.**
-
-### Standard Template
+Every job must include this serverless configuration:
 
 ```yaml
 resources:
@@ -45,483 +33,353 @@ resources:
     my_job:
       name: "[${bundle.target}] My Job Name"
       
-      # ✅ MANDATORY: Serverless environment at job level
       environments:
         - environment_key: "default"
           spec:
             environment_version: "4"
             dependencies:
-              - "Faker==22.0.0"      # Pin versions
               - "pandas==2.0.3"
       
       tasks:
         - task_key: task_name
-          environment_key: default  # ✅ MANDATORY: Reference in EVERY task
+          environment_key: default
           notebook_task:
             notebook_path: ../src/my_script.py
             base_parameters:
               catalog: ${var.catalog}
-              schema: ${var.gold_schema}
 ```
 
-### Why This Matters
-
-- Enables serverless compute for cost optimization
-- Ensures consistent Python environment across tasks
-- Required for library dependency management
-- Prevents deployment and runtime failures
-
-### Rule IN-02: Environment-Level Dependencies
-
-**Dependencies MUST be at environment level, NOT task level.**
+### Common Mistakes
 
 ```yaml
-# ❌ WRONG: Task-level libraries (fails on serverless)
+# ❌ WRONG: Task-level libraries
 tasks:
   - task_key: my_task
     libraries:
-      - pypi:
-          package: Faker==22.0.0
+      - pypi: { package: pandas }
 
-# ✅ CORRECT: Environment-level dependencies
-environments:
-  - environment_key: "default"
-    spec:
-      environment_version: "4"
-      dependencies:
-        - "Faker==22.0.0"
-```
-
----
-
-## Rule IN-03 & IN-04: Notebook Tasks and Parameters
-
-### Use `notebook_task`, Never `python_task`
-
-```yaml
-# ❌ WRONG: python_task doesn't exist in DABs
+# ❌ WRONG: python_task doesn't exist
 tasks:
   - task_key: my_task
     python_task:
       python_file: ../src/script.py
-      parameters:
-        - "--catalog=my_catalog"
-
-# ✅ CORRECT: notebook_task with base_parameters
-tasks:
-  - task_key: my_task
-    notebook_task:
-      notebook_path: ../src/script.py
-      base_parameters:
-        catalog: ${var.catalog}
-        schema: ${var.gold_schema}
 ```
-
-### Parameter Passing in Python
-
-**ALWAYS use `dbutils.widgets.get()` for parameters. NEVER use `argparse`.**
-
-```python
-# ❌ WRONG: argparse fails in notebook_task
-import argparse
-
-def get_parameters():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--catalog", required=True)
-    args = parser.parse_args()  # ERROR: arguments are required
-    return args.catalog
-
-# ✅ CORRECT: dbutils.widgets.get()
-def get_parameters():
-    """Get job parameters from dbutils widgets."""
-    catalog = dbutils.widgets.get("catalog")
-    schema = dbutils.widgets.get("schema")
-    
-    print(f"Parameters: catalog={catalog}, schema={schema}")
-    return catalog, schema
-```
-
-### Parameter Method Decision Table
-
-| Execution Context | YAML Config | Python Method |
-|-------------------|-------------|---------------|
-| `notebook_task` in DABs | `base_parameters: {}` | `dbutils.widgets.get()` |
-| Interactive notebook | Widgets in UI | `dbutils.widgets.get()` |
-| Local Python script | Command line | `argparse` |
 
 ---
 
-## Rule IN-05, IN-06, IN-07: Hierarchical Job Architecture
+## Parameter Passing
 
-### Core Principle: No Notebook Duplication
+### In YAML
 
-**Each notebook appears in EXACTLY ONE atomic job.** Higher-level jobs reference lower-level jobs via `run_job_task`.
-
-### Architecture Diagram
-
+```yaml
+notebook_task:
+  notebook_path: ../src/script.py
+  base_parameters:
+    catalog: ${var.catalog}
+    schema: ${var.gold_schema}
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ LAYER 3: MASTER ORCHESTRATORS                                                │
-│ References Layer 2 via run_job_task                                          │
-│ NO direct notebook references                                                │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ master_setup_orchestrator                    master_refresh_orchestrator     │
-│        │                                              │                      │
-│    ┌───┴───┬────────────┐                    ┌───────┴────────┐             │
-│    ▼       ▼            ▼                    ▼                ▼             │
-│ semantic  monitoring   ml_layer          monitoring     ml_inference        │
-│ _setup    _setup       _setup            _refresh                           │
-└──────────────────────────────────────────────────────────────────────────────┘
 
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ LAYER 2: COMPOSITE JOBS                                                      │
-│ References Layer 1 via run_job_task                                          │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ semantic_layer_setup_job                    monitoring_layer_setup_job       │
-│        │                                              │                      │
-│    ┌───┴────┐                                        │                      │
-│    ▼        ▼                                        ▼                      │
-│ tvf_job  metric_view_job                    lakehouse_monitoring_job        │
-└──────────────────────────────────────────────────────────────────────────────┘
+### In Python
 
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ LAYER 1: ATOMIC JOBS                                                         │
-│ Contains actual notebook_task references                                     │
-│ Single-purpose, testable independently                                       │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ tvf_deployment_job        metric_view_deployment_job                         │
-│ lakehouse_monitoring_job  ml_training_pipeline                               │
-└──────────────────────────────────────────────────────────────────────────────┘
+```python
+# ✅ CORRECT
+def get_parameters():
+    catalog = dbutils.widgets.get("catalog")
+    schema = dbutils.widgets.get("schema")
+    return catalog, schema
+
+# ❌ WRONG: argparse fails in notebook_task
+parser = argparse.ArgumentParser()
+args = parser.parse_args()  # ERROR!
 ```
+
+---
+
+## Hierarchical Job Architecture
+
+Each notebook appears in exactly ONE atomic job. Higher levels reference jobs, not notebooks.
 
 ### Layer 1: Atomic Jobs (Notebook References)
 
 ```yaml
-# resources/semantic/tvf_deployment_job.yml
 resources:
   jobs:
     tvf_deployment_job:
       name: "[${bundle.target}] TVF Deployment"
       
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "4"
-      
       tasks:
-        - task_key: deploy_all_tvfs
-          environment_key: default
-          notebook_task:  # ✅ Actual notebook reference
-            notebook_path: ../../src/semantic/deploy_tvfs.py
-            base_parameters:
-              catalog: ${var.catalog}
+        - task_key: deploy
+          notebook_task:
+            notebook_path: ../../src/deploy_tvfs.py
       
       tags:
-        job_level: atomic  # ✅ Mark as atomic
-        layer: semantic
+        job_level: atomic
 ```
 
 ### Layer 2: Composite Jobs (Job References)
 
 ```yaml
-# resources/semantic/semantic_layer_setup_job.yml
 resources:
   jobs:
-    semantic_layer_setup_job:
+    semantic_layer_setup:
       name: "[${bundle.target}] Semantic Layer Setup"
       
       tasks:
-        # ✅ Reference atomic job, NOT notebook
         - task_key: deploy_tvfs
           run_job_task:
             job_id: ${resources.jobs.tvf_deployment_job.id}
         
-        # ✅ Reference another atomic job with dependency
-        - task_key: deploy_metric_views
+        - task_key: deploy_metrics
           depends_on:
             - task_key: deploy_tvfs
           run_job_task:
-            job_id: ${resources.jobs.metric_view_deployment_job.id}
+            job_id: ${resources.jobs.metric_view_job.id}
       
       tags:
-        job_level: composite  # ✅ Mark as composite
+        job_level: composite
 ```
 
-### Layer 3: Master Orchestrators
+### Layer 3: Orchestrators (References Composites)
 
 ```yaml
-# resources/orchestrators/master_setup_orchestrator.yml
 resources:
   jobs:
-    master_setup_orchestrator:
-      name: "[${bundle.target}] Master Setup Orchestrator"
+    master_setup:
+      name: "[${bundle.target}] Master Setup"
       
       tasks:
-        - task_key: bronze_setup
-          run_job_task:
-            job_id: ${resources.jobs.bronze_setup_job.id}
-        
         - task_key: gold_setup
-          depends_on:
-            - task_key: bronze_setup
           run_job_task:
             job_id: ${resources.jobs.gold_setup_job.id}
         
-        - task_key: semantic_layer_setup
+        - task_key: semantic_setup
           depends_on:
             - task_key: gold_setup
           run_job_task:
-            job_id: ${resources.jobs.semantic_layer_setup_job.id}
+            job_id: ${resources.jobs.semantic_layer_setup.id}
       
       tags:
-        job_level: orchestrator  # ✅ Mark as orchestrator
-```
-
-### ❌ WRONG: Notebook Duplication
-
-```yaml
-# ❌ WRONG: Same notebook in multiple jobs!
-
-# File 1: resources/semantic/tvf_job.yml
-tasks:
-  - task_key: deploy_tvfs
-    notebook_task:
-      notebook_path: ../../src/deploy_tvfs.py  # ❌ Duplicated!
-
-# File 2: resources/orchestrators/setup.yml
-tasks:
-  - task_key: deploy_tvfs
-    notebook_task:
-      notebook_path: ../../src/deploy_tvfs.py  # ❌ Same notebook!
-```
-
----
-
-## Directory Structure Pattern
-
-```
-resources/
-├── orchestrators/              # Layer 3
-│   ├── master_setup_orchestrator.yml
-│   └── master_refresh_orchestrator.yml
-│
-├── semantic/                   # Domain: Semantic
-│   ├── semantic_layer_setup_job.yml    # Layer 2
-│   ├── tvf_deployment_job.yml          # Layer 1
-│   └── metric_view_deployment_job.yml  # Layer 1
-│
-├── monitoring/                 # Domain: Monitoring
-│   ├── monitoring_layer_setup_job.yml  # Layer 2
-│   └── lakehouse_monitoring_job.yml    # Layer 1
-│
-├── ml/                         # Domain: ML
-│   ├── ml_layer_setup_job.yml          # Layer 2
-│   ├── ml_training_pipeline.yml        # Layer 1
-│   └── ml_inference_pipeline.yml       # Layer 1
-│
-└── pipelines/                  # Domain: Data
-    ├── bronze/
-    │   └── bronze_setup_job.yml        # Layer 1
-    └── gold/
-        └── gold_setup_job.yml          # Layer 1
+        job_level: orchestrator
 ```
 
 ---
 
 ## DLT Pipeline Configuration
 
-### Standard DLT Pipeline Pattern
-
 ```yaml
 resources:
   pipelines:
-    silver_dlt_pipeline:
-      name: "[${bundle.target}] Silver DLT Pipeline"
+    silver_pipeline:
+      name: "[${bundle.target}] Silver Pipeline"
       
-      # Pipeline root folder (required)
       root_path: ../src/silver_pipeline
-      
-      # Direct Publishing Mode (modern pattern)
       catalog: ${var.catalog}
       schema: ${var.silver_schema}
-      
-      libraries:
-        - notebook:
-            path: ../src/silver_pipeline/silver_dimensions.py
-        - notebook:
-            path: ../src/silver_pipeline/silver_facts.py
-      
-      configuration:
-        catalog: ${var.catalog}
-        bronze_schema: ${var.bronze_schema}
-        silver_schema: ${var.silver_schema}
       
       serverless: true
       photon: true
       channel: CURRENT
-      continuous: false
-      development: true
       edition: ADVANCED
       
-      tags:
-        layer: silver
-        pipeline_type: dlt
+      libraries:
+        - notebook:
+            path: ../src/silver_pipeline/transforms.py
 ```
 
-### Triggering DLT from Workflows
+### Triggering from Workflows
 
 ```yaml
-# ✅ CORRECT: Native pipeline_task
-tasks:
-  - task_key: run_silver_pipeline
-    depends_on:
-      - task_key: bronze_complete
-    pipeline_task:
-      pipeline_id: ${resources.pipelines.silver_dlt_pipeline.id}
-      full_refresh: false
-
-# ❌ WRONG: Python wrapper
+# ✅ Native pipeline_task
 tasks:
   - task_key: run_pipeline
-    python_task:
-      python_file: ../src/trigger_pipeline.py
+    pipeline_task:
+      pipeline_id: ${resources.pipelines.silver_pipeline.id}
+      full_refresh: false
 ```
 
 ---
 
-## Path Resolution Rules
-
-**Relative paths depend on YAML file location:**
+## Path Resolution
 
 | YAML Location | Path to `src/` |
 |---------------|----------------|
 | `resources/*.yml` | `../src/` |
 | `resources/<layer>/*.yml` | `../../src/` |
-| `resources/<layer>/<sublayer>/*.yml` | `../../../src/` |
-
-```yaml
-# From resources/gold/gold_setup_job.yml
-notebook_task:
-  notebook_path: ../../src/gold/setup_tables.py  # Two levels up
-
-# From resources/bronze_job.yml
-notebook_task:
-  notebook_path: ../src/bronze/setup_tables.py   # One level up
-```
 
 ---
 
-## Variable Reference Pattern
-
-**ALWAYS use `${var.name}` format:**
+## Variable References
 
 ```yaml
 # ✅ CORRECT
 base_parameters:
   catalog: ${var.catalog}
-  schema: ${var.gold_schema}
 
 # ❌ WRONG: Missing var. prefix
 base_parameters:
   catalog: ${catalog}
-  schema: ${gold_schema}
 ```
 
 ---
 
-## Pre-Deployment Validation
+## Directory Structure
 
-### Validation Script
-
-```bash
-#!/bin/bash
-# scripts/validate_bundle.sh
-
-echo "🔍 Pre-Deployment Validation"
-
-# 1. Check for duplicate YAML files
-duplicates=$(find resources -name "*.yml" | awk -F/ '{print $NF}' | sort | uniq -d)
-if [ -n "$duplicates" ]; then
-    echo "❌ Duplicate files: $duplicates"
-    exit 1
-fi
-
-# 2. Check for python_task (invalid)
-if grep -r "python_task:" resources/; then
-    echo "❌ Found python_task (use notebook_task)"
-    exit 1
-fi
-
-# 3. Check for missing var. prefix
-if grep -r '\${catalog}' resources/ | grep -v '\${var.catalog}'; then
-    echo "❌ Found \${catalog} without var. prefix"
-    exit 1
-fi
-
-# 4. Validate bundle syntax
-databricks bundle validate || exit 1
-
-echo "✅ All checks passed!"
 ```
-
-### Run Before Every Deployment
-
-```bash
-./scripts/validate_bundle.sh && databricks bundle deploy -t dev
+resources/
+├── orchestrators/           # Layer 3
+│   └── master_setup.yml
+├── semantic/                # Domain
+│   ├── semantic_setup.yml   # Layer 2
+│   └── tvf_job.yml          # Layer 1
+├── monitoring/              # Domain
+│   └── lakehouse_job.yml    # Layer 1
+└── pipelines/
+    └── silver_pipeline.yml
 ```
 
 ---
 
 ## Validation Checklist
 
-### Job Configuration
 - [ ] `environments:` block at job level
 - [ ] `environment_key: default` on every task
-- [ ] Dependencies at environment level (not task libraries)
 - [ ] `[${bundle.target}]` prefix in job name
-- [ ] `job_level` tag (atomic, composite, or orchestrator)
-
-### Hierarchical Architecture
-- [ ] Each notebook in exactly ONE atomic job
-- [ ] Composite jobs use `run_job_task` only
-- [ ] Orchestrators use `run_job_task` only
-- [ ] Job references use `${resources.jobs.<name>.id}`
-
-### Task Configuration
 - [ ] `notebook_task` (never `python_task`)
 - [ ] `base_parameters` dictionary format
-- [ ] Python uses `dbutils.widgets.get()` (not argparse)
-- [ ] `${var.name}` for variable references
-
-### Paths
-- [ ] Relative paths correct for YAML location
-- [ ] DLT libraries within `root_path`
-- [ ] Include paths in `databricks.yml` cover all subdirectories
+- [ ] `${var.name}` for variables
+- [ ] Each notebook in ONE atomic job only
+- [ ] Orchestrators use `run_job_task` only
 
 ---
 
-## Common Errors and Solutions
+## Common Errors
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `error: arguments are required` | Using argparse | Use `dbutils.widgets.get()` |
-| `Invalid task type` | `python_task` usage | Use `notebook_task` |
-| `Variable not found` | Missing `var.` prefix | Use `${var.name}` |
-| `Path does not exist` | Wrong relative path | Check YAML location depth |
-| `Duplicate resource` | Same file in multiple locations | Remove duplicates |
+| `arguments are required` | argparse | Use `dbutils.widgets.get()` |
+| `Invalid task type` | python_task | Use `notebook_task` |
+| `Variable not found` | Missing prefix | Use `${var.name}` |
+
+---
+
+## CI/CD Best Practices
+
+### Core Principles
+
+| Principle | Description |
+|-----------|-------------|
+| **Version control everything** | All code, configs, infra in Git |
+| **Automate testing** | Unit, integration, data quality tests |
+| **Use IaC** | Asset Bundles for all resources |
+| **Environment isolation** | Separate dev/staging/prod |
+| **Unified asset management** | DABs for code + infra together |
+
+### Branching Strategy
+
+```
+main (production)
+  │
+  └── staging
+        │
+        └── feature/XXX-description
+```
+
+| Branch | Deploys To | Triggered By |
+|--------|------------|--------------|
+| `main` | Production | Merge from staging |
+| `staging` | Staging | Merge from feature |
+| `feature/*` | Development | Push |
+
+### CI Workflow Template
+
+```yaml
+# .github/workflows/ci.yml
+name: Databricks CI
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Databricks CLI
+        run: pip install databricks-cli
+      
+      - name: Validate Bundle
+        run: databricks bundle validate
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+  deploy-dev:
+    if: github.ref == 'refs/heads/staging'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to Dev
+        run: databricks bundle deploy -t dev
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to Production
+        run: databricks bundle deploy -t prod
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+```
+
+### ML CI/CD (MLOps Stacks)
+
+For ML projects, use the MLOps Stacks pattern:
+
+```
+├── feature_engineering/     # Feature pipelines
+├── training/               # Model training
+├── validation/             # Model validation
+├── deployment/             # Model deployment
+└── monitoring/             # Model monitoring
+```
+
+### Best Practices
+
+| Practice | Implementation |
+|----------|----------------|
+| **Workload identity federation** | Use OIDC, not static tokens |
+| **Environment promotion** | dev → staging → prod |
+| **Automated testing** | pytest for transforms, DLT for quality |
+| **Rollback procedures** | Document and test regularly |
+| **Secrets management** | GitHub Secrets, never in code |
 
 ---
 
 ## Related Documents
 
-- [Python Development Standards](21-python-development-standards.md)
-- [Schema Management Standards](22-schema-management-standards.md)
-- [Deployment Checklist](../part6-templates/deployment-checklist.md)
+- [Python Development](21-python-development.md)
+- [Serverless Compute](11-serverless-compute.md)
+- [Reliability & DR](18-reliability-disaster-recovery.md)
 
 ---
 
 ## References
 
-- [Databricks Asset Bundles](https://docs.databricks.com/dev-tools/bundles/)
-- [Bundle Resources Reference](https://docs.databricks.com/dev-tools/bundles/resources)
-- [Serverless Job Example](https://github.com/databricks/bundle-examples/blob/main/knowledge_base/serverless_job/resources/serverless_job.yml)
+- [Asset Bundles](https://docs.databricks.com/dev-tools/bundles/)
+- [Bundle Resources](https://docs.databricks.com/dev-tools/bundles/resources)
+- [CI/CD Best Practices](https://learn.microsoft.com/en-us/azure/databricks/dev-tools/ci-cd/best-practices)
+- [MLOps Stacks](https://docs.databricks.com/mlops/mlops-stacks.html)

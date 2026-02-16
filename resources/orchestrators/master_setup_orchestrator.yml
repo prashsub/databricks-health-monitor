@@ -13,7 +13,7 @@
 # This enables atomic testing at each layer
 #
 # Execution Flow:
-#   1. Bronze Setup (atomic) - Non-streaming tables + DQ rules
+#   1. Bronze Setup (atomic) - Non-streaming tables + DQ rules + Predictive Optimization
 #   2. Gold Setup (atomic) - 39 tables + constraints
 #   3. Semantic Layer Setup (composite) → TVF + Metric View jobs
 #   4. Monitoring Layer Setup (atomic) → Lakehouse Monitoring job
@@ -24,9 +24,11 @@
 #
 # NOTE: ML Training runs separately (weekly schedule) after data exists.
 #       Setup only creates feature table infrastructure.
+# NOTE: Streaming sink tables (24) are NOT created here — they are auto-created
+#       by the streaming pipeline (dp.create_sink) on first run of bronze_refresh_job.
 #
 # Total Infrastructure:
-#   - Bronze: 8 non-streaming tables + DQ rules
+#   - Bronze: 9 non-streaming tables + DQ rules + Predictive Optimization
 #   - Gold: 39 domain tables + constraints
 #   - Semantic: 60 TVFs + 10 Metric Views
 #   - Monitoring: 8 Lakehouse Monitors + Genie-friendly descriptions

@@ -152,7 +152,8 @@ resources:
             - task_key: register_prompts
             - task_key: register_scorers
             - task_key: create_evaluation_datasets
-            - task_key: setup_lakebase_memory  # Ensure memory tables exist before logging
+            # NOTE: setup_lakebase_memory removed - it's a one-time setup that persists
+            # If Lakebase isn't configured, the agent will work without memory features
           environment_key: agent_env
           notebook_task:
             notebook_path: ../../src/agents/setup/log_agent_model.py

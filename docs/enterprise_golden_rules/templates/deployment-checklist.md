@@ -138,6 +138,14 @@ ls gold_layer_design/yaml/
 - [ ] "DO NOT wrap in TABLE()" in TVF NOTE section
 - [ ] Metric View comments include BEST FOR / NOT FOR
 
+### Semantic Layer Validation
+
+- [ ] Metric Views use v1.1 YAML (no `name` field)
+- [ ] TVFs use STRING for date parameters (not DATE type)
+- [ ] No transitive joins in Metric Views (only source → dim)
+- [ ] All column references verified against Gold YAML
+- [ ] Genie Space benchmark testing completed (if applicable)
+
 ---
 
 ## Section 5: Documentation
@@ -211,7 +219,54 @@ databricks bundle deploy -t dev
 
 ---
 
-## Section 8: Final Approval
+## Section 8: ML/AI Deployment (if applicable)
+
+### MLflow Models
+
+- [ ] Experiment paths use `/Shared/` convention
+- [ ] `output_schema` defined for Unity Catalog models
+- [ ] NaN/Inf values cleaned at feature table creation
+- [ ] Label binarization correct for classification models
+- [ ] Single-class detection and graceful handling
+
+### GenAI Agents
+
+- [ ] OBO context detection implemented (environment variable check)
+- [ ] Genie Spaces declared as `DatabricksGenieSpace` resources
+- [ ] SQL Warehouse declared as `DatabricksSQLWarehouse` resource
+- [ ] MLflow tracing enabled
+- [ ] Agent evaluation passes without permission errors
+
+### AI Gateway
+
+- [ ] Payload logging enabled for endpoints
+- [ ] Rate limiting configured (see standard limits)
+- [ ] AI Guardrails enabled for external-facing endpoints
+- [ ] Usage tracking active for cost management
+- [ ] Fallbacks configured for critical LLM endpoints
+
+---
+
+## Section 9: Network Security (Production)
+
+### Pre-Deployment Network Checks
+
+- [ ] VNet injection configured (required for production)
+- [ ] Private Link enabled for control plane access
+- [ ] IP access lists implemented (corporate VPN + known IPs)
+- [ ] Secure cluster connectivity enabled (no public IPs)
+- [ ] Network egress controls configured
+
+### Encryption & Monitoring
+
+- [ ] Customer-managed keys (CMK) configured
+- [ ] Key rotation policy in place
+- [ ] Diagnostic logging to Azure Monitor enabled
+- [ ] SIEM integration configured (if required)
+
+---
+
+## Section 10: Final Approval
 
 ### Sign-off
 
@@ -238,11 +293,24 @@ databricks bundle deploy -t dev
 | `Duplicate resource` | YAML files | Remove duplicates |
 | `MERGE duplicate error` | Deduplication | Add `dropDuplicates()` |
 | `FK constraint failed` | Constraint order | Apply PKs first |
+| `Unrecognized field "name"` | Metric View YAML | Remove `name` field (v1.1) |
+| `Transitive join error` | Metric View joins | Use direct joins only |
+| `DATE parameter error` | TVF parameters | Use STRING for dates |
+| `Permission denied (OBO)` | Agent auth | Check context detection |
+| `Genie resource not found` | Agent resources | Declare in AuthPolicy |
 
 ---
 
 ## Related Documents
 
-- [Asset Bundle Standards](../part3-infrastructure/20-asset-bundle-standards.md)
-- [Gold Layer Standards](../part2-development-standards/12-gold-layer-standards.md)
-- [Code Review Checklist](code-review-checklist.md)
+- [Asset Bundle Standards](../platform-architecture/20-asset-bundle-standards.md)
+- [Gold Layer Standards](../solution-architecture/data-pipelines/12-gold-layer-patterns.md)
+- [Semantic Layer Overview](../solution-architecture/semantic-layer/33-semantic-layer-overview.md)
+- [GenAI Agent Patterns](../solution-architecture/ml-ai/51-genai-agent-patterns.md)
+- [AI Gateway Patterns](../solution-architecture/ml-ai/53-ai-gateway-patterns.md)
+- [Network Security](../platform-architecture/19-network-security.md)
+
+---
+
+*Pre-Deployment Checklist Version 2.0 - Based on Enterprise Golden Rules (February 2026)*
+*Added: Semantic Layer Validation, ML/AI Deployment, Network Security sections*

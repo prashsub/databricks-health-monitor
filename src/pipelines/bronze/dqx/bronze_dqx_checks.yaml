@@ -1,0 +1,396 @@
+# Bronze Layer DQX Data Quality Checks
+# ======================================
+# Declarative DQ checks for all Bronze streaming sink tables.
+# Used by validate_bronze_tables.py via Databricks Labs DQX.
+#
+# Severity levels:
+#   error   - Data would break downstream (quarantine invalid rows)
+#   warning - Anomaly worth logging but keep data
+#
+# Bronze Layer Philosophy:
+#   Bronze is RAW INGESTION — preserve data as-is for observability.
+#   Most rules use "warning" severity. "error" only for mathematical
+#   constraints or missing primary identifiers.
+
+# ======================================================================
+# ACCESS DOMAIN
+# ======================================================================
+
+# -- audit --
+- table: audit
+  checks:
+    - name: valid_event_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_id
+    - name: valid_event_time
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_time
+    - name: valid_action_name
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: action_name
+
+# -- clean_room_events --
+- table: clean_room_events
+  checks:
+    - name: valid_event_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_id
+    - name: valid_event_time
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_time
+
+# -- column_lineage --
+- table: column_lineage
+  checks:
+    - name: valid_record_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: record_id
+    - name: valid_event_time
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_time
+
+# -- inbound_network --
+- table: inbound_network
+  checks:
+    - name: valid_event_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_id
+
+# -- outbound_network --
+- table: outbound_network
+  checks:
+    - name: valid_event_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_id
+
+# -- table_lineage --
+- table: table_lineage
+  checks:
+    - name: valid_record_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: record_id
+    - name: valid_source_table
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: source_table_full_name
+    - name: valid_target_table
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: target_table_full_name
+
+# ======================================================================
+# BILLING DOMAIN
+# ======================================================================
+
+# -- usage --
+- table: usage
+  checks:
+    - name: valid_record_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: record_id
+    - name: valid_usage_date
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: usage_date
+    - name: non_negative_usage
+      criticality: error
+      check:
+        function: is_not_less_than
+        arguments:
+          col_name: usage_quantity
+          limit: 0
+
+# ======================================================================
+# COMPUTE DOMAIN
+# ======================================================================
+
+# -- clusters --
+- table: clusters
+  checks:
+    - name: valid_cluster_id
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: cluster_id
+    - name: valid_workspace_id
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: workspace_id
+
+# -- node_timeline --
+- table: node_timeline
+  checks:
+    - name: valid_cluster_id
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: cluster_id
+    - name: valid_start_time
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: start_time
+
+# -- warehouse_events --
+- table: warehouse_events
+  checks:
+    - name: valid_warehouse_id
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: warehouse_id
+    - name: valid_event_time
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_time
+
+# -- warehouses --
+- table: warehouses
+  checks:
+    - name: valid_warehouse_id
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: id
+    - name: valid_warehouse_name
+      criticality: warning
+      check:
+        function: is_not_null
+        arguments:
+          col_name: name
+
+# ======================================================================
+# LAKEFLOW DOMAIN
+# ======================================================================
+
+# -- job_run_timeline --
+- table: job_run_timeline
+  checks:
+    - name: valid_run_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: run_id
+    - name: valid_job_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: job_id
+
+# -- job_task_run_timeline --
+- table: job_task_run_timeline
+  checks:
+    - name: valid_run_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: run_id
+
+# -- job_tasks --
+- table: job_tasks
+  checks:
+    - name: valid_job_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: job_id
+    - name: valid_task_key
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: task_key
+
+# -- jobs --
+- table: jobs
+  checks:
+    - name: valid_job_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: job_id
+
+# -- pipelines --
+- table: pipelines
+  checks:
+    - name: valid_pipeline_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: pipeline_id
+
+# -- pipeline_update_timeline --
+- table: pipeline_update_timeline
+  checks:
+    - name: valid_update_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: update_id
+    - name: valid_pipeline_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: pipeline_id
+
+# ======================================================================
+# MARKETPLACE DOMAIN
+# ======================================================================
+
+# -- listing_funnel_events --
+- table: listing_funnel_events
+  checks:
+    - name: valid_listing_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: listing_id
+    - name: valid_event_time
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_time
+
+# -- listing_access_events --
+- table: listing_access_events
+  checks:
+    - name: valid_listing_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: listing_id
+    - name: valid_event_time
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: event_time
+
+# ======================================================================
+# MLFLOW DOMAIN
+# ======================================================================
+
+# -- experiments_latest --
+- table: experiments_latest
+  checks:
+    - name: valid_experiment_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: experiment_id
+
+# -- runs_latest --
+- table: runs_latest
+  checks:
+    - name: valid_run_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: run_id
+    - name: valid_experiment_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: experiment_id
+
+# -- run_metrics_history --
+- table: run_metrics_history
+  checks:
+    - name: valid_record_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: record_id
+
+# ======================================================================
+# SERVING DOMAIN
+# ======================================================================
+
+# -- served_entities --
+- table: served_entities
+  checks:
+    - name: valid_served_entity_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: served_entity_id
+
+# -- endpoint_usage --
+- table: endpoint_usage
+  checks:
+    - name: valid_request_id
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: databricks_request_id
+    - name: valid_request_time
+      criticality: error
+      check:
+        function: is_not_null
+        arguments:
+          col_name: request_time
