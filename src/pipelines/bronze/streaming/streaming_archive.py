@@ -100,7 +100,10 @@ def register_sink_and_flow(config: dict) -> None:
     dp.create_sink(
         name=sink_name,
         format="delta",
-        options={"tableName": target_table},
+        options={
+            "tableName": target_table,
+            "mergeSchema": "true",
+        },
     )
 
     @dp.append_flow(name=flow_name, target=sink_name)
