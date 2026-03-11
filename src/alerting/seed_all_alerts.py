@@ -3,7 +3,7 @@
 TRAINING MATERIAL: Comprehensive Alert Seeding Pattern
 ======================================================
 
-This notebook populates ALL 56 planned alerts in a single operation,
+This notebook populates ALL 59 planned alerts in a single operation,
 demonstrating the "seed-once, update-incrementally" pattern.
 
 ALERT ORGANIZATION BY DOMAIN:
@@ -15,10 +15,10 @@ ALERT ORGANIZATION BY DOMAIN:
 │  COST           │  18     │  Daily spike, budget breach, untagged spend │
 │  SECURITY       │  8      │  Failed access, privilege escalation        │
 │  PERFORMANCE    │  12     │  Slow queries, warehouse saturation         │
-│  RELIABILITY    │  10     │  Job failures, SLA breach, cluster issues   │
-│  QUALITY        │  6      │  Schema drift, data freshness, DQ failures  │
+│  RELIABILITY    │  11     │  Job failures, SLA breach, cluster issues   │
+│  QUALITY        │  8      │  Schema drift, data freshness, DQ failures  │
 ├─────────────────┼─────────┼─────────────────────────────────────────────┤
-│  TOTAL          │  56     │  Comprehensive platform monitoring          │
+│  TOTAL          │  59     │  Comprehensive platform monitoring          │
 └─────────────────┴─────────┴─────────────────────────────────────────────┘
 
 ALERT ID NAMING CONVENTION:
@@ -882,7 +882,7 @@ WHERE query_start_time >= CURRENT_TIMESTAMP() - INTERVAL 5 MINUTES
 
 
 # ==============================================================================
-# RELIABILITY ALERTS (10 Alerts)
+# RELIABILITY ALERTS (11 Alerts)
 # ==============================================================================
 
 def get_reliability_alerts(catalog: str, gold_schema: str) -> List[Dict[str, Any]]:
@@ -987,6 +987,47 @@ WHERE prev_duration IS NOT NULL
   AND run_duration_seconds > 300
 """,
             "threshold_column": "regression_count",
+            "threshold_operator": ">",
+            "threshold_value_type": "DOUBLE",
+            "threshold_value_double": 2,
+            "empty_result_state": "OK",
+            "aggregation_type": "FIRST",
+            "schedule_cron": "0 0 8 * * ?",
+            "schedule_timezone": "America/Los_Angeles",
+            "pause_status": "PAUSED",
+            "is_enabled": True,
+            "notification_channels": ["default_email"],
+            "notify_on_ok": False,
+            "retrigger_seconds": 86400,
+            "owner": "data-engineering@company.com",
+            "tags": {"category": "regression_detection", "pattern_source": "workflow_advisor"},
+        },
+        # REL-010: Suspiciously Fast Job Completion
+        {
+            "alert_id": "REL-010",
+            "alert_name": "Suspiciously Fast Job Completion",
+            "alert_description": "Alerts when a job completes in less than half the time of its previous run. Business: May indicate skipped steps, empty source data, or silent failures. Technical: Inverse of REL-009; only flags jobs whose prior run exceeded 300 seconds.",
+            "agent_domain": "RELIABILITY",
+            "severity": "WARNING",
+            "alert_query_template": f"""
+WITH recent_runs AS (
+    SELECT
+        job_id,
+        run_id,
+        run_duration_seconds,
+        LAG(run_duration_seconds) OVER (PARTITION BY job_id ORDER BY period_start_time) AS prev_duration,
+        result_state
+    FROM {catalog}.{gold_schema}.fact_job_run_timeline
+    WHERE period_start_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS
+      AND result_state = 'SUCCEEDED'
+)
+SELECT COUNT(*) AS fast_completion_count
+FROM recent_runs
+WHERE prev_duration IS NOT NULL
+  AND run_duration_seconds < prev_duration * 0.5
+  AND prev_duration > 300
+""",
+            "threshold_column": "fast_completion_count",
             "threshold_operator": ">",
             "threshold_value_type": "DOUBLE",
             "threshold_value_double": 2,
@@ -1119,7 +1160,7 @@ WHERE pressure_pct > 30
 
 
 # ==============================================================================
-# QUALITY ALERTS (6 Alerts)
+# QUALITY ALERTS (8 Alerts)
 # ==============================================================================
 
 def get_quality_alerts(catalog: str, gold_schema: str) -> List[Dict[str, Any]]:
@@ -1191,6 +1232,64 @@ WHERE r.table_name IS NULL
             "retrigger_seconds": 86400,
             "owner": "data-governance@company.com",
             "tags": {"category": "governance", "pattern_source": "governance_hub"},
+        },
+        # QUAL-002: Data Freshness Unhealthy
+        {
+            "alert_id": "QUAL-002",
+            "alert_name": "Data Freshness Unhealthy",
+            "alert_description": "Alerts when any monitored table has unhealthy freshness status. Business: Stale data can lead to incorrect decisions. Technical: Based on Databricks data quality monitoring system tables.",
+            "agent_domain": "QUALITY",
+            "severity": "WARNING",
+            "alert_query_template": f"""
+SELECT COUNT(DISTINCT CONCAT(catalog_name, '.', schema_name, '.', table_name)) AS unhealthy_freshness_count
+FROM {catalog}.{gold_schema}.fact_data_quality_monitoring_table_results
+WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS
+  AND freshness_status = 'UNHEALTHY'
+""",
+            "threshold_column": "unhealthy_freshness_count",
+            "threshold_operator": ">",
+            "threshold_value_type": "DOUBLE",
+            "threshold_value_double": 0,
+            "empty_result_state": "OK",
+            "aggregation_type": "FIRST",
+            "schedule_cron": "0 0 * * * ?",
+            "schedule_timezone": "America/Los_Angeles",
+            "pause_status": "PAUSED",
+            "is_enabled": True,
+            "notification_channels": ["default_email"],
+            "notify_on_ok": False,
+            "retrigger_seconds": 3600,
+            "owner": "data-quality@company.com",
+            "tags": {"category": "quality", "priority": "high", "pattern_source": "dq_monitoring"},
+        },
+        # QUAL-003: Data Completeness Row Count Drop
+        {
+            "alert_id": "QUAL-003",
+            "alert_name": "Data Completeness Row Count Drop",
+            "alert_description": "Alerts when any monitored table has unhealthy completeness status, indicating unexpected row count drops or missing data. Business: Missing rows can cause incorrect aggregations and reporting gaps. Technical: Based on Databricks data quality monitoring system tables.",
+            "agent_domain": "QUALITY",
+            "severity": "WARNING",
+            "alert_query_template": f"""
+SELECT COUNT(DISTINCT CONCAT(catalog_name, '.', schema_name, '.', table_name)) AS unhealthy_completeness_count
+FROM {catalog}.{gold_schema}.fact_data_quality_monitoring_table_results
+WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS
+  AND completeness_status = 'UNHEALTHY'
+""",
+            "threshold_column": "unhealthy_completeness_count",
+            "threshold_operator": ">",
+            "threshold_value_type": "DOUBLE",
+            "threshold_value_double": 0,
+            "empty_result_state": "OK",
+            "aggregation_type": "FIRST",
+            "schedule_cron": "0 0 * * * ?",
+            "schedule_timezone": "America/Los_Angeles",
+            "pause_status": "PAUSED",
+            "is_enabled": True,
+            "notification_channels": ["default_email"],
+            "notify_on_ok": False,
+            "retrigger_seconds": 3600,
+            "owner": "data-quality@company.com",
+            "tags": {"category": "quality", "priority": "high", "pattern_source": "dq_monitoring"},
         },
     ]
 

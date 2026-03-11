@@ -462,6 +462,44 @@ class HealthMonitorAgent(ChatAgent):
         return "unknown_user"
 
     # =========================================================================
+    # ALERT CONTEXT ENRICHMENT (Layer 2 of hybrid alert architecture)
+    # =========================================================================
+
+    @staticmethod
+    def _enrich_with_alert_context(
+        user_message: str,
+        custom_inputs: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """
+        Enrich the user query with alert context when available.
+
+        When the frontend passes alert_context via custom_inputs (e.g., when
+        a user clicks on a triggered alert), prepend the alert metadata so
+        the agent can provide deeper, contextualized analysis via Genie.
+
+        This is backward-compatible: no-op if alert_context is absent.
+        """
+        if not custom_inputs:
+            return user_message
+
+        alert_context = custom_inputs.get("alert_context")
+        if not alert_context or not isinstance(alert_context, dict):
+            return user_message
+
+        enrichment = (
+            f"ALERT CONTEXT: Alert '{alert_context.get('alert_name', 'Unknown')}' "
+            f"({alert_context.get('agent_domain', 'Unknown')}, "
+            f"{alert_context.get('severity', 'Unknown')}) "
+            f"triggered at {alert_context.get('evaluation_timestamp', 'N/A')}. "
+            f"Value: {alert_context.get('query_result_value_double', 'N/A')}, "
+            f"Threshold: {alert_context.get('threshold_operator', '')} "
+            f"{alert_context.get('threshold_value_double', 'N/A')}. "
+            f"AI Summary: {alert_context.get('ai_analysis', 'N/A')}. "
+            f"User question: {user_message}"
+        )
+        return enrichment
+
+    # =========================================================================
     # MAIN PREDICTION METHOD
     # =========================================================================
     # TRAINING MATERIAL: This is the core method called by Databricks Model
@@ -572,6 +610,14 @@ class HealthMonitorAgent(ChatAgent):
         # WHY .content: ChatAgentMessage has role and content attributes
         # WHY empty string default: Defensive programming for malformed requests
         user_message = messages[-1].content if messages else ""
+
+        # =====================================================================
+        # STEP 1b: Enrich with alert context (Layer 2 integration)
+        # =====================================================================
+        # When a user clicks a triggered alert in the UI, the frontend passes
+        # alert_context via custom_inputs. This enriches the query with alert
+        # metadata so the agent can provide deeper, contextualized analysis.
+        user_message = self._enrich_with_alert_context(user_message, custom_inputs)
 
         # =====================================================================
         # STEP 2: Resolve identity information
@@ -825,6 +871,9 @@ class HealthMonitorAgent(ChatAgent):
         """
         # Extract the latest user message
         user_message = messages[-1].content if messages else ""
+
+        # Enrich with alert context if provided (Layer 2 integration)
+        user_message = self._enrich_with_alert_context(user_message, custom_inputs)
 
         # Resolve IDs
         thread_id = self._resolve_thread_id(custom_inputs, context)

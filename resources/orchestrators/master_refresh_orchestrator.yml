@@ -5,7 +5,7 @@
 # 
 # Architecture:
 #   Layer 3 (This job): Master Orchestrator
-#   Layer 2 (Composite): Monitoring Refresh, ML Inference jobs
+#   Layer 2 (Composite): Monitoring Refresh, ML Inference, Alert Evaluation jobs
 #   Layer 1 (Atomic): Individual notebook jobs
 #
 # Pattern: Each layer references the layer below via run_job_task
@@ -21,6 +21,7 @@
 #   2. Gold Merge (atomic) - Transform Bronze → Gold
 #   3. Monitoring Refresh (composite) → Lakehouse Monitor Refresh job
 #   4. ML Inference (composite) → ML Inference Pipeline job
+#   5. Alert Evaluation (atomic) → Evaluates all alerts, writes to alert_history
 #
 # Total: 33 system tables ingested (24 streaming + 9 non-streaming)
 #
@@ -34,7 +35,7 @@ resources:
   jobs:
     master_refresh_orchestrator:
       name: "[${bundle.target}] Health Monitor - Master Refresh Orchestrator"
-      description: "Complete data pipeline: Bronze → Gold → Monitor Refresh → ML Inference (references composite jobs)"
+      description: "Complete data pipeline: Bronze → Gold → Monitor Refresh → ML Inference → Alert Evaluation (references composite jobs)"
       
       tasks:
         # ================================================================
@@ -74,6 +75,17 @@ resources:
             - task_key: gold_merge
           run_job_task:
             job_id: ${resources.jobs.ml_inference_pipeline.id}
+        
+        # ================================================================
+        # PHASE 4: ALERT EVALUATION (after ML predictions are fresh)
+        # ================================================================
+        
+        # Step 5: Evaluate all alerts (writes to alert_history with AI analysis)
+        - task_key: evaluate_alerts
+          depends_on:
+            - task_key: ml_inference
+          run_job_task:
+            job_id: ${resources.jobs.alerting_evaluator_job.id}
       
       # Schedule: Daily at 2 AM UTC (PAUSED by default)
       schedule:

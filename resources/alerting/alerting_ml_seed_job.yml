@@ -1,0 +1,53 @@
+# Alerting ML Seed Job (Atomic)
+# =============================
+#
+# Seeds ML-driven alert configurations into the alert_configurations table.
+# These alerts query ML prediction tables in the feature_schema for
+# anomaly detections and high-risk predictions.
+#
+# Alert Domains:
+# - COST (1): Cost anomaly via IsolationForest
+# - SECURITY (2): Security threats, data exfiltration via IsolationForest
+# - PERFORMANCE (1): Performance regression via IsolationForest
+# - RELIABILITY (2): Job failure risk, SLA breach risk via XGBClassifier
+# - QUALITY (2): Data drift, freshness degradation
+#
+# All alerts start PAUSED and at WARNING severity (conservative).
+#
+# Usage:
+#   databricks bundle run -t dev alerting_ml_seed_job
+
+resources:
+  jobs:
+    alerting_ml_seed_job:
+      name: "[${bundle.target}] Health Monitor - Alerting ML Seed Configurations"
+      description: "Atomic job: Seeds ML-driven alert configurations (8 conservative alerts from prediction tables)"
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+
+      tasks:
+        - task_key: seed_ml_alerts
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/alerting/seed_ml_alerts.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+
+      timeout_seconds: 1800
+
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: alerting
+        job_type: seed
+        job_level: atomic
+        compute_type: serverless

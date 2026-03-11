@@ -1,0 +1,64 @@
+# Alert Evaluator Job (Atomic)
+# ============================
+#
+# The "missing piece" between alert_configurations and alert_history.
+#
+# Reads all enabled alerts, executes each query, evaluates thresholds,
+# enriches ML-tagged alerts with prediction scores, and calls FMAPI
+# for a short AI analysis on TRIGGERED alerts. Writes all results to
+# the alert_history Delta table.
+#
+# Layer 1 of the hybrid architecture:
+#   - Data backbone: always-populated alert_history
+#   - Genie, dashboards, and the agent can all query this table
+#   - FMAPI cost bounded to TRIGGERED alerts only
+#
+# Usage:
+#   databricks bundle run -t dev alerting_evaluator_job
+
+resources:
+  jobs:
+    alerting_evaluator_job:
+      name: "[${bundle.target}] Health Monitor - Alert Evaluator"
+      description: >
+        Atomic job: Evaluates all enabled alerts, writes results to alert_history
+        with evaluation_status, ml_score, and AI analysis for triggered alerts.
+        The data backbone for dashboards, Genie, and the HealthMonitorAgent.
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "databricks-sdk>=0.28.0"
+
+      tasks:
+        - task_key: evaluate_alerts
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/alerting/evaluate_alerts.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+              llm_endpoint: ${var.llm_endpoint}
+
+      # Recurring schedule: every 15 minutes (PAUSED by default)
+      schedule:
+        quartz_cron_expression: "0 */15 * * * ?"
+        timezone_id: "America/Los_Angeles"
+        pause_status: PAUSED
+
+      timeout_seconds: 3600
+
+      email_notifications:
+        on_failure:
+          - data-engineering@company.com
+
+      tags:
+        environment: ${bundle.target}
+        project: health_monitor
+        layer: alerting
+        job_type: evaluation
+        job_level: atomic
+        compute_type: serverless

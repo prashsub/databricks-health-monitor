@@ -19,7 +19,7 @@ resources:
       name: "[${bundle.target}] Health Monitor - Alerting Setup Orchestrator"
       description: >
         Composite job: Orchestrates complete alerting framework setup.
-        Sequence: Tables → Validation → Notification Destinations → SQL Alerts.
+        Sequence: Tables → ML Alert Seed → Validation → Notification Destinations → SQL Alerts.
         Run once for initial setup, then on configuration changes.
 
       environments:
@@ -41,10 +41,24 @@ resources:
               gold_schema: ${var.gold_schema}
           timeout_seconds: 600
 
-        # Step 2: Validate all alert queries (catches errors early)
+        # Step 2: Seed ML-driven alert configurations (after tables exist)
+        - task_key: seed_ml_alerts
+          depends_on:
+            - task_key: setup_tables
+          environment_key: default
+          notebook_task:
+            notebook_path: ../../src/alerting/seed_ml_alerts.py
+            base_parameters:
+              catalog: ${var.catalog}
+              gold_schema: ${var.gold_schema}
+              feature_schema: ${var.feature_schema}
+          timeout_seconds: 600
+
+        # Step 3: Validate all alert queries (catches errors early)
         - task_key: validate_queries
           depends_on:
             - task_key: setup_tables
+            - task_key: seed_ml_alerts
           environment_key: default
           notebook_task:
             notebook_path: ../../src/alerting/validate_all_queries.py
@@ -54,7 +68,7 @@ resources:
               fail_on_warning: "false"
           timeout_seconds: 900
 
-        # Step 3: Sync notification destinations (optional - requires admin)
+        # Step 4: Sync notification destinations (optional - requires admin)
         - task_key: sync_notifications
           depends_on:
             - task_key: setup_tables
@@ -67,7 +81,7 @@ resources:
               dry_run: "true"  # Set to "false" to create destinations (requires admin)
           timeout_seconds: 600
 
-        # Step 4: Deploy SQL alerts (only if validation passes)
+        # Step 5: Deploy SQL alerts (only if validation passes)
         - task_key: deploy_alerts
           depends_on:
             - task_key: validate_queries
