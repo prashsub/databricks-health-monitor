@@ -35,7 +35,7 @@ resources:
               catalog: ${var.catalog}
               gold_schema: ${var.gold_schema}
               warehouse_id: ${var.warehouse_id}
-              dry_run: "false"          # Set to "true" for validation mode
+              dry_run: "true"           # Safe default; set to "false" for actual deployment
               delete_disabled: "false"  # Set to "true" to auto-delete disabled alerts
               enable_parallel: "false"  # Reserved for future use
               parallel_workers: "5"     # Reserved for future use

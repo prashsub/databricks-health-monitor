@@ -8,8 +8,8 @@
 # - COST (18 alerts): Cost management, budget, commit tracking, tag hygiene
 # - SECURITY (8 alerts): Access control, audit, anomaly detection
 # - PERFORMANCE (12 alerts): Query performance, warehouse utilization
-# - RELIABILITY (10 alerts): Job reliability, SLA, cluster health
-# - QUALITY (6 alerts): Data quality, governance, freshness
+# - RELIABILITY (11 alerts): Job reliability, SLA, cluster health
+# - QUALITY (8 alerts): Data quality, governance, freshness
 #
 # Usage:
 #   databricks bundle run -t dev alerting_seed_job
