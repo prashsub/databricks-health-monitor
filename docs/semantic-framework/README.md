@@ -153,7 +153,7 @@ docs/semantic-framework/
 
 ## Related Documentation
 
-- [Gold Layer Design](../../gold_layer_design/README.md)
+- [Gold Layer Design](../../gold_layer_design/design/00_design_overview.md)
 - [Phase 3.2: TVF Plan](../../plans/phase3-addendum-3.2-tvfs.md)
 - [Phase 3.3: Metric Views Plan](../../plans/phase3-addendum-3.3-metric-views.md)
 - [Phase 3.6: Genie Spaces Plan](../../plans/phase3-addendum-3.6-genie-spaces.md)

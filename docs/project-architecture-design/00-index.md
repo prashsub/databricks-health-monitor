@@ -1,5 +1,12 @@
 # Databricks Health Monitor - Project Architecture Design
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 ## Overview
 
 The **Databricks Health Monitor** is a comprehensive platform observability solution that provides real-time monitoring, analytics, and AI-powered insights for Databricks workspaces. Built on a medallion architecture (Bronze → Silver → Gold), the system implements a multi-layered semantic framework optimized for both human consumption and AI agent interaction, delivering actionable intelligence across cost, security, performance, reliability, data quality, and MLOps domains.
@@ -235,4 +242,3 @@ The **Databricks Health Monitor** is a comprehensive platform observability solu
 **Last Updated:** January 2026  
 **Primary Author:** System Architect  
 **Review Status:** ✅ Approved
-

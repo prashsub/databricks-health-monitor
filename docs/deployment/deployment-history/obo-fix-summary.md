@@ -206,7 +206,7 @@ print(f"  Performance: {os.environ.get('PERFORMANCE_GENIE_SPACE_ID')}")
 
 ## 📚 Related Documentation
 
-- [OBO Authentication Fix Details](./OBO_AUTH_FIX.md)
+- [OBO Authentication Fix Details](./obo-auth-fix.md)
 - [OBO Authentication Guide](../agent-framework-design/obo-authentication-guide.md)
 - [Databricks Agent Authentication Docs](https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/agent-authentication)
 

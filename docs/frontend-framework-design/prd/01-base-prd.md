@@ -1,5 +1,12 @@
 # 09 - Frontend Product Requirements Document (PRD)
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **Document Type:** Product Requirements Document for UI/UX Design  
 **Target:** Figma Design Team  
 **Version:** 1.0  
@@ -2090,4 +2097,3 @@ Icons:     SM: 16px   MD: 20px   LG: 24px   XL: 32px
 Inputs:    Height: 40px
 Cards:     Min-height: 140px (KPI), 320px (Charts)
 ```
-

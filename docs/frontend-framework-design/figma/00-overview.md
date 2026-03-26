@@ -1,5 +1,12 @@
 # Databricks Health Monitor - Figma Design System
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 ## 🎯 Project Overview
 
 **Product:** Databricks Health Monitoring Platform  

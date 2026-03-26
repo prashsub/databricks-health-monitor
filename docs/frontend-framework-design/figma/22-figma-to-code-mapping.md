@@ -1,5 +1,12 @@
 # 22 - Figma to Code Capability Mapping
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 ## Overview
 
 This document maps every Figma UI element to its actual data source, API endpoint, and code location in the repository. Use this as the **single source of truth** when implementing the frontend from Figma designs.
@@ -833,10 +840,3 @@ When implementing each Figma screen, ensure:
 3. New ML models are deployed
 4. Agent tools are added or modified
 5. API routes change
-
-
-
-
-
-
-

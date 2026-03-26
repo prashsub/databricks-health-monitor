@@ -1,5 +1,12 @@
 # Executive Summary: AI-First Databricks Health Monitor
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **Date:** January 2026  
 **Version:** 3.0 - Agentic AI-First Application  
 **Total Documentation:** 470 pages of comprehensive specifications
@@ -479,4 +486,3 @@ The Databricks Health Monitor represents the **future of enterprise monitoring a
 **Created:** January 2026  
 **Authors:** AI Architecture Team  
 **Approved For:** Figma Design Phase
-

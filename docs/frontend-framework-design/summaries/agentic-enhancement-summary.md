@@ -1,5 +1,12 @@
 # README: Agentic AI-First Enhancement Complete ✅
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **Date:** January 2026  
 **Enhancement Version:** 3.0 - AI-First Application  
 **Status:** Ready for Figma Design
@@ -521,4 +528,3 @@ You now have a **complete, production-ready, AI-first application specification*
 **Created:** January 2026  
 **Status:** Complete ✅  
 **Next Phase:** Figma Design (12 weeks)
-

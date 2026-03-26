@@ -168,26 +168,31 @@ databricks bundle run -t dev master_refresh_orchestrator
 
 | Guide | Purpose | Path |
 |-------|---------|------|
-| **Quick Start** | Get up and running in 15 minutes | `QUICKSTART.md` |
-| **Genie Spaces Guide** | Natural language querying | `docs/deployment/GENIE_SPACES_DEPLOYMENT_GUIDE.md` |
-| **Dashboard Guide** | Using the AI/BI dashboard | `docs/dashboard-framework-design/` |
-| **Alerting Guide** | Configuring SQL alerts | `docs/alerting-framework-design/` |
+| **Quick Start** | Get up and running in 15 minutes | [`QUICKSTART.md`](QUICKSTART.md) |
+| **Genie Spaces Guide** | Natural language querying | [`docs/deployment/genie-spaces/`](docs/deployment/genie-spaces/) |
+| **Dashboard Guide** | Using the AI/BI dashboard | [`docs/dashboard-framework-design/`](docs/dashboard-framework-design/) |
+| **Alerting Guide** | Configuring SQL alerts | [`docs/alerting-framework-design/`](docs/alerting-framework-design/) |
+| **Deployed Assets** | Inventory of all deployed assets | [`docs/actual-assets.md`](docs/actual-assets.md) |
 
 ### For Developers
 
 | Guide | Purpose | Path |
 |-------|---------|------|
-| **Gold Layer Design** | Dimensional model ERDs | `gold_layer_design/erd/` |
-| **ML Framework** | Training and inference | `docs/ml-framework-design/` |
-| **Agent Framework** | GenAI agent architecture | `docs/agent-framework-design/` |
-| **Semantic Layer** | TVFs, Metric Views, Genie | `docs/semantic-framework/` |
-| **Lakehouse Monitoring** | Custom metrics patterns | `docs/lakehouse-monitoring-design/` |
+| **Gold Layer Design** | Dimensional model ERDs | [`gold_layer_design/erd/`](gold_layer_design/erd/) |
+| **ML Framework** | Training and inference | [`docs/ml-framework-design/`](docs/ml-framework-design/) |
+| **Agent Framework** | GenAI agent architecture | [`docs/agent-framework-design/`](docs/agent-framework-design/) |
+| **Semantic Layer** | TVFs, Metric Views, Genie | [`docs/semantic-framework/`](docs/semantic-framework/) |
+| **Lakehouse Monitoring** | Custom metrics patterns | [`docs/lakehouse-monitoring-design/`](docs/lakehouse-monitoring-design/) |
+| **Troubleshooting** | Debug sessions and fix reports | [`docs/troubleshooting/`](docs/troubleshooting/) |
 
-### Architecture Diagrams
+### Architecture & Reference
 
-- **Master ERD**: `gold_layer_design/erd/00_master_erd.md`
-- **System Architecture**: `docs/project-architecture-design/`
-- **Agent Flow**: `docs/agent-framework-design/actual-implementation/`
+- **System Architecture**: [`docs/architecture/`](docs/architecture/)
+- **Project Architecture Design**: [`docs/project-architecture-design/`](docs/project-architecture-design/)
+- **Master ERD**: [`gold_layer_design/erd/00_master_erd.md`](gold_layer_design/erd/00_master_erd.md)
+- **Agent Implementation**: [`docs/agent-framework-design/actual-implementation/`](docs/agent-framework-design/actual-implementation/)
+- **Deployment History**: [`docs/deployment/deployment-history/`](docs/deployment/deployment-history/)
+- **Reference & Inventories**: [`docs/reference/`](docs/reference/)
 
 ---
 
@@ -727,9 +732,11 @@ WHERE statement_text LIKE '%alert_query%';
 
 ### Internal Documentation
 
-- **Cursor Rules**: `.cursor/rules/` - 42 AI-assisted development patterns
-- **Reference Docs**: `docs/reference/` - 60 detailed guides
-- **Enterprise Practices**: `docs/enterprise_golden_rules/` - 32 best practices
+- **Cursor Rules**: `.cursor/rules/` - AI-assisted development patterns
+- **Reference Docs**: `docs/reference/` - Inventories, rule improvements, and technical references
+- **Deployment History**: `docs/deployment/deployment-history/` - Historical deployment session logs
+- **Operations**: `docs/operations/` - Operational runbooks and procedures
+- **Development**: `docs/development/` - Development setup and roadmap
 
 ---
 

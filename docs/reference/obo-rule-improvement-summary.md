@@ -71,9 +71,9 @@ def _get_authenticated_client(self):
 ## Documentation Created
 
 ### 1. Production Fix Docs (Already Created)
-- `docs/deployment/OBO_AUTH_FIX.md` - Technical details
-- `docs/deployment/OBO_FIX_SUMMARY.md` - Next steps
-- `docs/deployment/OBO_QUICK_REFERENCE.md` - Quick troubleshooting
+- `docs/deployment/deployment-history/obo-auth-fix.md` - Technical details
+- `docs/deployment/deployment-history/obo-fix-summary.md` - Next steps
+- `docs/deployment/deployment-history/obo-quick-reference.md` - Quick troubleshooting
 - `tests/test_obo_auth_fix.py` - Verification tests
 
 ### 2. Rule Improvement Docs (NEW)
@@ -280,7 +280,7 @@ If seeing permission errors in evaluation:
 ## Questions?
 
 See:
-- **Quick Reference:** `docs/deployment/OBO_QUICK_REFERENCE.md`
-- **Complete Guide:** `docs/deployment/OBO_AUTH_FIX.md`
+- **Quick Reference:** `docs/deployment/deployment-history/obo-quick-reference.md`
+- **Complete Guide:** `docs/deployment/deployment-history/obo-auth-fix.md`
 - **Case Study:** `docs/reference/rule-improvement-obo-context-detection.md`
 - **Cursor Rule:** `.cursor/rules/genai-agents/33-mlflow-tracing-agent-patterns.mdc` (Pattern 5)

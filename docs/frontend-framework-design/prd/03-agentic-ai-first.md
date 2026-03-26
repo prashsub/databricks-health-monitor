@@ -1,5 +1,12 @@
 # 09b - Frontend PRD: Agentic AI-First Enhancements
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **Document Type:** PRD Enhancement - Agent-Native UX Patterns  
 **Version:** 3.0  
 **Last Updated:** January 2026  
@@ -1659,4 +1666,3 @@ Props:
 **Agent Integration:** Complete (Orchestrator + 5 Workers + 4 Tools)  
 **Design Paradigm:** AI-First, Conversation-Native  
 **Last Updated:** January 2026
-

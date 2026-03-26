@@ -47,7 +47,7 @@
 ### Architecture
 
 - [Agent Framework Design](../../agent-framework-design/00-index.md)
-- [Gold Layer Design](../../../gold_layer_design/README.md)
+- [Gold Layer Design](../../../gold_layer_design/design/00_design_overview.md)
 - [Genie Spaces Plan](../../../plans/phase3-addendum-3.6-genie-spaces.md)
 
 ### Implementation Plans

@@ -1,5 +1,12 @@
 # Visual Comparison: Traditional vs AI-First Application
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **The Evolution of Databricks Health Monitor**
 
 ---
@@ -632,4 +639,3 @@ Natural Language → Agent Intelligence → Data Layer
 **Created:** January 2026  
 **Total Specifications:** 470 pages  
 **Ready for:** Figma Design Phase
-

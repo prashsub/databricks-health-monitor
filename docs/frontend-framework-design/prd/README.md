@@ -1,5 +1,12 @@
 # Product Requirements Documents (PRD)
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **Total Pages:** 570  
 **Version:** 4.0  
 **Status:** ✅ Complete
@@ -294,4 +301,3 @@ Before considering PRD complete, verify:
 **Last Updated:** January 2026  
 **Total Pages:** 570  
 **Status:** ✅ Complete - Ready for Figma Design
-

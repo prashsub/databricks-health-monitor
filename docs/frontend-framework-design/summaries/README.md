@@ -1,5 +1,12 @@
 # PRD Summaries - Executive Overviews
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **Purpose:** Quick summaries for stakeholders who don't need full 570-page PRD  
 **Audience:** Executives, Product Managers, Project Managers  
 **Reading Time:** 10-15 minutes each
@@ -254,4 +261,3 @@ See [../FIGMA-DESIGN-GUIDE.md](../FIGMA-DESIGN-GUIDE.md)
 **Last Updated:** January 2026  
 **Total Summary Pages:** ~40 (vs 570 full PRD)  
 **Compression Ratio:** 14:1 (93% shorter!)
-

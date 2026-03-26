@@ -1,5 +1,12 @@
 # Prompt 20: Icons & Assets Library
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 ## 🎯 Prompt Purpose
 Create a comprehensive icon library and asset collection for the Databricks Health Monitor. Uses Lucide Icons for consistency with Next.js implementation.
 

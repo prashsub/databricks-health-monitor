@@ -1,5 +1,10 @@
 # Databricks Health Monitor - Deployed Assets Inventory
 
+> **Warning: Environment-Specific Content**
+> The catalog and schema names below are from a specific development workspace.
+> Replace with your own values from `databricks.yml` variables (`var.catalog`,
+> `var.gold_schema`, etc.) when referencing these assets in a different environment.
+
 > **Catalog:** `prashanth_subrahmanyam_catalog`  
 > **Gold Schema:** `dev_prashanth_subrahmanyam_system_gold`  
 > **ML Schema:** `dev_prashanth_subrahmanyam_system_gold_ml`  

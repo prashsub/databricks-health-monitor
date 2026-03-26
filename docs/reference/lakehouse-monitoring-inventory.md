@@ -334,7 +334,7 @@ ORDER BY window_start DESC
 
 - [Lakehouse Monitoring Documentation](https://docs.databricks.com/lakehouse-monitoring)
 - [Custom Metrics Reference](https://docs.databricks.com/lakehouse-monitoring/custom-metrics)
-- [Phase 3 Addendum 3.4](../plans/phase3-addendum-3.4-lakehouse-monitoring.md)
+- [Phase 3 Addendum 3.4](../../plans/phase3-addendum-3.4-lakehouse-monitoring.md)
 - [Monitoring Cursor Rule](../.cursor/rules/monitoring/17-lakehouse-monitoring-comprehensive.mdc)
 
 ---

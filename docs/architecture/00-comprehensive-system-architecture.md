@@ -1,5 +1,12 @@
 # Databricks Health Monitor - Comprehensive System Architecture
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **Version:** 1.0  
 **Last Updated:** January 2026  
 **Status:** Phase 3 Complete, Phase 4-5 Planned
@@ -1310,7 +1317,7 @@ resources:
 **Status:** 📋 Planned (Phase 5)  
 **Purpose:** Modern web interface for platform observability with AI-powered chat
 
-See complete specification: [Phase 5 Frontend App Plan](../plans/phase5-frontend-app.md)
+See complete specification: [Phase 5 Frontend App Plan](../../plans/phase5-frontend-app.md)
 
 ### Technology Stack
 
@@ -1870,19 +1877,19 @@ CLUSTER BY AUTO;
 ### Internal Documentation
 
 **Implementation Guides:**
-- [Semantic Framework Documentation](../docs/semantic-framework/)
-- [ML Framework Design](../docs/ml-framework-design/)
-- [Lakehouse Monitoring Design](../docs/lakehouse-monitoring-design/)
-- [Alerting Framework Design](../docs/alerting-framework-design/)
-- [Dashboard Framework Design](../docs/dashboard-framework-design/)
-- [Agent Framework Design](../docs/agent-framework-design/)
+- [Semantic Framework Documentation](../semantic-framework/)
+- [ML Framework Design](../ml-framework-design/)
+- [Lakehouse Monitoring Design](../lakehouse-monitoring-design/)
+- [Alerting Framework Design](../alerting-framework-design/)
+- [Dashboard Framework Design](../dashboard-framework-design/)
+- [Agent Framework Design](../agent-framework-design/)
 
 **Project Plans:**
-- [Phase 1: Bronze Ingestion](../plans/phase1-bronze-ingestion.md)
-- [Phase 2: Gold Layer Design](../plans/phase2-gold-layer-design.md)
-- [Phase 3: Use Cases](../plans/phase3-use-cases.md)
-- [Phase 4: Agent Framework](../plans/phase4-agent-framework.md)
-- [Phase 5: Frontend App](../plans/phase5-frontend-app.md)
+- [Phase 1: Bronze Ingestion](../../plans/phase1-bronze-ingestion.md)
+- [Phase 2: Gold Layer Design](../../plans/phase2-gold-layer-design.md)
+- [Phase 3: Use Cases](../../plans/phase3-use-cases.md)
+- [Phase 4: Agent Framework](../../plans/phase4-agent-framework.md)
+- [Phase 5: Frontend App](../../plans/phase5-frontend-app.md)
 
 **Reference Architecture:**
 - [ML Pipeline Architecture](./ml-pipeline-architecture.md)
@@ -1959,4 +1966,3 @@ CLUSTER BY AUTO;
 | Product Manager | | | |
 | Security Architect | | | |
 | Data Platform Lead | | | |
-

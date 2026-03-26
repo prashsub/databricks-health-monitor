@@ -68,10 +68,7 @@
 ### Artifacts Created
 
 1. **Cursor Rule:** `.cursor/rules/genai-agents/34-genie-space-optimization.mdc`
-2. **Optimization Reports:**
-   - `docs/genie_space_optimizer/security_optimization_report.md`
-   - `docs/genie_space_optimizer/reliability_optimization_report.md`
-   - `docs/genie_space_optimizer/quality_optimization_report.md`
+2. **Optimization Reports:** *(not yet generated -- see cursor rule for patterns)*
 3. **Updated Export Files:**
    - `src/genie/security_auditor_genie_export.json`
    - `src/genie/job_health_monitor_genie_export.json`

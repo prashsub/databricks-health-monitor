@@ -197,9 +197,9 @@ databricks bundle run -t dev genie_spaces_deployment_job
 ## 📚 Related Documentation
 
 - [Validation Job Details](genie-space-deployment-with-validation.md)
-- [Deployment Job Details](GENIE_DEPLOYMENT_JOB_COMPLETE.md)
-- [Autonomous Debugging Session](../troubleshooting/genie-deployment-autonomous-debug-session.md)
-- [All Genie Spaces Complete](../GENIE_SPACES_COMPLETE.md)
+- [Deployment Job Details](genie-deployment-job-complete.md)
+- [Autonomous Debugging Session](../../troubleshooting/genie-deployment-autonomous-debug-session.md)
+- [All Genie Spaces Complete](genie-complete-summary.md)
 
 ---
 

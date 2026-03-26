@@ -361,9 +361,9 @@ Difference: Proactive vs reactive. Proactive is clearer, faster, and more mainta
 ## Related Documentation
 
 ### Production Docs
-- [OBO Authentication Fix Details](../deployment/OBO_AUTH_FIX.md)
-- [OBO Fix Summary & Next Steps](../deployment/OBO_FIX_SUMMARY.md)
-- [OBO Quick Reference](../deployment/OBO_QUICK_REFERENCE.md)
+- [OBO Authentication Fix Details](../deployment/deployment-history/obo-auth-fix.md)
+- [OBO Fix Summary & Next Steps](../deployment/deployment-history/obo-fix-summary.md)
+- [OBO Quick Reference](../deployment/deployment-history/obo-quick-reference.md)
 
 ### Tests
 - [OBO Authentication Verification Tests](../../tests/test_obo_auth_fix.py)

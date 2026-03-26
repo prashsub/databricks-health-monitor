@@ -104,7 +104,7 @@ src/semantic/tvfs/
 ## Related Documentation
 
 - [Agent Framework Design](../agent-framework-design/)
-- [Gold Layer Design](../../gold_layer_design/README.md)
+- [Gold Layer Design](../../gold_layer_design/design/00_design_overview.md)
 - [Phase 3.2 TVF Plan](../../plans/phase3-addendum-3.2-tvfs.md)
 - [Genie Spaces Plan](../../plans/phase3-addendum-3.6-genie-spaces.md)
 

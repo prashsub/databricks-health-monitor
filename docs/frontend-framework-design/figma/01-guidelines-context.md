@@ -1,5 +1,12 @@
 # 01 - Guidelines & Context Setup
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 ## Overview
 
 This file contains the **Guidelines.md** content to paste into your Figma project. This is CRITICAL for Figma Make to understand the design system contract.
@@ -513,4 +520,3 @@ Before proceeding to Prompt 02, verify:
 ---
 
 **Next:** [02-tokens-colors.md](02-tokens-colors.md)
-

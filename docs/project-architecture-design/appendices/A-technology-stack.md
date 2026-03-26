@@ -1,5 +1,12 @@
 # Appendix A - Technology Stack
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **Complete technology inventory for the Databricks Health Monitor project.**
 
 ---
@@ -542,4 +549,3 @@ pytest-cov>=4.1.0
 **Document Version:** 1.0  
 **Last Updated:** January 2026  
 **Next Review:** Quarterly
-

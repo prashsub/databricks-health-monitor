@@ -1,5 +1,12 @@
 # 01 - Introduction
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 ## Purpose
 
 The **Databricks Health Monitor** addresses a critical gap in platform observability: **unified, AI-powered monitoring across cost, security, performance, reliability, data quality, and MLOps domains**. Built as a comprehensive solution from Bronze layer ingestion through intelligent agent interfaces, the system transforms raw Databricks system tables into actionable insights through a sophisticated semantic layer optimized for both human and AI consumption.
@@ -371,4 +378,3 @@ if __name__ == "__main__":
 **Document Version:** 1.0  
 **Last Updated:** January 2026  
 **Next Review:** March 2026 (or when Phase 4 begins)
-

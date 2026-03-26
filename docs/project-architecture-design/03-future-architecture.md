@@ -1,5 +1,12 @@
 # 03 - Future Architecture (Phases 4-5 Planned)
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 **Roadmap for Agent Framework and Frontend Application implementation.**
 
 ---
@@ -815,4 +822,3 @@ resources:
 **Document Version:** 1.0  
 **Last Updated:** January 2026  
 **Status:** 📋 Planned (14 weeks / 3.5 months)
-

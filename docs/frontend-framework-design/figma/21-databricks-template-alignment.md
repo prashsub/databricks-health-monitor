@@ -1,5 +1,12 @@
 # Prompt 21: Databricks Template Alignment Guide
 
+> **Note: Outdated Frontend Stack References**
+> This document references Next.js 14+ and/or Vercel AI SDK as the frontend stack.
+> The actual implementation uses **FastAPI + React/Vite** deployed as a Databricks App.
+> Treat frontend-specific sections as superseded design docs; the backend architecture
+> and data platform sections remain accurate.
+
+
 ## 🎯 Purpose
 Ensure Figma designs align with the official [Databricks e2e-chatbot-app-next template](https://github.com/databricks/app-templates/tree/main/e2e-chatbot-app-next) for seamless deployment to Databricks Apps.
 
@@ -636,4 +643,3 @@ env:
 - [18-overlays-modals.md](18-overlays-modals.md) - 6 new overlay components
 - [19-prototype-flows.md](19-prototype-flows.md) - 10 user journey scenarios
 - [20-icons-assets.md](20-icons-assets.md) - 132 icons organized in 13 categories
-

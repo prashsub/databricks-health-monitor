@@ -122,6 +122,6 @@ src/semantic/metric_views/
 ## Related Documentation
 
 - [TVF Documentation (00-07)](00-index.md)
-- [Gold Layer Design](../../gold_layer_design/README.md)
+- [Gold Layer Design](../../gold_layer_design/design/00_design_overview.md)
 - [Phase 3.3 Metric Views Plan](../../plans/phase3-addendum-3.3-metric-views.md)
 - [Genie Spaces Plan](../../plans/phase3-addendum-3.6-genie-spaces.md)

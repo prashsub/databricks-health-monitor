@@ -66,8 +66,8 @@ print(f"Model Serving: {os.environ.get('IS_IN_DB_MODEL_SERVING_ENV')}")
 
 ## 📖 Full Documentation
 
-- [Complete Fix Details](./OBO_AUTH_FIX.md)
-- [Summary & Next Steps](./OBO_FIX_SUMMARY.md)
+- [Complete Fix Details](./obo-auth-fix.md)
+- [Summary & Next Steps](./obo-fix-summary.md)
 - [Verification Tests](../../tests/test_obo_auth_fix.py)
 
 ## ✨ Bottom Line
