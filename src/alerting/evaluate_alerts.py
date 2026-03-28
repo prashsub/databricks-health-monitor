@@ -214,6 +214,11 @@ ML_SCORE_QUERIES = {
         FROM {catalog}.{feature_schema}.performance_regression_predictions
         WHERE scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
     """,
+    "warehouse_optimizer": """
+        SELECT AVG(CASE WHEN prediction < 0.3 THEN 1.0 ELSE 0.0 END) AS ml_score
+        FROM {catalog}.{feature_schema}.warehouse_optimizer_predictions
+        WHERE scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+    """,
     "job_failure_predictor": """
         SELECT AVG(CASE WHEN prediction = 1 THEN 1.0 ELSE 0.0 END) AS ml_score
         FROM {catalog}.{feature_schema}.job_failure_predictions
@@ -232,6 +237,31 @@ ML_SCORE_QUERIES = {
     "data_freshness_predictor": """
         SELECT 1.0 - AVG(prediction) AS ml_score
         FROM {catalog}.{feature_schema}.freshness_predictions
+        WHERE scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+    """,
+    "budget_forecaster": """
+        SELECT CASE WHEN MAX(prediction) > 100000 THEN 1.0 ELSE 0.0 END AS ml_score
+        FROM {catalog}.{feature_schema}.budget_forecast_predictions
+        WHERE scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+    """,
+    "privilege_escalation_detector": """
+        SELECT AVG(CASE WHEN prediction = 1 THEN 1.0 ELSE 0.0 END) AS ml_score
+        FROM {catalog}.{feature_schema}.privilege_escalation_predictions
+        WHERE scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+    """,
+    "dbr_migration_risk_scorer": """
+        SELECT AVG(CASE WHEN prediction >= 2 THEN 1.0 ELSE 0.0 END) AS ml_score
+        FROM {catalog}.{feature_schema}.dbr_migration_predictions
+        WHERE scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+    """,
+    "cluster_capacity_planner": """
+        SELECT AVG(CASE WHEN prediction < 0.4 THEN 1.0 ELSE 0.0 END) AS ml_score
+        FROM {catalog}.{feature_schema}.cluster_capacity_predictions
+        WHERE scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+    """,
+    "pipeline_health_scorer": """
+        SELECT 1.0 - (AVG(prediction) / 100.0) AS ml_score
+        FROM {catalog}.{feature_schema}.pipeline_health_predictions
         WHERE scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
     """,
 }

@@ -9,21 +9,25 @@ and fire only when models have flagged anomalies or high-risk items.
 
 ALERT PHILOSOPHY:
 -----------------
-- Conservative: only anomaly-detection (IsolationForest) and
-  high-signal classifiers are included.
-- All alerts start PAUSED and at WARNING severity.
+- Conservative: only anomaly-detection, high-signal classifiers,
+  and predictive leading-indicators with clear actionability.
+- All alerts start PAUSED (enable selectively after validation).
 - Each query checks for recent predictions (last 24h) to avoid
   stale detections.
 - Tagged with source=ml_prediction for easy filtering.
+- Signals that are purely advisory or lack urgency are kept
+  out of alerting and surfaced via dashboards/Genie instead.
 
-ML ALERT ID CONVENTION:
------------------------
-    ML-{DOMAIN}-NNN
-
-    Examples:
-    - ML-COST-001: Cost Anomaly (IsolationForest)
-    - ML-SEC-001: Security Threat (IsolationForest)
-    - ML-REL-001: Job Failure Risk (XGBClassifier)
+ML ALERT INVENTORY (14 alerts):
+-------------------------------
+    COST (2):        ML-COST-001 (anomaly), ML-COST-002 (budget forecast)
+    SECURITY (3):    ML-SEC-001 (threat), ML-SEC-002 (exfiltration),
+                     ML-SEC-003 (privilege escalation)
+    PERFORMANCE (4): ML-PERF-001 (regression), ML-PERF-002 (warehouse opt),
+                     ML-PERF-003 (DBR migration), ML-PERF-004 (capacity)
+    RELIABILITY (3): ML-REL-001 (job failure), ML-REL-002 (SLA breach),
+                     ML-REL-003 (pipeline health)
+    QUALITY (2):     ML-QUAL-001 (drift), ML-QUAL-002 (freshness)
 
 Reference: src/ml/utils/prediction_metadata.py for table schemas
 """
@@ -49,7 +53,7 @@ def get_ml_alerts(catalog: str, gold_schema: str, feature_schema: str) -> List[D
     """
     return [
         # ==================================================================
-        # COST DOMAIN (1 alert)
+        # COST DOMAIN (2 alerts)
         # ==================================================================
         {
             "alert_id": "ML-COST-001",
@@ -93,8 +97,53 @@ WHERE prediction = -1
             },
         },
 
+        # ML-COST-002: Projected Budget Overspend
+        {
+            "alert_id": "ML-COST-002",
+            "alert_name": "ML Projected Budget Overspend",
+            "alert_description": (
+                "Fires when the budget_forecaster Prophet model projects that "
+                "spending will exceed the budget threshold within 7 days. "
+                "Business: forward-looking budget breach warning unlike MTD "
+                "checks (COST-003/004); gives time to throttle workloads or "
+                "request budget increase. Technical: queries "
+                "budget_forecast_predictions for forecasted spend vs budget."
+            ),
+            "agent_domain": "COST",
+            "severity": "WARNING",
+            "alert_query_template": f"""
+SELECT
+    COUNT(*) AS overspend_forecast_count,
+    ROUND(MAX(prediction), 2) AS max_forecasted_cost,
+    MAX(scored_at) AS latest_forecast
+FROM {catalog}.{feature_schema}.budget_forecast_predictions
+WHERE prediction > 100000
+  AND scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+""",
+            "threshold_column": "overspend_forecast_count",
+            "threshold_operator": ">",
+            "threshold_value_type": "DOUBLE",
+            "threshold_value_double": 0.0,
+            "empty_result_state": "OK",
+            "aggregation_type": "FIRST",
+            "schedule_cron": "0 0 8 * * ?",
+            "schedule_timezone": "America/Los_Angeles",
+            "pause_status": "PAUSED",
+            "is_enabled": True,
+            "notification_channels": ["default_email"],
+            "notify_on_ok": False,
+            "retrigger_seconds": 86400,
+            "owner": "finops-team@company.com",
+            "tags": {
+                "source": "ml_prediction",
+                "ml_model": "budget_forecaster",
+                "ml_type": "prophet",
+                "priority": "medium",
+            },
+        },
+
         # ==================================================================
-        # SECURITY DOMAIN (2 alerts)
+        # SECURITY DOMAIN (3 alerts)
         # ==================================================================
         {
             "alert_id": "ML-SEC-001",
@@ -179,8 +228,53 @@ WHERE prediction = -1
             },
         },
 
+        # ML-SEC-003: Privilege Escalation Risk
+        {
+            "alert_id": "ML-SEC-003",
+            "alert_name": "ML Privilege Escalation Risk",
+            "alert_description": (
+                "Fires when the privilege_escalation_detector model flags "
+                "unexpected permission changes (prediction=1) in the last "
+                "24 hours. Business: unauthorized privilege escalation is a "
+                "critical security incident; every minute of elevated access "
+                "increases blast radius. Technical: queries "
+                "privilege_escalation_predictions."
+            ),
+            "agent_domain": "SECURITY",
+            "severity": "CRITICAL",
+            "alert_query_template": f"""
+SELECT
+    COUNT(*) AS escalation_count,
+    COUNT(DISTINCT user_id) AS affected_users,
+    MAX(scored_at) AS latest_detection
+FROM {catalog}.{feature_schema}.privilege_escalation_predictions
+WHERE prediction = 1
+  AND scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+""",
+            "threshold_column": "escalation_count",
+            "threshold_operator": ">",
+            "threshold_value_type": "DOUBLE",
+            "threshold_value_double": 0.0,
+            "empty_result_state": "OK",
+            "aggregation_type": "FIRST",
+            "schedule_cron": "0 0 */4 * * ?",
+            "schedule_timezone": "America/Los_Angeles",
+            "pause_status": "PAUSED",
+            "is_enabled": True,
+            "notification_channels": ["default_email"],
+            "notify_on_ok": False,
+            "retrigger_seconds": 14400,
+            "owner": "security-team@company.com",
+            "tags": {
+                "source": "ml_prediction",
+                "ml_model": "privilege_escalation_detector",
+                "ml_type": "classifier",
+                "priority": "critical",
+            },
+        },
+
         # ==================================================================
-        # PERFORMANCE DOMAIN (2 alerts)
+        # PERFORMANCE DOMAIN (4 alerts)
         # ==================================================================
         {
             "alert_id": "ML-PERF-001",
@@ -268,8 +362,100 @@ WHERE prediction < 0.3
             },
         },
 
+        # ML-PERF-003: DBR Migration Risk
+        {
+            "alert_id": "ML-PERF-003",
+            "alert_name": "ML DBR Migration Risk",
+            "alert_description": (
+                "Fires when the dbr_migration_risk_scorer model flags any "
+                "cluster with HIGH or CRITICAL migration risk (prediction>=2) "
+                "in the last 24 hours. Business: clusters on deprecated or "
+                "EOL Databricks Runtime versions will eventually stop working; "
+                "this alert gives lead time to plan migration. Technical: "
+                "queries dbr_migration_predictions, risk levels 0-3."
+            ),
+            "agent_domain": "PERFORMANCE",
+            "severity": "WARNING",
+            "alert_query_template": f"""
+SELECT
+    COUNT(*) AS high_risk_count,
+    COUNT(DISTINCT cluster_id) AS affected_clusters,
+    MAX(prediction) AS highest_risk_level,
+    MAX(scored_at) AS latest_detection
+FROM {catalog}.{feature_schema}.dbr_migration_predictions
+WHERE prediction >= 2
+  AND scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+""",
+            "threshold_column": "high_risk_count",
+            "threshold_operator": ">",
+            "threshold_value_type": "DOUBLE",
+            "threshold_value_double": 0.0,
+            "empty_result_state": "OK",
+            "aggregation_type": "FIRST",
+            "schedule_cron": "0 0 8 * * 1",
+            "schedule_timezone": "America/Los_Angeles",
+            "pause_status": "PAUSED",
+            "is_enabled": True,
+            "notification_channels": ["default_email"],
+            "notify_on_ok": False,
+            "retrigger_seconds": 604800,
+            "owner": "platform-team@company.com",
+            "tags": {
+                "source": "ml_prediction",
+                "ml_model": "dbr_migration_risk_scorer",
+                "ml_type": "lightgbm_classifier",
+                "priority": "medium",
+            },
+        },
+
+        # ML-PERF-004: Cluster Capacity Warning
+        {
+            "alert_id": "ML-PERF-004",
+            "alert_name": "ML Cluster Capacity Warning",
+            "alert_description": (
+                "Fires when the cluster_capacity_planner model predicts "
+                "insufficient capacity (prediction < 0.4, indicating high "
+                "under-provisioning risk) for any cluster in the last 24 "
+                "hours. Business: pre-scale before jobs fail due to resource "
+                "starvation. Technical: queries cluster_capacity_predictions, "
+                "low score = likely capacity shortfall."
+            ),
+            "agent_domain": "PERFORMANCE",
+            "severity": "WARNING",
+            "alert_query_template": f"""
+SELECT
+    COUNT(*) AS capacity_warning_count,
+    COUNT(DISTINCT cluster_id) AS affected_clusters,
+    ROUND(MIN(prediction), 3) AS lowest_capacity_score,
+    MAX(scored_at) AS latest_detection
+FROM {catalog}.{feature_schema}.cluster_capacity_predictions
+WHERE prediction < 0.4
+  AND scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+""",
+            "threshold_column": "capacity_warning_count",
+            "threshold_operator": ">",
+            "threshold_value_type": "DOUBLE",
+            "threshold_value_double": 0.0,
+            "empty_result_state": "OK",
+            "aggregation_type": "FIRST",
+            "schedule_cron": "0 0 */6 * * ?",
+            "schedule_timezone": "America/Los_Angeles",
+            "pause_status": "PAUSED",
+            "is_enabled": True,
+            "notification_channels": ["default_email"],
+            "notify_on_ok": False,
+            "retrigger_seconds": 21600,
+            "owner": "platform-team@company.com",
+            "tags": {
+                "source": "ml_prediction",
+                "ml_model": "cluster_capacity_planner",
+                "ml_type": "gradient_boosting",
+                "priority": "medium",
+            },
+        },
+
         # ==================================================================
-        # RELIABILITY DOMAIN (2 alerts)
+        # RELIABILITY DOMAIN (3 alerts)
         # ==================================================================
         {
             "alert_id": "ML-REL-001",
@@ -351,6 +537,52 @@ WHERE prediction = 1
                 "ml_model": "sla_breach_predictor",
                 "ml_type": "xgb_classifier",
                 "priority": "medium",
+            },
+        },
+
+        # ML-REL-003: Pipeline Health Degradation
+        {
+            "alert_id": "ML-REL-003",
+            "alert_name": "ML Pipeline Health Degradation",
+            "alert_description": (
+                "Fires when the pipeline_health_scorer model scores any "
+                "job/pipeline below 50 (Poor or Critical health) in the "
+                "last 24 hours. Business: leading indicator that fires "
+                "before cascading job failures; provides a holistic "
+                "pipeline view unlike per-job failure alerts. Technical: "
+                "queries pipeline_health_predictions, score 0-100."
+            ),
+            "agent_domain": "RELIABILITY",
+            "severity": "WARNING",
+            "alert_query_template": f"""
+SELECT
+    COUNT(*) AS unhealthy_pipeline_count,
+    COUNT(DISTINCT job_id) AS affected_jobs,
+    ROUND(MIN(prediction), 1) AS lowest_health_score,
+    MAX(scored_at) AS latest_detection
+FROM {catalog}.{feature_schema}.pipeline_health_predictions
+WHERE prediction < 50
+  AND scored_at >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+""",
+            "threshold_column": "unhealthy_pipeline_count",
+            "threshold_operator": ">",
+            "threshold_value_type": "DOUBLE",
+            "threshold_value_double": 0.0,
+            "empty_result_state": "OK",
+            "aggregation_type": "FIRST",
+            "schedule_cron": "0 0 */6 * * ?",
+            "schedule_timezone": "America/Los_Angeles",
+            "pause_status": "PAUSED",
+            "is_enabled": True,
+            "notification_channels": ["default_email"],
+            "notify_on_ok": False,
+            "retrigger_seconds": 21600,
+            "owner": "sre-team@company.com",
+            "tags": {
+                "source": "ml_prediction",
+                "ml_model": "pipeline_health_scorer",
+                "ml_type": "gradient_boosting",
+                "priority": "high",
             },
         },
 
@@ -443,27 +675,24 @@ WHERE prediction < 0.5
     ]
 
 
-def insert_alerts(spark: SparkSession, catalog: str, gold_schema: str, alerts: List[Dict[str, Any]]) -> int:
-    """Insert alerts into alert_configurations table (skip if exists)."""
+def upsert_alerts(spark: SparkSession, catalog: str, gold_schema: str, alerts: List[Dict[str, Any]]) -> tuple:
+    """Upsert ML alerts into alert_configurations table.
+
+    Uses MERGE to insert new alerts and update existing ones so that
+    re-running the seed fixes broken queries from prior deployments.
+    """
     cfg_table = f"{catalog}.{gold_schema}.alert_configurations"
 
     inserted = 0
-    skipped = 0
+    updated = 0
+    errors = 0
 
     for alert in alerts:
         alert_id = alert["alert_id"]
 
-        exists = spark.sql(f"""
-            SELECT 1 FROM {cfg_table} WHERE alert_id = '{alert_id}'
-        """).count() > 0
-
-        if exists:
-            print(f"  SKIP: {alert_id} (already exists)")
-            skipped += 1
-            continue
-
         query_escaped = alert["alert_query_template"].replace("'", "''")
         description_escaped = alert.get("alert_description", "").replace("'", "''")
+        name_escaped = alert["alert_name"].replace("'", "''")
 
         tags = alert.get("tags", {})
         tags_sql = ", ".join([f"'{k}', '{v}'" for k, v in tags.items()])
@@ -479,8 +708,27 @@ def insert_alerts(spark: SparkSession, catalog: str, gold_schema: str, alerts: L
         threshold_double = alert.get("threshold_value_double")
         threshold_double_sql = str(threshold_double) if threshold_double is not None else "NULL"
 
-        insert_sql = f"""
-INSERT INTO {cfg_table} (
+        merge_sql = f"""
+MERGE INTO {cfg_table} AS target
+USING (SELECT '{alert_id}' AS alert_id) AS source
+ON target.alert_id = source.alert_id
+WHEN MATCHED THEN UPDATE SET
+    alert_name = '{name_escaped}',
+    alert_description = '{description_escaped}',
+    agent_domain = '{alert["agent_domain"]}',
+    severity = '{alert["severity"]}',
+    alert_query_template = '{query_escaped}',
+    threshold_column = '{alert["threshold_column"]}',
+    threshold_operator = '{alert["threshold_operator"]}',
+    threshold_value_type = '{alert["threshold_value_type"]}',
+    threshold_value_double = {threshold_double_sql},
+    empty_result_state = '{alert["empty_result_state"]}',
+    aggregation_type = '{alert.get("aggregation_type", "NONE")}',
+    schedule_cron = '{alert["schedule_cron"]}',
+    schedule_timezone = '{alert["schedule_timezone"]}',
+    owner = '{alert["owner"]}',
+    tags = {tags_expr}
+WHEN NOT MATCHED THEN INSERT (
     alert_id, alert_name, alert_description, agent_domain, severity,
     alert_query_template, query_source, source_artifact_name,
     threshold_column, threshold_operator, threshold_value_type,
@@ -491,8 +739,8 @@ INSERT INTO {cfg_table} (
     use_custom_template, custom_subject_template, custom_body_template,
     owner, created_by, created_at, tags
 ) VALUES (
-    '{alert["alert_id"]}',
-    '{alert["alert_name"]}',
+    '{alert_id}',
+    '{name_escaped}',
     '{description_escaped}',
     '{alert["agent_domain"]}',
     '{alert["severity"]}',
@@ -524,13 +772,19 @@ INSERT INTO {cfg_table} (
 )
 """
         try:
-            spark.sql(insert_sql)
-            print(f"  INSERT: {alert_id} - {alert['alert_name']}")
-            inserted += 1
+            result = spark.sql(merge_sql)
+            metrics = result.first()
+            if metrics and metrics["num_inserted_rows"] > 0:
+                print(f"  INSERT: {alert_id} - {alert['alert_name']}")
+                inserted += 1
+            else:
+                print(f"  UPDATE: {alert_id} - {alert['alert_name']}")
+                updated += 1
         except Exception as e:
             print(f"  ERROR: {alert_id} - {str(e)[:200]}")
+            errors += 1
 
-    return inserted
+    return inserted, updated, errors
 
 
 def main() -> None:
@@ -563,16 +817,21 @@ def main() -> None:
         print(f"  {domain}: {domain_count}")
     print("")
 
-    print("Inserting ML alerts:")
-    inserted = insert_alerts(spark, catalog, gold_schema, alerts)
+    print("Upserting ML alerts:")
+    inserted, updated, errors = upsert_alerts(spark, catalog, gold_schema, alerts)
 
     print("")
     print("=" * 80)
-    print(f"Inserted {inserted} new ML alerts")
-    print(f"  Skipped {len(alerts) - inserted} existing alerts")
+    print(f"✓ Inserted {inserted} new ML alerts")
+    print(f"  Updated {updated} existing ML alerts")
+    if errors:
+        print(f"  ❌ {errors} errors")
     print("=" * 80)
 
-    dbutils.notebook.exit(f"SUCCESS: Inserted {inserted} ML alerts")
+    if errors:
+        raise RuntimeError(f"Failed to upsert {errors} ML alert(s)")
+
+    dbutils.notebook.exit(f"SUCCESS: {inserted} inserted, {updated} updated")
 
 
 if __name__ == "__main__":

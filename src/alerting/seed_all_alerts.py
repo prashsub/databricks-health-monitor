@@ -694,12 +694,12 @@ def get_performance_alerts(catalog: str, gold_schema: str) -> List[Dict[str, Any
 WITH current_p95 AS (
     SELECT PERCENTILE(total_duration_ms / 1000.0, 0.95) AS p95_sec
     FROM {catalog}.{gold_schema}.fact_query_history
-    WHERE query_start_time >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
+    WHERE start_time >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
 ),
 baseline_p95 AS (
     SELECT PERCENTILE(total_duration_ms / 1000.0, 0.95) AS p95_sec
     FROM {catalog}.{gold_schema}.fact_query_history
-    WHERE query_start_time BETWEEN CURRENT_TIMESTAMP() - INTERVAL 8 DAYS AND CURRENT_TIMESTAMP() - INTERVAL 1 DAY
+    WHERE start_time BETWEEN CURRENT_TIMESTAMP() - INTERVAL 8 DAYS AND CURRENT_TIMESTAMP() - INTERVAL 1 DAY
 )
 SELECT 
     current_p95.p95_sec AS current_p95,
@@ -734,7 +734,7 @@ WHERE current_p95.p95_sec > baseline_p95.p95_sec * 2
             "alert_query_template": f"""
 SELECT AVG(waiting_at_capacity_duration_ms / 1000.0) AS avg_queue_seconds
 FROM {catalog}.{gold_schema}.fact_query_history
-WHERE query_start_time >= CURRENT_TIMESTAMP() - INTERVAL 15 MINUTES
+WHERE start_time >= CURRENT_TIMESTAMP() - INTERVAL 15 MINUTES
   AND waiting_at_capacity_duration_ms > 0
 """,
             "threshold_column": "avg_queue_seconds",
@@ -762,10 +762,10 @@ WHERE query_start_time >= CURRENT_TIMESTAMP() - INTERVAL 15 MINUTES
             "severity": "WARNING",
             "alert_query_template": f"""
 SELECT
-    SUM(CASE WHEN (COALESCE(spill_local_bytes, 0) + COALESCE(spill_remote_bytes, 0)) > 0 THEN 1 ELSE 0 END) * 100.0 /
+    SUM(CASE WHEN COALESCE(spilled_local_bytes, 0) > 0 THEN 1 ELSE 0 END) * 100.0 /
     NULLIF(COUNT(*), 0) AS spill_rate_pct
 FROM {catalog}.{gold_schema}.fact_query_history
-WHERE query_start_time >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
+WHERE start_time >= DATE_ADD(CURRENT_TIMESTAMP(), -1)
 """,
             "threshold_column": "spill_rate_pct",
             "threshold_operator": ">",
@@ -795,7 +795,7 @@ SELECT
     SUM(CASE WHEN waiting_at_capacity_duration_ms > total_duration_ms * 0.1 THEN 1 ELSE 0 END) * 100.0 /
     NULLIF(COUNT(*), 0) AS high_queue_rate
 FROM {catalog}.{gold_schema}.fact_query_history
-WHERE query_start_time >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
+WHERE start_time >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
   AND total_duration_ms > 1000
 """,
             "threshold_column": "high_queue_rate",
@@ -824,13 +824,13 @@ WHERE query_start_time >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
             "alert_query_template": f"""
 SELECT
     SUM(CASE
-        WHEN (COALESCE(spill_local_bytes, 0) + COALESCE(spill_remote_bytes, 0)) > 0
+        WHEN COALESCE(spilled_local_bytes, 0) > 0
           OR waiting_at_capacity_duration_ms > 30000
           OR total_duration_ms > 300000
         THEN 1 ELSE 0
     END) * 100.0 / NULLIF(COUNT(*), 0) AS inefficient_rate
 FROM {catalog}.{gold_schema}.fact_query_history
-WHERE query_start_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS
+WHERE start_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS
   AND total_duration_ms > 1000
 """,
             "threshold_column": "inefficient_rate",
@@ -859,7 +859,7 @@ WHERE query_start_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS
             "alert_query_template": f"""
 SELECT COUNT(*) AS long_running_count
 FROM {catalog}.{gold_schema}.fact_query_history
-WHERE query_start_time >= CURRENT_TIMESTAMP() - INTERVAL 5 MINUTES
+WHERE start_time >= CURRENT_TIMESTAMP() - INTERVAL 5 MINUTES
   AND total_duration_ms >= 60000
 """,
             "threshold_column": "long_running_count",
@@ -1166,22 +1166,23 @@ WHERE pressure_pct > 30
 def get_quality_alerts(catalog: str, gold_schema: str) -> List[Dict[str, Any]]:
     """Return all Quality agent alerts."""
     return [
-        # QUAL-001: Quality Score Drop
+        # QUAL-001: Data Quality Status Degraded
         {
             "alert_id": "QUAL-001",
-            "alert_name": "Data Quality Score Drop",
-            "alert_description": "Alerts when overall data quality score drops below 0.9. Business: Data reliability. Technical: Based on DQ monitoring results.",
+            "alert_name": "Data Quality Status Degraded",
+            "alert_description": "Alerts when more than 10% of monitored tables have non-HEALTHY status. Business: Data reliability across the platform. Technical: Based on fact_data_quality_monitoring_table_results status column.",
             "agent_domain": "QUALITY",
             "severity": "WARNING",
             "alert_query_template": f"""
-SELECT AVG(quality_score) AS avg_quality_score
-FROM {catalog}.{gold_schema}.fact_data_quality_monitoring
-WHERE evaluation_date = DATE_ADD(CURRENT_DATE(), -1)
+SELECT
+    ROUND(SUM(CASE WHEN status != 'HEALTHY' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS unhealthy_pct
+FROM {catalog}.{gold_schema}.fact_data_quality_monitoring_table_results
+WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 24 HOURS
 """,
-            "threshold_column": "avg_quality_score",
-            "threshold_operator": "<",
+            "threshold_column": "unhealthy_pct",
+            "threshold_operator": ">",
             "threshold_value_type": "DOUBLE",
-            "threshold_value_double": 0.9,
+            "threshold_value_double": 10.0,
             "empty_result_state": "OK",
             "aggregation_type": "FIRST",
             "schedule_cron": "0 0 * * * ?",
@@ -1309,53 +1310,65 @@ def get_all_alerts(catalog: str, gold_schema: str) -> List[Dict[str, Any]]:
     )
 
 
-def insert_alerts(spark: SparkSession, catalog: str, gold_schema: str, alerts: List[Dict[str, Any]]) -> int:
-    """Insert alerts into alert_configurations table."""
+def upsert_alerts(spark: SparkSession, catalog: str, gold_schema: str, alerts: List[Dict[str, Any]]) -> tuple:
+    """Upsert alerts into alert_configurations table.
+
+    Uses MERGE to insert new alerts and update existing ones.
+    This ensures re-running the seed fixes broken queries from
+    previous deployments without losing manual config changes
+    to fields not managed here (e.g. pause_status toggled in UI).
+    """
     cfg_table = f"{catalog}.{gold_schema}.alert_configurations"
-    
+
     inserted = 0
-    skipped = 0
-    
+    updated = 0
+    errors = 0
+
     for alert in alerts:
         alert_id = alert["alert_id"]
-        
-        # Check if alert already exists
-        exists = spark.sql(f"""
-            SELECT 1 FROM {cfg_table} WHERE alert_id = '{alert_id}'
-        """).count() > 0
-        
-        if exists:
-            print(f"  SKIP: {alert_id} (already exists)")
-            skipped += 1
-            continue
-        
-        # Escape query template for SQL insertion
+
         query_escaped = alert["alert_query_template"].replace("'", "''")
         description_escaped = alert.get("alert_description", "").replace("'", "''")
-        
-        # Build tags map
+        name_escaped = alert["alert_name"].replace("'", "''")
+
         tags = alert.get("tags", {})
         tags_sql = ", ".join([f"'{k}', '{v}'" for k, v in tags.items()])
         tags_expr = f"map({tags_sql})" if tags_sql else "map()"
-        
-        # Build notification channels array
+
         channels = alert.get("notification_channels", ["default_email"])
         channels_sql = ", ".join([f"'{c}'" for c in channels])
         channels_expr = f"array({channels_sql})"
-        
-        # Handle nullable fields
+
         retrigger = alert.get("retrigger_seconds")
         retrigger_sql = str(retrigger) if retrigger is not None else "NULL"
-        
+
         threshold_double = alert.get("threshold_value_double")
         threshold_double_sql = str(threshold_double) if threshold_double is not None else "NULL"
-        
-        # Insert statement
-        insert_sql = f"""
-INSERT INTO {cfg_table} (
+
+        merge_sql = f"""
+MERGE INTO {cfg_table} AS target
+USING (SELECT '{alert_id}' AS alert_id) AS source
+ON target.alert_id = source.alert_id
+WHEN MATCHED THEN UPDATE SET
+    alert_name = '{name_escaped}',
+    alert_description = '{description_escaped}',
+    agent_domain = '{alert["agent_domain"]}',
+    severity = '{alert["severity"]}',
+    alert_query_template = '{query_escaped}',
+    threshold_column = '{alert["threshold_column"]}',
+    threshold_operator = '{alert["threshold_operator"]}',
+    threshold_value_type = '{alert["threshold_value_type"]}',
+    threshold_value_double = {threshold_double_sql},
+    empty_result_state = '{alert["empty_result_state"]}',
+    aggregation_type = '{alert.get("aggregation_type", "NONE")}',
+    schedule_cron = '{alert["schedule_cron"]}',
+    schedule_timezone = '{alert["schedule_timezone"]}',
+    owner = '{alert["owner"]}',
+    tags = {tags_expr}
+WHEN NOT MATCHED THEN INSERT (
     alert_id, alert_name, alert_description, agent_domain, severity,
     alert_query_template, query_source, source_artifact_name,
-    threshold_column, threshold_operator, threshold_value_type, 
+    threshold_column, threshold_operator, threshold_value_type,
     threshold_value_double, threshold_value_string, threshold_value_bool,
     empty_result_state, aggregation_type,
     schedule_cron, schedule_timezone, pause_status, is_enabled,
@@ -1363,8 +1376,8 @@ INSERT INTO {cfg_table} (
     use_custom_template, custom_subject_template, custom_body_template,
     owner, created_by, created_at, tags
 ) VALUES (
-    '{alert["alert_id"]}',
-    '{alert["alert_name"]}',
+    '{alert_id}',
+    '{name_escaped}',
     '{description_escaped}',
     '{alert["agent_domain"]}',
     '{alert["severity"]}',
@@ -1396,13 +1409,19 @@ INSERT INTO {cfg_table} (
 )
 """
         try:
-            spark.sql(insert_sql)
-            print(f"  INSERT: {alert_id} - {alert['alert_name']}")
-            inserted += 1
+            result = spark.sql(merge_sql)
+            metrics = result.first()
+            if metrics and metrics["num_inserted_rows"] > 0:
+                print(f"  INSERT: {alert_id} - {alert['alert_name']}")
+                inserted += 1
+            else:
+                print(f"  UPDATE: {alert_id} - {alert['alert_name']}")
+                updated += 1
         except Exception as e:
-            print(f"  ERROR: {alert_id} - {str(e)[:100]}")
-    
-    return inserted
+            print(f"  ERROR: {alert_id} - {str(e)[:200]}")
+            errors += 1
+
+    return inserted, updated, errors
 
 
 def main() -> None:
@@ -1435,17 +1454,22 @@ def main() -> None:
         print(f"  {domain}: {count}")
     print("")
     
-    # Insert alerts
-    print("Inserting alerts:")
-    inserted = insert_alerts(spark, catalog, gold_schema, alerts)
-    
+    # Upsert alerts (insert new, update existing query templates)
+    print("Upserting alerts:")
+    inserted, updated, errors = upsert_alerts(spark, catalog, gold_schema, alerts)
+
     print("")
     print("=" * 80)
     print(f"✓ Inserted {inserted} new alerts")
-    print(f"  Skipped {len(alerts) - inserted} existing alerts")
+    print(f"  Updated {updated} existing alerts")
+    if errors:
+        print(f"  ❌ {errors} errors")
     print("=" * 80)
-    
-    dbutils.notebook.exit(f"SUCCESS: Inserted {inserted} alerts")
+
+    if errors:
+        raise RuntimeError(f"Failed to upsert {errors} alert(s)")
+
+    dbutils.notebook.exit(f"SUCCESS: {inserted} inserted, {updated} updated")
 
 
 if __name__ == "__main__":

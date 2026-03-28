@@ -3,16 +3,16 @@
 #
 # Seeds ML-driven alert configurations into the alert_configurations table.
 # These alerts query ML prediction tables in the feature_schema for
-# anomaly detections and high-risk predictions.
+# anomaly detections, high-risk predictions, and leading indicators.
 #
-# Alert Domains:
-# - COST (1): Cost anomaly via IsolationForest
-# - SECURITY (2): Security threats, data exfiltration via IsolationForest
-# - PERFORMANCE (1): Performance regression via IsolationForest
-# - RELIABILITY (2): Job failure risk, SLA breach risk via XGBClassifier
+# Alert Domains (14 total):
+# - COST (2): Cost anomaly, projected budget overspend
+# - SECURITY (3): Security threats, data exfiltration, privilege escalation
+# - PERFORMANCE (4): Regression, warehouse opt, DBR migration, capacity
+# - RELIABILITY (3): Job failure risk, SLA breach, pipeline health
 # - QUALITY (2): Data drift, freshness degradation
 #
-# All alerts start PAUSED and at WARNING severity (conservative).
+# All alerts start PAUSED (enable selectively after validation).
 #
 # Usage:
 #   databricks bundle run -t dev alerting_ml_seed_job
@@ -21,7 +21,7 @@ resources:
   jobs:
     alerting_ml_seed_job:
       name: "[${bundle.target}] Health Monitor - Alerting ML Seed Configurations"
-      description: "Atomic job: Seeds ML-driven alert configurations (8 conservative alerts from prediction tables)"
+      description: "Atomic job: Seeds ML-driven alert configurations (14 alerts from prediction tables)"
 
       environments:
         - environment_key: default
